@@ -1,0 +1,35 @@
+{
+  "name": "hevc-rebuild-studio",
+  "version": "1.3.0",
+  "description": "Ubuntu desktop studio for safe HEVC library rebuilds",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || ^26.0.0"
+  },
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.48.0",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.3"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tauri-apps/cli": "^2.11.5",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.7.6",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0"
+  }
+}

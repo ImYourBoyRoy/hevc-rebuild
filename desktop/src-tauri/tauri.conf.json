@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HEVC Rebuild Studio",
+  "version": "1.3.0",
+  "identifier": "org.hevcrebuild.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "HEVC Rebuild Studio",
+        "width": 1460,
+        "height": 940,
+        "minWidth": 1120,
+        "minHeight": 720
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' asset:; connect-src ipc: http://ipc.localhost; font-src 'self' asset: data:; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline' asset:; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "linux": {
+      "deb": {
+        "depends": ["python3"]
+      }
+    },
+    "resources": {
+      "../../hevc_rebuild/*.py": "engine/hevc_rebuild/"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

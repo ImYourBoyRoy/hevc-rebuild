@@ -1,0 +1,67 @@
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+node_modules/
+.svelte-kit/
+target/
+*.log
+coverage.xml
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Local credentials and user/library settings
+.env
+.env.*
+!.env.example
+.hevc-rebuild.toml
+settings.local.json
+calibration.json
+
+# Generated frontend and native build output
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+
+# Local run data and portable application sidecars
+logs/
+reports/
+old/
+*.AppImage
+*.AppImage.data/
+*.deb
+*.rpm
+*.exe
+*.msi
+*.dmg
+*.pkg
+*.app/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+
+# OS/editor/temp files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+*.tmp
+*~
+
+# Keep source archives out of the source repository; publish release bundles separately.
+/HEVC-Rebuild-*.zip

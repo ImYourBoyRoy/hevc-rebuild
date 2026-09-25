@@ -1,0 +1,35 @@
+[package]
+name = "hevc-rebuild-studio"
+version = "1.3.0"
+description = "Ubuntu desktop interface for safe HEVC media rebuilds"
+authors = []
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "hevc_rebuild_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "^2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "^2.11.6", features = [] }
+tauri-plugin-dialog = "^2.7.3"
+serde = { version = "^1.0.229", features = ["derive"] }
+serde_json = "^1.0.151"
+rmcp = { version = "^3.4.1", features = ["schemars", "transport-io"] }
+tokio = { version = "^1.53.1", features = ["macros", "rt-multi-thread", "io-std", "io-util", "sync"] }
+
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
