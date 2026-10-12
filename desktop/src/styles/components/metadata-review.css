@@ -1,0 +1,124 @@
+/* Poster-first review used when a library card opens one film. */
+
+.app-shell .review-studio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 4px 0 12px;
+}
+.app-shell .review-poster-column { display: grid; gap: 10px; align-content: start; justify-items: stretch; flex: 0 0 240px; width: 240px; min-width: 240px; overflow: hidden; }
+.app-shell .review-poster-stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid var(--theme-line);
+  border-radius: 16px;
+  color: var(--theme-muted);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--theme-accent) 16%, transparent), transparent 42%),
+    var(--theme-surface);
+  box-shadow: var(--theme-shadow);
+}
+.app-shell .review-poster-stage:not(:has(img)) { display: grid; place-items: center; align-content: center; gap: 8px; }
+.app-shell .review-poster-stage img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.app-shell .review-poster-stage strong { font-size: 15px; }
+.app-shell .review-poster-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  max-height: 212px;
+  overflow: auto;
+  padding-bottom: 4px;
+}
+.app-shell .review-poster-rail button {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 96px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  color: var(--theme-muted);
+  background: var(--theme-raised);
+  cursor: pointer;
+}
+.app-shell .review-poster-rail button.is-selected { border-color: var(--theme-accent); }
+.app-shell .review-poster-rail img { width: 100%; height: 100%; object-fit: cover; }
+.app-shell .review-poster-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 0 100%; }
+.app-shell .review-poster-actions .button { width: auto; }
+.app-shell .review-note,
+.app-shell .review-status { margin: 0; color: var(--theme-muted); font-size: 13px; }
+.app-shell .review-status { display: flex; align-items: center; gap: 8px; }
+.app-shell .review-fields { display: grid; gap: 12px; flex: 1 1 360px; min-width: 280px; }
+.app-shell .review-fields label,
+.app-shell .review-more label { display: grid; gap: 6px; color: var(--theme-muted); font-size: 12px; font-weight: 700; }
+.app-shell .review-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.app-shell .review-fields label.review-animated { display: flex; align-items: center; gap: 10px; width: fit-content; color: var(--theme-text); font-size: 14px; font-weight: 700; }
+.app-shell .review-fields label.review-animated input { width: 18px; height: 18px; min-height: 18px; margin: 0; padding: 0; border: 0; border-radius: 4px; background: transparent; accent-color: var(--theme-accent); }
+.app-shell .review-fields label.review-animated span { display: inline-flex; align-items: baseline; gap: 8px; }
+.app-shell .review-animated small { color: var(--theme-muted); font-size: 12px; font-weight: 500; }
+.app-shell .review-fields input::placeholder,
+.app-shell .review-fields textarea::placeholder { color: var(--theme-muted); }
+.app-shell .review-fields input:not([type="checkbox"]),
+.app-shell .review-fields textarea,
+.app-shell .review-more input {
+  width: 100%;
+  border: 1px solid var(--theme-line);
+  border-radius: 10px;
+  color: var(--theme-text);
+  background: var(--theme-raised);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+}
+.app-shell .review-fields input:not([type="checkbox"]),
+.app-shell .review-more input { min-height: 42px; padding: 8px 12px; }
+.app-shell .review-fields .review-plot textarea { height: 9.5rem; min-height: 9.5rem; padding: 10px 12px; resize: vertical; }
+.app-shell .review-fields > label:first-child input { font-size: 22px; font-weight: 700; }
+.app-shell .review-other-matches,
+.app-shell .review-more {
+  border: 1px solid var(--theme-line);
+  border-radius: 12px;
+  background: var(--theme-surface);
+}
+.app-shell .review-other-matches summary,
+.app-shell .review-more summary { padding: 10px 12px; color: var(--theme-text); font-weight: 700; cursor: pointer; }
+.app-shell .review-more label { padding: 0 12px 12px; }
+.app-shell .review-match-rail { display: grid; gap: 8px; padding: 0 12px 12px; }
+.app-shell .review-match-rail button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid var(--theme-line);
+  border-radius: 10px;
+  color: var(--theme-text);
+  background: var(--theme-raised);
+  text-align: left;
+  cursor: pointer;
+}
+.app-shell .review-match-rail img { width: 42px; height: 63px; object-fit: cover; border-radius: 6px; }
+.app-shell .review-match-rail span { overflow-wrap: anywhere; }
+.app-shell .review-media-info { flex: 1 0 100%; }
+.app-shell .review-media-file { border-top: 1px solid var(--theme-line); }
+.app-shell .review-media-file summary { display: grid; gap: 2px; padding: 10px 12px; }
+.app-shell .review-media-file small { color: var(--theme-muted); font-weight: 500; }
+.app-shell .review-media-facts { display: grid; gap: 6px; padding: 0 12px 12px; }
+.app-shell .review-media-facts p { margin: 0; color: var(--theme-text); font-size: 13px; }
+.app-shell .review-kicker { margin: 0; color: var(--theme-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.app-shell .review-fields h3 { margin: 0; color: var(--theme-text); font-size: 28px; line-height: 1.15; }
+.app-shell .review-plot-text { margin: 0; color: var(--theme-text); font-size: 15px; line-height: 1.5; }
+.app-shell .metadata-focused-review .metadata-grid:not(:has(.metadata-search-active)),
+.app-shell .metadata-focused-review .metadata-focused-rename,
+.app-shell .metadata-focused-review .metadata-boundary { display: none; }
+
+@media (max-width: 760px) {
+  .app-shell .review-poster-column { flex-basis: 100%; width: min(240px, 100%); min-width: 0; }
+  .app-shell .review-fields { min-width: 0; }
+}

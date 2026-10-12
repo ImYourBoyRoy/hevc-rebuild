@@ -93,6 +93,8 @@ class MetadataResult:
     nfo_path: Path | None
     poster_path: Path | None
     expected_global_tags: dict[str, str] = field(default_factory=dict)
+    scrubbed_text_values: list[dict[str, Any]] = field(default_factory=list)
+    chapter_text_edits: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

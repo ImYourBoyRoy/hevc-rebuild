@@ -10,6 +10,7 @@ from hevc_rebuild import config, deps
 from hevc_rebuild.probe import _dovi_configuration
 from hevc_rebuild.hdr import _pipe_close_is_expected, dolbyvision_hdr10_fallback_reasons
 from hevc_rebuild.content import resolve_tune
+from hevc_rebuild.util import RebuildError
 
 
 class ConfigTests(unittest.TestCase):
@@ -19,6 +20,32 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.DEFAULTS["video"]["promote_8bit_to_10bit"])
         self.assertEqual(config.DEFAULTS["hdr"]["dolby_vision"], "safe")
         self.assertTrue(config.DEFAULTS["hdr"]["preserve_hdr10plus"])
+        self.assertEqual(config.DEFAULTS["metadata"]["text_blacklist"], [])
+
+    def test_metadata_blacklist_validates_as_individual_patterns(self):
+        self.assertEqual(config.validate_metadata_text_blacklist(["Movie*Group", "Explicit"]), ["Movie*Group", "Explicit"])
+        for invalid in ("", "***", " Movie", "Movie ", "x" * 129):
+            with self.subTest(invalid=invalid), self.assertRaises(RebuildError):
+                config.validate_metadata_text_blacklist([invalid])
+        with self.assertRaises(RebuildError):
+            config.validate_metadata_text_blacklist(["Movie*Group", "movie*group"])
+
+    def test_cli_blacklist_patterns_add_to_config_patterns(self):
+        from hevc_rebuild.app import parser
+        args = parser().parse_args([".", "--metadata-text-blacklist", "Movie*Group", "--metadata-text-blacklist", "SpoilerTag"])
+        cfg = {**config.DEFAULTS, "metadata": {**config.DEFAULTS["metadata"], "text_blacklist": ["ReleaseGroup"]}}
+        config.apply_to_args(args, cfg)
+        self.assertEqual(args.metadata_text_blacklist, ["ReleaseGroup", "Movie*Group", "SpoilerTag"])
+
+    def test_internal_settings_forwarding_replaces_the_loaded_pattern_list(self):
+        from hevc_rebuild.app import parser
+        args = parser().parse_args([".", "--replace-metadata-text-blacklist", "--metadata-text-blacklist", "Movie*Group"])
+        cfg = {**config.DEFAULTS, "metadata": {**config.DEFAULTS["metadata"], "text_blacklist": ["ReleaseGroup"]}}
+        config.apply_to_args(args, cfg)
+        self.assertEqual(args.metadata_text_blacklist, ["Movie*Group"])
+        cleared = parser().parse_args([".", "--replace-metadata-text-blacklist"])
+        config.apply_to_args(cleared, cfg)
+        self.assertEqual(cleared.metadata_text_blacklist, [])
 
     def test_local_config_overrides_user_defaults(self):
         with tempfile.TemporaryDirectory() as td:
@@ -40,7 +67,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(parsed["calibration"]["max_candidates"], 2)
         self.assertEqual(parsed["resources"]["reserved_cpu_threads"], 1)
         self.assertEqual(parsed["resources"]["memory_reserve_percent"], 8.0)
-        self.assertEqual(parsed["resources"]["min_free_disk_gib"], 8.0)
+        self.assertEqual(parsed["resources"]["min_free_disk_gib"], 0.0)
+        self.assertEqual(parsed["metadata"]["text_blacklist"], [])
 
     def test_old_resource_config_migrates_without_overwriting_choices(self):
         import tomllib
@@ -60,7 +88,7 @@ crf = 19
         self.assertEqual(parsed["resources"]["frame_threads"], 1)
         self.assertEqual(parsed["video"]["crf"], 19)
         self.assertEqual(parsed["resources"]["reserved_cpu_threads"], 1)
-        self.assertEqual(parsed["resources"]["min_free_disk_gib"], 8.0)
+        self.assertEqual(parsed["resources"]["min_free_disk_gib"], 0.0)
         self.assertEqual(parsed["calibration"]["mode"], "auto")
 
     def test_migration_preserves_existing_calibration_choices(self):
@@ -90,7 +118,7 @@ disk_projection_margin_percent = 15.0
         args = SimpleNamespace(
             crf=19, preset=None, promote_8bit_to_10bit=None, tune=None, detect_animation=None,
             preserve_hdr10plus=None, dolby_vision_policy=None, secondary_video=None, data_streams=None,
-            comment=None, verify_copy_hashes=None,
+            comment=None, metadata_text_blacklist=None, verify_copy_hashes=None,
         )
         config.apply_to_args(args, config.DEFAULTS)
         self.assertEqual(args.crf, 19)

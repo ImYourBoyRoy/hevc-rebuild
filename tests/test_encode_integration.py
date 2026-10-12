@@ -94,6 +94,34 @@ class EncodeIntegrationTests(unittest.TestCase):
             self.assertEqual(stream_copy_hash(tools, src, "s:0"), stream_copy_hash(tools, out, "s:0"))
             self.assertEqual(stream_copy_hash(tools, src, "v:0"), stream_copy_hash(tools, out, "v:1"))
 
+            # Explicit per-file selection can encode both the 4K-like primary and secondary video
+            # in one MKV while the selected audio and subtitle tracks remain packet-identical.
+            out_both = td / "output-both.mkv"
+            selected_videos = [primary, *secondary]
+            selected_streams = [*selected_videos, *profile.audio, *profile.subtitles]
+            both_args, _ = encode_args(
+                tools, profile, out_both, crf=30, preset="ultrafast", tune=None, hdr10plus_json=None,
+                preserve_dolbyvision=False, strip_dolbyvision=False, test_seconds=None,
+                preserve_source_level=False, disable_hdr10_opt=False, secondary_video_policy="copy",
+                data_policy="preserve", force_deinterlace=False, disable_deinterlace=False,
+                selected_streams=selected_streams,
+                video_profiles={stream.index: profile for stream in selected_videos},
+                encode_video_indices={stream.index for stream in selected_videos},
+            )
+            for progress_option in ("-progress", "-stats_period"):
+                option_index = both_args.index(progress_option)
+                del both_args[option_index:option_index + 2]
+            subprocess.run(both_args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            both_probe = json.loads(subprocess.run([
+                FFPROBE, "-v", "error", "-show_streams", "-of", "json", str(out_both)
+            ], check=True, stdout=subprocess.PIPE, text=True).stdout)
+            both_videos = [r for r in stream_refs(both_probe) if r.codec_type == "video" and not r.attached_pic]
+            self.assertEqual([(stream.width, stream.height, stream.codec_name) for stream in both_videos], [
+                (640, 360, "hevc"), (320, 180, "hevc"),
+            ])
+            self.assertEqual(stream_copy_hash(tools, src, "a:0"), stream_copy_hash(tools, out_both, "a:0"))
+            self.assertEqual(stream_copy_hash(tools, src, "s:0"), stream_copy_hash(tools, out_both, "s:0"))
+
 
 if __name__ == "__main__":
     unittest.main()

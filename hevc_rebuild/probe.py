@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from .model import MediaProfile, StreamRef, Toolchain
-from .util import RebuildError, run, run_json, safe_float, safe_int
+from .util import RebuildError, native_json_action, run, run_json, safe_float, safe_int
 
 
 def ffprobe_json(tools: Toolchain, path: Path) -> dict[str, Any]:
@@ -61,10 +62,15 @@ def stream_refs(probe: dict[str, Any]) -> list[StreamRef]:
     return result
 
 
-def choose_primary_video(refs: list[StreamRef]) -> tuple[StreamRef, list[StreamRef]]:
+def choose_primary_video(refs: list[StreamRef], preferred_index: int | None = None) -> tuple[StreamRef, list[StreamRef]]:
     videos = [s for s in refs if s.codec_type == "video" and not s.attached_pic and s.width > 0 and s.height > 0]
     if not videos:
         raise RebuildError("No usable video stream was found.")
+    if preferred_index is not None:
+        selected = next((stream for stream in videos if stream.index == preferred_index), None)
+        if selected is None:
+            raise RebuildError(f"Selected video stream #{preferred_index} is not a usable video stream.")
+        return selected, [stream for stream in videos if stream.index != selected.index]
     # Resolution dominates. This explicitly makes 3840x2160 win over 1920x1080 even if 1080p is marked default.
     selected = max(videos, key=lambda s: (s.pixels, s.width, s.height, int(s.default), s.bit_depth, -s.index))
     secondary = [s for s in videos if s.index != selected.index]
@@ -297,11 +303,19 @@ def _chroma_location(stream: dict[str, Any], mi_video: dict[str, Any]) -> int | 
     return int(m.group(1)) if m else None
 
 
-def build_profile(tools: Toolchain, path: Path, *, promote_8bit_to_10bit: bool = False) -> MediaProfile:
-    probe = ffprobe_json(tools, path)
+def build_profile(
+    tools: Toolchain,
+    path: Path,
+    *,
+    promote_8bit_to_10bit: bool = False,
+    video_stream_index: int | None = None,
+    probe_data: dict[str, Any] | None = None,
+    mediainfo_data: dict[str, Any] | None = None,
+) -> MediaProfile:
+    probe = probe_data if probe_data is not None else ffprobe_json(tools, path)
     refs = stream_refs(probe)
-    primary, secondary = choose_primary_video(refs)
-    mi = mediainfo_json(tools, path)
+    primary, secondary = choose_primary_video(refs, preferred_index=video_stream_index)
+    mi = mediainfo_data if mediainfo_data is not None else mediainfo_json(tools, path)
     mi_video = _selected_media_video(mi, primary)
 
     streams_by_index = {int(s.get("index", -1)): s for s in probe.get("streams", [])}
@@ -378,3 +392,221 @@ def build_profile(tools: Toolchain, path: Path, *, promote_8bit_to_10bit: bool =
         dovi_compatibility_id=dovi_compat, dovi_source=dovi_source, interlaced=interlaced,
         format_level=str(mi_video.get("Format_Level") or "") or None,
     )
+
+
+def _native_media_profile(
+    source: Path,
+    raw_probe: dict[str, Any],
+    media_info: dict[str, Any],
+    data: dict[str, Any],
+) -> MediaProfile:
+    video = data.get("video")
+    hdr = data.get("hdr")
+    if not isinstance(video, dict) or not isinstance(hdr, dict):
+        raise RebuildError("The Rust source-profile helper omitted video or HDR metadata.")
+    for name, value in (
+        ("hdr10", hdr.get("hdr10")),
+        ("hdr10plus_hint", hdr.get("hdr10plus_hint")),
+        ("hlg", hdr.get("hlg")),
+        ("dolby_vision", hdr.get("dolby_vision")),
+        ("dolby_vision_rpu", hdr.get("dolby_vision_rpu")),
+        ("dolby_vision_enhancement_layer", hdr.get("dolby_vision_enhancement_layer")),
+        ("dolby_vision_base_layer", hdr.get("dolby_vision_base_layer")),
+        ("interlaced", data.get("interlaced")),
+    ):
+        if not isinstance(value, bool):
+            raise RebuildError(f"The Rust source-profile helper returned an invalid {name} flag.")
+    index = data.get("primary_stream_index")
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise RebuildError("The Rust source-profile helper returned an invalid video stream index.")
+    refs = stream_refs(raw_probe)
+    streams_by_index = {stream.index: stream for stream in refs}
+    primary = streams_by_index.get(index)
+    if (
+        primary is None
+        or primary.codec_type != "video"
+        or primary.attached_pic
+        or primary.width <= 0
+        or primary.height <= 0
+    ):
+        raise RebuildError("The Rust source-profile helper selected an unusable video stream.")
+    duration = data.get("duration_seconds")
+    depth = video.get("source_bit_depth")
+    chroma = video.get("source_chroma")
+    target = video.get("target_pixel_format")
+    if (
+        not isinstance(duration, (int, float))
+        or isinstance(duration, bool)
+        or not math.isfinite(duration)
+        or duration <= 0
+        or not isinstance(depth, int)
+        or isinstance(depth, bool)
+        or depth not in {8, 10, 12, 14, 16}
+        or not isinstance(chroma, str)
+        or not chroma
+        or not isinstance(target, str)
+        or not target
+    ):
+        raise RebuildError("The Rust source-profile helper returned invalid video parameters.")
+    secondaries = [
+        stream
+        for stream in refs
+        if stream.codec_type == "video"
+        and not stream.attached_pic
+        and stream.width > 0
+        and stream.height > 0
+        and stream.index != primary.index
+    ]
+    optional_integer_fields = {
+        "chroma_location": data.get("chroma_location"),
+        "max_cll": data.get("max_cll"),
+        "max_fall": data.get("max_fall"),
+    }
+    for field_name, value in optional_integer_fields.items():
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+            raise RebuildError(f"The Rust source-profile helper returned an invalid {field_name}.")
+    dovi_values = {
+        "dovi_profile": hdr.get("dolby_vision_profile"),
+        "dovi_level": hdr.get("dolby_vision_level"),
+        "dovi_compatibility_id": hdr.get("dolby_vision_compatibility_id"),
+    }
+    for field_name, value in dovi_values.items():
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+            raise RebuildError(f"The Rust source-profile helper returned an invalid {field_name}.")
+
+    def optional_text(value: object) -> str | None:
+        if value is None:
+            return None
+        return str(value)
+
+    return MediaProfile(
+        path=source,
+        probe=raw_probe,
+        mediainfo=media_info,
+        primary_video=primary,
+        secondary_videos=secondaries,
+        audio=[stream for stream in refs if stream.codec_type == "audio"],
+        subtitles=[stream for stream in refs if stream.codec_type == "subtitle"],
+        attachments=[stream for stream in refs if stream.codec_type == "attachment"],
+        data=[stream for stream in refs if stream.codec_type == "data"],
+        chapters_count=len(raw_probe.get("chapters") or []),
+        duration=float(duration),
+        source_bit_depth=depth,
+        source_chroma=chroma,
+        target_pix_fmt=target,
+        color_primaries=optional_text(data.get("color_primaries")),
+        transfer=optional_text(data.get("color_transfer")),
+        color_matrix=optional_text(data.get("color_matrix")),
+        color_range_x265=optional_text(data.get("color_range_x265")),
+        color_range_ffmpeg=optional_text(data.get("color_range_ffmpeg")),
+        chroma_location=optional_integer_fields["chroma_location"],
+        master_display=optional_text(data.get("mastering_display")),
+        master_display_source=optional_text(data.get("mastering_display_source")),
+        max_cll=optional_integer_fields["max_cll"],
+        max_fall=optional_integer_fields["max_fall"],
+        hdr10=hdr["hdr10"],
+        hdr10plus=False,
+        hdr10plus_hint=hdr["hdr10plus_hint"],
+        hlg=hdr["hlg"],
+        dolby_vision=hdr["dolby_vision"],
+        dovi_profile=dovi_values["dovi_profile"],
+        dovi_level=dovi_values["dovi_level"],
+        dovi_rpu_present=hdr["dolby_vision_rpu"],
+        dovi_el_present=hdr["dolby_vision_enhancement_layer"],
+        dovi_bl_present=hdr["dolby_vision_base_layer"],
+        dovi_compatibility_id=dovi_values["dovi_compatibility_id"],
+        dovi_source=optional_text(hdr.get("dolby_vision_evidence")),
+        interlaced=data["interlaced"],
+        format_level=optional_text(data.get("format_level")),
+    )
+
+
+def build_native_profile_set(
+    tools: Toolchain,
+    path: Path,
+    *,
+    promote_8bit_to_10bit: bool = False,
+) -> MediaProfile | None:
+    """Use Rust's source analyzer for app-launched rebuild profiles."""
+    response = native_json_action(
+        "engine-profile",
+        {
+            "path": str(path.expanduser()),
+            "ffprobe": tools.ffprobe,
+            "mediainfo": tools.mediainfo,
+            "promote_8bit_to_10bit": bool(promote_8bit_to_10bit),
+        },
+        timeout=300.0,
+    )
+    if response is None:
+        return None
+    raw_probe = response.get("probe")
+    media_info = response.get("mediainfo")
+    profile_data = response.get("profile")
+    native_path = response.get("path")
+    if (
+        not isinstance(raw_probe, dict)
+        or not isinstance(media_info, dict)
+        or not isinstance(profile_data, dict)
+        or not isinstance(native_path, str)
+    ):
+        raise RebuildError("The Rust source-profile helper returned an incomplete response.")
+    return _native_media_profile(Path(native_path), raw_probe, media_info, profile_data)
+
+
+def build_native_video_profiles(
+    tools: Toolchain,
+    source_profile: MediaProfile,
+    video_stream_indices: list[int],
+    *,
+    promote_8bit_to_10bit: bool = False,
+) -> dict[int, MediaProfile]:
+    """Return Rust-derived profiles for just the tracks selected by the job."""
+    requested = sorted(set(video_stream_indices))
+    if len(requested) != len(video_stream_indices) or any(index < 0 for index in requested):
+        raise RebuildError("Selected video stream indices must be unique and nonnegative.")
+    profiles: dict[int, MediaProfile] = {}
+    remaining = requested
+    if source_profile.primary_video.index in requested:
+        profiles[source_profile.primary_video.index] = source_profile
+        remaining = [index for index in requested if index != source_profile.primary_video.index]
+    if not remaining:
+        return profiles
+    timeout = max(300.0, 60.0 + 30.0 * len(remaining))
+    response = native_json_action(
+        "engine-profile-tracks",
+        {
+            "path": str(source_profile.path),
+            "ffprobe": tools.ffprobe,
+            "promote_8bit_to_10bit": bool(promote_8bit_to_10bit),
+            "video_stream_indices": remaining,
+            "probe": source_profile.probe,
+            "mediainfo": source_profile.mediainfo,
+        },
+        timeout=timeout,
+    )
+    if response is None:
+        raise RebuildError("The Rust selected-track profiler is unavailable for this app-launched run.")
+    video_data = response.get("video_profiles")
+    if not isinstance(video_data, dict):
+        raise RebuildError("The Rust selected-track profiler returned an invalid response.")
+    for raw_index, variant in video_data.items():
+        try:
+            index = int(raw_index)
+        except (TypeError, ValueError) as exc:
+            raise RebuildError("The Rust selected-track profiler returned a nonnumeric stream key.") from exc
+        if not isinstance(variant, dict) or index in profiles:
+            raise RebuildError("The Rust selected-track profiler returned an invalid profile map.")
+        video_profile = _native_media_profile(
+            source_profile.path,
+            source_profile.probe,
+            source_profile.mediainfo,
+            variant,
+        )
+        if video_profile.primary_video.index != index:
+            raise RebuildError("The Rust selected-track profiler mismatched a video-profile key.")
+        profiles[index] = video_profile
+    if set(profiles) != set(requested):
+        missing = ", ".join(f"#{index}" for index in requested if index not in profiles)
+        raise RebuildError(f"The Rust selected-track profiler omitted video stream(s) {missing}.")
+    return profiles

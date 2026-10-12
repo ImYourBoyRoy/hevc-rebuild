@@ -1,0 +1,17 @@
+{
+  "name": "hevc-rebuild-studio-workspace",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Workspace command shortcuts for the HEVC Rebuild Studio desktop client.",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": "^22.17.0 || ^24.0.0 || ^26.0.0"
+  },
+  "scripts": {
+    "ui:dev": "pnpm --dir desktop dev",
+    "ui:build": "pnpm --dir desktop build",
+    "ui:check": "pnpm --dir desktop check",
+    "ui:check:tsgo": "pnpm --dir desktop check:tsgo",
+    "ui:tauri": "pnpm --dir desktop tauri"
+  }
+}

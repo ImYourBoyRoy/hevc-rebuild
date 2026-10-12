@@ -1,0 +1,397 @@
+/* ./desktop/src/styles/type-scale.css
+   Shared reading scale for Light, Dark, Phosphor, Ion, and Breach.
+   Page title 28, section 20, card 16, body 15, controls 14, meta floor 12.
+   Loaded after app.css and instrument.css so every theme uses the same sizes. */
+
+.app-shell {
+  --type-page: 28px;
+  --type-section: 20px;
+  --type-card: 16px;
+  --type-body: 15px;
+  --type-ui: 14px;
+  --type-meta: 12px;
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+.app-shell .page-heading h1,
+html[data-instrument] .app-shell .page-heading h1 {
+  font-size: var(--type-page);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.app-shell h2,
+.app-shell .section-title-row h2,
+.app-shell .table-header h2,
+.app-shell .queue-task-heading h2,
+.app-shell .queue-sources-heading h2,
+.app-shell .report-heading h2,
+.app-shell .report-failures h2,
+.app-shell .confirm-modal h2,
+.confirm-modal h2,
+.app-shell .metadata-provider-settings .settings-card-heading h2,
+.app-shell .artwork-cache-settings .settings-card-heading h2,
+.app-shell .metadata-card-title h2,
+.app-shell .metadata-detail-heading h2,
+.app-shell .upload-profile-intro h2,
+html[data-instrument] .confirm-modal h2 {
+  font-size: var(--type-section);
+  letter-spacing: normal;
+  line-height: 1.25;
+}
+
+.app-shell .hero-copy h2,
+html[data-instrument] .app-shell .hero-copy h2,
+.app-shell .empty-state h2 {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.app-shell .metadata-provider-choice strong,
+.app-shell .metadata-credential-heading strong {
+  font-size: var(--type-card);
+  letter-spacing: normal;
+  line-height: 1.3;
+}
+
+.app-shell h3,
+.app-shell :is(
+  .settings-card-heading h3,
+  .hardware-card h3,
+  .setup-content h3,
+  .diagnostic-heading h3,
+  .tool-path-heading strong
+) {
+  font-size: var(--type-card);
+  letter-spacing: normal;
+  line-height: 1.3;
+}
+
+.app-shell .review-fields h3 {
+  font-size: var(--type-page);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.app-shell .hardware-card h3 {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.app-shell :is(
+  .page-heading p,
+  .settings-card-heading p,
+  .settings-intro p,
+  .hero-copy p,
+  .empty-state p,
+  .metadata-provider-card > p,
+  .metadata-provider-notes > p,
+  .filename-filter-help,
+  .filename-filter-saved,
+  .blacklist-help,
+  .hardware-note,
+  .tool-path-heading p,
+  .queue-task-heading p,
+  .report-heading p,
+  .confirm-modal > p
+) {
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+.confirm-modal > p,
+.confirm-modal .confirm-facts span,
+.confirm-modal .confirm-check {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.confirm-modal .confirm-facts {
+  grid-template-columns: 1fr;
+}
+
+.confirm-modal .confirm-disk {
+  align-items: flex-start;
+}
+
+.confirm-modal .eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.confirm-modal .button {
+  font-size: 14px;
+}
+
+.app-shell .confirm-modal .queue-output-status,
+.app-shell .confirm-modal .queue-output-note,
+.app-shell .confirm-modal .queue-output-list article > span,
+.app-shell .confirm-modal .confirm-output-review,
+.app-shell .confirm-modal .confirm-output-review > p,
+.app-shell .confirm-modal .queue-recovery-file > strong,
+.app-shell .confirm-modal .queue-recovery-section-title > strong,
+.app-shell .confirm-modal .queue-recovery-evidence > p,
+.app-shell .confirm-modal .queue-recovery-inspection > p {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.app-shell .confirm-modal .queue-output-list-heading {
+  font-size: 16px;
+}
+
+.app-shell .confirm-modal .queue-output-list-heading span,
+.app-shell .confirm-modal .queue-output-truncated,
+.app-shell .confirm-modal .queue-output-list article > small,
+.app-shell .confirm-modal .queue-recovery-file > small,
+.app-shell .confirm-modal .queue-recovery-evidence > small,
+.app-shell .confirm-modal .queue-recovery-inspection > small,
+.app-shell .confirm-modal .repair-plan-footnote {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.app-shell .confirm-modal .queue-output-list article > code,
+.app-shell .confirm-modal .queue-recovery-file > code,
+.app-shell .confirm-modal .queue-recovery-report-path,
+.app-shell .confirm-modal .confirm-output-review code {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-shell .confirm-modal .queue-output-list article {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.app-shell .confirm-modal .queue-output-list article > span {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.app-shell :is(
+  .button,
+  .text-button,
+  .link-button,
+  .hero-link,
+  .nav-item span,
+  .folder-field input,
+  .search-box input,
+  .small-field input,
+  .form-row select,
+  .resource-grid input,
+  .resource-grid select,
+  .text-setting input,
+  .tool-path-control input,
+  .blacklist-add-row input,
+  .metadata-language-setting > input,
+  tbody td,
+  .file-cell-title,
+  .profile-primary
+) {
+  font-size: var(--type-ui);
+}
+
+.app-shell :is(
+  .eyebrow,
+  .hero-kicker,
+  .metric-label,
+  .breadcrumbs,
+  .status-pill,
+  .status-tag,
+  .provider-state,
+  .brand-edition,
+  .workspace-label,
+  .sidebar-library-copy span,
+  .sidebar-library-copy strong,
+  .sidebar-bottom,
+  .version-tag,
+  .nav-count,
+  .appearance-label,
+  thead th,
+  .summary-tile span,
+  .summary-tile small,
+  .gpu-strip,
+  .gpu-strip small,
+  .hardware-specs span,
+  .hardware-os,
+  .tool-check-heading span,
+  .tool-check-copy strong,
+  .tool-check-copy small,
+  .tool-version,
+  .tool-check-copy .tool-update-version,
+  .tool-path-row > label span,
+  .tool-path-row > label small,
+  .filename-filter-heading strong,
+  .filename-filter-heading span,
+  .filename-filter-list > small,
+  .filename-filter-help code,
+  .blacklist-heading strong,
+  .blacklist-heading small,
+  .blacklist-heading > span,
+  .blacklist-empty,
+  .blacklist-error,
+  .blacklist-help code,
+  .blacklist-pattern-list code,
+  .form-row strong,
+  .toggle-row strong,
+  .text-setting strong,
+  .form-row small,
+  .toggle-row small,
+  .text-setting small,
+  .resource-grid label,
+  .config-source,
+  .missing-packages span,
+  .missing-packages code,
+  .queue-poster-error,
+  .queue-poster-loading,
+  .queue-filename-proposal > span,
+  .queue-source-state,
+  .queue-source-path,
+  .queue-source-error,
+  .queue-run-message,
+  .queue-run-output,
+  .queue-live-progress > div:first-child,
+  .queue-live-progress > small,
+  .track-selection-toggle,
+  .track-selection-toggle small,
+  .track-metadata dt,
+  .track-metadata dd,
+  .file-cell-sub,
+  .row-error,
+  .row-warning
+) {
+  font-size: var(--type-meta);
+  line-height: 1.4;
+}
+
+.app-shell :is(
+  code,
+  pre,
+  .metadata-workbench-preferences,
+  .metadata-inline-assignment-preview > div > small,
+  .metadata-inline-assignment-preview > div > span,
+  .metadata-local-batch-review li code,
+  .metadata-local-poster-review small,
+  .metadata-local-poster-review code,
+  .metadata-artwork-save-paths code,
+  .metadata-focused-rename-preview > div > span,
+  .metadata-focused-rename-preview code,
+  .metadata-focused-rename-preview > p,
+  .metadata-rename-preview > div:first-child span,
+  .queue-run-log,
+  .queue-run-source > summary code,
+  .queue-run-source li code,
+  .queue-run-source > small,
+  .queue-output-list article > code,
+  .report-scrub-file code,
+  .raw-metadata,
+  .repair-output,
+  .apt-update-list,
+  .apt-update-list code,
+  .apt-update-list strong,
+  .apt-update-list > div,
+  .apt-update-status small,
+  .apt-update-section-label,
+  .apt-update-section-label small,
+  .apt-update-actions > span,
+  .apt-no-updates,
+  .scan-next-step code,
+  .repair-plan-footnote,
+  .repair-helper-note,
+  .repair-tool-result-list article > div span,
+  .repair-tool-result-list article small,
+  .file-output-control > small,
+  .queue-sources-heading small,
+  .queue-scope-note,
+  .queue-run-state,
+  .resource-plan-details > summary,
+  .resource-plan-details > small,
+  .resource-plan-details > p,
+  .youtube-multiplier small,
+  .youtube-loss-consent small,
+  .youtube-estimate span,
+  .youtube-estimate small
+) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.app-shell .tool-check-list { max-height: none; }
+.app-shell .tool-check-row { align-items: flex-start; padding-block: 8px; }
+.app-shell :is(.tool-version, .tool-check-copy small, .tool-path-row > label small, .gpu-strip span, .gpu-strip small) {
+  max-width: none;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.app-shell .tool-version { margin-left: auto; text-align: right; }
+
+.app-shell .confirm-modal .queue-output-list article > code,
+.app-shell .confirm-modal .queue-recovery-file > code,
+.app-shell .confirm-modal .queue-recovery-report-path,
+.app-shell .confirm-modal .confirm-output-review code {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.app-shell .run-mode-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell .resource-groups {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.app-shell .resource-groups h4 {
+  margin: 0 0 8px;
+  color: var(--theme-text);
+  font-weight: 700;
+}
+
+.app-shell .resource-groups .resource-grid {
+  padding-top: 0;
+}
+
+.app-shell .run-mode-grid .mode-title {
+  font-size: 16px;
+}
+
+.app-shell .run-mode-grid .mode-description,
+.app-shell .run-mode-grid .mode-tag,
+.app-shell .mode-guidance,
+.app-shell .edit-badge,
+.app-shell .settings-grid .form-row strong,
+.app-shell .settings-grid .form-row small,
+.app-shell .settings-grid .toggle-row strong,
+.app-shell .settings-grid .toggle-row small,
+.app-shell .settings-grid .text-setting strong,
+.app-shell .settings-grid .text-setting small,
+.app-shell .settings-grid .resource-grid label,
+.app-shell .settings-grid .resource-grid input,
+.app-shell .settings-grid .resource-grid select,
+.app-shell .settings-grid .form-row select,
+.app-shell .resource-groups h4,
+.app-shell .hardware-note,
+.app-shell .config-source,
+.app-shell .config-source span {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-shell .config-source span {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1200px) {
+  .app-shell .run-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

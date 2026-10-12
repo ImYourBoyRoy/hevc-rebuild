@@ -1,0 +1,700 @@
+/* ./desktop/src/instrument.css
+   Three extreme instrument skins share signal tokens but not the same frame language.
+   Phosphor = CRT terminal. Ion = cold radar console. Breach = hostile alarm.
+   Light and Dark stay on the calm rules in app.css.
+   Saved "hacker" preferences resolve to Phosphor before these selectors run.
+*/
+
+/* --- Shared signal tokens --- */
+html[data-instrument],
+html[data-instrument] .app-shell {
+  --signal: #39ff6a;
+  --theme-page: #030705;
+  --theme-surface: #07110c;
+  --theme-raised: #0c1a12;
+  --theme-text: #e7ffee;
+  --theme-muted: #8fbf9c;
+  --theme-line: #1f8a3e;
+  --theme-accent: var(--signal);
+  --theme-accent-strong: #b6ffc9;
+  --theme-accent-soft: #0c2416;
+  --theme-on-accent: #031208;
+  --theme-sidebar: #020504;
+  --theme-sidebar-raised: #07160e;
+  --theme-hero-start: #030705;
+  --theme-hero-end: #07140c;
+  --theme-warning-surface: #1a1306;
+  --theme-warning-text: #ffc14d;
+  --theme-danger-surface: #240e0c;
+  --theme-danger-text: #ffd2c4;
+  --theme-success-surface: #07180e;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 55%, transparent), 0 0 18px color-mix(in srgb, var(--signal) 28%, transparent);
+  --hero-step-bg: rgb(0 0 0 / 42%);
+  --hero-step-line: color-mix(in srgb, var(--signal) 45%, transparent);
+  --hero-step-text: var(--theme-text);
+  --hero-step-muted: var(--theme-muted);
+  --instrument-clip: none;
+  --instrument-font: "Ubuntu Mono", "DejaVu Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+html[data-instrument="ion"],
+html[data-instrument="ion"] .app-shell {
+  --signal: #3cefff;
+  --theme-page: #02070c;
+  --theme-surface: #06121a;
+  --theme-raised: #0a1c28;
+  --theme-text: #e8fbff;
+  --theme-muted: #7eb8cb;
+  --theme-line: #1a7f96;
+  --theme-accent-strong: #b8f7ff;
+  --theme-accent-soft: #062028;
+  --theme-on-accent: #021018;
+  --theme-sidebar: #01050a;
+  --theme-sidebar-raised: #071820;
+  --theme-hero-start: #02070c;
+  --theme-hero-end: #06141c;
+  --theme-success-surface: #052028;
+  --instrument-clip: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+  --instrument-font: "Ubuntu", "DejaVu Sans", "Segoe UI", system-ui, sans-serif;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 78%, transparent), 0 0 16px color-mix(in srgb, var(--signal) 48%, transparent), 0 0 34px color-mix(in srgb, var(--signal) 22%, transparent);
+}
+
+html[data-instrument="breach"],
+html[data-instrument="breach"] .app-shell {
+  --signal: #ff2d4a;
+  --theme-page: #0a0204;
+  --theme-surface: #16060a;
+  --theme-raised: #220a10;
+  --theme-text: #ffe8ea;
+  --theme-muted: #e098a0;
+  --theme-line: #a11d32;
+  --theme-accent-strong: #ffb3bc;
+  --theme-accent-soft: #2a080e;
+  --theme-on-accent: #1a0408;
+  --theme-sidebar: #070103;
+  --theme-sidebar-raised: #22060c;
+  --theme-hero-start: #0a0204;
+  --theme-hero-end: #1a060c;
+  --theme-success-surface: #2a0a10;
+  --instrument-clip: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  --instrument-font: "Ubuntu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 55%, transparent), 0 0 18px color-mix(in srgb, var(--signal) 34%, transparent);
+}
+
+html[data-instrument] {
+  font-family: var(--instrument-font);
+  background: var(--theme-page);
+  color: var(--theme-text);
+}
+
+html[data-instrument] body { background: var(--theme-page); color: var(--theme-text); }
+html[data-instrument] ::selection { color: var(--theme-on-accent); background: var(--signal); }
+
+html[data-instrument] :is(.app-shell, .modal-backdrop, .confirm-modal) * { border-radius: 0; }
+
+html[data-instrument] .app-shell {
+  color: var(--theme-text);
+  background: var(--theme-page);
+}
+
+html[data-instrument] .app-shell :is(
+  .brand-name, .page-heading h1, .hero-copy h2, .metric-card strong, .setup-content h3,
+  .section-title-row h2, .table-header h2, .empty-state h2, .hardware-card h3,
+  .summary-tile strong, .mode-number, .mode-title, .confirm-modal h2, .report-heading h2
+) {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+html[data-instrument] .app-shell .sidebar {
+  color: var(--theme-text);
+  background: var(--theme-sidebar);
+  border-right: 1px solid var(--signal);
+  box-shadow: inset -20px 0 32px color-mix(in srgb, var(--signal) 14%, transparent);
+}
+html[data-instrument] .app-shell .brand-mark {
+  color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 14px color-mix(in srgb, var(--signal) 70%, transparent);
+}
+html[data-instrument] .app-shell .brand-name,
+html[data-instrument] .app-shell .brand-name span { color: var(--signal); }
+html[data-instrument] .app-shell .brand-edition,
+html[data-instrument] .app-shell .workspace-label,
+html[data-instrument] .app-shell .sidebar-library-copy span,
+html[data-instrument] .app-shell .sidebar-bottom,
+html[data-instrument] .app-shell .version-tag { color: var(--theme-muted); }
+html[data-instrument] .app-shell .nav-item { color: var(--theme-muted); }
+html[data-instrument] .app-shell .nav-item:hover,
+html[data-instrument] .app-shell .nav-item.active {
+  color: var(--signal);
+  background: transparent;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--signal) 70%, transparent);
+  box-shadow: inset 3px 0 0 var(--signal), 0 0 16px color-mix(in srgb, var(--signal) 18%, transparent);
+}
+html[data-instrument] .app-shell .sidebar-library {
+  border-color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal) 35%, transparent);
+}
+html[data-instrument] .app-shell .connection-dot.green,
+html[data-instrument] .app-shell .status-dot {
+  background: var(--signal);
+  box-shadow: 0 0 8px var(--signal);
+  animation: instrument-led 1.15s steps(2, end) infinite;
+}
+
+html[data-instrument] .app-shell .main-panel {
+  position: relative;
+  isolation: isolate;
+  color: var(--theme-text);
+  background-color: var(--theme-page);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 3px,
+    color-mix(in srgb, var(--signal) 8%, transparent) 3px 4px
+  );
+}
+html[data-instrument] .app-shell .main-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--signal) 16%, transparent), transparent);
+  background-repeat: no-repeat;
+  background-size: 100% 18%;
+  animation: instrument-drift 7.5s linear infinite;
+}
+html[data-instrument] .app-shell .topbar,
+html[data-instrument] .app-shell .page-wrap,
+html[data-instrument] .app-shell .page-footer { position: relative; z-index: 1; }
+html[data-instrument] .app-shell .topbar {
+  color: var(--theme-muted);
+  background: #000;
+  border-bottom: 1px solid var(--signal);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--signal) 16%, transparent);
+}
+html[data-instrument] .app-shell .breadcrumbs,
+html[data-instrument] .app-shell .breadcrumbs strong,
+html[data-instrument] .app-shell .eyebrow { letter-spacing: .08em; }
+html[data-instrument] .app-shell .breadcrumbs strong,
+html[data-instrument] .app-shell .page-heading h1,
+html[data-instrument] .app-shell .eyebrow { color: var(--theme-text); }
+html[data-instrument] .app-shell :is(.page-heading h1 em, .hero-copy h2 span) {
+  color: var(--signal);
+  font-style: normal;
+  text-shadow: 0 0 16px color-mix(in srgb, var(--signal) 80%, transparent);
+}
+
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button {
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.primary {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--signal) 62%, transparent);
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.primary:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  background: var(--signal);
+  box-shadow: 0 0 28px var(--signal);
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.secondary,
+html[data-instrument] :is(.app-shell, .modal-backdrop) .icon-button {
+  color: var(--signal);
+  border-color: var(--signal);
+  background: transparent;
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.secondary:hover:not(:disabled),
+html[data-instrument] :is(.app-shell, .modal-backdrop) .icon-button:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+  box-shadow: 0 0 16px var(--signal);
+}
+html[data-instrument] .app-shell .text-button,
+html[data-instrument] .app-shell .hero-link,
+html[data-instrument] .app-shell .link-button { color: var(--signal); }
+html[data-instrument] .app-shell .link-button {
+  border-color: color-mix(in srgb, var(--signal) 70%, transparent);
+  background: transparent;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-instrument] .app-shell .link-button:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+}
+
+html[data-instrument] .app-shell .status-pill {
+  letter-spacing: .06em;
+  background: transparent;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--signal) 28%, transparent);
+}
+html[data-instrument] .app-shell .status-pill.good,
+html[data-instrument] .app-shell .status-ready,
+html[data-instrument] .status-ready {
+  color: var(--signal) !important;
+  border-color: var(--signal) !important;
+  background: transparent !important;
+}
+html[data-instrument] .app-shell .status-pill.warning,
+html[data-instrument] .app-shell .status-warning,
+html[data-instrument] .status-warning {
+  color: #ffc14d !important;
+  border-color: #ffc14d !important;
+  background: #140f04 !important;
+  box-shadow: 0 0 12px rgb(255 193 77 / 35%);
+}
+html[data-instrument] .app-shell .status-error,
+html[data-instrument] .status-error {
+  color: #ffd2c4 !important;
+  border-color: #ffd2c4 !important;
+  background: #2a100e !important;
+}
+html[data-instrument] .app-shell .theme-control {
+  color: var(--signal);
+  border-color: var(--signal);
+  background: #000;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--signal) 25%, transparent);
+}
+html[data-instrument] .app-shell .theme-control select { max-width: 8.6rem; color: var(--theme-text); }
+
+html[data-instrument] .app-shell .hero-card {
+  border: 1px solid var(--signal);
+  background-color: #000;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--signal) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--signal) 18%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent), 0 0 36px color-mix(in srgb, var(--signal) 30%, transparent);
+}
+html[data-instrument] .app-shell .hero-card::before,
+html[data-instrument] .app-shell .hero-card::after,
+html[data-instrument] .app-shell .hero-grain { display: none; }
+html[data-instrument] .app-shell .hero-sweep {
+  display: block;
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 26%;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--signal), #fff, var(--signal), transparent);
+  box-shadow: 0 0 16px var(--signal);
+  animation: hero-sweep 2.2s linear infinite;
+}
+html[data-instrument] .app-shell .hero-kicker { color: var(--signal); letter-spacing: .08em; }
+html[data-instrument] .app-shell .hero-orbit {
+  color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 10px var(--signal);
+}
+html[data-instrument] .app-shell .hero-copy h2,
+html[data-instrument] .app-shell .hero-copy p { color: var(--theme-text); }
+html[data-instrument] .app-shell .workflow-steps li {
+  border-color: color-mix(in srgb, var(--signal) 40%, transparent);
+  background: rgb(0 0 0 / 55%);
+}
+html[data-instrument] .app-shell .workflow-steps li.current {
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 8%, black);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--signal) 35%, transparent);
+}
+html[data-instrument] .app-shell .workflow-steps li.done .workflow-step-number,
+html[data-instrument] .app-shell .workflow-step-number {
+  color: var(--theme-on-accent);
+  background: var(--signal);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--signal) 55%, transparent);
+}
+html[data-instrument] .app-shell .workflow-step-copy strong { color: var(--theme-text); }
+html[data-instrument] .app-shell .workflow-step-copy small { color: var(--theme-muted); }
+
+html[data-instrument] .app-shell :is(
+  .metric-card, .table-card, .hardware-card, .tool-check-card, .card-surface, .mode-card,
+  .settings-card, .run-console-card, .report-list, .report-heading, .diagnostic-card,
+  .summary-tile, .report-count, .empty-state, .folder-field, .notice,
+  .inline-warning, .scan-next-step, .gpu-strip, .encoder-note, .library-chip, .report-item,
+  .hero-card, .setup-card, .confirm-modal, .workflow-steps li
+) {
+  clip-path: var(--instrument-clip);
+}
+
+html[data-instrument] .app-shell :is(
+  .metric-card, .table-card, .hardware-card, .tool-check-card, .card-surface, .mode-card,
+  .settings-card, .run-console-card, .report-list, .report-heading, .diagnostic-card,
+  .summary-tile, .report-count, .empty-state, .folder-field, .search-box, .notice,
+  .inline-warning, .scan-next-step, .gpu-strip, .encoder-note, .library-chip, .report-item
+) {
+  border: 1px solid color-mix(in srgb, var(--signal) 62%, transparent);
+  background: color-mix(in srgb, var(--theme-surface) 82%, black);
+  box-shadow: var(--theme-shadow);
+}
+html[data-instrument] .app-shell .empty-state { border-style: solid; }
+html[data-instrument] .app-shell .setup-card {
+  border: 1px solid #ffc14d;
+  background: var(--theme-warning-surface);
+  box-shadow: 0 0 18px rgb(255 193 77 / 28%);
+}
+html[data-instrument] .app-shell .mode-card:hover {
+  transform: none;
+  border-color: var(--signal);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--signal) 45%, transparent);
+}
+html[data-instrument] .app-shell .mode-card.selected,
+html[data-instrument] .app-shell .report-item.active {
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 10%, black);
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 18px color-mix(in srgb, var(--signal) 40%, transparent);
+}
+html[data-instrument] .app-shell :is(
+  .metric-icon, .settings-icon, .empty-icon, .setup-symbol, .hardware-avatar,
+  .file-icon, .mode-icon, .next-icon, .confirm-symbol, .sidebar-library-icon, .error-summary-icon
+) {
+  color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--signal);
+}
+html[data-instrument] .app-shell .setup-symbol { color: #ffc14d; box-shadow: inset 0 0 0 1px #ffc14d; }
+html[data-instrument] .app-shell :is(.metric-label, .summary-tile span, thead th) {
+  color: var(--signal);
+  letter-spacing: .06em;
+}
+html[data-instrument] .app-shell thead th { background: #000; }
+html[data-instrument] .app-shell tbody tr:hover td { background: color-mix(in srgb, var(--signal) 10%, black); }
+html[data-instrument] .app-shell .progress-track { background: #000; box-shadow: inset 0 0 0 1px var(--signal); }
+html[data-instrument] .app-shell .progress-track div { background: var(--signal); box-shadow: 0 0 10px var(--signal); }
+html[data-instrument] .app-shell :is(.run-console, .diagnostic-card pre, .repair-output) {
+  color: var(--signal);
+  background: #010201;
+  border-color: var(--signal);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--signal) 50%, transparent);
+}
+html[data-instrument] .app-shell :is(.notice.error, .error-summary) {
+  color: var(--theme-danger-text);
+  border-color: #ffd2c4;
+  background: var(--theme-danger-surface);
+}
+html[data-instrument] .app-shell .notice.success {
+  color: var(--signal);
+  border-color: var(--signal);
+  background: var(--theme-success-surface);
+}
+html[data-instrument] :is(button, input, select):focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+
+html[data-instrument] .modal-backdrop { background: rgb(0 0 0 / 84%); backdrop-filter: none; }
+html[data-instrument] .confirm-modal {
+  color: var(--theme-text);
+  border: 1px solid var(--signal);
+  background: var(--theme-surface);
+  box-shadow: 0 0 0 1px var(--signal), 0 0 40px color-mix(in srgb, var(--signal) 42%, transparent);
+}
+html[data-instrument] .confirm-modal h2 { color: var(--theme-text); font-family: inherit; letter-spacing: normal; }
+html[data-instrument] .confirm-modal > p,
+html[data-instrument] .confirm-facts span,
+html[data-instrument] .confirm-check { color: var(--theme-muted); }
+html[data-instrument] .confirm-symbol {
+  color: #ffc14d;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px #ffc14d, 0 0 12px rgb(255 193 77 / 40%);
+}
+
+.hero-sweep { display: none; }
+
+/* --- Ion: cold radar console --- */
+html[data-instrument="ion"] {
+  letter-spacing: normal;
+}
+html[data-instrument="ion"] .app-shell .brand-name {
+  letter-spacing: .08em;
+  font-weight: 700;
+}
+html[data-instrument="ion"] .app-shell .main-panel {
+  background-image:
+    radial-gradient(ellipse 78% 62% at 20% 80%, color-mix(in srgb, var(--signal) 18%, transparent), transparent 62%),
+    radial-gradient(ellipse 64% 52% at 86% 16%, color-mix(in srgb, var(--signal) 12%, transparent), transparent 58%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--signal) 10%, transparent), transparent 42%);
+  background-size: 165% 165%, 150% 150%, min(520px, 46vw) min(520px, 46vw);
+  background-repeat: no-repeat;
+  animation: ion-field 28s ease-in-out infinite alternate;
+}
+html[data-instrument="ion"] .app-shell .sidebar::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 22%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--signal) 30%, #f7feff 50%, var(--signal) 70%, transparent);
+  animation: ion-edge 9s ease-in-out infinite alternate;
+}
+html[data-instrument="ion"] .app-shell .topbar::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  bottom: 0;
+  width: 18%;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--signal) 30%, #f7feff 50%, var(--signal) 70%, transparent);
+  animation: ion-rail 11s ease-in-out infinite alternate;
+}
+html[data-instrument="ion"] .app-shell .main-panel::after {
+  inset: auto;
+  right: 28px;
+  bottom: 28px;
+  width: min(240px, 22vw);
+  height: min(240px, 22vw);
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 78%, color-mix(in srgb, var(--signal) 42%, transparent) 92%, transparent 100%);
+  mask: radial-gradient(circle, transparent 58%, #000 60% 78%, transparent 80%);
+  opacity: .7;
+  animation: ion-radar 18s linear infinite;
+  box-shadow: none;
+}
+html[data-instrument="ion"] .app-shell .sidebar {
+  position: relative;
+  overflow: hidden;
+  border-right: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--signal) 12%, transparent), transparent 28%),
+    var(--theme-sidebar);
+  box-shadow: none;
+}
+html[data-instrument="ion"] .app-shell .nav-item.active {
+  clip-path: none;
+  background: color-mix(in srgb, var(--signal) 12%, transparent);
+  box-shadow: inset 4px 0 0 var(--signal), 0 0 18px color-mix(in srgb, var(--signal) 22%, transparent);
+}
+html[data-instrument="ion"] .app-shell .topbar {
+  background: linear-gradient(90deg, #01050a, #031018 40%, #01050a);
+  border-bottom: 0;
+  box-shadow: none;
+}
+html[data-instrument="ion"] .app-shell .hero-card {
+  background-color: #02080e;
+  background-image:
+    radial-gradient(circle at 82% 50%, color-mix(in srgb, var(--signal) 16%, transparent), transparent 36%),
+    linear-gradient(115deg, transparent 0 62%, color-mix(in srgb, var(--signal) 10%, transparent) 62% 63%, transparent 63%),
+    repeating-linear-gradient(-18deg, transparent 0 14px, color-mix(in srgb, var(--signal) 8%, transparent) 14px 15px);
+  box-shadow: 0 0 0 1px var(--signal), 0 0 40px color-mix(in srgb, var(--signal) 24%, transparent);
+}
+html[data-instrument="ion"] .app-shell .hero-sweep {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent 0 40%, color-mix(in srgb, var(--signal) 35%, transparent) 50%, transparent 60%);
+  background-size: 220% 100%;
+  box-shadow: none;
+  animation: ion-slash 2.8s linear infinite;
+  opacity: .55;
+}
+html[data-instrument="ion"] .app-shell .brand-mark,
+html[data-instrument="ion"] .app-shell :is(.metric-icon, .mode-icon, .empty-icon, .settings-icon, .file-icon, .next-icon, .hardware-avatar, .sidebar-library-icon) {
+  clip-path: none;
+  border-radius: 10px;
+  box-shadow: none;
+  border: 1px solid var(--signal);
+}
+html[data-instrument="ion"] .app-shell .connection-dot.green,
+html[data-instrument="ion"] .app-shell .status-dot {
+  border-radius: 50%;
+  clip-path: none;
+  animation: ion-pulse 2.4s ease-in-out infinite;
+}
+html[data-instrument] .app-shell :is(
+  .button, .icon-button, .status-pill, .theme-control, .search-box, .nav-item,
+  .library-poster-card, .library-poster-frame, .library-poster-badge, .library-poster-progress,
+  .review-poster-stage, .review-poster-rail button, .review-poster-rail img
+) {
+  clip-path: none;
+  border-radius: 16px;
+}
+html[data-instrument] .app-shell .review-poster-rail button,
+html[data-instrument] .app-shell .review-poster-rail img { border-radius: 8px; }
+html[data-instrument] .app-shell .library-poster-badge,
+html[data-instrument] .app-shell .status-pill { border-radius: 999px; }
+html[data-instrument] .app-shell .nav-item { border-radius: 10px; }
+html[data-instrument] .app-shell :is(input, select, textarea) { border-radius: 8px; }
+html[data-instrument="ion"] .app-shell :is(.library-poster-card, .library-source-chip, .library-toolbar, .search-box, .empty-state, .button, .icon-button) {
+  border-color: color-mix(in srgb, var(--signal) 48%, transparent);
+  box-shadow: none;
+}
+html[data-instrument="ion"] .app-shell :is(.library-poster-card.selected, .library-source-chip.active) {
+  border-color: color-mix(in srgb, var(--signal) 75%, white);
+  box-shadow: none;
+}
+
+/* --- Breach: hostile alarm --- */
+html[data-instrument="breach"] .app-shell :is(.page-heading h1 em, .hero-copy h2 span, .brand-name) {
+  text-shadow: 0 0 12px color-mix(in srgb, var(--signal) 55%, transparent);
+}
+html[data-instrument="breach"] .app-shell .main-panel {
+  background-image:
+    repeating-linear-gradient(-32deg, transparent 0 22px, color-mix(in srgb, var(--signal) 11%, transparent) 22px 23px),
+    repeating-linear-gradient(58deg, transparent 0 26px, color-mix(in srgb, #ffc14d 16%, transparent) 26px 27px),
+    repeating-linear-gradient(to bottom, transparent 0 3px, color-mix(in srgb, #000 42%, transparent) 3px 4px);
+  background-repeat: repeat;
+  animation: breach-hatch 16s linear infinite;
+}
+html[data-instrument="breach"] .app-shell .main-panel::after {
+  background:
+    radial-gradient(ellipse 70% 90% at 0% 40%, color-mix(in srgb, var(--signal) 28%, transparent), transparent 68%),
+    linear-gradient(105deg, transparent 0 30%, color-mix(in srgb, var(--signal) 16%, transparent) 48%, transparent 66%);
+  background-size: 90% 150%, 70% 100%;
+  background-repeat: no-repeat;
+  animation: breach-wash 20s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+  opacity: .62;
+}
+html[data-instrument="breach"] .app-shell .sidebar {
+  border-right: 1px solid var(--signal);
+  box-shadow:
+    inset -20px 0 28px color-mix(in srgb, var(--signal) 20%, transparent),
+    10px 0 26px color-mix(in srgb, var(--signal) 18%, transparent);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 11px, color-mix(in srgb, var(--signal) 10%, transparent) 11px 12px),
+    var(--theme-sidebar);
+}
+html[data-instrument="breach"] .app-shell .nav-item.active {
+  background: color-mix(in srgb, var(--signal) 14%, black);
+  box-shadow: inset 3px 0 0 var(--signal), 0 0 16px color-mix(in srgb, var(--signal) 32%, transparent);
+  transform: none;
+}
+html[data-instrument="breach"] .app-shell .topbar {
+  background: #000;
+  border-bottom: 1px solid var(--signal);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--signal) 26%, transparent);
+}
+html[data-instrument="breach"] .app-shell .hero-card {
+  border: 1px solid var(--signal);
+  background-color: #0a0204;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 11px, color-mix(in srgb, var(--signal) 14%, transparent) 11px 12px),
+    linear-gradient(160deg, #120306, #050102 55%, #1a060c);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 55%, transparent), 0 0 28px color-mix(in srgb, var(--signal) 36%, transparent);
+}
+html[data-instrument="breach"] .app-shell .hero-sweep {
+  width: 40%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #ffc14d, var(--signal), #fff, transparent);
+  animation: breach-sweep 1.15s steps(4, end) infinite;
+  filter: drop-shadow(0 0 8px var(--signal));
+}
+html[data-instrument="breach"] .app-shell :is(.library-poster-card, .library-source-chip, .library-toolbar, .search-box, .folder-field) {
+  border-color: color-mix(in srgb, var(--signal) 78%, white);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--signal) 62%, transparent),
+    0 0 14px color-mix(in srgb, var(--signal) 40%, transparent);
+}
+html[data-instrument="breach"] .app-shell :is(.library-poster-card.selected, .library-source-chip.active) {
+  border-color: #ffe8ea;
+  box-shadow:
+    0 0 0 1px var(--signal),
+    0 0 12px var(--signal),
+    0 0 24px color-mix(in srgb, var(--signal) 50%, transparent);
+}
+html[data-instrument="breach"] .app-shell .button.primary {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--signal) 62%, transparent);
+}
+html[data-instrument="breach"] .app-shell .connection-dot.green,
+html[data-instrument="breach"] .app-shell .status-dot {
+  animation: breach-strobe .55s steps(2, end) infinite;
+}
+
+@keyframes hero-sweep {
+  from { transform: translateX(-30%); }
+  to { transform: translateX(420%); }
+}
+@keyframes instrument-drift {
+  from { background-position: 0 -20%; }
+  to { background-position: 0 130%; }
+}
+@keyframes instrument-led {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: .28; }
+}
+@keyframes ion-field {
+  from { background-position: 8% 72%, 100% 0%, right bottom; }
+  to { background-position: 78% 8%, 12% 86%, right bottom; }
+}
+@keyframes ion-edge {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(360%); }
+}
+@keyframes ion-rail {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(460%); }
+}
+@keyframes ion-radar { to { transform: rotate(360deg); } }
+@keyframes ion-slash {
+  from { background-position: 120% 0; }
+  to { background-position: -40% 0; }
+}
+@keyframes ion-pulse {
+  0%, 100% { opacity: .45; }
+  50% { opacity: 1; }
+}
+@keyframes breach-sweep {
+  0% { transform: translateX(-40%) translateY(0); opacity: .2; }
+  40% { transform: translateX(80%) translateY(2px); opacity: 1; }
+  70% { transform: translateX(180%) translateY(-1px); opacity: .7; }
+  100% { transform: translateX(320%) translateY(0); opacity: 0; }
+}
+@keyframes breach-hatch {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to { background-position: -24.38px -39px, 45.8px -28.62px, 0 8px; }
+}
+@keyframes breach-wash {
+  from { background-position: -30% 10%, -40% 0; opacity: .38; }
+  to { background-position: 85% 70%, 130% 0; opacity: .72; }
+}
+@keyframes breach-jitter {
+  0%, 90%, 100% { transform: translate(0); }
+  92% { transform: translate(-1px, 1px); }
+  96% { transform: translate(1px, -1px); }
+}
+@keyframes breach-strobe {
+  0%, 40% { opacity: 1; }
+  50%, 100% { opacity: .15; }
+}
+
+@media (max-width: 1080px) {
+  html[data-instrument] .app-shell .nav-item.active { box-shadow: inset 0 -3px 0 var(--signal), 0 0 12px color-mix(in srgb, var(--signal) 24%, transparent); }
+  html[data-instrument="ion"] .app-shell .nav-item.active {
+    clip-path: none;
+    box-shadow: inset 0 -3px 0 var(--signal), 0 0 12px color-mix(in srgb, var(--signal) 24%, transparent);
+  }
+  html[data-instrument="breach"] .app-shell .nav-item.active { transform: none; }
+}
+@media (max-width: 800px) {
+  html[data-instrument] .app-shell .theme-control select { max-width: 6.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-instrument] .app-shell .main-panel,
+  html[data-instrument] .app-shell .main-panel::before,
+  html[data-instrument] .app-shell .main-panel::after,
+  html[data-instrument] .app-shell .sidebar::after,
+  html[data-instrument] .app-shell .topbar::after,
+  html[data-instrument] .app-shell .hero-sweep,
+  html[data-instrument] .app-shell .connection-dot.green,
+  html[data-instrument] .app-shell .status-dot,
+  html[data-instrument="breach"] .app-shell :is(.page-heading h1 em, .hero-copy h2 span, .brand-name) {
+    animation: none !important;
+  }
+}

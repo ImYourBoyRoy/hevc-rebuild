@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from .deps import APT_PACKAGES, MANAGED_BIN, get_x265_pixel_formats, os_release, version_tuple, x265_supports_dolbyvision
+from .deps import APT_PACKAGES, MANAGED_BIN, TOOL_OVERRIDE_KEYS, get_x265_pixel_formats, os_release, version_tuple, x265_supports_dolbyvision
 from .model import Toolchain
 from .resources import MemoryStats, effective_cpu_threads, memory_stats
 
@@ -38,11 +38,16 @@ class EnvironmentReport:
     x265_pixel_formats: frozenset[str]
     dolby_vision_x265: bool
     analysis_toolchain: Toolchain | None
+    youtube_toolchain: Toolchain | None
     toolchain: Toolchain | None
 
     @property
     def ready(self) -> bool:
         return self.supported_platform and self.toolchain is not None
+
+    @property
+    def youtube_ready(self) -> bool:
+        return self.supported_platform and self.youtube_toolchain is not None
 
     @property
     def missing(self) -> tuple[CommandStatus, ...]:
@@ -80,18 +85,23 @@ def _executable(path: str | None) -> str | None:
     return str(resolved)
 
 
-def _candidate_paths(ffmpeg_path: str | None) -> dict[str, str | None]:
+def _candidate_paths(ffmpeg_path: str | None, tool_paths: dict[str, str | None] | None = None) -> dict[str, str | None]:
     paths = {name: shutil.which(name) for name in (
         "python3", "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "fc-list",
         "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec",
     )}
-    if ffmpeg_path:
-        custom = _executable(ffmpeg_path)
-        paths["ffmpeg"] = custom
-        if custom:
-            sibling_probe = _executable(str(Path(custom).with_name("ffprobe")))
-            if sibling_probe:
-                paths["ffprobe"] = sibling_probe
+    overrides = dict(tool_paths or {})
+    if ffmpeg_path and not overrides.get("ffmpeg"):
+        overrides["ffmpeg"] = ffmpeg_path
+    for name in TOOL_OVERRIDE_KEYS:
+        selected = overrides.get(name)
+        if selected:
+            paths[name] = _executable(selected) or selected
+    if overrides.get("ffmpeg") and not overrides.get("ffprobe"):
+        ffmpeg = _executable(overrides["ffmpeg"])
+        sibling_probe = _executable(str(Path(ffmpeg).with_name("ffprobe"))) if ffmpeg else None
+        if sibling_probe:
+            paths["ffprobe"] = sibling_probe
     managed_hdr = _executable(str(MANAGED_BIN / "hdr10plus_tool"))
     paths["hdr10plus_tool"] = managed_hdr or shutil.which("hdr10plus_tool")
     return paths
@@ -163,10 +173,13 @@ def _gpu_devices() -> tuple[str, ...]:
     return tuple(found)
 
 
-def inspect_environment(ffmpeg_path: str | None = None) -> EnvironmentReport:
+def inspect_environment(
+    ffmpeg_path: str | None = None,
+    tool_paths: dict[str, str | None] | None = None,
+) -> EnvironmentReport:
     """Read-only machine/tool check. It never installs packages or downloads binaries."""
     os_name, os_version, supported, platform_note = _os_details()
-    paths = _candidate_paths(ffmpeg_path)
+    paths = _candidate_paths(ffmpeg_path, tool_paths)
     checks: list[CommandStatus] = []
     arg_map = {
         "python3": ("--version",),
@@ -215,8 +228,26 @@ def inspect_environment(ffmpeg_path: str | None = None) -> EnvironmentReport:
             available = False
             detail = f"Could not inspect libx265: {exc}"
         checks.append(CommandStatus("libx265", "libx265 encoder", ffmpeg_status.path, None, available, True, detail))
+
+        for encoder, label in (("libx264", "libx264 encoder"), ("aac", "AAC encoder")):
+            try:
+                result = subprocess.run(
+                    [ffmpeg_status.path, "-hide_banner", "-h", f"encoder={encoder}"],
+                    capture_output=True, text=True, timeout=10, check=False,
+                )
+                encoder_text = (result.stdout or "") + "\n" + (result.stderr or "")
+                available = result.returncode == 0 and encoder in encoder_text
+                detail = f"{encoder} available" if available else f"FFmpeg does not expose {encoder}"
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                available = False
+                detail = f"Could not inspect {encoder}: {exc}"
+            checks.append(CommandStatus(encoder, label, ffmpeg_status.path, None, available, False, detail))
     else:
         checks.append(CommandStatus("libx265", "libx265 encoder", None, None, False, True, "Requires a working FFmpeg binary"))
+        checks.extend((
+            CommandStatus("libx264", "libx264 encoder", None, None, False, False, "Requires a working FFmpeg binary"),
+            CommandStatus("aac", "AAC encoder", None, None, False, False, "Requires a working FFmpeg binary"),
+        ))
 
     status_by_key = {check.key: check for check in checks}
 
@@ -235,6 +266,8 @@ def inspect_environment(ffmpeg_path: str | None = None) -> EnvironmentReport:
 
     analysis_ready = status_by_key["ffprobe"].available and status_by_key["mediainfo"].available
     analysis_toolchain = make_toolchain() if analysis_ready else None
+    youtube_ready = all(status_by_key[key].available for key in ("python3", "ffmpeg", "ffprobe", "mediainfo", "libx264", "aac"))
+    youtube_toolchain = make_toolchain() if youtube_ready else None
     required_ready = all(check.available for check in checks if check.required)
     toolchain = make_toolchain() if required_ready else None
     return EnvironmentReport(
@@ -250,6 +283,7 @@ def inspect_environment(ffmpeg_path: str | None = None) -> EnvironmentReport:
         x265_pixel_formats=frozenset(pixel_formats),
         dolby_vision_x265=dv_supported,
         analysis_toolchain=analysis_toolchain,
+        youtube_toolchain=youtube_toolchain,
         toolchain=toolchain,
     )
 

@@ -1,0 +1,137 @@
+{
+  "cases": [
+    {
+      "name": "4k-10bit-slow-constrained",
+      "profile": {"video": {"width": 3840, "height": 2160, "source_bit_depth": 10, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p10le"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "slow"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 40.0, "memory_available_gib": 12.0, "swap_free_gib": 8.0, "swap_used_gib": 8.0, "swap_used_percent": 50.0}},
+      "memory_psi_full_avg10": 0.0,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {
+        "level": "constrained", "reserve_gib": 3.2, "planning_budget_gib": 6.6,
+        "profile_factor": 5.0, "preset_factor": 1.0,
+        "per_frame_allowance_gib": 5.0, "per_worker_allowance_gib": 1.25,
+        "modeled_plan_gib": 6.25, "memory_worker_cap": 1,
+        "requested_workers": 15, "requested_frame_threads": 2,
+        "planned_workers": 1, "planned_frame_threads": 1
+      },
+      "retry_expected": {"level": "constrained", "planned_workers": 1, "planned_frame_threads": 1, "modeled_plan_gib": 6.25, "reduces_parallelism": false}
+    },
+    {
+      "name": "4k-10bit-slow-memory-pressure",
+      "profile": {"video": {"width": 3840, "height": 2160, "source_bit_depth": 10, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p10le"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "slow"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 40.0, "memory_available_gib": 12.0, "swap_free_gib": 8.0, "swap_used_gib": 8.0, "swap_used_percent": 50.0}},
+      "memory_psi_full_avg10": 1.2,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {
+        "level": "high", "reserve_gib": 3.2, "planning_budget_gib": 4.4,
+        "profile_factor": 5.0, "preset_factor": 1.0,
+        "per_frame_allowance_gib": 5.0, "per_worker_allowance_gib": 1.25,
+        "modeled_plan_gib": 6.25, "memory_worker_cap": 1,
+        "requested_workers": 15, "requested_frame_threads": 2,
+        "planned_workers": 1, "planned_frame_threads": 1
+      },
+      "retry_expected": {"level": "high", "planned_workers": 1, "planned_frame_threads": 1, "modeled_plan_gib": 6.25, "reduces_parallelism": false}
+    },
+    {
+      "name": "4k-10bit-slow-below-reserve-even-with-swap",
+      "profile": {"video": {"width": 3840, "height": 2160, "source_bit_depth": 10, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p10le"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "slow"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 40.0, "memory_available_gib": 2.0, "swap_free_gib": 16.0, "swap_used_gib": 0.0, "swap_used_percent": 0.0}},
+      "memory_psi_full_avg10": 0.0,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {"level": "blocked", "reserve_gib": 3.2, "planned_workers": null, "planned_frame_threads": null},
+      "retry_expected": null
+    },
+    {
+      "name": "1080p-8bit-medium-manual-caps",
+      "profile": {"video": {"width": 1920, "height": 1080, "source_bit_depth": 8, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 2, "max_worker_threads": 4, "frame_threads": 1, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "medium"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 64.0, "memory_available_gib": 40.0, "swap_free_gib": 8.0, "swap_used_gib": 8.0, "swap_used_percent": 50.0}},
+      "memory_psi_full_avg10": 0.0,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {
+        "level": "guarded", "reserve_gib": 5.12, "planning_budget_gib": 26.16,
+        "profile_factor": 0.8, "preset_factor": 0.8,
+        "per_frame_allowance_gib": 0.8, "per_worker_allowance_gib": 0.2,
+        "modeled_plan_gib": 1.6, "memory_worker_cap": 126,
+        "requested_workers": 4, "requested_frame_threads": 1,
+        "planned_workers": 4, "planned_frame_threads": 1
+      },
+      "retry_expected": {"level": "constrained", "planned_workers": 2, "planned_frame_threads": 1, "modeled_plan_gib": 1.2, "reduces_parallelism": true}
+    },
+    {
+      "name": "1080p-8bit-medium-unknown-available-memory",
+      "profile": {"video": {"width": 1920, "height": 1080, "source_bit_depth": 8, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "medium"}},
+      "host": {"hardware": {"logical_cpus": 8, "memory_total_gib": 16.0, "memory_available_gib": null, "swap_free_gib": 2.0, "swap_used_gib": 6.0, "swap_used_percent": 75.0}},
+      "memory_psi_full_avg10": null,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {
+        "level": "unknown", "reserve_gib": 3.0, "planning_budget_gib": null,
+        "profile_factor": 0.8, "preset_factor": 0.8,
+        "per_frame_allowance_gib": 0.8, "per_worker_allowance_gib": 0.2,
+        "modeled_plan_gib": null, "memory_worker_cap": null,
+        "requested_workers": 7, "requested_frame_threads": 2,
+        "planned_workers": 7, "planned_frame_threads": 2
+      },
+      "retry_expected": {"level": "constrained", "planned_workers": 5, "planned_frame_threads": 1, "modeled_plan_gib": 1.8, "reduces_parallelism": true}
+    },
+    {
+      "name": "4k-10bit-superfast-preset",
+      "profile": {"video": {"width": 3840, "height": 2160, "source_bit_depth": 10, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p10le"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "superfast"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 40.0, "memory_available_gib": 12.0, "swap_free_gib": 8.0, "swap_used_gib": 8.0, "swap_used_percent": 50.0}},
+      "memory_psi_full_avg10": 0.0,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 1,
+      "expected": {
+        "level": "constrained", "reserve_gib": 3.2, "planning_budget_gib": 6.6,
+        "profile_factor": 2.0, "preset_factor": 0.4,
+        "per_frame_allowance_gib": 2.0, "per_worker_allowance_gib": 0.5,
+        "modeled_plan_gib": 6.5, "memory_worker_cap": 5,
+        "requested_workers": 15, "requested_frame_threads": 2,
+        "planned_workers": 5, "planned_frame_threads": 2
+      },
+      "retry_expected": {"level": "constrained", "planned_workers": 4, "planned_frame_threads": 1, "modeled_plan_gib": 4.0, "reduces_parallelism": true}
+    },
+    {
+      "name": "4k-plus-1080p-dual-video-encoders",
+      "profile": {"video": {"width": 3840, "height": 2160, "source_bit_depth": 10, "source_chroma": "4:2:0", "target_pixel_format": "yuv420p10le"}},
+      "settings": {"resources": {"threading": "auto", "reserved_cpu_threads": 1, "max_worker_threads": 0, "frame_threads": 0, "min_free_memory_gib": 3.0, "memory_reserve_percent": 8.0}, "video": {"preset": "slow"}},
+      "host": {"hardware": {"logical_cpus": 16, "memory_total_gib": 40.0, "memory_available_gib": 12.0, "swap_free_gib": 8.0, "swap_used_gib": 8.0, "swap_used_percent": 50.0}},
+      "memory_psi_full_avg10": 0.0,
+      "target_dimensions": null,
+      "preset_override": null,
+      "frame_threads_override": null,
+      "concurrent_video_streams": 2,
+      "expected": {
+        "level": "high", "reserve_gib": 3.2, "planning_budget_gib": 6.6,
+        "profile_factor": 5.0, "preset_factor": 1.0,
+        "per_frame_allowance_gib": 10.0, "per_worker_allowance_gib": 2.5,
+        "modeled_plan_gib": 12.5, "memory_worker_cap": 1,
+        "requested_workers": 15, "requested_frame_threads": 2,
+        "planned_workers": 1, "planned_frame_threads": 1
+      },
+      "retry_expected": {"level": "high", "planned_workers": 1, "planned_frame_threads": 1, "modeled_plan_gib": 12.5, "reduces_parallelism": false}
+    }
+  ]
+}

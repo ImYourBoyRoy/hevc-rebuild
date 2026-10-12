@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from .model import MediaProfile, Toolchain
-from .util import RebuildError, format_command
+from .util import RebuildError, format_command, native_json_action
 
 
 _HDR10PLUS_DETECTED = re.compile(
@@ -56,6 +56,37 @@ def _read_stderr_file(handle) -> str:
     return handle.read().decode("utf-8", errors="replace")
 
 
+def _native_hdr_tool_payload(tools: Toolchain) -> dict[str, object]:
+    return {
+        "tools": {
+            "ffmpeg": tools.ffmpeg,
+            "hdr10plus_tool": tools.hdr10plus_tool,
+            "x265_dolbyvision": tools.x265_dolbyvision,
+        }
+    }
+
+
+def _native_dolbyvision_profile(profile: MediaProfile) -> dict[str, object]:
+    return {
+        "dovi_profile": getattr(profile, "dovi_profile", None),
+        "dovi_rpu_present": bool(getattr(profile, "dovi_rpu_present", False)),
+        "dovi_el_present": bool(getattr(profile, "dovi_el_present", False)),
+        "dovi_bl_present": bool(getattr(profile, "dovi_bl_present", False)),
+        "hdr10": bool(getattr(profile, "hdr10", False)),
+        "interlaced": bool(getattr(profile, "interlaced", False)),
+    }
+
+
+def _native_reasons(payload: dict[str, object]) -> list[str] | None:
+    response = native_json_action("hdr-metadata", payload, timeout=15.0)
+    if response is None:
+        return None
+    reasons = response.get("reasons")
+    if not isinstance(reasons, list) or not all(isinstance(reason, str) for reason in reasons):
+        raise RebuildError("The Rust HDR metadata helper returned invalid Dolby Vision reasons.")
+    return reasons
+
+
 def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Path | None = None) -> bool:
     # For an encoded output where primary video is guaranteed v:0, use a lightweight
     # path override rather than rebuilding the source profile.
@@ -68,6 +99,21 @@ def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Pat
         if (profile.primary_video.codec_name or "").lower() not in {"hevc", "h265"}:
             return False
         ffmpeg = _hevc_pipe(tools, profile)
+
+    native_payload = {
+        "operation": "verify_hdr10plus",
+        **_native_hdr_tool_payload(tools),
+        "input_path": str(profile.path),
+        "stream_index": profile.primary_video.index,
+        "codec_name": profile.primary_video.codec_name,
+        "path_override": str(path_override) if path_override is not None else None,
+    }
+    native = native_json_action("hdr-metadata", native_payload, timeout=None)
+    if native is not None:
+        verified = native.get("verified")
+        if not isinstance(verified, bool):
+            raise RebuildError("The Rust HDR metadata helper returned an invalid verification result.")
+        return verified
 
     parser = [tools.hdr10plus_tool, "--verify", "extract", "-"]
     logging.debug("HDR10+ verify pipeline: %s | %s", format_command(ffmpeg), format_command(parser))
@@ -110,6 +156,19 @@ def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Pat
 def extract_hdr10plus(tools: Toolchain, profile: MediaProfile, output_json: Path) -> None:
     if (profile.primary_video.codec_name or "").lower() not in {"hevc", "h265"}:
         raise RebuildError("HDR10+ preservation currently requires an HEVC source video stream.")
+    native_payload = {
+        "operation": "extract_hdr10plus",
+        **_native_hdr_tool_payload(tools),
+        "input_path": str(profile.path),
+        "stream_index": profile.primary_video.index,
+        "codec_name": profile.primary_video.codec_name,
+        "output_json": str(output_json),
+    }
+    native = native_json_action("hdr-metadata", native_payload, timeout=None)
+    if native is not None:
+        if native.get("extracted") is not True:
+            raise RebuildError("The Rust HDR metadata helper did not confirm extraction.")
+        return
     ffmpeg = _hevc_pipe(tools, profile)
     parser = [tools.hdr10plus_tool, "extract", "-o", str(output_json), "-"]
     logging.info("Extracting HDR10+ dynamic metadata from selected primary video stream.")
@@ -141,6 +200,14 @@ def dolbyvision_safe_preservation_reasons(
     force_deinterlace: bool = False,
 ) -> list[str]:
     """Return reasons the source cannot use native safe Dolby Vision preservation."""
+    native = _native_reasons({
+        "operation": "dolbyvision_safe_reasons",
+        **_native_hdr_tool_payload(tools),
+        "profile": _native_dolbyvision_profile(profile),
+        "force_deinterlace": force_deinterlace,
+    })
+    if native is not None:
+        return native
     reasons: list[str] = []
     if profile.dovi_profile != 8:
         reasons.append(f"Profile {profile.dovi_profile or 'unknown'} is not the safe single-layer Profile 8 path")
@@ -165,6 +232,12 @@ def dolbyvision_hdr10_fallback_reasons(profile: MediaProfile) -> list[str]:
     identifies as HDR10. Profiles outside the known Profile 7/8 families are rejected
     rather than guessed.
     """
+    native = _native_reasons({
+        "operation": "dolbyvision_fallback_reasons",
+        "profile": _native_dolbyvision_profile(profile),
+    })
+    if native is not None:
+        return native
     reasons: list[str] = []
     if profile.dovi_profile not in {7, 8}:
         reasons.append(f"Dolby Vision Profile {profile.dovi_profile or 'unknown'} is not approved for this HDR10 fallback path")

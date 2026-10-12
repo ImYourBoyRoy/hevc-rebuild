@@ -35,6 +35,7 @@ calibration.json
 # Generated frontend and native build output
 desktop/src-tauri/target/
 desktop/src-tauri/gen/schemas/
+.playwright-cli/
 
 # Local run data and portable application sidecars
 logs/

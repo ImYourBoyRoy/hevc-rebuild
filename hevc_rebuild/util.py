@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import logging
+import math
 import os
 import shlex
 import shutil
@@ -20,8 +21,51 @@ class RebuildError(RuntimeError):
     pass
 
 
+class ConsoleClosed(RebuildError):
+    """The desktop progress pipe closed, so the encode stops and the original stays."""
+    pass
+
+
 class UserAbort(RebuildError):
     pass
+
+
+def native_json_action(
+    action: str,
+    payload: dict[str, object],
+    *,
+    timeout: float | None = 15.0,
+) -> dict[str, object] | None:
+    """Call an optional Rust helper, returning None for direct Python runs.
+
+    A timeout of None is reserved for native operations whose duration scales with
+    media length, such as streaming HDR metadata verification and extraction.
+    """
+    executable = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+    if not executable:
+        return None
+    try:
+        result = subprocess.run(
+            [executable, "internal", action],
+            input=json.dumps(payload, separators=(",", ":"), allow_nan=False),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        raise RebuildError(f"Could not run the Rust {action} helper: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip()[-4000:]
+        suffix = f" Details: {detail}" if detail else ""
+        raise RebuildError(f"The Rust {action} helper exited with status {result.returncode}.{suffix}")
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RebuildError(f"The Rust {action} helper returned malformed JSON.") from exc
+    if not isinstance(value, dict):
+        raise RebuildError(f"The Rust {action} helper returned an invalid response.")
+    return value
 
 
 def portable_data_dir() -> Path | None:
@@ -79,7 +123,13 @@ def run(
         env=env,
     )
     if check and cp.returncode != 0:
-        raise ExternalCommandError(args, cp.returncode, cp.stderr or "")
+        details = []
+        for value in (cp.stdout, cp.stderr):
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            if isinstance(value, str) and value.strip():
+                details.append(value.strip())
+        raise ExternalCommandError(args, cp.returncode, "\n".join(details))
     return cp
 
 
@@ -207,14 +257,50 @@ def configure_logging(log_dir: Path, verbose: bool = False) -> tuple[Path, Path]
 def append_csv(csv_path: Path, row: dict[str, Any]) -> None:
     fields = [
         "input", "output", "status", "message", "primary_video", "resolution",
-        "audio_count", "subtitle_count", "hdr10", "hdr10plus", "dolby_vision",
+        "audio_count", "subtitle_count", "subtitle_note", "hdr10", "hdr10plus", "hdr10plus_note", "dolby_vision",
         "dovi_profile", "dovi_source", "dolby_vision_action",
         "memory_forecast", "memory_available_gib", "memory_total_gib", "memory_swap_used_percent", "memory_budget_gib",
         "memory_worker_cap", "planned_workers", "planned_frame_threads", "memory_forecast_message",
         "calibration_source", "calibration_workers", "calibration_frame_threads", "calibration_candidate_count", "calibration_note",
         "min_memory_available_gib", "max_encoder_rss_gib", "max_swap_used_percent", "max_encoder_swap_gib", "max_swap_in_mib_s", "max_swap_out_mib_s", "max_memory_full_psi_percent",
-        "input_bytes", "output_bytes", "elapsed_seconds",
+        "input_bytes", "output_bytes", "upload_resolution", "upload_quality_mode", "upload_source_multiplier", "output_resolution",
+        "upload_video_bitrate_kbps", "youtube_recommended_video_bitrate_kbps", "estimated_output_bytes",
+        "metadata_text_scrub_count", "metadata_text_scrub_details", "elapsed_seconds",
     ]
+    native_helper = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+    if native_helper:
+        command = [native_helper, "internal", "report-append"]
+        try:
+            report_row = {
+                key: str(value) if isinstance(value, float) and not math.isfinite(value) else value
+                for key, value in row.items()
+            }
+            payload = json.dumps(
+                {"path": str(csv_path), "row": report_row},
+                ensure_ascii=False,
+                default=str,
+                allow_nan=False,
+            )
+            result = subprocess.run(
+                command,
+                input=payload,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                errors="replace",
+                timeout=30,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError, TypeError, ValueError) as exc:
+            raise RebuildError(f"Could not append the run report through Rust: {exc}") from exc
+        if result.returncode != 0:
+            detail = result.stderr.strip()[-4000:]
+            suffix = f" Details: {detail}" if detail else ""
+            raise RebuildError(
+                f"The Rust report writer exited with status {result.returncode}.{suffix}"
+            )
+        return
+
     exists = csv_path.exists()
     with csv_path.open("a", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")

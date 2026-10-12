@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import json
+import math
 import shutil
 import sys
 import time
@@ -8,14 +10,25 @@ from dataclasses import dataclass
 
 from .model import MediaProfile
 from .resources import ResourceSnapshot
-from .util import duration_text, human_bytes
+from .util import ConsoleClosed, duration_text, human_bytes
 
 
 _USE_COLOR = sys.stderr.isatty() and not os.environ.get("NO_COLOR")
+_GUI_PROGRESS_PREFIX = "#HEVC_REBUILD_PROGRESS\t"
 
 
 def _c(code: str, text: str) -> str:
     return f"\x1b[{code}m{text}\x1b[0m" if _USE_COLOR else text
+
+
+def _write_stderr(text: str) -> None:
+    """Write one progress line. A closed desktop window stops the encode cleanly."""
+    try:
+        print(text, file=sys.stderr, flush=True)
+    except BrokenPipeError as exc:
+        raise ConsoleClosed(
+            "The desktop app closed while this file was encoding. The original was not changed."
+        ) from exc
 
 
 def _clip(text: str, width: int) -> str:
@@ -82,6 +95,51 @@ def print_batch_card(
         ("Safety", "Originals stay in place until each rebuilt file passes verification"),
     ]
     _box(f"HEVC Rebuild • {mode}", rows)
+
+
+def emit_gui_progress(
+    *,
+    file_name: str,
+    file_path: str | None = None,
+    phase: str,
+    batch_number: int,
+    batch_total: int,
+    file_percent: float | None,
+    queue_percent: float | None,
+    speed: float | None = None,
+    eta_seconds: float | None = None,
+    elapsed_seconds: float | None = None,
+    input_bytes: int | None = None,
+    output_bytes: int | None = None,
+    estimated_output_bytes: int | None = None,
+) -> None:
+    """Send a bounded machine-readable progress record to the Tauri host."""
+    if os.environ.get("HEVC_REBUILD_GUI_EVENTS") != "1":
+        return
+    def finite(value: float | None, *, minimum: float = 0.0, maximum: float | None = None) -> float | None:
+        if value is None or not math.isfinite(value):
+            return None
+        result = max(minimum, float(value))
+        return min(maximum, result) if maximum is not None else result
+
+    payload = {
+        "fileName": file_name[:512],
+        "filePath": file_path[:8192] if file_path else None,
+        "phase": phase[:96],
+        "batchNumber": max(1, int(batch_number)),
+        "batchTotal": max(1, int(batch_total)),
+        "filePercent": finite(file_percent, maximum=100.0),
+        "queuePercent": finite(queue_percent, maximum=100.0),
+        "speed": finite(speed),
+        "etaSeconds": finite(eta_seconds),
+        "elapsedSeconds": finite(elapsed_seconds),
+        "inputBytes": max(0, int(input_bytes)) if input_bytes is not None else None,
+        "outputBytes": max(0, int(output_bytes)) if output_bytes is not None else None,
+        "estimatedOutputBytes": max(0, int(estimated_output_bytes)) if estimated_output_bytes is not None else None,
+    }
+    _write_stderr(
+        _GUI_PROGRESS_PREFIX + json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    )
 
 
 def print_encode_card(
@@ -159,15 +217,22 @@ class ProgressView:
     label: str
     expected_duration: float
     memory_guard_gib: float
+    file_path: str | None = None
+    elapsed_seconds_before: float = 0.0
+    input_size: int = 0
     batch_number: int = 1
     batch_total: int = 1
     enabled: bool = True
     _last_bucket: int = -1
+    _last_logged_percent: int = -1
     _last_update_at: float = 0.0
     _drawn_lines: int = 0
+    _started_at: float = 0.0
+    _last_gui_update_at: float = 0.0
 
     def __post_init__(self) -> None:
         self.enabled = bool(self.enabled and sys.stderr.isatty())
+        self._started_at = time.monotonic()
 
     def _clear_live(self) -> None:
         if not self.enabled or self._drawn_lines <= 0:
@@ -193,7 +258,32 @@ class ProgressView:
     ) -> None:
         pct = min(100.0, max(0.0, done / self.expected_duration * 100.0)) if self.expected_duration else 0.0
         eta = (self.expected_duration - done) / speed if speed > 0 else None
-        queue_pct = ((self.batch_number - 1) + pct / 100.0) / max(1, self.batch_total) * 100.0
+        # Encoding is most of the job, but metadata writing, validation, and
+        # installation still follow. Leave room for those explicit stages.
+        queue_pct = ((self.batch_number - 1) + 0.85 * pct / 100.0) / max(1, self.batch_total) * 100.0
+        now = time.monotonic()
+        if now - self._last_gui_update_at >= 1.0 or pct >= 100.0:
+            label = self.label
+            if label.startswith("[") and "] " in label:
+                label = label.split("] ", 1)[1]
+            fraction = done / self.expected_duration if self.expected_duration > 0 else 0.0
+            projected = int(max(0, size) / fraction) if fraction >= 0.10 and size > 0 else None
+            emit_gui_progress(
+                file_name=label,
+                file_path=self.file_path,
+                phase=phase,
+                batch_number=self.batch_number,
+                batch_total=self.batch_total,
+                file_percent=pct,
+                queue_percent=queue_pct,
+                speed=speed if speed > 0 else None,
+                eta_seconds=max(0.0, eta) if eta is not None else None,
+                elapsed_seconds=max(0.0, self.elapsed_seconds_before + now - self._started_at),
+                input_bytes=self.input_size,
+                output_bytes=max(0, size),
+                estimated_output_bytes=projected,
+            )
+            self._last_gui_update_at = now
         term = max(58, shutil.get_terminal_size((110, 24)).columns - 1)
 
         # Two compact live lines preserve the useful telemetry on normal
@@ -208,6 +298,14 @@ class ProgressView:
         )
 
         health: list[str] = []
+        if self.input_size > 0:
+            size_status = f"Input {human_bytes(self.input_size)} · Output {human_bytes(max(0, size))}"
+            if pct >= 10.0 and size > 0:
+                projected_bytes = int(size / max(0.001, done / self.expected_duration))
+                size_status += f" · Live estimate {human_bytes(projected_bytes)}"
+            else:
+                size_status += " · Live estimate calculating"
+            health.append(size_status)
         if resources.cpu_percent is not None:
             health.append(f"CPU {resources.cpu_percent:.0f}%")
         if resources.memory.available_gib is not None:
@@ -227,9 +325,9 @@ class ProgressView:
                 outgoing = human_bytes(int(swap_out or 0))
                 health.append(f"Swap I/O {incoming}/{outgoing}/s")
         if resources.process_rss_gib is not None:
-            health.append(f"x265 {resources.process_rss_gib:.1f}G")
+            health.append(f"FFmpeg {resources.process_rss_gib:.1f}G")
         if resources.process_swap_gib is not None:
-            health.append(f"x265 swap {resources.process_swap_gib:.1f}G")
+            health.append(f"FFmpeg swap {resources.process_swap_gib:.1f}G")
         if resources.disk is not None:
             health.append(f"Disk {human_bytes(resources.disk.free_bytes)} free")
         if resources.temperature_c is not None:
@@ -240,21 +338,36 @@ class ProgressView:
         line2 = _clip("  " + "  • ".join(health), term)
 
         if self.enabled:
-            self._clear_live()
-            sys.stderr.write(line1 + "\n" + line2)
-            sys.stderr.flush()
+            try:
+                self._clear_live()
+                sys.stderr.write(line1 + "\n" + line2)
+                sys.stderr.flush()
+            except BrokenPipeError as exc:
+                raise ConsoleClosed(
+                    "The desktop app closed while this file was encoding. The original was not changed."
+                ) from exc
             self._drawn_lines = 2
+        elif os.environ.get("HEVC_REBUILD_GUI_EVENTS") == "1":
+            # The desktop bar, ETA, and resource cards already update from the
+            # structured event. The activity log only records percent milestones.
+            whole = int(pct)
+            if whole != self._last_logged_percent and whole % 5 == 0:
+                self._last_logged_percent = whole
+                _write_stderr(
+                    f"  {phase} {self.batch_number}/{self.batch_total}  {pct:.0f}%"
+                    f"  • {speed:.2f}x  • {duration_text(eta)} left"
+                )
         else:
             bucket = min(20, int(pct // 5))
             now = time.monotonic()
             if bucket != self._last_bucket or now - self._last_update_at >= 2.0:
                 self._last_bucket = bucket
                 self._last_update_at = now
-                # Logs/pipes receive periodic status lines rather than ANSI HUD data.
-                compact = line1
+                # Logs/pipes receive readable progress and telemetry as separate
+                # lines so longer size estimates are not clipped by terminal width.
+                _write_stderr(line1)
                 if health:
-                    compact = _clip(line1 + "  • " + " • ".join(health[:6]), term)
-                print(compact, file=sys.stderr)
+                    _write_stderr("  " + "  •  ".join(health[:6]))
 
     def note(self, text: str) -> None:
         self._clear_live()
@@ -266,20 +379,20 @@ class ProgressView:
 
 
 def print_phase(text: str) -> None:
-    print(_c("1;36", f"  • {text}"), file=sys.stderr)
+    _write_stderr(_c("1;36", f"  • {text}"))
 
 
 def print_success(text: str) -> None:
-    print(_c("1;32", f"  ✓ {text}"), file=sys.stderr)
+    _write_stderr(_c("1;32", f"  ✓ {text}"))
 
 
 def print_warning(text: str) -> None:
-    print(_c("1;33", f"  ! {text}"), file=sys.stderr)
+    _write_stderr(_c("1;33", f"  ! {text}"))
 
 
-def print_batch_summary(*, ok: int, tests: int, info: int, skipped: int, failed: int, elapsed: float) -> None:
+def print_batch_summary(*, ok: int, tests: int, info: int, skipped: int, failed: int, elapsed: float, metadata: int = 0) -> None:
     rows = [
-        ("Result", f"{ok} rebuilt • {tests} test(s) • {info} checked • {skipped} skipped • {failed} failed"),
+        ("Result", f"{ok} rebuilt • {metadata} metadata-only • {tests} test(s) • {info} checked • {skipped} skipped • {failed} failed"),
         ("Elapsed", duration_text(elapsed)),
         ("Logs", "Detailed diagnostics were written to the run log/report"),
     ]

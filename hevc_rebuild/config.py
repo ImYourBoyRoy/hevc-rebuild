@@ -26,11 +26,13 @@ DEFAULTS: dict[str, Any] = {
         "dolby_vision": "safe",
     },
     "streams": {
-        "secondary_video": "copy",
+        "secondary_video": "encode",
         "data_streams": "preserve",
     },
     "metadata": {
         "comment": "Brought To you By V1x0r",
+        "text_blacklist": ["Movie*Group"],
+        "embed_artwork": True,
     },
     "safety": {
         "verify_copy_hashes": True,
@@ -50,7 +52,7 @@ DEFAULTS: dict[str, Any] = {
         "frame_threads": 0,
         "min_free_memory_gib": 3.0,
         "memory_reserve_percent": 8.0,
-        "min_free_disk_gib": 8.0,
+        "min_free_disk_gib": 0.0,
         "preflight_output_ratio": 1.30,
         "disk_projection_margin_percent": 15.0,
     },
@@ -59,7 +61,7 @@ DEFAULTS: dict[str, Any] = {
 PRESETS = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"}
 TUNES = {"auto", "animation", "grain", "none"}
 DV_POLICIES = {"safe", "skip", "hdr10-fallback"}
-SECONDARY_VIDEO = {"copy", "drop"}
+SECONDARY_VIDEO = {"encode", "copy", "drop"}
 DATA_STREAMS = {"preserve", "drop"}
 RESOURCE_THREADING = {"auto", "unlimited"}
 CALIBRATION_MODES = {"auto", "ask", "always", "off"}
@@ -116,8 +118,8 @@ preserve_hdr10plus = true
 dolby_vision = "safe"
 
 [streams]
-# Highest-resolution video is encoded. Extra video tracks are copied unless set to "drop".
-secondary_video = "copy"
+# Selected real video tracks are encoded to HEVC. Use "copy" for legacy pass-through or "drop" for only the primary.
+secondary_video = "encode"
 
 # Preserve non-audio/non-subtitle data streams when Matroska supports them.
 data_streams = "preserve"
@@ -143,16 +145,25 @@ frame_threads = 0
 min_free_memory_gib = 3.0
 memory_reserve_percent = 8.0
 
-# Disk safety: never intentionally consume the final 8 GiB of the target drive.
+# Optional extra free-space floor. Zero uses only the per-file working-space estimate.
 # Before starting, budget up to 130% of source size for the temporary encode.
-# During encoding, projected output size is watched too.
-min_free_disk_gib = 8.0
+# During encoding, projected output size is always watched.
+min_free_disk_gib = 0.0
 preflight_output_ratio = 1.30
 disk_projection_margin_percent = 15.0
 
 [metadata]
 # Matroska COMMENT tag added/updated by the utility.
 comment = "Brought To you By V1x0r"
+
+# Remove matching substrings from imported title clues, rename proposals, and
+# human-readable media metadata on rebuilt output.
+# Each entry is a separate case-insensitive pattern; '*' matches any sequence.
+# Example: text_blacklist = ["Movie*Group"]
+text_blacklist = ["Movie*Group"]
+
+# Attach selected local poster art to the output Matroska file.
+embed_artwork = true
 
 [safety]
 # Verify copied audio/subtitle/secondary-video packet payloads and codec data with SHA-256.
@@ -189,8 +200,8 @@ frame_threads = 0
 min_free_memory_gib = 3.0
         memory_reserve_percent = 8.0
 
-# Keep free disk space in reserve and stop before a projected ENOSPC condition.
-min_free_disk_gib = 8.0
+# Optional extra free-space floor; 0 uses the media-derived working-space estimate.
+min_free_disk_gib = 0.0
 preflight_output_ratio = 1.30
 disk_projection_margin_percent = 15.0
 """
@@ -200,7 +211,7 @@ disk_projection_margin_percent = 15.0
         required = [
             ("reserved_cpu_threads", "reserved_cpu_threads = 1"),
             ("memory_reserve_percent", "memory_reserve_percent = 8.0"),
-            ("min_free_disk_gib", "min_free_disk_gib = 8.0"),
+            ("min_free_disk_gib", "min_free_disk_gib = 0.0"),
             ("preflight_output_ratio", "preflight_output_ratio = 1.30"),
             ("disk_projection_margin_percent", "disk_projection_margin_percent = 15.0"),
         ]
@@ -295,6 +306,32 @@ def _expect_bool(cfg: dict[str, Any], section: str, key: str) -> bool:
     return value
 
 
+def validate_metadata_text_blacklist(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        raise RebuildError("Config metadata.text_blacklist must be a list of text patterns.")
+    if len(value) > 100:
+        raise RebuildError("Config metadata.text_blacklist can contain at most 100 patterns.")
+    patterns: list[str] = []
+    seen: set[str] = set()
+    for index, pattern in enumerate(value, start=1):
+        if not isinstance(pattern, str):
+            raise RebuildError(f"Config metadata.text_blacklist entry {index} must be text.")
+        if pattern != pattern.strip() or not pattern:
+            raise RebuildError(f"Config metadata.text_blacklist entry {index} must not be empty or padded with spaces.")
+        if len(pattern.encode("utf-8")) > 128:
+            raise RebuildError(f"Config metadata.text_blacklist entry {index} is limited to 128 UTF-8 bytes.")
+        if all(char == "*" for char in pattern):
+            raise RebuildError(f"Config metadata.text_blacklist entry {index} must include text besides '*'.")
+        if any(ord(char) < 32 or ord(char) == 127 for char in pattern):
+            raise RebuildError(f"Config metadata.text_blacklist entry {index} cannot contain control characters.")
+        normalized = pattern.casefold()
+        if normalized in seen:
+            raise RebuildError("Config metadata.text_blacklist cannot contain duplicate patterns.")
+        seen.add(normalized)
+        patterns.append(pattern)
+    return patterns
+
+
 def validate_config(cfg: dict[str, Any]) -> None:
     crf = cfg["video"]["crf"]
     if not isinstance(crf, int) or isinstance(crf, bool) or not 0 <= crf <= 51:
@@ -309,11 +346,14 @@ def validate_config(cfg: dict[str, Any]) -> None:
     if cfg["hdr"]["dolby_vision"] not in DV_POLICIES:
         raise RebuildError("Config hdr.dolby_vision must be safe, skip, or hdr10-fallback.")
     if cfg["streams"]["secondary_video"] not in SECONDARY_VIDEO:
-        raise RebuildError("Config streams.secondary_video must be copy or drop.")
+        raise RebuildError("Config streams.secondary_video must be encode, copy, or drop.")
     if cfg["streams"]["data_streams"] not in DATA_STREAMS:
         raise RebuildError("Config streams.data_streams must be preserve or drop.")
     if not isinstance(cfg["metadata"]["comment"], str):
         raise RebuildError("Config metadata.comment must be text.")
+    if not isinstance(cfg["metadata"].get("embed_artwork", True), bool):
+        raise RebuildError("Config metadata.embed_artwork must be true or false.")
+    validate_metadata_text_blacklist(cfg["metadata"].get("text_blacklist", []))
     _expect_bool(cfg, "safety", "verify_copy_hashes")
     if not isinstance(cfg["calibration"]["mode"], str) or cfg["calibration"]["mode"] not in CALIBRATION_MODES:
         raise RebuildError("Config calibration.mode must be auto, ask, always, or off.")
@@ -402,6 +442,18 @@ def apply_to_args(args: Any, cfg: dict[str, Any]) -> None:
     args.secondary_video = cfg["streams"]["secondary_video"] if args.secondary_video is None else args.secondary_video
     args.data_streams = cfg["streams"]["data_streams"] if args.data_streams is None else args.data_streams
     args.comment = cfg["metadata"]["comment"] if args.comment is None else args.comment
+    args.embed_artwork = cfg["metadata"].get("embed_artwork", True) if args.embed_artwork is None else args.embed_artwork
+    cli_patterns = getattr(args, "metadata_text_blacklist", None)
+    if getattr(args, "replace_metadata_text_blacklist", False):
+        patterns = list(cli_patterns or [])
+    else:
+        patterns = list(cfg["metadata"].get("text_blacklist", []))
+        known = {pattern.casefold() for pattern in patterns}
+        for pattern in cli_patterns or []:
+            if pattern.casefold() not in known:
+                patterns.append(pattern)
+                known.add(pattern.casefold())
+    args.metadata_text_blacklist = validate_metadata_text_blacklist(patterns)
     args.verify_copy_hashes = cfg["safety"]["verify_copy_hashes"] if args.verify_copy_hashes is None else args.verify_copy_hashes
     current = getattr(args, "resource_threading", None)
     args.resource_threading = cfg["resources"]["threading"] if current is None else current

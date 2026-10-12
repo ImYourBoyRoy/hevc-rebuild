@@ -5,7 +5,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from .metadata import nfo_path_for
+from .metadata import nfo_paths_for
+from .util import RebuildError, native_json_action
 
 
 def _split_genres(value: str) -> list[str]:
@@ -14,8 +15,7 @@ def _split_genres(value: str) -> list[str]:
 
 def metadata_genres(path: Path, mediainfo: dict[str, Any]) -> set[str]:
     genres: set[str] = set()
-    nfo = nfo_path_for(path)
-    if nfo:
+    for nfo in nfo_paths_for(path):
         try:
             root = ET.parse(nfo).getroot()
             for node in root.findall("genre"):
@@ -47,3 +47,47 @@ def resolve_tune(path: Path, mediainfo: dict[str, Any], requested: str, detect_a
     if detect_animation and "animation" in metadata_genres(path, mediainfo):
         return "animation"
     return None
+
+
+def resolve_run_tune(
+    path: Path,
+    mediainfo: dict[str, Any],
+    requested: str,
+    detect_animation: bool,
+    file_override: str | None = None,
+) -> str | None:
+    """Use Rust's run-time tune decision for app-launched jobs, with direct fallback."""
+    general_tracks = []
+    tracks = ((mediainfo.get("media") or {}).get("track") or []) if isinstance(mediainfo, dict) else []
+    for track in tracks:
+        if not isinstance(track, dict) or str(track.get("@type", "")).lower() != "general":
+            continue
+        summary = {"@type": "General"}
+        for key in ("Genre", "Genres"):
+            if key in track:
+                summary[key] = track[key]
+        general_tracks.append(summary)
+    response = native_json_action(
+        "content-tune",
+        {
+            "path": str(path.resolve()),
+            "mediainfo": {"media": {"track": general_tracks}},
+            "requested_tune": requested or "auto",
+            "detect_animation": detect_animation,
+            "file_override": file_override,
+        },
+        timeout=15.0,
+    )
+    if response is None:
+        return resolve_tune(
+            path,
+            mediainfo,
+            file_override if file_override is not None else requested,
+            False if file_override is not None else detect_animation,
+        )
+    tune = response.get("tune")
+    if tune is None or tune == "none":
+        return None
+    if tune in {"animation", "grain"}:
+        return str(tune)
+    raise RebuildError("The Rust content-tune helper returned an unsupported tune.")

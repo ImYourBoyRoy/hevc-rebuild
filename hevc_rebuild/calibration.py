@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import os
 import platform
 import shutil
@@ -30,6 +31,7 @@ GIB = 1024**3
 MIB = 1024**2
 MAX_CACHE_ENTRIES = 64
 MAX_CACHE_AGE_HOURS = 720.0
+_NATIVE_ENCODER_FINGERPRINTS: dict[str, str] = {}
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,23 @@ def cache_path() -> Path:
 
 
 def is_demanding(profile: MediaProfile, source_size_bytes: int, *, large_file_gib: float) -> bool:
+    if os.environ.get("HEVC_REBUILD_NATIVE_HELPER"):
+        try:
+            native = _native_calibration_action(
+                "eligible",
+                {
+                    "width": int(profile.primary_video.width or 0),
+                    "height": int(profile.primary_video.height or 0),
+                    "source_size_bytes": max(0, int(source_size_bytes)),
+                    "large_file_gib": large_file_gib,
+                },
+            )
+            result = native.get("demanding") if native is not None else None
+            if isinstance(result, bool):
+                return result
+            raise RebuildError("The Rust calibration-eligibility helper returned an invalid result.")
+        except RebuildError as exc:
+            logging.warning("Rust calibration eligibility failed; using compatibility logic: %s", exc)
     pixels = int(profile.primary_video.width or 0) * int(profile.primary_video.height or 0)
     return pixels >= 3840 * 2160 or source_size_bytes >= int(max(0.0, large_file_gib) * GIB)
 
@@ -119,6 +138,146 @@ def sys_platform_linux() -> bool:
     return platform.system() == "Linux"
 
 
+def _native_calibration_action(mode: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    executable = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+    if not executable:
+        return None
+    timeout = 90 if mode == "run" else 15
+    try:
+        result = subprocess.run(
+            [executable, "internal", "calibration", mode],
+            input=json.dumps(payload, separators=(",", ":"), allow_nan=False),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        raise RebuildError(f"Could not run the Rust calibration {mode} helper: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip()[-4000:]
+        suffix = f" Details: {detail}" if detail else ""
+        raise RebuildError(
+            f"The Rust calibration {mode} helper exited with status {result.returncode}.{suffix}"
+        )
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RebuildError("The Rust calibration helper returned malformed JSON.") from exc
+    if not isinstance(value, dict):
+        raise RebuildError("The Rust calibration helper returned an invalid response.")
+    return value
+
+
+def _native_results(value: object) -> tuple[CalibrationResult, ...]:
+    if not isinstance(value, list):
+        raise RebuildError("The Rust calibration helper returned invalid candidate results.")
+    results: list[CalibrationResult] = []
+    for item in value:
+        if not isinstance(item, dict):
+            raise RebuildError("The Rust calibration helper returned an invalid candidate result.")
+        try:
+            result = CalibrationResult(**item)
+        except TypeError as exc:
+            raise RebuildError("The Rust calibration helper returned an incomplete candidate result.") from exc
+        numeric = (
+            result.elapsed_seconds,
+            result.media_seconds,
+            result.speed_x,
+            result.peak_rss_gib,
+            result.min_available_gib,
+            result.max_memory_psi_full,
+            result.max_swap_in_mib_s,
+            result.max_swap_out_mib_s,
+        )
+        if (
+            not isinstance(result.worker_threads, int)
+            or not isinstance(result.frame_threads, int)
+            or not isinstance(result.healthy, bool)
+            or not isinstance(result.reason, str)
+            or any(value is not None and (not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value)) for value in numeric)
+        ):
+            raise RebuildError("The Rust calibration helper returned invalid candidate values.")
+        results.append(result)
+    return tuple(results)
+
+
+def _native_profile_payload(profile: MediaProfile) -> dict[str, Any]:
+    return {
+        "source_path": str(profile.path),
+        "duration": profile.duration,
+        "primary_video_index": profile.primary_video.index,
+        "primary_video_width": profile.primary_video.width,
+        "primary_video_height": profile.primary_video.height,
+        "source_bit_depth": profile.source_bit_depth,
+        "source_chroma": profile.source_chroma,
+        "target_pix_fmt": profile.target_pix_fmt,
+        "format_level": profile.format_level,
+        "color_primaries": profile.color_primaries,
+        "transfer": profile.transfer,
+        "color_matrix": profile.color_matrix,
+        "color_range_x265": profile.color_range_x265,
+        "color_range_ffmpeg": profile.color_range_ffmpeg,
+        "chroma_location": profile.chroma_location,
+        "master_display": profile.master_display,
+        "max_cll": profile.max_cll,
+        "max_fall": profile.max_fall,
+        "hdr10": profile.hdr10,
+        "hdr10plus": profile.hdr10plus,
+        "hlg": profile.hlg,
+        "dolby_vision": profile.dolby_vision,
+        "dovi_profile": profile.dovi_profile,
+        "dovi_rpu_present": profile.dovi_rpu_present,
+        "interlaced": profile.interlaced,
+    }
+
+
+def _native_toolchain_payload(tools: Toolchain) -> dict[str, Any]:
+    return {
+        "ffmpeg": tools.ffmpeg,
+        "x265_pixel_formats": sorted(tools.x265_pixel_formats),
+        "x265_dolbyvision": tools.x265_dolbyvision,
+    }
+
+
+def _native_options_payload(
+    *,
+    preset: str,
+    tune: str | None,
+    crf: int,
+    sample_seconds: float,
+    hdr10plus_json: Path | None,
+    preserve_dolbyvision: bool,
+    strip_dolbyvision: bool,
+    preserve_source_level: bool,
+    disable_hdr10_opt: bool,
+    force_deinterlace: bool,
+    disable_deinterlace: bool,
+) -> dict[str, Any]:
+    return {
+        "preset": preset,
+        "tune": tune,
+        "crf": crf,
+        "sample_seconds": sample_seconds,
+        "hdr10plus_json": str(hdr10plus_json) if hdr10plus_json else None,
+        "preserve_dolbyvision": preserve_dolbyvision,
+        "strip_dolbyvision": strip_dolbyvision,
+        "preserve_source_level": preserve_source_level,
+        "disable_hdr10_opt": disable_hdr10_opt,
+        "force_deinterlace": force_deinterlace,
+        "disable_deinterlace": disable_deinterlace,
+    }
+
+
+def _native_plan_payload(plan: ResourcePlan) -> dict[str, Any]:
+    return {
+        "worker_threads": plan.worker_threads,
+        "frame_threads": plan.frame_threads,
+        "cpu_threads": plan.cpu_threads,
+        "memory_guard_gib": plan.memory_guard_gib,
+    }
+
+
 def calibration_key(
     tools: Toolchain,
     profile: MediaProfile,
@@ -139,6 +298,51 @@ def calibration_key(
     preserve_dolbyvision: bool,
     strip_dolbyvision: bool,
 ) -> str:
+    if os.environ.get("HEVC_REBUILD_NATIVE_HELPER"):
+        try:
+            encoder_fingerprint = _NATIVE_ENCODER_FINGERPRINTS.get(tools.ffmpeg)
+            native = _native_calibration_action(
+                "key",
+                {
+                    "profile": _native_profile_payload(profile),
+                    "toolchain": _native_toolchain_payload(tools),
+                    "options": _native_options_payload(
+                        preset=preset,
+                        tune=tune,
+                        crf=crf,
+                        sample_seconds=sample_seconds,
+                        hdr10plus_json=None,
+                        preserve_dolbyvision=preserve_dolbyvision,
+                        strip_dolbyvision=strip_dolbyvision,
+                        preserve_source_level=preserve_source_level,
+                        disable_hdr10_opt=disable_hdr10_opt,
+                        force_deinterlace=force_deinterlace,
+                        disable_deinterlace=disable_deinterlace,
+                    ),
+                    "base_plan": _native_plan_payload(base_plan),
+                    "total_memory_gib": total_memory_gib,
+                    "max_candidates": max_candidates,
+                    "throughput_tolerance_percent": throughput_tolerance_percent,
+                    "hdr10plus_enabled": hdr10plus_enabled,
+                    "encoder_fingerprint": encoder_fingerprint,
+                },
+            )
+            key = native.get("key") if native is not None else None
+            fingerprint = native.get("encoder_fingerprint") if native is not None else None
+            if (
+                isinstance(key, str)
+                and len(key) == 32
+                and all(character in "0123456789abcdef" for character in key)
+                and isinstance(fingerprint, str)
+                and len(fingerprint) == 64
+                and all(character in "0123456789abcdef" for character in fingerprint)
+            ):
+                _NATIVE_ENCODER_FINGERPRINTS[tools.ffmpeg] = fingerprint
+                return key
+            raise RebuildError("The Rust calibration-key helper returned an invalid workload key.")
+        except RebuildError as exc:
+            logging.warning("Rust calibration-key generation failed; using the compatibility key: %s", exc)
+
     payload = {
         "encoder": _encoder_fingerprint(tools.ffmpeg),
         "cpu": _cpu_identity(),
@@ -209,6 +413,43 @@ def cached_plan(
     cache_hours: float,
     now: float | None = None,
 ) -> CalibrationSelection | None:
+    try:
+        native = _native_calibration_action(
+            "cache",
+            {
+                "key": key,
+                "cache_hours": cache_hours,
+                "base_worker_threads": int(base_plan.worker_threads or max(1, base_plan.cpu_threads - 1)),
+                "base_frame_threads": int(base_plan.frame_threads or 1),
+            },
+        )
+    except RebuildError as exc:
+        logging.warning("Rust calibration-cache lookup failed; using the compatibility cache: %s", exc)
+        native = None
+    if native is not None:
+        if native.get("found") is False:
+            return None
+        workers = native.get("worker_threads")
+        frames = native.get("frame_threads")
+        age_hours = native.get("age_hours")
+        if (
+            native.get("found") is not True
+            or not isinstance(workers, int)
+            or isinstance(workers, bool)
+            or not isinstance(frames, int)
+            or isinstance(frames, bool)
+            or not isinstance(age_hours, (int, float))
+            or isinstance(age_hours, bool)
+            or not math.isfinite(age_hours)
+        ):
+            raise RebuildError("The Rust calibration-cache helper returned invalid cached values.")
+        reason = f"cached hardware calibration ({age_hours:.1f}h old)"
+        return CalibrationSelection(
+            plan=_with_threads(base_plan, workers, frames, reason),
+            source="cache",
+            age_hours=float(age_hours),
+        )
+
     data = _load_cache()
     entries = data.get("entries")
     entry = entries.get(key) if isinstance(entries, dict) else None
@@ -534,7 +775,61 @@ def run_calibration(
     disable_hdr10_opt: bool,
     force_deinterlace: bool,
     disable_deinterlace: bool,
+    cache_key: str | None = None,
 ) -> CalibrationSelection:
+    if os.environ.get("HEVC_REBUILD_NATIVE_HELPER") and cache_key:
+        try:
+            native = _native_calibration_action(
+                "run",
+                {
+                    "key": cache_key,
+                    "max_candidates": max_candidates,
+                    "throughput_tolerance_percent": throughput_tolerance_percent,
+                    "memory_guard_gib": base_plan.memory_guard_gib,
+                    "profile": _native_profile_payload(profile),
+                    "toolchain": _native_toolchain_payload(tools),
+                    "options": _native_options_payload(
+                        preset=preset,
+                        tune=tune,
+                        crf=crf,
+                        sample_seconds=sample_seconds,
+                        hdr10plus_json=hdr10plus_json,
+                        preserve_dolbyvision=preserve_dolbyvision,
+                        strip_dolbyvision=strip_dolbyvision,
+                        preserve_source_level=preserve_source_level,
+                        disable_hdr10_opt=disable_hdr10_opt,
+                        force_deinterlace=force_deinterlace,
+                        disable_deinterlace=disable_deinterlace,
+                    ),
+                    "base_plan": _native_plan_payload(base_plan),
+                },
+            )
+            if native is not None:
+                results = _native_results(native.get("results", []))
+                source = native.get("source")
+                reason = native.get("reason")
+                if not isinstance(reason, str):
+                    raise RebuildError("The Rust calibration helper returned an invalid selection reason.")
+                if source == "base":
+                    return CalibrationSelection(base_plan, "base", results=results, reason=reason)
+                workers = native.get("worker_threads")
+                frames = native.get("frame_threads")
+                if (
+                    source != "benchmark"
+                    or not isinstance(workers, int)
+                    or isinstance(workers, bool)
+                    or not isinstance(frames, int)
+                    or isinstance(frames, bool)
+                ):
+                    raise RebuildError("The Rust calibration helper returned an invalid plan selection.")
+                return CalibrationSelection(
+                    plan=_with_threads(base_plan, workers, frames, reason),
+                    source="benchmark",
+                    results=results,
+                )
+        except RebuildError as exc:
+            logging.warning("Rust hardware calibration failed; using the compatibility path: %s", exc)
+
     if memory_stats().available_gib is None:
         return CalibrationSelection(base_plan, "base", reason="Memory telemetry is unavailable; calibration was skipped.")
     results: list[CalibrationResult] = []
@@ -589,6 +884,20 @@ def run_calibration(
 def store_selection(key: str, selection: CalibrationSelection) -> None:
     if selection.source != "benchmark":
         return
+    if os.environ.get("HEVC_REBUILD_NATIVE_HELPER"):
+        try:
+            _native_calibration_action(
+                "store",
+                {
+                    "key": key,
+                    "worker_threads": int(selection.plan.worker_threads or 1),
+                    "frame_threads": int(selection.plan.frame_threads or 1),
+                    "results": [asdict(result) for result in selection.results],
+                },
+            )
+            return
+        except RebuildError as exc:
+            logging.warning("Rust could not store the hardware calibration cache; using the compatibility cache: %s", exc)
     path = cache_path()
     data = _load_cache()
     entries = data.get("entries")

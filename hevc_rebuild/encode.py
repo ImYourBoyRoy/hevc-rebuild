@@ -1,20 +1,21 @@
 from __future__ import annotations
 
+import json
 import logging
 import math
-import re
 import os
+import re
+import signal
 import subprocess
 import sys
 import time
-import signal
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from .model import MediaProfile, Toolchain
-from .util import ExternalCommandError, RebuildError, duration_text, format_command, human_bytes, start_stderr_drain
+from .model import MediaProfile, StreamRef, Toolchain
+from .util import ConsoleClosed, ExternalCommandError, RebuildError, duration_text, format_command, human_bytes, native_json_action, start_stderr_drain
 from .ui import ProgressView
-from .resources import CpuSampler, MemoryStats, PressureStats, ResourceSnapshot, SwapSampler, automatic_memory_reserve_gib, disk_stats, effective_cpu_threads, memory_stats, pressure_stats, process_rss_gib, snapshot
+from .resources import CpuSampler, DiskStats, MemoryStats, PressureStats, ResourceSnapshot, SwapActivityStats, SwapSampler, automatic_memory_reserve_gib, disk_stats, effective_cpu_threads, memory_stats, pressure_stats, process_rss_gib, snapshot
 
 
 SWAP_IN_PRESSURE_BPS = 4 * 1024**2
@@ -65,26 +66,35 @@ class ResourcePlan:
         """Return a lower-memory retry plan without changing quality settings."""
         workers = self.worker_threads
         frames = self.frame_threads
-        if workers is None:
-            workers = max(1, self.cpu_threads - 1)
-        # Frame encoders consume substantial memory. Reduce them first, then
-        # step the worker pool down while still leaving useful parallelism.
-        if frames is None or frames > 1:
-            frames = 1
-            workers = max(2, int(workers * 0.80)) if workers > 2 else workers
-        else:
-            workers = max(2, int(workers * 0.65)) if workers > 2 else 1
         forecast = self.memory_forecast
+        native_retry = _native_resource_retry(self, forecast) if forecast is not None else None
+        if native_retry is not None:
+            workers = int(native_retry["planned_workers"])
+            frames = int(native_retry["planned_frame_threads"])
+        else:
+            if workers is None:
+                workers = max(1, self.cpu_threads - 1)
+            # Frame encoders consume substantial memory. Reduce them first, then
+            # step the worker pool down while still leaving useful parallelism.
+            if frames is None or frames > 1:
+                frames = 1
+                workers = max(2, int(workers * 0.80)) if workers > 2 else workers
+            else:
+                workers = max(2, int(workers * 0.65)) if workers > 2 else 1
         if forecast is not None:
             modeled = (frames or 1) * forecast.per_frame_allowance_gib + (workers or 1) * forecast.per_worker_allowance_gib
-            level = "high" if forecast.planning_budget_gib is not None and modeled > forecast.planning_budget_gib * 1.15 else "constrained"
+            if native_retry is not None:
+                modeled = float(native_retry["modeled_plan_gib"])
+                level = str(native_retry["level"])
+            else:
+                level = "high" if forecast.planning_budget_gib is not None and modeled > forecast.planning_budget_gib * 1.15 else "constrained"
             forecast = replace(
                 forecast,
                 level=level,
                 modeled_plan_gib=round(modeled, 3),
                 planned_workers=workers,
                 planned_frame_threads=frames,
-                messages=forecast.messages + ("A live memory-pressure event reduced x265 parallelism for this retry.",),
+                messages=forecast.messages + ("A live memory-pressure event reduced encoder parallelism for this retry.",),
             )
         return ResourcePlan(
             worker_threads=workers,
@@ -118,6 +128,449 @@ class DiskPressureError(RebuildError):
         super().__init__(message)
         self.free_bytes = free_bytes
         self.projected_remaining_bytes = projected_remaining_bytes
+
+
+def _native_json_action(action: str, payload: dict[str, object]) -> dict[str, object] | None:
+    return native_json_action(action, payload)
+
+
+def _native_stream_plan_payload(stream: StreamRef) -> dict[str, object]:
+    """Serialize only the stream facts used by Rust's encoder argument planner."""
+    return {
+        "index": stream.index,
+        "type_ordinal": stream.type_ordinal,
+        "codec_type": stream.codec_type,
+        "codec_name": stream.codec_name,
+        "width": stream.width,
+        "height": stream.height,
+        "default": stream.default,
+        "attached_pic": stream.attached_pic,
+        "disposition": stream.disposition,
+    }
+
+
+_NATIVE_PROFILE_PLAN_FIELDS = (
+    "source_bit_depth", "source_chroma", "target_pix_fmt", "color_primaries",
+    "transfer", "color_matrix", "color_range_x265", "color_range_ffmpeg",
+    "chroma_location", "master_display", "max_cll", "max_fall", "hdr10",
+    "hlg", "dolby_vision", "interlaced", "format_level",
+)
+
+
+def _native_media_plan_payload(profile: MediaProfile) -> dict[str, object]:
+    return {
+        "path": str(profile.path),
+        "primary_video": _native_stream_plan_payload(profile.primary_video),
+        "secondary_videos": [_native_stream_plan_payload(stream) for stream in profile.secondary_videos],
+        "audio": [_native_stream_plan_payload(stream) for stream in profile.audio],
+        "subtitles": [_native_stream_plan_payload(stream) for stream in profile.subtitles],
+        "attachments": [_native_stream_plan_payload(stream) for stream in profile.attachments],
+        "data": [_native_stream_plan_payload(stream) for stream in profile.data],
+        **{name: getattr(profile, name) for name in _NATIVE_PROFILE_PLAN_FIELDS},
+    }
+
+
+def _native_encode_plan(
+    tools: Toolchain,
+    profile: MediaProfile,
+    output: Path,
+    *,
+    crf: int,
+    preset: str,
+    tune: str | None,
+    hdr10plus_json: Path | None,
+    preserve_dolbyvision: bool,
+    strip_dolbyvision: bool,
+    test_seconds: int | None,
+    preserve_source_level: bool,
+    disable_hdr10_opt: bool,
+    secondary_video_policy: str,
+    data_policy: str,
+    force_deinterlace: bool,
+    disable_deinterlace: bool,
+    resource_plan: ResourcePlan | None,
+    selected_streams: list[StreamRef] | None,
+    video_profiles: dict[int, MediaProfile] | None,
+    encode_video_indices: set[int] | None,
+    hdr10plus_jsons: dict[int, Path] | None,
+    preserve_dolbyvision_indices: set[int] | None,
+    strip_dolbyvision_indices: set[int] | None,
+) -> tuple[list[str], dict[int, int]] | None:
+    if not os.environ.get("HEVC_REBUILD_NATIVE_HELPER"):
+        return None
+    selected_profiles = video_profiles or {profile.primary_video.index: profile}
+    selected_hdr_jsons = hdr10plus_jsons or (
+        {profile.primary_video.index: hdr10plus_json} if hdr10plus_json else {}
+    )
+    request: dict[str, object] = {
+        "tools": {
+            "ffmpeg": tools.ffmpeg,
+            "x265_pixel_formats": sorted(tools.x265_pixel_formats),
+            "x265_dolbyvision": tools.x265_dolbyvision,
+        },
+        "profile": _native_media_plan_payload(profile),
+        "video_profiles": {
+            str(index): _native_media_plan_payload(item)
+            for index, item in selected_profiles.items()
+        },
+        "hdr10plus_jsons": {str(index): str(path) for index, path in selected_hdr_jsons.items()},
+        "preserve_dolbyvision_indices": sorted(preserve_dolbyvision_indices or ()),
+        "strip_dolbyvision_indices": sorted(strip_dolbyvision_indices or ()),
+        "resource_plan": {
+            "worker_threads": resource_plan.worker_threads if resource_plan else None,
+            "frame_threads": resource_plan.frame_threads if resource_plan else None,
+        },
+        "options": {
+            "output": str(output),
+            "crf": crf,
+            "preset": preset,
+            "tune": tune,
+            "preserve_dolbyvision": preserve_dolbyvision,
+            "strip_dolbyvision": strip_dolbyvision,
+            "test_seconds": test_seconds,
+            "preserve_source_level": preserve_source_level,
+            "disable_hdr10_opt": disable_hdr10_opt,
+            "secondary_video_policy": secondary_video_policy,
+            "data_policy": data_policy,
+            "force_deinterlace": force_deinterlace,
+            "disable_deinterlace": disable_deinterlace,
+        },
+    }
+    if selected_streams is not None:
+        request["selected_streams"] = [_native_stream_plan_payload(stream) for stream in selected_streams]
+    if encode_video_indices is not None:
+        request["encode_video_indices"] = sorted(encode_video_indices)
+    response = _native_json_action("encode-plan", request)
+    if response is None:
+        return None
+    args = response.get("args")
+    video_map = response.get("output_video_map")
+    if not isinstance(args, list) or not all(isinstance(item, str) for item in args):
+        raise RebuildError("The Rust encode-plan helper returned invalid FFmpeg arguments.")
+    if not isinstance(video_map, dict):
+        raise RebuildError("The Rust encode-plan helper returned an invalid video-track map.")
+    try:
+        mapped = {int(index): int(ordinal) for index, ordinal in video_map.items()}
+    except (TypeError, ValueError) as exc:
+        raise RebuildError("The Rust encode-plan helper returned an invalid video-track map.") from exc
+    return args, mapped
+
+
+def _native_resource_retry(
+    plan: ResourcePlan, forecast: MemoryForecast
+) -> dict[str, object] | None:
+    response = _native_json_action(
+        "resource-retry",
+        {
+            "worker_threads": plan.worker_threads,
+            "frame_threads": plan.frame_threads,
+            "per_frame_allowance_gib": forecast.per_frame_allowance_gib,
+            "per_worker_allowance_gib": forecast.per_worker_allowance_gib,
+            "planning_budget_gib": forecast.planning_budget_gib,
+        },
+    )
+    if response is None:
+        return None
+    for key in ("planned_workers", "planned_frame_threads"):
+        value = response.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise RebuildError(f"The Rust resource-retry helper returned an invalid {key} value.")
+    modeled = response.get("modeled_plan_gib")
+    level = response.get("level")
+    if (
+        not isinstance(modeled, (int, float))
+        or isinstance(modeled, bool)
+        or not math.isfinite(modeled)
+        or modeled < 0
+        or level not in {"high", "constrained"}
+    ):
+        raise RebuildError("The Rust resource-retry helper returned an invalid forecast.")
+    return response
+
+
+def _native_optional_number(value: object, field: str) -> float | None:
+    if value is None:
+        return None
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+        raise RebuildError(f"The Rust resource-plan helper returned an invalid {field} value.")
+    return float(value)
+
+
+def _native_optional_integer(value: object, field: str) -> int | None:
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise RebuildError(f"The Rust resource-plan helper returned an invalid {field} value.")
+    return value
+
+
+def _native_memory_forecast(value: dict[str, object]) -> MemoryForecast:
+    model = value.get("model")
+    level = value.get("level")
+    messages = value.get("messages")
+    if not isinstance(model, str) or not isinstance(level, str) or not isinstance(messages, list):
+        raise RebuildError("The Rust resource-plan helper returned an incomplete memory forecast.")
+    if not all(isinstance(message, str) for message in messages):
+        raise RebuildError("The Rust resource-plan helper returned invalid forecast messages.")
+    return MemoryForecast(
+        model=model,
+        level=level,
+        available_gib=_native_optional_number(value.get("available_gib"), "available_gib"),
+        total_gib=_native_optional_number(value.get("total_gib"), "total_gib"),
+        swap_free_gib=_native_optional_number(value.get("swap_free_gib"), "swap_free_gib"),
+        swap_used_gib=_native_optional_number(value.get("swap_used_gib"), "swap_used_gib"),
+        swap_used_percent=_native_optional_number(value.get("swap_used_percent"), "swap_used_percent"),
+        reserve_gib=_native_optional_number(value.get("reserve_gib"), "reserve_gib") or 0.0,
+        planning_budget_gib=_native_optional_number(value.get("planning_budget_gib"), "planning_budget_gib"),
+        profile_factor=_native_optional_number(value.get("profile_factor"), "profile_factor") or 0.0,
+        preset_factor=_native_optional_number(value.get("preset_factor"), "preset_factor") or 0.0,
+        per_frame_allowance_gib=_native_optional_number(value.get("per_frame_allowance_gib"), "per_frame_allowance_gib") or 0.0,
+        per_worker_allowance_gib=_native_optional_number(value.get("per_worker_allowance_gib"), "per_worker_allowance_gib") or 0.0,
+        modeled_plan_gib=_native_optional_number(value.get("modeled_plan_gib"), "modeled_plan_gib"),
+        memory_worker_cap=_native_optional_integer(value.get("memory_worker_cap"), "memory_worker_cap"),
+        requested_workers=_native_optional_integer(value.get("requested_workers"), "requested_workers"),
+        requested_frame_threads=_native_optional_integer(value.get("requested_frame_threads"), "requested_frame_threads"),
+        planned_workers=_native_optional_integer(value.get("planned_workers"), "planned_workers"),
+        planned_frame_threads=_native_optional_integer(value.get("planned_frame_threads"), "planned_frame_threads"),
+        messages=tuple(messages),
+    )
+
+
+def _native_resource_plan(
+    profile: MediaProfile,
+    *,
+    target_dimensions: tuple[int, int] | None,
+    threading: str,
+    reserved_cpu_threads: int,
+    max_worker_threads: int,
+    frame_threads: int,
+    preset: str,
+    min_free_memory_gib: float,
+    memory_reserve_percent: float,
+    mem_stats: MemoryStats | None,
+    pressure: PressureStats | None,
+    cpu_threads: int | None,
+    concurrent_video_streams: int,
+) -> ResourcePlan | None:
+    width, height = target_dimensions or (
+        profile.primary_video.width or 0,
+        profile.primary_video.height or 0,
+    )
+    request: dict[str, object] = {
+            "profile": {
+                "video": {
+                    "width": int(width),
+                    "height": int(height),
+                    "source_bit_depth": profile.source_bit_depth,
+                    "source_chroma": profile.source_chroma,
+                    "target_pixel_format": profile.target_pix_fmt,
+                }
+            },
+            "settings": {
+                "video": {"preset": preset},
+                "resources": {
+                    "threading": threading,
+                    "reserved_cpu_threads": reserved_cpu_threads,
+                    "max_worker_threads": max_worker_threads,
+                    "frame_threads": frame_threads,
+                    "min_free_memory_gib": min_free_memory_gib,
+                    "memory_reserve_percent": memory_reserve_percent,
+                },
+            },
+            "sample_live_memory_pressure": pressure is None,
+            "full_memory_psi_avg10": pressure.memory_full_avg10 if pressure is not None else None,
+            "target_dimensions": [int(width), int(height)] if target_dimensions is not None else None,
+            "preset_override": preset,
+            "frame_threads_override": frame_threads,
+            "concurrent_video_streams": concurrent_video_streams,
+        }
+    if mem_stats is not None:
+        hardware: dict[str, object] = {
+            "memory_available_gib": mem_stats.available_gib,
+            "memory_total_gib": mem_stats.total_gib,
+            "swap_free_gib": mem_stats.swap_free_gib,
+            "swap_used_gib": mem_stats.swap_used_gib,
+            "swap_used_percent": mem_stats.swap_used_percent,
+        }
+        if cpu_threads is not None:
+            hardware["logical_cpus"] = cpu_threads
+        request["host"] = {"hardware": hardware}
+    response = _native_json_action("resource-plan", request)
+    if response is None:
+        return None
+    level = response.get("level")
+    if level == "blocked":
+        available = _native_optional_number(response.get("available_gib"), "available_gib")
+        guard = _native_optional_number(response.get("reserve_gib"), "reserve_gib") or 0.0
+        available_text = f"{available:.1f}" if available is not None else "unknown"
+        raise RebuildError(
+            f"Only {available_text} GiB RAM is currently available. HEVC Rebuild's dynamic safety reserve is "
+            f"{guard:.1f} GiB. Close memory-heavy programs or adjust [resources] only if you intentionally accept that risk."
+        )
+    forecast = _native_memory_forecast(response)
+    workers = forecast.planned_workers
+    frames = forecast.planned_frame_threads
+    reason = response.get("plan_reason")
+    native_cpu_threads = _native_optional_integer(response.get("cpu_threads"), "cpu_threads")
+    if (
+        workers is None
+        or workers < 1
+        or frames is None
+        or frames < 1
+        or not isinstance(reason, str)
+        or native_cpu_threads is None
+        or native_cpu_threads < 1
+    ):
+        raise RebuildError("The Rust resource-plan helper returned an invalid encoder plan.")
+    return ResourcePlan(
+        worker_threads=workers,
+        frame_threads=frames,
+        mem_available_gib=forecast.available_gib,
+        swap_free_gib=forecast.swap_free_gib,
+        cpu_threads=native_cpu_threads,
+        reason=reason,
+        memory_guard_gib=forecast.reserve_gib,
+        memory_forecast=forecast,
+    )
+
+
+def _native_resource_snapshot(value: object) -> ResourceSnapshot:
+    if not isinstance(value, dict):
+        raise RebuildError("The Rust runtime sampler returned an invalid resource snapshot.")
+
+    def number(field: str) -> float | None:
+        raw = value.get(field)
+        if raw is None:
+            return None
+        if not isinstance(raw, (int, float)) or isinstance(raw, bool) or not math.isfinite(raw) or raw < 0:
+            raise RebuildError(f"The Rust runtime sampler returned an invalid {field} value.")
+        return float(raw)
+
+    def integer(field: str) -> int | None:
+        raw = value.get(field)
+        if raw is None:
+            return None
+        if not isinstance(raw, int) or isinstance(raw, bool) or raw < 0:
+            raise RebuildError(f"The Rust runtime sampler returned an invalid {field} value.")
+        return raw
+
+    disk_values = tuple(integer(field) for field in ("disk_total_bytes", "disk_used_bytes", "disk_free_bytes"))
+    disk = DiskStats(*disk_values) if all(item is not None for item in disk_values) else None
+    return ResourceSnapshot(
+        cpu_percent=number("cpu_percent"),
+        load1=number("load1"),
+        memory=MemoryStats(
+            total_gib=number("memory_total_gib"),
+            available_gib=number("memory_available_gib"),
+            swap_total_gib=number("swap_total_gib"),
+            swap_free_gib=number("swap_free_gib"),
+            swap_used_gib=number("swap_used_gib"),
+            swap_used_percent=number("swap_used_percent"),
+        ),
+        disk=disk,
+        pressure=PressureStats(
+            cpu_some_avg10=number("cpu_some_avg10"),
+            memory_some_avg10=number("memory_some_avg10"),
+            memory_full_avg10=number("memory_full_avg10"),
+            io_some_avg10=number("io_some_avg10"),
+            io_full_avg10=number("io_full_avg10"),
+        ),
+        temperature_c=number("temperature_c"),
+        process_rss_gib=number("ffmpeg_process_rss_gib") or number("engine_process_rss_gib"),
+        swap_activity=SwapActivityStats(
+            in_bytes_per_second=number("swap_in_bytes_per_second"),
+            out_bytes_per_second=number("swap_out_bytes_per_second"),
+        ),
+        process_swap_gib=number("ffmpeg_process_swap_gib") or number("engine_process_swap_gib"),
+    )
+
+
+class _NativeRuntimeGuard:
+    """Rust-owned live memory/disk policy for Rust-launched engine runs."""
+
+    def __init__(self, executable: str) -> None:
+        try:
+            self.proc = subprocess.Popen(
+                [executable, "internal", "runtime-guard"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+            )
+        except OSError as exc:
+            raise RebuildError(f"Could not start the Rust runtime guard: {exc}") from exc
+        assert self.proc.stdin is not None
+        assert self.proc.stdout is not None
+        self._stderr_lines: list[str] = []
+        self._stderr_drain = start_stderr_drain(self.proc.stderr, self._stderr_lines)
+        self._closed = False
+
+    @classmethod
+    def from_environment(cls) -> "_NativeRuntimeGuard | None":
+        executable = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+        return cls(executable) if executable else None
+
+    def decide(
+        self,
+        request: dict[str, int | float | str | None],
+    ) -> tuple[dict[str, object], ResourceSnapshot]:
+        if self._closed or self.proc.poll() is not None:
+            raise RebuildError("The Rust runtime guard exited unexpectedly during encoding.")
+        assert self.proc.stdin is not None
+        assert self.proc.stdout is not None
+        try:
+            self.proc.stdin.write(json.dumps(request, separators=(",", ":"), allow_nan=False) + "\n")
+            self.proc.stdin.flush()
+            response = self.proc.stdout.readline()
+        except (OSError, ValueError) as exc:
+            raise RebuildError(f"Could not communicate with the Rust runtime guard: {exc}") from exc
+        if not response:
+            detail = "".join(self._stderr_lines)[-4000:]
+            suffix = f" Details: {detail.strip()}" if detail.strip() else ""
+            raise RebuildError(f"The Rust runtime guard stopped responding.{suffix}")
+        try:
+            result = json.loads(response)
+        except json.JSONDecodeError as exc:
+            raise RebuildError("The Rust runtime guard returned malformed JSON.") from exc
+        if not isinstance(result, dict):
+            raise RebuildError("The Rust runtime guard returned an invalid response.")
+        decision = result.get("decision")
+        if not isinstance(decision, dict) or decision.get("action") not in {
+            "continue",
+            "retry_memory",
+            "stop_disk",
+        }:
+            raise RebuildError("The Rust runtime guard returned an unsupported decision.")
+        return decision, _native_resource_snapshot(result.get("snapshot"))
+
+    def close(self, *, check_exit: bool = True) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self.proc.stdin:
+            try:
+                self.proc.stdin.close()
+            except OSError:
+                pass
+        try:
+            return_code = self.proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            self.proc.terminate()
+            try:
+                return_code = self.proc.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                return_code = self.proc.wait(timeout=1)
+        if self.proc.stdout:
+            self.proc.stdout.close()
+        if self.proc.stderr:
+            self.proc.stderr.close()
+        self._stderr_drain.join(timeout=2)
+        if check_exit and return_code != 0:
+            detail = "".join(self._stderr_lines)[-4000:]
+            suffix = f" Details: {detail.strip()}" if detail.strip() else ""
+            raise RebuildError(f"The Rust runtime guard exited with status {return_code}.{suffix}")
 
 
 def _meminfo_values() -> dict[str, int]:
@@ -154,6 +607,7 @@ def _proc_rss_gib(pid: int) -> float | None:
 def choose_resource_plan(
     profile: MediaProfile,
     *,
+    target_dimensions: tuple[int, int] | None = None,
     threading: str,
     reserved_cpu_threads: int = 1,
     max_worker_threads: int = 0,
@@ -163,7 +617,27 @@ def choose_resource_plan(
     memory_reserve_percent: float = 8.0,
     mem_stats: MemoryStats | None = None,
     pressure: PressureStats | None = None,
+    concurrent_video_streams: int = 1,
 ) -> ResourcePlan:
+    concurrent_video_streams = max(1, min(int(concurrent_video_streams), 16))
+    if os.environ.get("HEVC_REBUILD_NATIVE_HELPER"):
+        native_plan = _native_resource_plan(
+            profile,
+            target_dimensions=target_dimensions,
+            threading=threading,
+            reserved_cpu_threads=reserved_cpu_threads,
+            max_worker_threads=max_worker_threads,
+            frame_threads=frame_threads,
+            preset=preset,
+            min_free_memory_gib=min_free_memory_gib,
+            memory_reserve_percent=memory_reserve_percent,
+            mem_stats=mem_stats,
+            pressure=pressure,
+            cpu_threads=effective_cpu_threads() if mem_stats is not None else None,
+            concurrent_video_streams=concurrent_video_streams,
+        )
+        if native_plan is not None:
+            return native_plan
     cpu = effective_cpu_threads()
     mem_stats = mem_stats or memory_stats()
     pressure = pressure or pressure_stats()
@@ -192,8 +666,8 @@ def choose_resource_plan(
         if max_worker_threads:
             workers = min(workers, max_worker_threads)
 
-        width = int(profile.primary_video.width or 0)
-        height = int(profile.primary_video.height or 0)
+        width, height = target_dimensions or (profile.primary_video.width or 0, profile.primary_video.height or 0)
+        width, height = int(width), int(height)
         pixels = width * height
         if frame_threads:
             frames = frame_threads
@@ -203,8 +677,8 @@ def choose_resource_plan(
             frames = 2 if pixels >= 1280 * 720 else 1
         reason = f"all logical CPU threads minus {max(0, reserved_cpu_threads)}; dynamic memory/PSI guard"
 
-    width = int(profile.primary_video.width or 0)
-    height = int(profile.primary_video.height or 0)
+    width, height = target_dimensions or (profile.primary_video.width or 0, profile.primary_video.height or 0)
+    width, height = int(width), int(height)
     pixels = max(1, width * height)
     target_depth = profile.source_bit_depth or 8
     match = re.search(r"p(10|12)le?$", profile.target_pix_fmt or "")
@@ -230,8 +704,11 @@ def choose_resource_plan(
 
     requested_workers = workers
     requested_frames = frames or (2 if pixels >= 1280 * 720 else 1)
-    per_frame_allowance = profile_factor
-    per_worker_allowance = profile_factor * 0.25
+    # FFmpeg may have several mapped libx265 encoders active at once. Budget
+    # the largest selected stream's model once per encoder, and cap CPU workers
+    # per encoder so aggregate thread count remains bounded.
+    per_frame_allowance = profile_factor * concurrent_video_streams
+    per_worker_allowance = profile_factor * 0.25 * concurrent_video_streams
     planning_budget: float | None = None
     memory_worker_cap: int | None = None
     messages: list[str] = [
@@ -239,6 +716,12 @@ def choose_resource_plan(
         "Current swap is reported for context but is not counted as fast memory headroom.",
     ]
     original_workers = workers
+    workers = max(1, workers // concurrent_video_streams)
+    if concurrent_video_streams > 1:
+        reason += f"; shared across {concurrent_video_streams} selected video encoders"
+        messages.append(
+            f"The memory estimate reserves a conservative single-stream allowance for each of {concurrent_video_streams} selected video encoders."
+        )
     original_frames = requested_frames
 
     if mem is not None:
@@ -421,68 +904,96 @@ def encode_args(
     min_free_memory_gib: float = 0.0,
     memory_reserve_percent: float = 8.0,
     resource_plan: ResourcePlan | None = None,
+    selected_streams: list[StreamRef] | None = None,
+    video_profiles: dict[int, MediaProfile] | None = None,
+    encode_video_indices: set[int] | None = None,
+    hdr10plus_jsons: dict[int, Path] | None = None,
+    preserve_dolbyvision_indices: set[int] | None = None,
+    strip_dolbyvision_indices: set[int] | None = None,
 ) -> tuple[list[str], dict[int, int]]:
-    if profile.target_pix_fmt not in tools.x265_pixel_formats:
-        raise RebuildError(
-            f"Installed FFmpeg/libx265 does not advertise required pixel format {profile.target_pix_fmt!r}; refusing a silent chroma/bit-depth downgrade."
-        )
+    native_plan = _native_encode_plan(
+        tools,
+        profile,
+        output,
+        crf=crf,
+        preset=preset,
+        tune=tune,
+        hdr10plus_json=hdr10plus_json,
+        preserve_dolbyvision=preserve_dolbyvision,
+        strip_dolbyvision=strip_dolbyvision,
+        test_seconds=test_seconds,
+        preserve_source_level=preserve_source_level,
+        disable_hdr10_opt=disable_hdr10_opt,
+        secondary_video_policy=secondary_video_policy,
+        data_policy=data_policy,
+        force_deinterlace=force_deinterlace,
+        disable_deinterlace=disable_deinterlace,
+        resource_plan=resource_plan,
+        selected_streams=selected_streams,
+        video_profiles=video_profiles,
+        encode_video_indices=encode_video_indices,
+        hdr10plus_jsons=hdr10plus_jsons,
+        preserve_dolbyvision_indices=preserve_dolbyvision_indices,
+        strip_dolbyvision_indices=strip_dolbyvision_indices,
+    )
+    if native_plan is not None:
+        return native_plan
+
+    video_profiles = video_profiles or {profile.primary_video.index: profile}
+    hdr10plus_jsons = hdr10plus_jsons or ({profile.primary_video.index: hdr10plus_json} if hdr10plus_json else {})
+    preserve_dolbyvision_indices = preserve_dolbyvision_indices or set()
+    strip_dolbyvision_indices = strip_dolbyvision_indices or set()
+    if selected_streams is None:
+        videos = [profile.primary_video]
+        if secondary_video_policy != "drop":
+            videos.extend(profile.secondary_videos)
+        selected_streams = [*videos, *profile.audio, *profile.subtitles, *profile.attachments]
+        if data_policy == "preserve":
+            selected_streams.extend(profile.data)
+    selected_videos = [stream for stream in selected_streams if stream.codec_type == "video"]
+    selected_real_videos = [stream for stream in selected_videos if not stream.attached_pic and stream.width > 0 and stream.height > 0]
+    if not selected_real_videos:
+        raise RebuildError("Select at least one usable video track to rebuild this file.")
+    selected_real_videos.sort(key=lambda stream: (-stream.pixels, -int(stream.default), stream.index))
+    selected_videos = [*selected_real_videos, *[stream for stream in selected_videos if stream.attached_pic]]
+    if encode_video_indices is None:
+        encode_video_indices = {profile.primary_video.index}
+        if secondary_video_policy == "encode":
+            encode_video_indices.update(stream.index for stream in selected_real_videos)
+    selected_audio = [stream for stream in selected_streams if stream.codec_type == "audio"]
+    selected_subtitles = [stream for stream in selected_streams if stream.codec_type == "subtitle"]
+    selected_attachments = [stream for stream in selected_streams if stream.codec_type == "attachment"]
+    selected_data = [stream for stream in selected_streams if stream.codec_type == "data"]
+    selected_types = selected_videos + selected_audio + selected_subtitles + selected_attachments + selected_data
+    if len({stream.index for stream in selected_types}) != len(selected_types):
+        raise RebuildError("A source stream was selected more than once.")
+    if encode_video_indices - {stream.index for stream in selected_real_videos}:
+        raise RebuildError("An encode selection refers to a video track that is not selected.")
+    for stream in selected_real_videos:
+        if stream.index in encode_video_indices:
+            track_profile = video_profiles.get(stream.index, profile)
+            if track_profile.target_pix_fmt not in tools.x265_pixel_formats:
+                raise RebuildError(
+                    f"Installed FFmpeg/libx265 does not advertise required pixel format {track_profile.target_pix_fmt!r} for {stream.label}; refusing a silent chroma/bit-depth downgrade."
+                )
     args = [
         tools.ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-nostats", "-stats_period", "0.5",
-        "-progress", "pipe:1", "-analyzeduration", "200M", "-probesize", "200M", "-i", str(profile.path),
+        "-progress", "pipe:1", "-i", str(profile.path),
     ]
     if test_seconds:
         args += ["-t", str(test_seconds)]
 
-    # Deterministic stream order: selected highest-resolution video first, optional copied secondary videos, then all audio/sub/attachments/data.
     output_video_map: dict[int, int] = {}
-    args += ["-map", f"0:{profile.primary_video.index}"]
-    output_video_map[profile.primary_video.index] = 0
-    if secondary_video_policy == "copy":
-        for out_ord, stream in enumerate(profile.secondary_videos, start=1):
+    for out_ord, stream in enumerate(selected_videos):
+        args += ["-map", f"0:{stream.index}"]
+        output_video_map[stream.index] = out_ord
+    if test_seconds is None:
+        for stream in selected_audio + selected_subtitles + selected_attachments + selected_data:
             args += ["-map", f"0:{stream.index}"]
-            output_video_map[stream.index] = out_ord
-    args += ["-map", "0:a?", "-map", "0:s?", "-map", "0:t?"]
-    if data_policy == "preserve":
-        args += ["-map", "0:d?"]
-    args += ["-map_metadata", "0", "-map_chapters", "0", "-c", "copy"]
-
-    # Hard invariant: only v:0 is encoded. Audio and subtitles remain under global -c copy.
-    args += ["-c:v:0", "libx265", "-pix_fmt:v:0", profile.target_pix_fmt, "-preset:v:0", preset, "-crf:v:0", str(crf)]
-    if tune:
-        args += ["-tune:v:0", tune]
-    if preserve_dolbyvision and strip_dolbyvision:
-        raise RebuildError("Internal error: Dolby Vision cannot be preserved and stripped in the same encode.")
-    if preserve_dolbyvision:
-        # Modern FFmpeg/libx265 can carry decoded per-frame Dolby Vision RPU side
-        # data directly into the HEVC encoder. Force it on so a missing metadata
-        # frame becomes a hard encode error instead of a silent DV loss.
-        args += ["-dolbyvision:v:0", "1"]
-    elif strip_dolbyvision and tools.x265_dolbyvision:
-        # libx265's FFmpeg wrapper defaults this option to auto. An explicit HDR10
-        # fallback must therefore force it OFF or decoded RPU side data could be
-        # re-emitted accidentally on capable builds. Older builds lack the option,
-        # in which case omission is the only valid form and no DV coding occurs.
-        args += ["-dolbyvision:v:0", "0"]
-    deint = force_deinterlace or (profile.interlaced and not disable_deinterlace)
-    if profile.hlg and profile.interlaced and disable_deinterlace and not force_deinterlace:
-        raise RebuildError(
-            "Interlaced HLG with --disable-deinterlace cannot be signaled safely by this workflow. "
-            "Use the default bwdif path or explicitly redesign picture-structure signaling."
-        )
-    if deint:
-        args += ["-filter:v:0", "bwdif=mode=send_frame:parity=auto:deint=interlaced"]
-    # Do not let FFmpeg duplicate/drop primary frames. This is especially important
-    # for frame-associated HDR10+ metadata.
-    args += ["-fps_mode:v:0", "passthrough"]
-    if profile.color_primaries:
-        args += ["-color_primaries:v:0", profile.color_primaries]
-    if profile.transfer:
-        args += ["-color_trc:v:0", profile.transfer]
-    if profile.color_matrix:
-        args += ["-colorspace:v:0", profile.color_matrix]
-    if profile.color_range_ffmpeg:
-        args += ["-color_range:v:0", profile.color_range_ffmpeg]
-    params = x265_params(profile, hdr10plus_json, preserve_source_level=preserve_source_level, disable_hdr10_opt=disable_hdr10_opt)
+        args += ["-map_metadata", "0", "-map_chapters", "0"]
+    else:
+        args += ["-map_metadata", "-1", "-map_chapters", "-1"]
+    args += ["-c", "copy"]
     plan = resource_plan or choose_resource_plan(
         profile,
         threading=resource_threading,
@@ -492,11 +1003,8 @@ def encode_args(
         preset=preset,
         min_free_memory_gib=min_free_memory_gib,
         memory_reserve_percent=memory_reserve_percent,
+        concurrent_video_streams=len(selected_real_videos),
     )
-    if plan.worker_threads:
-        params.append(f"pools={plan.worker_threads}")
-    if plan.frame_threads:
-        params.append(f"frame-threads={plan.frame_threads}")
     logging.debug(
         "x265 resources: workers=%s frame_threads=%s CPU_threads=%d RAM_available=%s GiB swap_free=%s GiB guard=%s GiB (%s)",
         plan.worker_threads or "x265-auto",
@@ -507,28 +1015,90 @@ def encode_args(
         f"{plan.memory_guard_gib:.1f}",
         plan.reason,
     )
-    if params:
-        args += ["-x265-params:v:0", ":".join(params)]
+    for out_ord, stream in enumerate(selected_videos):
+        if test_seconds is None:
+            args += [f"-map_metadata:s:v:{out_ord}", f"0:s:{stream.index}"]
+        if stream.attached_pic or stream.index not in encode_video_indices:
+            args += [f"-c:v:{out_ord}", "copy"]
+            continue
+        track_profile = video_profiles.get(stream.index, profile)
+        args += [f"-c:v:{out_ord}", "libx265", f"-pix_fmt:v:{out_ord}", track_profile.target_pix_fmt,
+                 f"-preset:v:{out_ord}", preset, f"-crf:v:{out_ord}", str(crf)]
+        if tune:
+            args += [f"-tune:v:{out_ord}", tune]
+        keep_dv = stream.index in preserve_dolbyvision_indices or (preserve_dolbyvision and track_profile.dolby_vision)
+        drop_dv = stream.index in strip_dolbyvision_indices or (strip_dolbyvision and track_profile.dolby_vision)
+        if keep_dv and drop_dv:
+            raise RebuildError("Internal error: Dolby Vision cannot be preserved and stripped on the same video stream.")
+        if keep_dv:
+            args += [f"-dolbyvision:v:{out_ord}", "1"]
+        elif drop_dv and tools.x265_dolbyvision:
+            args += [f"-dolbyvision:v:{out_ord}", "0"]
+        deint = force_deinterlace or (track_profile.interlaced and not disable_deinterlace)
+        if track_profile.hlg and track_profile.interlaced and disable_deinterlace and not force_deinterlace:
+            raise RebuildError("Interlaced HLG with deinterlacing disabled cannot be signaled safely.")
+        if deint:
+            args += [f"-filter:v:{out_ord}", "bwdif=mode=send_frame:parity=auto:deint=interlaced"]
+        args += [f"-fps_mode:v:{out_ord}", "passthrough"]
+        for option, value in (
+            ("color_primaries", track_profile.color_primaries),
+            ("color_trc", track_profile.transfer),
+            ("colorspace", track_profile.color_matrix),
+            ("color_range", track_profile.color_range_ffmpeg),
+        ):
+            if value:
+                args += [f"-{option}:v:{out_ord}", value]
+        params = x265_params(
+            track_profile,
+            hdr10plus_jsons.get(stream.index),
+            preserve_source_level=preserve_source_level,
+            disable_hdr10_opt=disable_hdr10_opt,
+        )
+        if plan.worker_threads:
+            params.append(f"pools={plan.worker_threads}")
+        if plan.frame_threads:
+            params.append(f"frame-threads={plan.frame_threads}")
+        if params:
+            args += [f"-x265-params:v:{out_ord}", ":".join(params)]
+        args += [f"-disposition:v:{out_ord}", _disposition_value(stream.disposition, force_default=(out_ord == 0))]
 
-    # Make selected/highest-resolution video the default track while preserving every other disposition flag.
-    args += ["-disposition:v:0", _disposition_value(profile.primary_video.disposition, force_default=True)]
-    if secondary_video_policy == "copy":
-        for out_ord, stream in enumerate(profile.secondary_videos, start=1):
-            args += [f"-disposition:v:{out_ord}", _disposition_value(stream.disposition, force_default=False)]
+    type_short = {"audio": "a", "subtitle": "s", "attachment": "t", "data": "d"}
+    for kind, streams in (("audio", selected_audio), ("subtitle", selected_subtitles), ("attachment", selected_attachments), ("data", selected_data)):
+        short = type_short[kind]
+        for out_ord, stream in enumerate(streams):
+            if test_seconds is None:
+                args += [f"-map_metadata:s:{short}:{out_ord}", f"0:s:{stream.index}"]
+            if kind in {"audio", "subtitle"}:
+                args += [f"-disposition:{short}:{out_ord}", _disposition_value(stream.disposition)]
 
-    # FFmpeg may synthesize default dispositions when none exist. Pin audio/subtitle dispositions explicitly
-    # so the rebuilt file preserves them rather than merely preserving packet payloads.
-    for stream in profile.audio:
-        args += [f"-disposition:a:{stream.type_ordinal}", _disposition_value(stream.disposition)]
-    for stream in profile.subtitles:
-        args += [f"-disposition:s:{stream.type_ordinal}", _disposition_value(stream.disposition)]
-
-    args += ["-max_muxing_queue_size", "9999", "-f", "matroska", str(output)]
+    args += ["-f", "matroska", str(output)]
     return args, output_video_map
 
 
-def _terminate_child(proc: subprocess.Popen, *, timeout: float = 8.0) -> None:
+def _terminate_child(
+    proc: subprocess.Popen,
+    *,
+    timeout: float = 8.0,
+    native_supervisor: bool = False,
+) -> None:
     if proc.poll() is not None:
+        return
+    if native_supervisor and proc.stdin is not None:
+        try:
+            proc.stdin.write("cancel\n")
+            proc.stdin.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            pass
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+        finally:
+            try:
+                proc.stdin.close()
+            except OSError:
+                pass
         return
     proc.terminate()
     try:
@@ -603,6 +1173,8 @@ def run_encode(
     expected_duration: float,
     input_size: int,
     label: str,
+    file_path: str | None = None,
+    elapsed_seconds_before: float = 0.0,
     memory_guard_gib: float = 0.0,
     output_path: Path | None = None,
     disk_guard_gib: float = 0.0,
@@ -611,15 +1183,38 @@ def run_encode(
     batch_total: int = 1,
 ) -> dict[str, float | None]:
     logging.debug("FFmpeg command: %s", format_command(args))
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+    native_guard = _NativeRuntimeGuard.from_environment()
+    native_helper = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+    native_supervisor = bool(native_helper)
+    process_args = (
+        [native_helper, "internal", "encode-supervisor", "--", *args]
+        if native_helper
+        else args
+    )
+    try:
+        proc = subprocess.Popen(
+            process_args,
+            stdin=subprocess.PIPE if native_supervisor else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+    except BaseException:
+        if native_guard is not None:
+            native_guard.close(check_exit=False)
+        raise
     stderr_lines: list[str] = []
     drain = start_stderr_drain(proc.stderr, stderr_lines)
     state: dict[str, str] = {}
     start = time.monotonic()
     view = ProgressView(
         label=label,
+        file_path=file_path,
+        elapsed_seconds_before=elapsed_seconds_before,
         expected_duration=expected_duration,
         memory_guard_gib=memory_guard_gib,
+        input_size=input_size,
         batch_number=batch_number,
         batch_total=batch_total,
     )
@@ -670,7 +1265,26 @@ def run_encode(
             except ValueError:
                 size = 0
 
-            snap = snapshot(monitor_path, pid=proc.pid, cpu_sampler=cpu_sampler, swap_sampler=swap_sampler)
+            native_decision: dict[str, object] | None = None
+            if native_guard is not None:
+                try:
+                    native_decision, snap = native_guard.decide(
+                        {
+                            "pid": proc.pid,
+                            "disk_path": str(monitor_path),
+                            "memory_guard_gib": memory_guard_gib,
+                            "disk_guard_bytes": disk_guard_bytes,
+                            "projection_margin_percent": max(0.0, disk_projection_margin_percent),
+                            "progress_seconds": done,
+                            "expected_duration": expected_duration,
+                            "output_bytes": max(0, size),
+                        }
+                    )
+                except RebuildError:
+                    _terminate_child(proc, native_supervisor=native_supervisor)
+                    raise
+            else:
+                snap = snapshot(monitor_path, pid=proc.pid, cpu_sampler=cpu_sampler, swap_sampler=swap_sampler)
             last_snapshot = snap
             mem = snap.memory.available_gib
             if mem is not None:
@@ -696,117 +1310,218 @@ def run_encode(
             if snap.process_rss_gib is not None:
                 max_encoder_rss_gib = snap.process_rss_gib if max_encoder_rss_gib is None else max(max_encoder_rss_gib, snap.process_rss_gib)
 
-            view.render(done=done, speed=speed, size=size, resources=snap)
+            try:
+                view.render(done=done, speed=speed, size=size, resources=snap)
+            except ConsoleClosed:
+                _terminate_child(proc, native_supervisor=native_supervisor)
+                raise
 
-            # Memory: use the dynamic reserve calculated before the encode. A few
-            # consecutive samples are required so a transient cache/reclaim event
-            # cannot cause a needless restart.
-            if memory_guard_gib > 0 and mem is not None and mem < memory_guard_gib:
-                low_memory_samples += 1
-            else:
-                low_memory_samples = 0
-            if low_memory_samples >= 3:
-                psi = snap.pressure.memory_full_avg10
-                psi_text = f" Memory PSI full/10s={psi:.1f}%." if psi is not None else ""
-                view.note(
-                    f"Memory reserve crossed ({mem:.1f} GiB < {memory_guard_gib:.1f} GiB)."
-                    f"{psi_text} Retrying with lower x265 parallelism; quality stays identical."
-                )
-                _terminate_child(proc)
-                raise MemoryPressureError(
-                    f"Available RAM fell to {mem:.1f} GiB during encode, below the {memory_guard_gib:.1f} GiB dynamic safety reserve.",
-                    evidence=_resource_detail(monitor_path, proc.pid, snap),
-                    available_gib=mem,
-                    resource_summary=_encode_resource_summary(
-                        min_memory_available_gib=min_seen,
-                        max_swap_used_percent=max_swap_used_percent,
-                        max_swap_in_bps=max_swap_in_bps,
-                        max_swap_out_bps=max_swap_out_bps,
-                        max_encoder_rss_gib=max_encoder_rss_gib,
-                        max_encoder_swap_gib=max_encoder_swap_gib,
-                        max_mem_psi_full=max_mem_psi_full,
-                    ),
-                )
-
-            # A large amount of allocated swap can be harmless cached state. Retry
-            # only when active swap-in traffic coincides with full-memory stalls
-            # for several consecutive progress samples.
-            swap_in_bps = snap.swap_activity.in_bytes_per_second if snap.swap_activity else None
-            memory_full_psi = snap.pressure.memory_full_avg10
-            if (
-                swap_in_bps is not None
-                and swap_in_bps >= SWAP_IN_PRESSURE_BPS
-                and memory_full_psi is not None
-                and memory_full_psi >= MEMORY_FULL_PRESSURE_PERCENT
-            ):
-                swap_pressure_samples += 1
-            else:
-                swap_pressure_samples = 0
-            if swap_pressure_samples >= SWAP_PRESSURE_MIN_SAMPLES:
-                view.note(
-                    "Sustained swap-in traffic coincides with full-memory stalls. "
-                    "Retrying the temporary encode with lower x265 parallelism; quality stays identical."
-                )
-                _terminate_child(proc)
-                raise MemoryPressureError(
-                    "Sustained swap-in pressure and memory PSI stalls detected during encode.",
-                    evidence=_resource_detail(monitor_path, proc.pid, snap),
-                    available_gib=mem,
-                    resource_summary=_encode_resource_summary(
-                        min_memory_available_gib=min_seen,
-                        max_swap_used_percent=max_swap_used_percent,
-                        max_swap_in_bps=max_swap_in_bps,
-                        max_swap_out_bps=max_swap_out_bps,
-                        max_encoder_rss_gib=max_encoder_rss_gib,
-                        max_encoder_swap_gib=max_encoder_swap_gib,
-                        max_mem_psi_full=max_mem_psi_full,
-                    ),
-                )
-
-            # Disk: protect a hard free-space reserve and, after enough progress to
-            # make the estimate meaningful, ensure projected remaining output can
-            # fit without consuming that reserve.
-            if snap.disk is not None and disk_guard_bytes > 0:
-                if snap.disk.free_bytes < disk_guard_bytes:
-                    low_disk_samples += 1
-                else:
-                    low_disk_samples = 0
-                if low_disk_samples >= 2:
-                    view.note(
-                        f"Storage reserve crossed ({human_bytes(snap.disk.free_bytes)} free). Stopping safely before the filesystem fills."
-                    )
-                    _terminate_child(proc)
-                    raise DiskPressureError(
-                        f"Free storage fell below the {disk_guard_gib:.1f} GiB safety reserve during encode.",
-                        free_bytes=snap.disk.free_bytes,
-                    )
-
-                fraction = done / expected_duration if expected_duration > 0 else 0.0
-                if fraction >= 0.10 and done >= 10.0 and size > 0:
-                    projected_total = int(size / max(0.001, fraction))
-                    projected_remaining = max(0, projected_total - size)
-                    safe_remaining = max(0, snap.disk.free_bytes - disk_guard_bytes)
-                    if projected_remaining * projection_margin > safe_remaining:
+            if native_guard is not None:
+                assert native_decision is not None
+                decision = native_decision
+                action = decision["action"]
+                reason = decision.get("reason")
+                if action == "retry_memory":
+                    if reason not in {"memory_reserve", "swap_pressure"}:
+                        _terminate_child(proc, native_supervisor=native_supervisor)
+                        raise RebuildError("The Rust runtime guard returned an invalid memory-retry reason.")
+                    if reason == "memory_reserve":
+                        available = decision.get("available_gib")
+                        if not isinstance(available, (int, float)) or isinstance(available, bool):
+                            _terminate_child(proc, native_supervisor=native_supervisor)
+                            raise RebuildError("The Rust runtime guard omitted the measured memory level.")
+                        psi = snap.pressure.memory_full_avg10
+                        psi_text = f" Memory PSI full/10s={psi:.1f}%." if psi is not None else ""
                         view.note(
-                            "Projected output would consume the disk safety reserve. Stopping temporary encode before ENOSPC."
+                            f"Memory reserve crossed ({available:.1f} GiB < {memory_guard_gib:.1f} GiB)."
+                            f"{psi_text} Retrying with lower encoder parallelism; quality stays identical."
                         )
-                        _terminate_child(proc)
-                        raise DiskPressureError(
-                            "Projected remaining output no longer fits while preserving the configured disk reserve.",
-                            free_bytes=snap.disk.free_bytes,
-                            projected_remaining_bytes=projected_remaining,
+                        message = (
+                            f"Available RAM fell to {available:.1f} GiB during encode, below the "
+                            f"{memory_guard_gib:.1f} GiB dynamic safety reserve."
                         )
+                    else:
+                        view.note(
+                            "Sustained swap-in traffic coincides with full-memory stalls. "
+                            "Retrying the temporary encode with lower encoder parallelism; quality stays identical."
+                        )
+                        message = "Sustained swap-in pressure and memory PSI stalls detected during encode."
+                        available = mem
+                    _terminate_child(proc, native_supervisor=native_supervisor)
+                    raise MemoryPressureError(
+                        message,
+                        evidence=_resource_detail(monitor_path, proc.pid, snap),
+                        available_gib=float(available) if available is not None else None,
+                        resource_summary=_encode_resource_summary(
+                            min_memory_available_gib=min_seen,
+                            max_swap_used_percent=max_swap_used_percent,
+                            max_swap_in_bps=max_swap_in_bps,
+                            max_swap_out_bps=max_swap_out_bps,
+                            max_encoder_rss_gib=max_encoder_rss_gib,
+                            max_encoder_swap_gib=max_encoder_swap_gib,
+                            max_mem_psi_full=max_mem_psi_full,
+                        ),
+                    )
+                if action == "stop_disk":
+                    if reason not in {"disk_reserve", "projected_output"}:
+                        _terminate_child(proc, native_supervisor=native_supervisor)
+                        raise RebuildError("The Rust runtime guard returned an invalid disk-stop reason.")
+                    free_bytes = decision.get("free_bytes")
+                    if not isinstance(free_bytes, int) or isinstance(free_bytes, bool) or free_bytes < 0:
+                        _terminate_child(proc, native_supervisor=native_supervisor)
+                        raise RebuildError("The Rust runtime guard omitted the measured free-space value.")
+                    if reason == "disk_reserve":
+                        view.note(
+                            f"Storage reserve crossed ({human_bytes(free_bytes)} free). "
+                            "Stopping safely before the filesystem fills."
+                        )
+                        message = (
+                            f"Free storage fell below the {disk_guard_gib:.1f} GiB safety reserve during encode."
+                        )
+                        projected_remaining = None
+                    else:
+                        view.note(
+                            "Projected output would consume the disk safety reserve. "
+                            "Stopping temporary encode before ENOSPC."
+                        )
+                        message = "Projected remaining output no longer fits while preserving the configured disk reserve."
+                        projected_remaining = decision.get("projected_remaining_bytes")
+                        if not isinstance(projected_remaining, int) or projected_remaining < 0:
+                            _terminate_child(proc, native_supervisor=native_supervisor)
+                            raise RebuildError("The Rust runtime guard omitted the projected output size.")
+                    _terminate_child(proc, native_supervisor=native_supervisor)
+                    raise DiskPressureError(
+                        message,
+                        free_bytes=free_bytes,
+                        projected_remaining_bytes=projected_remaining,
+                    )
+            else:
+                # Direct Python runs retain the reference policy until the Rust
+                # launcher is present and the helper can make the same decision.
+                if memory_guard_gib > 0 and mem is not None and mem < memory_guard_gib:
+                    low_memory_samples += 1
+                else:
+                    low_memory_samples = 0
+                if low_memory_samples >= 3:
+                    psi = snap.pressure.memory_full_avg10
+                    psi_text = f" Memory PSI full/10s={psi:.1f}%." if psi is not None else ""
+                    view.note(
+                        f"Memory reserve crossed ({mem:.1f} GiB < {memory_guard_gib:.1f} GiB)."
+                        f"{psi_text} Retrying with lower encoder parallelism; quality stays identical."
+                    )
+                    _terminate_child(proc, native_supervisor=native_supervisor)
+                    raise MemoryPressureError(
+                        f"Available RAM fell to {mem:.1f} GiB during encode, below the {memory_guard_gib:.1f} GiB dynamic safety reserve.",
+                        evidence=_resource_detail(monitor_path, proc.pid, snap),
+                        available_gib=mem,
+                        resource_summary=_encode_resource_summary(
+                            min_memory_available_gib=min_seen,
+                            max_swap_used_percent=max_swap_used_percent,
+                            max_swap_in_bps=max_swap_in_bps,
+                            max_swap_out_bps=max_swap_out_bps,
+                            max_encoder_rss_gib=max_encoder_rss_gib,
+                            max_encoder_swap_gib=max_encoder_swap_gib,
+                            max_mem_psi_full=max_mem_psi_full,
+                        ),
+                    )
+
+                swap_in_bps = snap.swap_activity.in_bytes_per_second if snap.swap_activity else None
+                memory_full_psi = snap.pressure.memory_full_avg10
+                if (
+                    swap_in_bps is not None
+                    and swap_in_bps >= SWAP_IN_PRESSURE_BPS
+                    and memory_full_psi is not None
+                    and memory_full_psi >= MEMORY_FULL_PRESSURE_PERCENT
+                ):
+                    swap_pressure_samples += 1
+                else:
+                    swap_pressure_samples = 0
+                if swap_pressure_samples >= SWAP_PRESSURE_MIN_SAMPLES:
+                    view.note(
+                        "Sustained swap-in traffic coincides with full-memory stalls. "
+                        "Retrying the temporary encode with lower encoder parallelism; quality stays identical."
+                    )
+                    _terminate_child(proc, native_supervisor=native_supervisor)
+                    raise MemoryPressureError(
+                        "Sustained swap-in pressure and memory PSI stalls detected during encode.",
+                        evidence=_resource_detail(monitor_path, proc.pid, snap),
+                        available_gib=mem,
+                        resource_summary=_encode_resource_summary(
+                            min_memory_available_gib=min_seen,
+                            max_swap_used_percent=max_swap_used_percent,
+                            max_swap_in_bps=max_swap_in_bps,
+                            max_swap_out_bps=max_swap_out_bps,
+                            max_encoder_rss_gib=max_encoder_rss_gib,
+                            max_encoder_swap_gib=max_encoder_swap_gib,
+                            max_mem_psi_full=max_mem_psi_full,
+                        ),
+                    )
+
+                if snap.disk is not None:
+                    if disk_guard_bytes > 0:
+                        if snap.disk.free_bytes < disk_guard_bytes:
+                            low_disk_samples += 1
+                        else:
+                            low_disk_samples = 0
+                        if low_disk_samples >= 2:
+                            view.note(
+                                f"Storage reserve crossed ({human_bytes(snap.disk.free_bytes)} free). Stopping safely before the filesystem fills."
+                            )
+                            _terminate_child(proc, native_supervisor=native_supervisor)
+                            raise DiskPressureError(
+                                f"Free storage fell below the {disk_guard_gib:.1f} GiB safety reserve during encode.",
+                                free_bytes=snap.disk.free_bytes,
+                            )
+
+                    fraction = done / expected_duration if expected_duration > 0 else 0.0
+                    if fraction >= 0.10 and done >= 10.0 and size > 0:
+                        projected_total = int(size / max(0.001, fraction))
+                        projected_remaining = max(0, projected_total - size)
+                        safe_remaining = max(0, snap.disk.free_bytes - disk_guard_bytes)
+                        if projected_remaining * projection_margin > safe_remaining:
+                            view.note(
+                                "Projected output would consume the disk safety reserve. Stopping temporary encode before ENOSPC."
+                            )
+                            _terminate_child(proc, native_supervisor=native_supervisor)
+                            raise DiskPressureError(
+                                "Projected remaining output no longer fits while preserving the configured disk reserve.",
+                                free_bytes=snap.disk.free_bytes,
+                                projected_remaining_bytes=projected_remaining,
+                            )
 
             if value == "end":
-                break
-    except KeyboardInterrupt:
-        _terminate_child(proc, timeout=5)
+                view.render(
+                    done=max(done, expected_duration), speed=speed, size=size, resources=snap,
+                    phase="Finalizing / muxing",
+                )
+                view.note("Progress reached 100%; FFmpeg is finalizing/muxing the output container.")
+                logging.info("Encoding progress reached 100%%; FFmpeg is finalizing/muxing the output container.")
+    except BaseException:
+        _terminate_child(proc, timeout=5, native_supervisor=native_supervisor)
         raise
     finally:
         if proc.stdout:
             proc.stdout.close()
+        if native_guard is not None:
+            native_guard.close(check_exit=sys.exc_info()[0] is None)
     rc = proc.wait()
-    drain.join(timeout=2)
+    drain.join(timeout=5)
+    if proc.stdin is not None:
+        proc.stdin.close()
+    if native_supervisor:
+        visible_stderr: list[str] = []
+        child_signal: int | None = None
+        for line in stderr_lines:
+            if line.startswith("__HEVC_NATIVE_CHILD_SIGNAL__="):
+                try:
+                    child_signal = int(line.split("=", 1)[1].strip())
+                except ValueError:
+                    visible_stderr.append(line)
+            else:
+                visible_stderr.append(line)
+        stderr_lines = visible_stderr
+        if child_signal is not None and child_signal > 0:
+            rc = -child_signal
     if rc != 0:
         stderr_tail = "".join(stderr_lines)[-16000:]
         resource_detail = _resource_detail(monitor_path, proc.pid, last_snapshot)
@@ -847,7 +1562,7 @@ def run_encode(
         raise ExternalCommandError(args, rc, stderr_tail)
     view.finish(f"Encode complete in {duration_text(time.monotonic() - start)}")
     logging.info(
-        "Encode health: elapsed=%s min_RAM=%sGiB max_x265_RSS=%sGiB max_swap_used=%s%% max_x265_swap=%sGiB max_swap_in=%s/s max_swap_out=%s/s min_disk_free=%s max_CPU=%s%% max_PSI_memory_full10=%s%% max_PSI_io_full10=%s%%",
+        "Encode health: elapsed=%s min_RAM=%sGiB max_FFmpeg_process_RSS=%sGiB max_swap_used=%s%% max_FFmpeg_process_swap=%sGiB max_swap_in=%s/s max_swap_out=%s/s min_disk_free=%s max_CPU=%s%% max_PSI_memory_full10=%s%% max_PSI_io_full10=%s%%",
         duration_text(time.monotonic() - start),
         f"{min_seen:.1f}" if min_seen is not None else "unknown",
         f"{max_encoder_rss_gib:.2f}" if max_encoder_rss_gib is not None else "unknown",
