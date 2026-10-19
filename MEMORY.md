@@ -1,25 +1,20 @@
 # Project Memory
 
-- 2026-10-18 late-failure retention: `hevc_rebuild/app.py` now treats subtitle
-  timing drift beyond the existing 20 ms validation tolerance as a controlled
-  failed validation. When encoding has completed but metadata, output
-  validation, install, or commit fails, the completed media is retained at the
-  exact intended output path when free; an in-place rebuild keeps the source
-  safe and uses `<stem>.hevc-rebuild.kept.mkv`. An exclusive adjacent
-  `<stem>+error.log` is written without overwriting an existing diagnostic;
-  numbered log suffixes are used only on collision. The report remains FAILED
-  or INTERRUPTED and explicitly marks the retained media unvalidated. Five
-  focused retention/timing tests and the full Python suite (201 passed, 33
-  skipped) pass; `pnpm check` reports 0 errors/0 warnings. Release bundles
-  rebuilt after this change: `.deb` SHA-256
-  `365cb6fb0d23c9872c2cc26e904ccdb38fcca7b94ee74073f4240159e32286ed` and
-  AppImage SHA-256
-  `b7b51a8c3cd035d599dc9c8ffab3c80d1011aa780f71ba2860ba89bd54699084`, both
-  copied byte-for-byte into `App/`. Package/resource inspection passed; no
-  native launch or real-media run was performed. Publication remains blocked
-  by the absent Git remote, dirty release snapshot, missing license/workflow,
-  host Python and media-tool prerequisites, and the current AppImage glibc
-  2.43 baseline.
+- 2026-10-18 current release-preparation change: PolyForm Noncommercial 1.0.0
+  is now the repository license, package metadata names the SPDX identifier,
+  and concise human docs cover GUI/CLI/MCP usage, tool setup, support, and the
+  Python-to-Rust file-level ledger. Late completed-output failures now retain
+  collision-safe `<stem>.error.mkv` plus matching `<stem>.error.log` artifacts;
+  the source remains protected and the report remains failed/unvalidated.
+  The direct Python engine now has explicit APT/Linux, winget/Windows, and
+  Homebrew/macOS setup paths; HDR10+ assets are checksum-verified and the
+  official universal macOS archive is recognized. Native Tauri desktop
+  packaging/runtime remains Linux-first, and Python remains a current host
+  runtime requirement until the compatibility engine is retired. The full
+  Python suite passed with 202 tests and 33 skips, focused platform/metadata
+  and dependency-update checks passed, and `git diff --check` is clean. No
+  Cargo/Tauri or release build was run. The final non-ignored changes are ready
+  for the local commit.
 
 - 2026-10-18 Linux desktop release build: from `desktop/`, `pnpm check`
   passed with 0 errors and 0 warnings, `pnpm build` passed, and `pnpm tauri
@@ -179,7 +174,7 @@ The dated notes below are retained verbatim for continuity; old counts, next tas
 - 2026-10-08: Portable AppImage rebuilt after the series-poster fix. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage`. Close the open window and start that file again. Four existing dead-code warnings printed. `pnpm check` had 0 errors and 0 warnings. `SHA256SUMS` covers 182 files.
 - 2026-10-08: A TV series card uses the matched provider poster when the saved series record has no image. Faerie Tale Theatre’s episodes already had the TMDB poster, but the series record was still `local:` with an empty artwork list, so the card said “No poster yet.” That image is shown immediately. With Save poster beside the media on, it is saved as `poster.<ext>` in the series folder, and each season poster returned for the series is saved the same way in its season folder. Existing images are not replaced. A local season poster already chosen is not overwritten by the provider URL.
 - 2026-10-08: Portable AppImage rebuilt after the metadata fix. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage`. Close and reopen that file to load it. The earlier 7-hour encode was already deleted.
-- 2026-10-08: Chaos Theory encoded for 7h 10m, then mkvpropedit rejected the metadata because replaced source tags left empty `<Tag>` elements. That message was on stdout, so the log looked blank, and the finished temp file was deleted. Empty tags are now dropped, command failures include stdout, and a finished encode is renamed to `<name>.hevc-rebuild.kept.mkv` when a later step fails. The original was not replaced. Poster cards show an animated Downloading state while art is still arriving. Run setup uses one 14px control size and groups CPU, memory, disk, and calibration. The pressure card shows RAM used, with memory stall separate from swap.
+- 2026-10-08: Chaos Theory encoded for 7h 10m, then mkvpropedit rejected the metadata because replaced source tags left empty `<Tag>` elements. That message was on stdout, so the log looked blank, and the finished temp file was deleted. Empty tags are now dropped, command failures include stdout, and a finished encode is retained as a visibly marked `.error.mkv` with a matching `.error.log` when a later step fails. The original was not replaced. Poster cards show an animated Downloading state while art is still arriving. Run setup uses one 14px control size and groups CPU, memory, disk, and calibration. The pressure card shows RAM used, with memory stall separate from swap.
 - 2026-10-08: Release build finished with exit 0 in about 9 minutes. Portable AppImage: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.23 MiB). Installer: `desktop/src-tauri/target/release/bundle/deb/HEVC Rebuild Studio_1.3.0_amd64.deb` (7.27 MiB). Four existing dead-code warnings printed. The AppImage was not launched.
 - 2026-10-08: The desktop activity log now records an encode line only when the percent crosses a 5% step. The bar, resource cards, and ETA keep updating from the structured progress event. ETA is remaining media duration divided by the current speed, shown as hours and minutes. The Chaos Theory encode stopped at 02:56 because the desktop session closed and the progress pipe broke; x265 had not failed. That close now stops the encoder and records the file as interrupted. The original was not replaced. Progress-view tests passed (6).
 - 2026-10-07: The encode call now passes the primary HDR10+ JSON path that was already prepared. Chaos Theory has none, so that value is empty. The previous NameError stopped the run before x265 started; the original was not replaced.

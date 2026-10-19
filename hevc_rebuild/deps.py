@@ -37,6 +37,13 @@ WINDOWS_COMMANDS = {
     "mediainfo": ("mediainfo",),
     "mkvtoolnix": ("mkvpropedit", "mkvmerge", "mkvextract"),
 }
+BREW_PACKAGES = {
+    "python3": ("python", ("python3",)),
+    "ffmpeg": ("ffmpeg", ("ffmpeg", "ffprobe")),
+    "mediainfo": ("mediainfo", ("mediainfo",)),
+    "mkvtoolnix": ("mkvtoolnix", ("mkvpropedit", "mkvmerge", "mkvextract")),
+    "fontconfig": ("fontconfig", ("fc-list",)),
+}
 TOOL_OVERRIDE_KEYS = (
     "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract",
 )
@@ -53,6 +60,39 @@ MANAGED_BIN = APP_DATA / "bin"
 
 def is_windows() -> bool:
     return os.name == "nt" or platform.system().lower() == "windows"
+
+
+def is_macos() -> bool:
+    return platform.system().lower() == "darwin"
+
+
+def is_linux() -> bool:
+    return platform.system().lower() == "linux"
+
+
+def _brew_program() -> str | None:
+    """Find Homebrew even when the app was launched outside a shell profile."""
+    for candidate in (
+        which("brew"),
+        "/opt/homebrew/bin/brew",
+        "/usr/local/bin/brew",
+    ):
+        if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
+            return str(Path(candidate).resolve())
+    return None
+
+
+def _refresh_macos_path() -> None:
+    if not is_macos():
+        return
+    brew = _brew_program()
+    entries = [os.environ.get("PATH", "")]
+    if brew:
+        prefix = (run([brew, "--prefix"], check=False).stdout or "").strip()
+        if prefix:
+            entries.extend((str(Path(prefix) / "bin"), str(Path(prefix) / "sbin")))
+    entries.extend(("/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/local/sbin"))
+    os.environ["PATH"] = os.pathsep.join(dict.fromkeys(item for item in entries if item))
 
 
 def os_release() -> dict[str, str]:
@@ -74,7 +114,7 @@ def version_tuple(text: str) -> tuple[int, ...]:
 
 
 def validate_platform(allow_unsupported: bool = False) -> None:
-    """Accept supported Ubuntu/Mint or Windows hosts with the right resolver.
+    """Accept supported Ubuntu/Mint, Windows, or macOS hosts with a resolver.
 
     Runtime capability tests remain authoritative. Distro/version checks only prevent
     accidental use on unrelated package ecosystems where automated package repair
@@ -85,6 +125,16 @@ def validate_platform(allow_unsupported: bool = False) -> None:
             logging.info("Supported Windows platform detected with winget.")
             return
         msg = "Windows builds require the Windows Package Manager (winget) for dependency repair."
+        if allow_unsupported:
+            logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
+            return
+        raise RebuildError(msg)
+
+    if is_macos():
+        if _brew_program():
+            logging.info("Supported macOS platform detected with Homebrew.")
+            return
+        msg = "macOS dependency repair requires Homebrew. Install it from https://brew.sh/ and retry."
         if allow_unsupported:
             logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
             return
@@ -180,26 +230,78 @@ def ensure_windows_dependencies(*, assume_yes: bool = False, required_packages: 
         if not missing:
             continue
         package_id = WINDOWS_WINGET_PACKAGES[package_name]
-        if not _winget_package_present(package_id):
+        package_present = _winget_package_present(package_id)
+        if not package_present:
             if not assume_yes:
                 prompt_enter(
                     f"Press ENTER to install {package_id} through winget for missing commands: "
                     + ", ".join(missing)
                 )
-            run(
-                [
-                    "winget", "install", "--id", package_id, "--exact", "--silent",
-                    "--accept-source-agreements", "--accept-package-agreements",
-                    "--disable-interactivity",
-                ],
-                capture=False,
-            )
+        else:
+            if not assume_yes:
+                prompt_enter(
+                    f"Press ENTER to repair {package_id} through winget for missing commands: "
+                    + ", ".join(missing)
+                )
+        command = [
+            "winget", "install", "--id", package_id, "--exact", "--silent",
+            "--accept-source-agreements", "--accept-package-agreements",
+            "--disable-interactivity",
+        ]
+        if package_present:
+            command.append("--force")
+        run(command, capture=False)
         _refresh_windows_path()
         paths = _windows_command_paths()
         still_missing = [command for command in commands if not paths.get(command)]
         if still_missing:
             raise RebuildError(
                 f"winget package {package_id} completed but commands remain unavailable: "
+                + ", ".join(still_missing)
+            )
+
+
+def _brew_package_present(formula: str, brew: str) -> bool:
+    result = run([brew, "list", "--formula", formula], check=False)
+    return result.returncode == 0
+
+
+def ensure_macos_dependencies(
+    *,
+    assume_yes: bool = False,
+    required_packages: tuple[str, ...] | None = None,
+) -> None:
+    """Install the fixed media toolchain through an existing Homebrew install."""
+    if not is_macos():
+        raise RebuildError("macOS dependency repair was requested on a non-macOS host.")
+    validate_platform()
+    brew = _brew_program()
+    if not brew:
+        raise RebuildError("Homebrew is required for macOS dependency repair.")
+    package_names = required_packages or tuple(BREW_PACKAGES)
+    unknown = set(package_names) - set(BREW_PACKAGES)
+    if unknown:
+        raise RebuildError("Unknown macOS dependency package(s): " + ", ".join(sorted(unknown)))
+
+    for package_name in package_names:
+        formula, commands = BREW_PACKAGES[package_name]
+        _refresh_macos_path()
+        missing = [command for command in commands if not which(command)]
+        if not missing:
+            continue
+        present = _brew_package_present(formula, brew)
+        action = "reinstall" if present else "install"
+        if not assume_yes:
+            prompt_enter(
+                f"Press ENTER to brew {action} {formula} for missing commands: "
+                + ", ".join(missing)
+            )
+        run([brew, action, formula], capture=False)
+        _refresh_macos_path()
+        still_missing = [command for command in commands if not which(command)]
+        if still_missing:
+            raise RebuildError(
+                f"Homebrew {action} {formula} completed but commands remain unavailable: "
                 + ", ".join(still_missing)
             )
 
@@ -253,8 +355,8 @@ def apt_candidate(package: str) -> str | None:
 
 def apt_update_status() -> dict:
     """Inspect only the local APT cache; this function never refreshes or installs packages."""
-    if is_windows():
-        raise RebuildError("APT package updates are Linux-only; use the Windows HEVC dependency resolver.")
+    if not is_linux():
+        raise RebuildError("APT package updates are Linux-only; use the host platform's HEVC dependency resolver.")
     validate_platform()
     packages: list[dict[str, str]] = []
     for package in sorted(APT_PACKAGES):
@@ -382,8 +484,8 @@ def ensure_apt_dependencies(
     skip_update_check: bool = False,
     required_packages: tuple[str, ...] | None = None,
 ) -> None:
-    if is_windows():
-        raise RebuildError("APT dependency repair is Linux-only; use ensure_windows_dependencies().")
+    if not is_linux():
+        raise RebuildError("APT dependency repair is Linux-only; use the host platform's dependency resolver.")
     package_names = required_packages or tuple(APT_PACKAGES)
     unknown_packages = set(package_names) - set(APT_PACKAGES)
     if unknown_packages:
@@ -446,7 +548,7 @@ def ensure_apt_dependencies(
 def github_latest_hdr10plus(timeout: float = 6.0) -> dict:
     req = urllib.request.Request(
         GITHUB_RELEASE_API,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "hevc-rebuild-ubuntu/1.0"},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "hevc-rebuild/1.0"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
         from .util import require_json_object
@@ -467,6 +569,8 @@ def hdr10plus_version(path: str) -> str | None:
 
 
 def arch_asset_token() -> str:
+    if is_macos():
+        return "universal-macOS"
     machine = platform.machine().lower()
     if machine in {"x86_64", "amd64"}:
         if is_windows():
@@ -504,7 +608,7 @@ def _asset_checksum(release: dict, asset: dict, timeout: float) -> str | None:
         side = next((a for a in release.get("assets", []) if a.get("name") == name + suffix), None)
         if not side:
             continue
-        req = urllib.request.Request(side["browser_download_url"], headers={"User-Agent": "hevc-rebuild-ubuntu/1.0"})
+        req = urllib.request.Request(side["browser_download_url"], headers={"User-Agent": "hevc-rebuild/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as response:
             text = response.read().decode("utf-8", errors="replace")
         m = re.search(r"\b([0-9a-fA-F]{64})\b", text)
@@ -515,7 +619,7 @@ def _asset_checksum(release: dict, asset: dict, timeout: float) -> str | None:
 
 def install_hdr10plus(release: dict, *, assume_yes: bool = False, timeout: float = 20.0) -> str:
     token = arch_asset_token()
-    suffix = ".zip" if is_windows() else ".tar.gz"
+    suffix = ".zip" if is_windows() or is_macos() else ".tar.gz"
     asset = next(
         (a for a in release.get("assets", []) if token in a.get("name", "") and a.get("name", "").endswith(suffix)),
         None,
@@ -535,7 +639,7 @@ def install_hdr10plus(release: dict, *, assume_yes: bool = False, timeout: float
     with tempfile.TemporaryDirectory(prefix="hevc-rebuild-hdr10plus-") as tmp:
         tmp_path = Path(tmp)
         archive = tmp_path / asset["name"]
-        req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": "hevc-rebuild-ubuntu/1.0"})
+        req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": "hevc-rebuild/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as response, archive.open("wb") as out:
             shutil.copyfileobj(response, out)
         import hashlib
@@ -545,20 +649,23 @@ def install_hdr10plus(release: dict, *, assume_yes: bool = False, timeout: float
                 h.update(chunk)
         if h.hexdigest().lower() != checksum:
             raise RebuildError("hdr10plus_tool SHA-256 verification failed; refusing installation.")
-        if is_windows():
+        if is_windows() or is_macos():
             with zipfile.ZipFile(archive) as zf:
+                expected_name = "hdr10plus_tool.exe" if is_windows() else "hdr10plus_tool"
                 candidates = [
                     info for info in zf.infolist()
-                    if Path(info.filename).name.lower() == "hdr10plus_tool.exe" and not info.is_dir()
+                    if Path(info.filename).name.lower() == expected_name and not info.is_dir()
                 ]
                 if len(candidates) != 1:
-                    raise RebuildError("Unexpected Windows hdr10plus_tool release archive layout.")
-                temp_binary = tmp_path / "hdr10plus_tool.exe"
+                    raise RebuildError("Unexpected macOS/Windows hdr10plus_tool release archive layout.")
+                temp_binary = tmp_path / expected_name
                 with zf.open(candidates[0]) as extracted, temp_binary.open("wb") as out:
                     shutil.copyfileobj(extracted, out)
             target = managed_hdr_path()
-            staged = MANAGED_BIN / ".hdr10plus_tool.new.exe"
+            staged = MANAGED_BIN / f".hdr10plus_tool.new{target.suffix}"
             shutil.copy2(temp_binary, staged)
+            if is_macos():
+                staged.chmod(0o755)
             os.replace(staged, target)
         else:
             with tarfile.open(archive, "r:gz") as tf:
@@ -724,6 +831,16 @@ def resolve_toolchain(
         else:
             managed_hdr = managed_hdr_path()
             hdr = str(managed_hdr) if managed_hdr.is_file() else (which("hdr10plus_tool") or "hdr10plus_tool")
+    elif install_missing and is_macos():
+        ensure_macos_dependencies(
+            assume_yes=assume_yes,
+            required_packages=("python3", "ffmpeg", "mediainfo", "mkvtoolnix", "fontconfig"),
+        )
+        if purpose == "rebuild":
+            hdr = ensure_hdr10plus(assume_yes=assume_yes, skip_update_check=skip_update_check)
+        else:
+            managed_hdr = managed_hdr_path()
+            hdr = str(managed_hdr) if managed_hdr.is_file() and os.access(managed_hdr, os.X_OK) else (which("hdr10plus_tool") or "hdr10plus_tool")
     elif install_missing:
         required_packages = ("python3", "ffmpeg", "mediainfo", "mkvtoolnix") if purpose == "metadata" else None
         ensure_apt_dependencies(

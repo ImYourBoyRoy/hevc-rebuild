@@ -3613,7 +3613,7 @@ mod tests {
     }
 
     #[test]
-    fn every_production_python_script_is_listed_in_the_rust_migration_map() {
+    fn every_production_python_script_is_listed_in_the_python_rust_conversion_ledger() {
         fn collect_python_files(directory: &Path, root: &Path, files: &mut BTreeSet<String>) {
             let entries = fs::read_dir(directory).expect("read Python source directory");
             for entry in entries {
@@ -3650,17 +3650,17 @@ mod tests {
         if root_entrypoint.is_file() {
             production_sources.insert("hevc_rebuild.py".into());
         }
-        let migration_map = fs::read_to_string(project_root.join("RUST_MIGRATION.md"))
-            .expect("read the Rust migration map");
+        let conversion_ledger = fs::read_to_string(project_root.join("python-rust-convert.md"))
+            .expect("read the Python-to-Rust conversion ledger");
         let missing = production_sources
             .iter()
-            .filter(|source| !migration_map.contains(&format!("`{source}`")))
+            .filter(|source| !conversion_ledger.contains(&format!("`{source}`")))
             .cloned()
             .collect::<Vec<_>>();
 
         assert!(
             missing.is_empty(),
-            "Python production files missing from RUST_MIGRATION.md: {missing:?}"
+            "Python production files missing from python-rust-convert.md: {missing:?}"
         );
     }
 

@@ -16,7 +16,7 @@ class RetainedOutputTests(unittest.TestCase):
         temporary.write_bytes(b"completed-but-rejected-output")
         return final, temporary
 
-    def test_late_failure_uses_final_name_and_adjacent_error_log(self):
+    def test_late_failure_uses_marked_name_and_adjacent_error_log(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source.mkv"
@@ -34,14 +34,16 @@ class RetainedOutputTests(unittest.TestCase):
                 failure_detail="RebuildError: subtitle timing drift exceeded tolerance",
             )
 
-            error_log = root / "chosen+error.log"
+            retained = root / "chosen.error.mkv"
+            error_log = root / "chosen.error.log"
             self.assertFalse(temporary.exists())
-            self.assertEqual(final.read_bytes(), b"completed-but-rejected-output")
+            self.assertEqual(retained.read_bytes(), b"completed-but-rejected-output")
+            self.assertFalse(final.exists())
             self.assertEqual(source.read_bytes(), b"original")
             self.assertTrue(error_log.exists())
             self.assertIn("subtitle timing drift exceeded tolerance", error_log.read_text(encoding="utf-8"))
             self.assertIn(str(final), error_log.read_text(encoding="utf-8"))
-            self.assertEqual(row["output"], str(final))
+            self.assertEqual(row["output"], str(retained))
             self.assertIn("remains unvalidated", row["message"])
             if os.name == "posix":
                 self.assertEqual(error_log.stat().st_mode & 0o777, 0o600)
@@ -64,8 +66,8 @@ class RetainedOutputTests(unittest.TestCase):
                 failure_detail="RebuildError: metadata edit failed",
             )
 
-            retained = root / "The chosen.hevc-rebuild.kept.mkv"
-            error_log = root / "The chosen+error.log"
+            retained = root / "The chosen.error.mkv"
+            error_log = root / "The chosen.error.log"
             self.assertEqual(source.read_bytes(), b"original")
             self.assertEqual(retained.read_bytes(), b"completed-but-rejected-output")
             self.assertTrue(error_log.exists())
@@ -91,8 +93,8 @@ class RetainedOutputTests(unittest.TestCase):
             )
 
             self.assertFalse(temporary.exists())
-            self.assertTrue(final.exists())
-            self.assertTrue((root / "chosen+error.log").exists())
+            self.assertTrue((root / "chosen.error.mkv").exists())
+            self.assertTrue((root / "chosen.error.log").exists())
 
     def test_early_failure_still_removes_unfinished_temp_output(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -112,7 +114,7 @@ class RetainedOutputTests(unittest.TestCase):
 
             self.assertFalse(temporary.exists())
             self.assertFalse(final.exists())
-            self.assertFalse((root / "chosen+error.log").exists())
+            self.assertFalse((root / "chosen.error.log").exists())
 
     def test_existing_error_log_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -120,7 +122,7 @@ class RetainedOutputTests(unittest.TestCase):
             source = root / "source.mkv"
             source.write_bytes(b"original")
             final, temporary = self._temp_encode(root)
-            first_log = root / "chosen+error.log"
+            first_log = root / "chosen.error.log"
             first_log.write_text("previous review", encoding="utf-8")
             row = {"status": "FAILED", "message": "second late failure"}
 
@@ -135,7 +137,7 @@ class RetainedOutputTests(unittest.TestCase):
             )
 
             self.assertEqual(first_log.read_text(encoding="utf-8"), "previous review")
-            numbered = root / "chosen+error.1.log"
+            numbered = root / "chosen.error.1.log"
             self.assertTrue(numbered.exists())
             self.assertIn("second validation failure", numbered.read_text(encoding="utf-8"))
 

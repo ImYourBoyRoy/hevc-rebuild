@@ -51,7 +51,7 @@
         <li>Check only and short tests are in <strong>Run & settings</strong>. Before metadata-only output, a short test, or a full rebuild, review the planned destinations for all selected folders and files. Existing outputs or duplicate destinations block the run; the engine checks each source again before writing.</li>
         <li>After a restart, the app settles files that were still active. A saved successful result is marked complete. An unfinished file whose original is still in place returns to the normal queue, and only an unopened temporary encode from this app is removed. A partial encode is not resumed, and an existing output is not overwritten. A file that is missing, or whose saved success has no output, stays for review. Select failed or skipped items to prepare a retry; mark queued or failed items skipped to keep them out of the default run.</li>
       </ol>
-      <p class="help-note"><ShieldCheck size={15} /> A full rebuild keeps the source until its replacement passes validation. If compression finishes but a later check fails, the completed file is retained as an unvalidated review artifact beside a matching <code>+error.log</code>; an in-place rebuild never overwrites the source early. Stop safely finishes the current file and then stops the full multi-folder queue.</p>
+      <p class="help-note"><ShieldCheck size={15} /> A full rebuild keeps the source until its replacement passes validation. If compression finishes but a later check fails, the completed file is retained as an unvalidated <code>.error.mkv</code> review artifact beside a matching <code>.error.log</code>; an in-place rebuild never overwrites the source early. Stop safely finishes the current file and then stops the full multi-folder queue.</p>
     </article>
 
     <article class="help-card">
@@ -144,7 +144,7 @@
       <div class="help-card-icon"><Settings2 size={18} /></div>
       <div class="eyebrow">REQUIRED MEDIA TOOLS · UBUNTU</div>
       <h2>Check or set up the tools</h2>
-      <p>Open <strong>Settings → Environment & capabilities</strong> to see detected paths, tool versions, and available versions in the enabled Ubuntu package sources. The app checks the local APT catalog at launch; it does not refresh or install packages automatically. Choose <strong>Review setup & updates</strong> to review missing packages and updates together. If the catalog is stale, it refreshes first and then asks you to review the exact changes. A missing HDR10+ helper is installed from its checksum-verified upstream release after the confirmed package setup succeeds. Open <strong>Saved setup logs</strong> in this section to review or export the full APT and helper output.</p>
+      <p>Open <strong>Settings → Environment & capabilities</strong> to see detected paths, tool versions, and available versions in the enabled Ubuntu package sources. The current desktop setup screen is Linux-first: it checks the local APT catalog at launch and does not refresh or install packages automatically. Choose <strong>Review setup & updates</strong> to review missing packages and updates together. If the catalog is stale, it refreshes first and then asks you to review the exact changes. A missing HDR10+ helper is installed from its checksum-verified upstream release after the confirmed package setup succeeds. The standalone engine also provides fixed winget and Homebrew setup paths on Windows and macOS. Open <strong>Saved setup logs</strong> in this section to review or export the full APT and helper output.</p>
       <p>Use each executable’s <strong>Browse</strong> button if you already have a tool installed in a nonstandard location. Custom binary overrides are not replaced during package setup.</p>
       <pre><code>sudo apt update
 sudo apt install ffmpeg mediainfo mkvtoolnix</code><button type="button" class="help-copy" aria-label="Copy Ubuntu install command" onclick={() => copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Ubuntu command")}><Copy size={15} /> Copy</button></pre>
@@ -156,7 +156,7 @@ sudo apt install ffmpeg mediainfo mkvtoolnix</code><button type="button" class="
         <a href="https://codecguide.com/features_mega.htm" target="_blank" rel="noreferrer">K-Lite Mega contents <ExternalLink size={13} /></a>
       </div>
       <p class="help-note">This command uses your enabled Ubuntu repositories, which can lag upstream releases. MediaArea maintains an Ubuntu repository for MediaInfo; the MKVToolNix page lists supported Ubuntu packages. Use those vendor pages to check current releases. The app checks the installed version and required features before a run.</p>
-      <p class="help-note">FFprobe normally comes with FFmpeg. This app needs MediaInfo’s command-line tool. For a future Windows setup, K-Lite Mega currently lists MPC-HC and MediaInfo Lite, but its installer is customizable and not every component is selected by default. We still need to verify its CLI path and the taskbar-icon setup option before calling that setup supported.</p>
+      <p class="help-note">FFprobe normally comes with FFmpeg. This app needs MediaInfo’s command-line tool. The standalone engine uses fixed winget IDs on Windows and Homebrew formulas on macOS; desktop Windows/macOS packaging remains a separate acceptance target.</p>
     </article>
 
     <article class="help-card help-card-wide">
@@ -192,7 +192,7 @@ hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebu
       <div class="help-card-icon"><Play size={18} /></div>
       <div class="eyebrow">CURRENT PLATFORM</div>
       <h2>Ubuntu first</h2>
-      <p>The current desktop package targets Ubuntu and Ubuntu-based Linux Mint. Windows and macOS builds, installers, tool discovery, and runtime behavior are still future work; the Windows download link above is a reference, not a supported setup guide.</p>
+      <p>The current desktop package targets Ubuntu and Ubuntu-based Linux Mint. The standalone engine's tool setup also covers Windows and macOS; native desktop installers and runtime behavior on those platforms remain separate acceptance targets.</p>
     </article>
   </section>
 </section>

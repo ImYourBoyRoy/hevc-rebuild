@@ -1033,49 +1033,35 @@ _FINISHED_OUTPUT_PHASES = frozenset({
 
 
 def _keep_finished_output(temp_output: Path, final_output: Path | None = None) -> Path:
-    """Move a finished temp encode to a visible, no-overwrite output path.
+    """Move a finished late-failure encode to a visible, marked output path.
 
-    If the intended destination is free, use it exactly. In an in-place rebuild
-    the source still occupies that path until validation succeeds, so use a
-    diagnostic sibling instead of replacing the source.
+    A completed output that failed a later validation or install step is never
+    presented under the normal output name. The paired ``.error.mkv`` and
+    ``.error.log`` names make the failed state obvious and are allocated
+    together so an existing review artifact is never overwritten.
     """
     name = temp_output.name
     marker = ".hevc-rebuild."
     if name.startswith(".") and marker in name and name.endswith(".tmp.mkv"):
         stem = name[1:name.index(marker)]
-        identity = name[name.index(marker) + len(marker):-len(".tmp.mkv")]
     else:
         stem = temp_output.stem
-        identity = "file"
     try:
         fsync_file(temp_output)
     except OSError as exc:
         # Keep the completed media even when a filesystem cannot confirm the
         # data flush; the adjacent diagnostic will make that boundary visible.
         logging.warning("Retained output file durability is unconfirmed: %s", exc)
-    if final_output is not None and not os.path.lexists(final_output):
-        try:
-            rename_no_replace(temp_output, final_output)
-            try:
-                fsync_dir(final_output.parent)
-            except OSError as exc:
-                logging.warning("Retained output directory durability is unconfirmed: %s", exc)
-            return final_output
-        except FileExistsError:
-            # A concurrent creator won the destination race. Fall through to
-            # the collision-safe diagnostic sibling without replacing it.
-            pass
-
     parent = final_output.parent if final_output is not None else temp_output.parent
     retained_stem = final_output.stem if final_output is not None else stem
-    candidates = [
-        parent / f"{retained_stem}.hevc-rebuild.kept.mkv",
-        parent / f"{retained_stem}.hevc-rebuild.kept.{identity}.mkv",
-    ]
-    for number in range(1, 10000):
-        candidates.append(parent / f"{retained_stem}.hevc-rebuild.kept.{identity}.{number}.mkv")
+    suffix = final_output.suffix if final_output is not None and final_output.suffix else ".mkv"
+    candidates = [parent / f"{retained_stem}.error{suffix}"]
+    candidates.extend(
+        parent / f"{retained_stem}.error.{number}{suffix}"
+        for number in range(1, 10000)
+    )
     for candidate in candidates:
-        if os.path.lexists(candidate):
+        if os.path.lexists(candidate) or os.path.lexists(_error_log_path(candidate)):
             continue
         try:
             rename_no_replace(temp_output, candidate)
@@ -1091,7 +1077,7 @@ def _keep_finished_output(temp_output: Path, final_output: Path | None = None) -
 
 def _error_log_path(final_output: Path) -> Path:
     """Return the user-facing sibling name for a failed completed output."""
-    return final_output.with_name(f"{final_output.stem}+error.log")
+    return final_output.with_suffix(".log")
 
 
 def _write_retained_output_error_log(
@@ -1200,11 +1186,19 @@ def _release_temporary_output(
         except OSError as exc:
             logging.exception("Could not move completed output to a visible retained path: %s", exc)
             retained = temp_output if temp_output.exists() else None
-    elif final_output is not None and os.path.lexists(final_output):
+    elif (
+        final_output is not None
+        and os.path.lexists(final_output)
+        and not (source is not None and final_output.resolve() == source.resolve())
+    ):
         # Native install/commit can finish the move and then fail on a final
-        # directory sync. Preserve the installed file and still explain the
-        # failed/unconfirmed operation beside it.
-        retained = final_output
+        # directory sync. Move the installed file to the same marked review
+        # name used for a completed temporary output.
+        try:
+            retained = _keep_finished_output(final_output, final_output)
+        except OSError as exc:
+            logging.exception("Could not mark the installed output as a retained error artifact: %s", exc)
+            retained = final_output if final_output.exists() else None
 
     if retained is not None and retained.exists():
         row["output"] = str(retained)
@@ -1213,9 +1207,10 @@ def _release_temporary_output(
         except OSError:
             pass
     intended_output = final_output or retained
+    log_output = retained if retained is not None and retained != temp_output else intended_output
     error_log = (
         _write_retained_output_error_log(
-            _error_log_path(intended_output),
+            _error_log_path(log_output),
             source=source,
             intended_output=intended_output,
             retained_output=retained,

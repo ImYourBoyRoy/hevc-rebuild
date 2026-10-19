@@ -94,6 +94,12 @@ class PlatformTests(unittest.TestCase):
         with self.assertRaises(RebuildError):
             deps.validate_platform()
 
+    @patch.object(deps, "_brew_program", return_value="/opt/homebrew/bin/brew")
+    @patch.object(deps.platform, "system", return_value="Darwin")
+    def test_macos_uses_homebrew_and_universal_hdr_asset(self, _system, _brew):
+        deps.validate_platform()
+        self.assertEqual(deps.arch_asset_token(), "universal-macOS")
+
 
 class MetadataMergeTests(unittest.TestCase):
     def test_reviewed_metadata_overrides_nfo_and_episode_airdate_takes_precedence_over_series_year(self):

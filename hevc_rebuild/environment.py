@@ -12,8 +12,11 @@ from .deps import (
     APT_PACKAGES,
     MANAGED_BIN,
     TOOL_OVERRIDE_KEYS,
+    _brew_program,
     companion_ffprobe,
     get_x265_pixel_formats,
+    is_linux,
+    is_macos,
     is_windows,
     managed_hdr_path,
     os_release,
@@ -75,6 +78,8 @@ _CHECKS = (
     ("mkvextract", "MKVToolNix extractor", "--version", ""),
     ("fc-list", "Fontconfig", "--version", ""),
     ("hdr10plus_tool", "HDR10+ helper", "--version", ""),
+    ("brew", "Homebrew package manager", "--version", ""),
+    ("winget", "Windows Package Manager", "--version", ""),
     ("apt-get", "APT package manager", "--version", ""),
     ("apt-cache", "APT package catalog", "--version", ""),
     ("dpkg", "Debian package database", "--version", ""),
@@ -99,8 +104,9 @@ def _executable(path: str | None) -> str | None:
 def _candidate_paths(ffmpeg_path: str | None, tool_paths: dict[str, str | None] | None = None) -> dict[str, str | None]:
     paths = {name: shutil.which(name) for name in (
         "python3", "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "fc-list",
-        "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec",
+        "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec", "winget",
     )}
+    paths["brew"] = _brew_program() if is_macos() else shutil.which("brew")
     if not paths["python3"]:
         paths["python3"] = shutil.which("python")
     overrides = dict(tool_paths or {})
@@ -141,6 +147,10 @@ def _os_details() -> tuple[str, str, bool, str]:
         supported = bool(shutil.which("winget"))
         note = "Supported Windows build guest" if supported else "Windows Package Manager (winget) is unavailable"
         return "Windows", platform.version() or platform.release(), supported, note
+    if is_macos():
+        supported = _brew_program() is not None
+        note = "Supported macOS host with Homebrew" if supported else "Homebrew is unavailable"
+        return "macOS", platform.mac_ver()[0] or platform.release(), supported, note
     try:
         info = os_release()
     except Exception as exc:  # platform probes should still show the rest of the report
@@ -208,6 +218,8 @@ def inspect_environment(
         "mkvextract": ("--version",),
         "fc-list": ("--version",),
         "hdr10plus_tool": ("--version",),
+        "brew": ("--version",),
+        "winget": ("--version",),
         "apt-get": ("--version",),
         "apt-cache": ("--version",),
         "dpkg": ("--version",),
@@ -216,8 +228,13 @@ def inspect_environment(
     }
     labels = {key: label for key, label, _, _ in _CHECKS}
     for key, _, _, _ in _CHECKS:
-        linux_only = {"fc-list", "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec"}
-        required = key not in linux_only if is_windows() else key != "pkexec"
+        linux_manager = {"apt-get", "apt-cache", "dpkg", "dpkg-query"}
+        if is_windows():
+            required = key not in {"fc-list", "brew", *linux_manager, "pkexec"}
+        elif is_macos():
+            required = key not in {*linux_manager, "winget", "pkexec"}
+        else:
+            required = key not in {"brew", "winget", "pkexec"}
         status = _check_command(key, labels[key], paths.get(key), arg_map[key], required=required)
         if key == "ffmpeg" and ffmpeg_path and not paths.get(key):
             status = CommandStatus(key, labels[key], ffmpeg_path, None, False, True, "Selected file is missing or not executable")
@@ -307,7 +324,7 @@ def inspect_environment(
 
 def missing_apt_packages(report: EnvironmentReport, *, using_custom_ffmpeg: bool = False) -> tuple[str, ...]:
     """Return only known APT package names needed to address missing commands."""
-    if is_windows():
+    if not is_linux():
         return ()
     missing_commands = {check.key for check in report.checks if check.required and not check.available}
     missing: list[str] = []
