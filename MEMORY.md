@@ -1,7 +1,165 @@
 # Project Memory
 
+- 2026-10-18 late-failure retention: `hevc_rebuild/app.py` now treats subtitle
+  timing drift beyond the existing 20 ms validation tolerance as a controlled
+  failed validation. When encoding has completed but metadata, output
+  validation, install, or commit fails, the completed media is retained at the
+  exact intended output path when free; an in-place rebuild keeps the source
+  safe and uses `<stem>.hevc-rebuild.kept.mkv`. An exclusive adjacent
+  `<stem>+error.log` is written without overwriting an existing diagnostic;
+  numbered log suffixes are used only on collision. The report remains FAILED
+  or INTERRUPTED and explicitly marks the retained media unvalidated. Five
+  focused retention/timing tests and the full Python suite (201 passed, 33
+  skipped) pass; `pnpm check` reports 0 errors/0 warnings. Release bundles
+  rebuilt after this change: `.deb` SHA-256
+  `365cb6fb0d23c9872c2cc26e904ccdb38fcca7b94ee74073f4240159e32286ed` and
+  AppImage SHA-256
+  `b7b51a8c3cd035d599dc9c8ffab3c80d1011aa780f71ba2860ba89bd54699084`, both
+  copied byte-for-byte into `App/`. Package/resource inspection passed; no
+  native launch or real-media run was performed. Publication remains blocked
+  by the absent Git remote, dirty release snapshot, missing license/workflow,
+  host Python and media-tool prerequisites, and the current AppImage glibc
+  2.43 baseline.
+
+- 2026-10-18 Linux desktop release build: from `desktop/`, `pnpm check`
+  passed with 0 errors and 0 warnings, `pnpm build` passed, and `pnpm tauri
+  build` exited 0. The generated `.deb` (7,736,460 bytes, SHA-256
+  `b2976a79ef529a84e4607854af418cabef7010ec6a2521c9733284ea3e42a645`) and
+  x86-64 AppImage (92,584,440 bytes, SHA-256
+  `1c443581082f9334018c0be9ef22b386529907b06daed0a38b98f72d8cc2fd43`) were
+  inspected for package/engine contents and copied byte-for-byte into `App/`.
+  The AppImage was built on the current glibc 2.43 host; no native launch or
+  media run was performed. Keep `App/` as the user-facing Linux artifact drop;
+  rebuild on Ubuntu 24.04 before claiming AppImage compatibility there.
+
+- 2026-10-14 Windows CLI build lane: the Server_Manager WinServer adapter
+  provisioned Windows Server 2025 with Python 3.15.0 via pyenv-native,
+  installed HEVC-owned FFmpeg/FFprobe 9.0.2, MediaInfo 26.10, and MKVToolNix
+  102.0.0 through the explicit winget resolver, and completed a synthetic
+  1920x1080 10-bit short encode/validation. Windows locking/fsync portability
+  fixes are in `hevc_rebuild/util.py`. A strict metadata-only synthetic
+  packet-fingerprint check remains open because the remux changed video packet
+  boundaries; do not treat that narrow failure as a toolchain failure. Native
+  Windows desktop UI, signed packaging, and real-media acceptance remain open.
+
+- 2026-10-18 release planning: the old clapperboard/play icon was replaced with
+  a generated abstract interlocking-layer mark using charcoal green, sage,
+  off-white, and amber; Tauri desktop icons, Windows ICO, macOS ICNS, Windows
+  tiles, `desktop/src-tauri/icons/source.png`, and the frontend favicon were
+  regenerated. `pnpm build` passed after the asset change. The current local
+  repository has no remote and remains a large dirty working tree; do not push
+  it directly or make it public until a clean release snapshot, license,
+  privacy scrub, and repository choice are complete. Planned updater shape is
+  Tauri's static GitHub Releases manifest with one signed platform bundle per
+  release, not per-file update checks; exact repository URL is still unknown.
+
 ## Snapshot
 
+- 2026-10-12T21:00:02-06:00: T-098 [x]. Release decision: not ready for publication. Source and Linux package gates are green, but publication is blocked by the T-092 screen-reader workflow evidence gap, unverified Windows/macOS runtime, no authorized upload/playback proof, synthetic-only media, and host HDR10+/Dolby Vision encoder limitations. The exact next action is to resolve T-092, then obtain authorized cross-platform and account/media evidence before publication.. Current evidence: `2026-10-11_evidence.md`. Exact next: Resolve T-092 screen-reader workflow evidence; then obtain authorized Windows/macOS and upload/playback evidence before publication..
+
+- 2026-10-12T21:00:02-06:00: T-097 [x]. The documented Linux/Ubuntu path has source and packaged evidence. The direct Windows CLI compilation lane is now separately verified; Windows/macOS desktop runtime or GUI claims are still not generalized from Linux. Current evidence: `2026-10-11_evidence.md`. Exact next: T-098 release decision and final handoff.
+
+- 2026-10-12T21:00:02-06:00: T-096 [x]. Local policy and integration checks passed. The default HDR10+ YouTube path skipped unsupported dynamic metadata without producing an output; the explicit no-consent path returned the expected policy failure. No upload, authenticated provider, network account, or playback claim was made.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-097 cross-platform and supported-target evidence.
+
+- 2026-10-12T21:00:02-06:00: T-095 [x]. Synthetic SDR, HDR10, and HLG checks, metadata, short, and full runs exited 0; collision and disk-pressure cases exited 1 with unchanged sources. HDR10+ was detected; metadata/short/full kept source safety and exited 1 because host x265 lacks HDR10_PLUS, while default YouTube policy skipped it with no output. Dolby Vision was detected; metadata exited 0, short/full failed closed on host VBV limitations, and explicit HDR10 fallback exited 0. Source hashes, output hashes, logs, multi-track identity, subtitles, attachments, chapters, corrupt metadata, helper failure, cancellation, and disk/collision evidence are recorded.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-096 YouTube/network policy boundary.
+
+- 2026-10-12T21:00:02-06:00: T-094 [x]. The final deb and AppImage built and launched on Ubuntu 24.04.5/glibc 2.39. All package smoke checks exited 0. WebDriver loaded tauri://localhost, showed the 20-item synthetic library, Run Setup, and the full confirmation; Escape restored focus to Review & start full rebuild. The actual packaged GTK chooser opened and Cancel was activated through AT-SPI. The synthetic queue and logs persisted across close/reopen.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-095 representative synthetic-media matrix and preservation.
+
+- 2026-10-12T21:00:01-06:00: T-093 [x]. 301 synthetic screenshots passed at 360, 390, 620, 800, 1024, and 1440 CSS pixels across light, dark, phosphor, ion, and breach themes; document and main horizontal overflow stayed false, canonical tokens were present, and the 720 CSS-pixel effective viewport proxy at 200 percent passed.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-094 packaged oldest-supported-Linux acceptance.
+
+- 2026-10-12T21:00:01-06:00: T-092 [!]. Blocked only on complete screen-reader workflow proof. Browser keyboard/focus contracts pass all 24 transitions across six callers; native and packaged focus-return/cancel evidence passes, including the final packaged Escape return to Review & start full rebuild. The isolated packaged Orca run spoke only startup and frame text; it did not confirm workflow labels, alerts, progress, or report navigation.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-093 responsive, theme, and zoom acceptance.
+
+- 2026-10-12T21:00:01-06:00: T-082 [x]. Final source checks and the Ubuntu 24.04 package build completed with exit 0. The AppImage is 85916152 bytes (SHA256 76484d86cfc241b5834469d558b72da5e831e5cee5a540ee5a8399e05029dcd1) and the deb is 7646558 bytes (SHA256 3aefbf117b779745e0d3e312aad9538d60c51e5dc254cc2f5c245579ec9b7d8e); package smoke, sidecar discovery, scan, and info-only CLI checks all passed.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 keyboard and assistive-technology acceptance.
+
+- 2026-10-12T20:57:11-06:00: T-090 [x]. Final source/static gate passes: 192 Python tests, 201 Rust tests with 1 explicit benchmark ignored, both type lanes, build, format, compiler check, focused lint, and diff check exit 0.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 keyboard and assistive-technology acceptance.
+
+- 2026-10-12T18:40:23-06:00: T-091 [x]. Native empty/populated queues, file and folder addition, 20-file count-based scan progress, title/poster review, selection persistence, refresh, removal back to empty and close/reopen verified. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 remaining native dialog and assistive-technology acceptance.
+
+- 2026-10-12T18:09:01-06:00: T-090 [x]. 191 Python tests and 201 Rust tests pass, one explicit benchmark ignored; both TypeScript lanes and production build pass; compiler/format/focused lint pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-091 native populated-library walkthrough.
+
+- 2026-10-12T17:57:21-06:00: T-083 [x]. Current handoff and next task recorded; historical memory notes retained verbatim under an explicit superseded heading; documentation remains synchronized as acceptance work continues. Current evidence: `2026-10-11_evidence.md`. Exact next: T-090.
+
+- 2026-10-12T17:57:21-06:00: T-082 [~]. Format/check/build/Clippy execution pass; 200 Rust tests pass, 1 explicit benchmark ignored; 189 configured-native Python tests pass; native launch passes; package smoke pending. Current evidence: `2026-10-11_evidence.md`. Exact next: T-083 documentation synchronization, then T-090 final safety/source gate; finish T-082 package evidence with T-094.
+
+
+- Current work (2026-10-12): `2026-10-11_tasklist.md` has been executed through T-098. T-092 remains `[!]` because the isolated Orca run did not prove workflow announcements; T-098 records a not-ready-for-publication decision. Exact next is to resolve T-092, then obtain authorized Windows/macOS and upload/playback evidence.
+- Follow-up utility (2026-10-12): `tools/extract_clip.py` creates bounded short fixtures on Linux, macOS, and Windows with positive seconds/minutes parsing, no-overwrite publication, source preservation, fast stream-copy mode, and frame-accurate H.264/AAC transcode mode. `tests/test_extract_clip.py` covers parser/argv contracts, source hashing, stream preservation, collision refusal, and both extraction modes. Focused tests and compile checks pass. The user then explicitly authorized VM startup: `WinServer` is running at discovered guest address `192.168.122.251` but has no toolkit guest adapter or documented credential path, so no Windows command was attempted; the macOS guests remain off because builder QEMU 10.2.1 rejects their retained `pc-q35-4.2` machine type. Do not change the production XML or reuse the macOS secret for Windows. Next: obtain a documented Windows guest connection and a compatible/isolated QEMU 4.2 path before rerunning synthetic fixture smoke.
+- Canonical state/evidence: task-list statuses and `2026-10-11_evidence.md`; `RUST_MIGRATION.md` current hybrid owners; `desktop/UI_OWNERSHIP.md` and `CSS_CONTRACT.md` UI contracts; `DEPENDENCIES.md` controlled updates; `PERFORMANCE.md` measured decisions.
+- Preserve baseline dirty findings/memory/tasklist and all product features. No commit or user-media access. Private fixtures/evidence are `/tmp/hevc-tasklist-20261011-00zltisa`; the original baseline snapshots remain there. Ubuntu 24.04 userspace preparation is under ignored `desktop/src-tauri/target/ubuntu24-acceptance` with verified upstream image checksum; only that isolated rootfs receives packages.
+- Last confirmed evidence: 192 configured-native Python tests; 201 Rust tests with one explicit benchmark ignored; both type lanes, frontend build, focused lint, diff check, Ubuntu 24.04.5 package smoke, packaged WebDriver safety focus return, packaged chooser cancellation, and synthetic HDR10+/Dolby Vision policy matrix. Screen-reader workflow announcements, Windows/macOS runtime, and authorized upload/playback remain open.
+
+### Historical snapshot notes — superseded by the current ledger
+
+The dated notes below are retained verbatim for continuity; old counts, next tasks and pre-fix findings are historical.
+
+- 2026-10-12T17:50:42-06:00: T-081 [x]. All 12 batch validation commands pass; native Home/Library launch smoke passes; total JS +80 bytes, gzip +142 bytes. Current evidence: `2026-10-11_evidence.md`. Exact next: T-082.
+
+- 2026-10-12T17:48:11-06:00: T-080 [x]. Exact before/target versions, Node engines/Rust MSRV, rollback files/commands and validation plan recorded. Current evidence: `2026-10-11_evidence.md`. Exact next: T-081.
+
+- 2026-10-12T17:47:06-06:00: T-073 [x]. Build and browser tests pass; total production JS 649230B/194991B gzip, main route 548758B/156351B gzip; fixture navigation 307ms, 20/200 cards 78/232ms, 10000 paths 467ms, modal 31-78ms. Current evidence: `2026-10-11_evidence.md`. Exact next: T-080.
+
+- 2026-10-12T17:47:06-06:00: T-072 [x]. 20 profiles take 3.648/2.016/1.153s at 1/2/4 workers; cancellation joins 3.0/2.6/5.8ms; pressure completes 3/4/6 bounded current jobs; retain serial and eager forecasts. Current evidence: `2026-10-11_evidence.md`. Exact next: T-073.
+
+- 2026-10-12T17:44:27-06:00: T-071 [x]. 200 Rust tests pass, 1 explicit benchmark ignored by default; cache benchmark passes: cold 4335ms versus warm 560ms, 20 hits; modified invalid source yields Analysis failed and only 19 hits; eviction/settings/tool/version invalidation tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-072.
+
+- 2026-10-12T17:42:06-06:00: T-070 [x]. 198 Rust tests pass; scan walls 0.775/4.296/19.745s; external tool/profile work dominates, forecasts 0.5/9.4/48.1ms; cancellation exit 3.3ms; cumulative child peak RSS 64-77MiB. Current evidence: `2026-10-11_evidence.md`. Exact next: T-071.
+
+- 2026-10-12T17:39:50-06:00: T-065 [x]. 13 Python policy tests and 4 Rust YouTube tests pass; unsupported sources fail closed. Current evidence: `2026-10-11_evidence.md`. Exact next: T-070.
+
+- 2026-10-12T17:38:48-06:00: T-064 [x]. 187 Python tests pass; compile and whitespace checks pass; first Ruff found obsolete transaction-only run import and it was removed with its responsibility moved. Current evidence: `2026-10-11_evidence.md`. Exact next: T-065.
+
+- 2026-10-12T17:38:14-06:00: T-063 [x]. 198 Rust tests and 7 rebuilt-helper parity fixtures pass; native debug build and whitespace check pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-064.
+
+- 2026-10-12T17:36:21-06:00: T-062 [x]. 7 shared fixtures pass; earlier 180 native-enabled Python tests pass without skips. Current evidence: `2026-10-11_evidence.md`. Exact next: T-063.
+
+- 2026-10-11T21:39:15-06:00: T-061 [x]. Current hybrid ownership table is source-grounded; Python orchestration/tag/artwork/reference paths retained and historical migration evidence explicitly distinguished. Current evidence: `2026-10-11_evidence.md`. Exact next: T-062.
+
+- 2026-10-11T21:39:15-06:00: T-060 [x]. 54 browser viewport snapshots pass at 360/390/620/800/1024/1440 with five Home themes and Library/Run/YouTube/Reports fixtures; no document/main horizontal overflow; canonical tokens present. Current evidence: `2026-10-11_evidence.md`. Exact next: T-061.
+
+- 2026-10-11T21:35:29-06:00: T-059 [x]. Both checkers zero diagnostics, build and 198 Rust tests pass; rebuilt helper; browser report/log/delete-cancel, credential/provider callbacks, cache review-cancel, stale exact-plan/auth callback, setup log/export, failed probe and recovery acknowledgment/focus pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-060.
+
+- 2026-10-11T21:28:52-06:00: T-058 [x]. Both checker lanes pass; 7 direct Python policy tests pass with 4 optional native skips; 4 Rust YouTube tests pass; browser independent open/policy/preferences/output/failure/stop/busy checks pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-059.
+
+- 2026-10-11T21:25:00-06:00: T-057 [x]. TS7/build/state contracts pass; browser progress/ETA, calibration/report logs, stop controls, unknown/non-finite telemetry and four terminal updates pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-058.
+
+- 2026-10-11T21:22:24-06:00: T-056 [x]. All targeted backend/type/matching checks pass; browser token/caret/focus, reset, collision display, single/whole-selection, cancel/reopen, busy and shape gates pass; MetadataWorkbench browser boundary/mode/guidance retained. Current evidence: `2026-10-11_evidence.md`. Exact next: T-057.
+
+- 2026-10-11T21:19:40-06:00: T-055 [x]. TS7 has zero diagnostics; build passes; browser empty/populated, scan, three source callbacks, exact grouped selection, three processing actions, output callbacks, busy gates and three TV review levels/inheritance/posters pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-056.
+
+- 2026-10-11T21:16:50-06:00: T-054 [x]. Svelte check has zero errors/warnings; real-browser synthetic empty/populated Home, missing/ready tools, eight actions, report/log references, five skins and existing Help commands pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-055.
+
+- 2026-10-11T21:08:56-06:00: T-053 [x]. Three state-contract tests and both checkers/build pass; empty/populated selection, active/stale event identity, cancelled/failed/recovered/uncertain report states covered. Current evidence: `2026-10-11_evidence.md`. Exact next: T-054.
+
+- 2026-10-11T21:08:56-06:00: T-052 [x]. All six surfaces use shared modal; both checkers/build pass; six surface-class keyboard/focus-return fixtures pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-053.
+
+- 2026-10-11T21:01:58-06:00: T-051 [x]. 24 Tab/Shift+Tab transitions, initial safe focus, Escape/cancel return, inert background, acknowledgment/validation/loading and backdrop policy pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-052.
+
+- 2026-10-11T20:54:57-06:00: T-002, T-050 [x]. Complete preservation contract and UI extraction map recorded before modal/slice implementation. Current evidence: `2026-10-11_evidence.md`. Exact next: T-051.
+
+- 2026-10-11T20:53:00-06:00: T-040, T-041, T-042, T-043, T-044, T-045, T-047 [x]. Focused Ruff zero; rustfmt passes; Rust binary check warning-free; 198 Rust tests pass; 180 Python tests pass (23 native skips). Current evidence: `2026-10-11_evidence.md`. Exact next: T-050.
+
+- 2026-10-11T20:47:25-06:00: T-037 [x]. 4 Python stop-control regressions and 197 Rust tests pass; subsequent organizer check brings available Rust test count to 198. Current evidence: `2026-10-11_evidence.md`. Exact next: T-040.
+
+- 2026-10-11T20:47:25-06:00: T-034, T-035, T-036 [x]. 7 direct transaction tests, 4 Rust transaction tests, 12 organizer tests and 177-test Python suite pass (23 optional native skips). Current evidence: `2026-10-11_evidence.md`. Exact next: T-037.
+
+- 2026-10-11T20:46:12-06:00: T-030, T-031, T-032 [x]. Both checkers report zero errors/warnings; production build passes. Current evidence: `2026-10-11_evidence.md`. Exact next: T-034–T-037.
+
+- 2026-10-11T20:35:22-06:00: T-022, T-023 [x]. Partial namespace and precedence tests pass; baseline Python failures resolved. Current evidence: `2026-10-11_evidence.md`. Exact next: T-030.
+
+- 2026-10-11T20:35:21-06:00: T-046 [x]. Rust reader regressions and all 192 library tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-022/T-023.
+
+- 2026-10-11T20:35:21-06:00: T-019, T-020, T-021 [x]. Bounded helper/process/drain tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-046 immediately after T-021.
+
+- 2026-10-11T20:35:21-06:00: T-015, T-016, T-017, T-018 [x]. Finite and external JSON boundary regression checks pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-019–T-021.
+
+- 2026-10-11T20:35:21-06:00: T-012, T-013, T-014 [x]. Report durability, handler lifecycle, private new artifacts and native writer association tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-015/T-016.
+
+- 2026-10-11 execution: baseline root/main/964bab0 and initial three dirty documentation paths saved privately at `/tmp/hevc-tasklist-20261011-00zltisa`. Current ledger: `2026-10-11_evidence.md`. T-000 complete; T-010 UUID artifact identity and frozen-clock sequential-run test passed. Baseline: 188 Rust tests pass; TS6/build pass; TS7 has 25 errors; Rust format fails; Python unittest 137 run, 2 failures/1 error/21 skipped with isolated helper root. pytest/Ruff unavailable in host Python. No media/credentials/packages/commits. T-011 complete: schema-aware shared flock writers; direct and mixed Rust/Python processes pass, exact-report queue regression preserves selection. First safety sequence T-010/T-011/T-033/T-024/T-025 complete with focused unit/process tests. Default retained and helper tests isolated. T-001 matrix recorded. Exact next: T-012 fsync report durability, then utility/process hardening; partial namespace remains T-022.
+
+- 2026-10-11: Created `2026-10-11_tasklist.md` from the current findings and preservation policy. It is an execution checklist with P0/P1/P2 tasks, dependencies, exact file areas, acceptance criteria, source/native/package/real-media evidence boundaries, UI/backend sequencing, and a progress ledger. No product source fixes were applied while creating it. The task list is uncommitted and must be kept aligned with the findings and current dirty-worktree boundary.
+- 2026-10-11: Red-team correction applied to `2026-10-11_tasklist.md`: all finding-map references now point to declared task IDs; T-012 remains dependent on T-033 and is ordered after directory-sync hardening; T-010 proves sequential same-second uniqueness and CSV-header races without adding overlapping MCP jobs; engine log/report mode is an explicit privacy decision separate from existing setup-log `0600`; each UI slice carries its CSS, with token consolidation deferred to T-060. No product source fixes were applied.
+- 2026-10-11: Second task-list red-team correction applied: T-046 is now in the process-safety phase immediately after T-021; F-15 maps to T-065 policy tests; the editing rule is agent-neutral; the audit scoreboard is labeled historical until T-000 reruns it. No product source fixes were applied.
+- 2026-10-11: Accepted implementation order is in `2026-10-11_findings.md`. Preserve features. Remove only unreachable implementation residue. First session: unique report id, atomic CSV header, raise on a failed Linux directory open, and deterministic tests. Isolate the metadata toolchain test from the user HDR10+ helper cache. Do not rewrite it to this machine’s path, and do not change the `Movie*Group` default. Then move `LibraryCrumb` and `LibraryPosterCard` into `types.ts`. Redundant imports may go. Compatibility helpers are preserved or delegated. `DiskPressureError` stays. Rust wrappers are `pub(crate)` or private. The route becomes a thin coordinator. Backend domain splits do not wait on the UI. `WorkflowIllustration` mounts through Home. No product fixes applied. This plan edit is uncommitted.
 - 2026-10-11: Rechecked the unused-symbol concern source-wide. `app.py`'s `signal`, `DiskPressureError`, `choose_poster`, `ffprobe_json`, and `pressure_stats` imports have no in-file use; only the `DiskPressureError` import is redundant because `encode.py` raises that live exception at three disk-pressure paths. The rebuild `validate_output(...)` call must stay because it raises on failure; only the `validation` result binding is unread. `encode.py`'s `_meminfo_values`, `_cgroup_available_gib`, and `_meminfo_gib` have no current call sites in source/tests and duplicate `resources.py` memory logic; they are compatibility shims to remove or delegate, not work the tool should start invoking. The Rust wrapper finding is path-scoped: `library_organizer::build_plan` is test-only, while `encode_plan::build_plan` is live production code. No source fixes were applied.
 - 2026-10-11: Expanded `2026-10-11_findings.md` beyond the utility audit to stale/unused code, module structure, UI/accessibility, CSS layering, and dependency freshness. Verified 19 focused Ruff unused-symbol findings, four Rust dead functions plus Clippy warnings, repeated Rust `BufRead::lines().flatten()` error-discard loops, the 6,107-line/239-function Svelte route, the two-layer 1,997-line CSS system, inconsistent native/custom dialogs without visible shared focus management, and pending pnpm/Cargo updates. These are separate maintainability, UX, or verification findings; no source fixes were applied. Current status remains: TS7 checker fails, Rust fmt fails, four Python tests fail, and native/packaged/real-media/cross-platform acceptance is open. Next: fix release blockers, establish ownership/lint gates, then refactor modal/type/store boundaries before further UI feature work.
 - 2026-10-11: `2026-10-11_findings.md` is the handoff. Body findings were narrowed in place. Codex’s F-16–F-25 stand, with these corrections: the rebuild `validation` call must stay; `filename_metadata_clue` and the short rename wrappers are test-used, not unreferenced; `encode.py` still has three uncalled meminfo helpers. Line counts match (`+page.svelte` 6107, `app.css` 1997). The app is not a 10/10 release on this evidence. Next: unique report ids, then the 25 TypeScript 7 errors.

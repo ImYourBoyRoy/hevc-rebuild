@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from hevc_rebuild.encode import encode_args
-from hevc_rebuild.model import MediaProfile, StreamRef, Toolchain
+from hevc_rebuild.model import MediaProfile, Toolchain
 from hevc_rebuild.probe import choose_primary_video, stream_refs
 from hevc_rebuild.validate import stream_copy_hash
 
@@ -27,6 +27,12 @@ def has_encoder(name: str) -> bool:
 @unittest.skipUnless(FFMPEG and FFPROBE and has_encoder("libx265"), "FFmpeg/libx265 not installed")
 class EncodeIntegrationTests(unittest.TestCase):
     def test_highest_video_first_and_audio_subtitles_packet_exact(self):
+        self._assert_video_and_copied_tracks("flac")
+
+    def test_copied_aac_priming_timestamps_and_packets_remain_exact(self):
+        self._assert_video_and_copied_tracks("aac")
+
+    def _assert_video_and_copied_tracks(self, audio_codec):
         with tempfile.TemporaryDirectory() as td:
             td = Path(td)
             srt = td / "sub.srt"
@@ -41,7 +47,7 @@ class EncodeIntegrationTests(unittest.TestCase):
                 "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
                 "-i", str(srt),
                 "-map", "0:v", "-map", "1:v", "-map", "2:a", "-map", "3:s",
-                "-c:v", "mpeg4", "-q:v", "5", "-c:a", "flac", "-c:s", "srt",
+                "-c:v", "mpeg4", "-q:v", "5", "-c:a", audio_codec, "-c:s", "srt", "-avoid_negative_ts", "disabled",
                 "-disposition:v:0", "default", "-disposition:v:1", "0",
                 "-metadata:s:a:0", "language=eng", "-disposition:s:0", "forced",
                 str(src),
@@ -83,6 +89,11 @@ class EncodeIntegrationTests(unittest.TestCase):
             out_probe = json.loads(subprocess.run([
                 FFPROBE, "-v", "error", "-show_streams", "-of", "json", str(out)
             ], check=True, stdout=subprocess.PIPE, text=True).stdout)
+            source_audio = next(s for s in probe["streams"] if s["codec_type"] == "audio")
+            output_audio = next(s for s in out_probe["streams"] if s["codec_type"] == "audio")
+            if audio_codec == "aac":
+                self.assertLess(float(source_audio["start_time"]), 0, "Fixture must include AAC negative priming")
+            self.assertAlmostEqual(float(source_audio["start_time"]), float(output_audio["start_time"]), places=3)
             out_refs = stream_refs(out_probe)
             videos = [r for r in out_refs if r.codec_type == "video" and not r.attached_pic]
             self.assertEqual((videos[0].width, videos[0].height), (640, 360))

@@ -515,10 +515,16 @@ fn nfo_values(path: &Path) -> Result<ParsedNfo, String> {
                 }
             }
             Ok(Event::End(_)) => {
-                if capture_default_rating && stack.len() == 4 && stack.get(3).map(String::as_str) == Some("value") {
+                if capture_default_rating
+                    && stack.len() == 4
+                    && stack.get(3).map(String::as_str) == Some("value")
+                {
                     let rating = field_text.trim();
                     if !rating.is_empty() {
-                        fields.entry("audience".to_owned()).or_default().push(rating.to_owned());
+                        fields
+                            .entry("audience".to_owned())
+                            .or_default()
+                            .push(rating.to_owned());
                     }
                     field_text.clear();
                 }
@@ -730,7 +736,9 @@ fn conflicting_nfo_fields(
         if normalized.is_empty() {
             continue;
         }
-        if canonical == "year" && year_values_agree(&[previous.as_slice(), normalized.as_slice()].concat()) {
+        if canonical == "year"
+            && year_values_agree(&[previous.as_slice(), normalized.as_slice()].concat())
+        {
             continue;
         }
         if previous != &normalized {
@@ -784,7 +792,9 @@ fn conflicting_fields_within_nfo(fields: &BTreeMap<String, Vec<String>>) -> Vec<
     values_by_field
         .into_iter()
         .filter(|(field, values)| {
-            *field != "genre" && values.len() > 1 && !(*field == "year" && year_values_agree(values))
+            *field != "genre"
+                && values.len() > 1
+                && !(*field == "year" && year_values_agree(values))
         })
         .map(|(field, _)| field.to_owned())
         .collect()
@@ -1200,7 +1210,10 @@ mod tests {
         assert_eq!(metadata.plot.as_deref(), Some("A fairy tale anthology."));
         assert_eq!(metadata.genres, ["Family"]);
         assert_eq!(metadata.rating, Some(8.8));
-        assert_eq!(metadata.season_names.get("1").map(String::as_str), Some("Season 1"));
+        assert_eq!(
+            metadata.season_names.get("1").map(String::as_str),
+            Some("Season 1")
+        );
         fs::remove_dir_all(root).unwrap();
     }
 

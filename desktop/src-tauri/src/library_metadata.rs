@@ -294,6 +294,8 @@ fn language_region(language: &str) -> &str {
 /// Build a search hint from a filename or series-folder name without accepting
 /// or returning a filesystem path. The hint is local until the user starts a
 /// provider lookup; only `title` is sent to a metadata provider.
+// Compatibility delegate retained; canonical callers/tests use the pattern-aware path.
+#[allow(dead_code)]
 pub(crate) fn filename_metadata_clue(filename: &str) -> Result<FilenameMetadataClue, String> {
     filename_metadata_clue_with_patterns(filename, &[])
 }
@@ -1327,7 +1329,10 @@ fn tvdb_recorded_seasons(data: &Value, title: &str, source_url: &str) -> Vec<TvS
             .collect::<Vec<_>>();
             if let Some(season_id) = season.get("id").and_then(Value::as_u64) {
                 for extra in tvdb_artwork_for_season(data, season_id, number, title, source_url) {
-                    if !artwork.iter().any(|current| current.image_url == extra.image_url) {
+                    if !artwork
+                        .iter()
+                        .any(|current| current.image_url == extra.image_url)
+                    {
                         artwork.push(extra);
                     }
                 }
@@ -2280,7 +2285,8 @@ mod tests {
 
     #[test]
     fn filename_clue_extracts_title_year_and_certification_without_release_labels() {
-        let clue = filename_metadata_clue("Gnomeo & Juliet (2011 G).mp4").unwrap();
+        let clue =
+            filename_metadata_clue_with_patterns("Gnomeo & Juliet (2011 G).mp4", &[]).unwrap();
         assert_eq!(clue.title, "Gnomeo & Juliet");
         assert_eq!(clue.year.as_deref(), Some("2011"));
         assert_eq!(clue.year_end, None);
@@ -2289,9 +2295,11 @@ mod tests {
 
     #[test]
     fn filename_clue_cleans_release_tokens_and_preserves_title_punctuation() {
-        let clue =
-            filename_metadata_clue("Spider-Man.2.The.New.Chapter.2024.1080p.WEB-DL.x265-GROUP.mkv")
-                .unwrap();
+        let clue = filename_metadata_clue_with_patterns(
+            "Spider-Man.2.The.New.Chapter.2024.1080p.WEB-DL.x265-GROUP.mkv",
+            &[],
+        )
+        .unwrap();
         assert_eq!(clue.title, "Spider-Man 2 The New Chapter");
         assert_eq!(clue.year.as_deref(), Some("2024"));
         assert_eq!(clue.certification, None);
@@ -2319,12 +2327,16 @@ mod tests {
 
     #[test]
     fn filename_clue_supports_series_folder_year_ranges_and_rejects_paths() {
-        let clue = filename_metadata_clue("Faerie Tale Theatre (1982-1987)").unwrap();
+        let clue =
+            filename_metadata_clue_with_patterns("Faerie Tale Theatre (1982-1987)", &[]).unwrap();
         assert_eq!(clue.title, "Faerie Tale Theatre");
         assert_eq!(clue.year.as_deref(), Some("1982"));
         assert_eq!(clue.year_end.as_deref(), Some("1987"));
-        assert!(filename_metadata_clue("/library/Gnomeo & Juliet (2011 G).mp4").is_err());
-        assert!(filename_metadata_clue("1080p.WEB-DL.x265.mkv").is_err());
+        assert!(
+            filename_metadata_clue_with_patterns("/library/Gnomeo & Juliet (2011 G).mp4", &[])
+                .is_err()
+        );
+        assert!(filename_metadata_clue_with_patterns("1080p.WEB-DL.x265.mkv", &[]).is_err());
     }
 
     #[test]
@@ -2395,8 +2407,14 @@ mod tests {
         assert_eq!(published_audience_score(detail.get("vote_average")), None);
         let scored = serde_json::json!({ "overview": "  ", "vote_average": 8.2 });
         assert_eq!(published_overview(scored.get("overview")), None);
-        assert_eq!(published_audience_score(scored.get("vote_average")), Some(8.2));
-        assert_eq!(published_audience_score(Some(&serde_json::json!(11.0))), None);
+        assert_eq!(
+            published_audience_score(scored.get("vote_average")),
+            Some(8.2)
+        );
+        assert_eq!(
+            published_audience_score(Some(&serde_json::json!(11.0))),
+            None
+        );
     }
 
     #[test]

@@ -48,9 +48,71 @@ struct CapturedJson {
     value: Value,
 }
 
+#[derive(serde::Serialize, Deserialize)]
 struct Profile {
     payload: Value,
     duration: f64,
+}
+
+/// Diagnostic-only timings; never used for media or resource policy decisions.
+#[derive(Default, serde::Serialize)]
+struct ScanTimings {
+    discovery_ms: f64,
+    settings_ms: f64,
+    tool_poll_ms: f64,
+    ffprobe_ms: f64,
+    mediainfo_ms: f64,
+    profile_ms: f64,
+    forecast_ms: f64,
+    progress_handoff_ms: f64,
+    total_ms: f64,
+    profile_cache_hits: usize,
+}
+
+fn elapsed_ms(start: Instant) -> f64 {
+    start.elapsed().as_secs_f64() * 1000.0
+}
+
+fn cache_identity(path: &Path) -> Option<Value> {
+    let canonical = path.canonicalize().ok()?;
+    let metadata = fs::metadata(&canonical).ok()?;
+    if !metadata.is_file() {
+        return None;
+    }
+    let modified = metadata
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_nanos();
+    let mut identity = json!({"path": canonical, "size": metadata.len(), "mtime_ns": modified});
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        identity["inode"] = json!(metadata.ino());
+        identity["device"] = json!(metadata.dev());
+        identity["ctime"] = json!([metadata.ctime(), metadata.ctime_nsec()]);
+    }
+    Some(identity)
+}
+
+fn profile_cache_key(
+    path: &Path,
+    ffprobe: &str,
+    mediainfo: Option<&str>,
+    settings: &Value,
+    host: &Value,
+) -> Option<String> {
+    let mediainfo = mediainfo?;
+    serde_json::to_string(&json!({
+        "source": cache_identity(path)?,
+        "ffprobe": cache_identity(Path::new(ffprobe))?,
+        "mediainfo": cache_identity(Path::new(mediainfo))?,
+        "versions": host.get("checks")?.as_array()?.iter().filter(|check| matches!(check.get("key").and_then(Value::as_str), Some("ffprobe" | "mediainfo"))).collect::<Vec<_>>(),
+        "settings": settings,
+        "policy": crate::profile_cache::POLICY_REVISION,
+    }))
+    .ok()
 }
 
 /// Analyze a file or folder. The callback reports each file before its profile
@@ -59,6 +121,8 @@ pub(crate) fn scan_media(
     options: ScanOptions,
     mut progress: impl FnMut(usize, usize, &str),
 ) -> Result<Value, String> {
+    let total_start = Instant::now();
+    let mut timings = ScanTimings::default();
     if options.minimum_size_mib > 4096 {
         return Err("Minimum input size must be 4096 MiB or less.".into());
     }
@@ -78,6 +142,7 @@ pub(crate) fn scan_media(
         root.clone()
     };
     let minimum_bytes = u64::from(options.minimum_size_mib) * 1024 * 1024;
+    let discovery_start = Instant::now();
     let mut discovery = if input_is_file {
         discover_file(&root, minimum_bytes)
     } else {
@@ -103,6 +168,8 @@ pub(crate) fn scan_media(
             "Skipped {filtered_count} file(s) using filename filters."
         ));
     }
+    timings.discovery_ms = elapsed_ms(discovery_start);
+    let settings_start = Instant::now();
     let settings_payload = serde_json::to_value(settings::load_effective_settings(
         &source_base.to_string_lossy(),
     )?)
@@ -116,7 +183,10 @@ pub(crate) fn scan_media(
         .cloned()
         .unwrap_or_else(|| json!([]));
 
+    timings.settings_ms = elapsed_ms(settings_start);
+    let tools_start = Instant::now();
     let mut host = environment::inspect_environment(options.tool_paths, None)?;
+    timings.tool_poll_ms = elapsed_ms(tools_start);
     let ffprobe = checked_tool(&host, "ffprobe");
     let mediainfo = checked_tool(&host, "mediainfo");
     let can_probe = ffprobe.is_some();
@@ -135,7 +205,9 @@ pub(crate) fn scan_media(
     for (offset, path) in discovery.files.iter().enumerate() {
         let current = offset + 1;
         let name = path.file_name().unwrap_or_default().to_string_lossy();
+        let handoff_start = Instant::now();
         progress(current, total, &name);
+        timings.progress_handoff_ms += elapsed_ms(handoff_start);
         let media_metadata = fs::metadata(path).ok();
         let size_bytes = media_metadata
             .as_ref()
@@ -184,8 +256,63 @@ pub(crate) fn scan_media(
             entries.push(entry);
             continue;
         };
-        match probe_media(ffprobe, mediainfo.as_deref(), path, &effective_settings) {
+        let cache_key = profile_cache_key(
+            path,
+            ffprobe,
+            mediainfo.as_deref(),
+            &effective_settings,
+            &host,
+        );
+        let cached = cache_key
+            .as_deref()
+            .and_then(crate::profile_cache::get)
+            .and_then(|value| serde_json::from_value::<Profile>(value).ok());
+        let analyzed = if let Some(profile) = cached {
+            timings.profile_cache_hits += 1;
+            Ok((profile, None))
+        } else {
+            probe_media(
+                ffprobe,
+                mediainfo.as_deref(),
+                path,
+                &effective_settings,
+                &mut timings,
+            )
+        };
+        let analyzed = match analyzed {
+            Ok((profile, error)) => {
+                if let Some(key) = cache_key {
+                    if Some(&key)
+                        != profile_cache_key(
+                            path,
+                            ffprobe,
+                            mediainfo.as_deref(),
+                            &effective_settings,
+                            &host,
+                        )
+                        .as_ref()
+                    {
+                        Err(
+                            "Media or analysis tool changed during profiling; refresh the scan."
+                                .into(),
+                        )
+                    } else {
+                        if error.is_none() {
+                            if let Ok(value) = serde_json::to_value(&profile) {
+                                crate::profile_cache::insert(key, value);
+                            }
+                        }
+                        Ok((profile, error))
+                    }
+                } else {
+                    Ok((profile, error))
+                }
+            }
+            Err(error) => Err(error),
+        };
+        match analyzed {
             Ok((profile, media_info_error)) => {
+                let forecast_start = Instant::now();
                 let primary = profile.payload.clone();
                 let rebuild_forecast = memory_forecast(
                     &primary,
@@ -222,6 +349,7 @@ pub(crate) fn scan_media(
                         ),
                     );
                 }
+                timings.forecast_ms += elapsed_ms(forecast_start);
                 entry["profile"] = profile.payload;
                 entry["resource_forecast"] = rebuild_forecast;
                 entry["youtube_estimates"] = Value::Object(estimates);
@@ -254,7 +382,7 @@ pub(crate) fn scan_media(
             "Discovery stopped after {MAX_DISCOVERED_FILES} media files. Narrow the selected folder to analyze the remainder."
         ));
     }
-    Ok(json!({
+    let mut payload = json!({
         "root": root.to_string_lossy(),
         "input_kind": if input_is_file { "file" } else { "folder" },
         "recursive": options.recursive,
@@ -268,7 +396,13 @@ pub(crate) fn scan_media(
         "settings_sources": settings_sources,
         "warnings": warnings,
         "discovery_limit_reached": discovery.limit_reached
-    }))
+    });
+    timings.total_ms = elapsed_ms(total_start);
+    if std::env::var_os("HEVC_REBUILD_SCAN_TIMING").is_some_and(|value| value == "1") {
+        payload["scan_timings"] =
+            serde_json::to_value(&timings).map_err(|error| error.to_string())?;
+    }
+    Ok(payload)
 }
 
 pub(crate) fn validate_filename_patterns(patterns: &[String], label: &str) -> Result<(), String> {
@@ -680,7 +814,9 @@ fn probe_media(
     mediainfo: Option<&str>,
     path: &Path,
     settings: &Value,
+    timings: &mut ScanTimings,
 ) -> Result<(Profile, Option<String>), String> {
+    let ffprobe_start = Instant::now();
     let probe = run_json_tool(
         ffprobe,
         &[
@@ -699,6 +835,8 @@ fn probe_media(
         MAX_TOOL_JSON_BYTES,
     )?
     .value;
+    timings.ffprobe_ms += elapsed_ms(ffprobe_start);
+    let mediainfo_start = Instant::now();
     let (media_info, media_info_error) = match mediainfo {
         Some(program) => match run_json_tool(
             program,
@@ -715,7 +853,10 @@ fn probe_media(
             Some("MediaInfo is unavailable; this FFprobe profile is partial. MediaInfo-specific fields may be missing.".into()),
         ),
     };
+    timings.mediainfo_ms += elapsed_ms(mediainfo_start);
+    let profile_start = Instant::now();
     let profile = build_profile(&probe, &media_info, path, settings, ffprobe)?;
+    timings.profile_ms += elapsed_ms(profile_start);
     Ok((profile, media_info_error))
 }
 
@@ -2265,6 +2406,108 @@ mod tests {
         ));
         fs::create_dir_all(&path).expect("create isolated scan fixture");
         path
+    }
+
+    #[test]
+    fn profile_cache_keys_invalidate_for_source_settings_tool_and_version_changes() {
+        let root = temp_dir("cache-key");
+        let source = root.join("source.mkv");
+        let tool = root.join("tool");
+        fs::write(&source, b"synthetic").unwrap();
+        fs::write(&tool, b"tool").unwrap();
+        let host = json!({"checks": [{"key": "ffprobe", "version": "1"}, {"key": "mediainfo", "version": "1"}]});
+        let key = |settings: &Value, host: &Value| {
+            profile_cache_key(
+                &source,
+                tool.to_str().unwrap(),
+                Some(tool.to_str().unwrap()),
+                settings,
+                host,
+            )
+            .unwrap()
+        };
+        let baseline = key(&json!({"video": {"promote": true}}), &host);
+        assert_eq!(baseline, key(&json!({"video": {"promote": true}}), &host));
+        assert_ne!(baseline, key(&json!({"video": {"promote": false}}), &host));
+        assert_ne!(
+            baseline,
+            key(
+                &json!({"video": {"promote": true}}),
+                &json!({"checks": [{"key": "ffprobe", "version": "2"}]})
+            )
+        );
+        fs::write(&source, b"modified synthetic").unwrap();
+        assert_ne!(baseline, key(&json!({"video": {"promote": true}}), &host));
+        let after_source = key(&json!({"video": {"promote": true}}), &host);
+        fs::write(&tool, b"updated tool").unwrap();
+        assert_ne!(
+            after_source,
+            key(&json!({"video": {"promote": true}}), &host)
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    #[ignore = "Explicit synthetic FFmpeg benchmark; run with HEVC_REBUILD_SCAN_TIMING=1"]
+    fn measure_repeated_scan_profile_cache() {
+        let root = temp_dir("cache-benchmark");
+        let clip = root.join("synthetic-0.mkv");
+        assert!(Command::new("ffmpeg")
+            .args([
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=blue:s=320x180:r=24",
+                "-t",
+                "1",
+                "-c:v",
+                "libx264",
+                "-threads",
+                "1"
+            ])
+            .arg(&clip)
+            .status()
+            .unwrap()
+            .success());
+        for index in 1..20 {
+            fs::copy(&clip, root.join(format!("synthetic-{index}.mkv"))).unwrap();
+        }
+        let options = ScanOptions {
+            root: root.to_string_lossy().into(),
+            recursive: false,
+            minimum_size_mib: 0,
+            filename_include_patterns: vec![],
+            filename_exclude_patterns: vec![],
+            tool_paths: ToolPaths::default(),
+        };
+        let cold = scan_media(options.clone(), |_, _, _| {}).unwrap();
+        let warm = scan_media(options.clone(), |_, _, _| {}).unwrap();
+        for (cold_entry, warm_entry) in cold["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(warm["entries"].as_array().unwrap())
+        {
+            assert_eq!(cold_entry["profile"], warm_entry["profile"]);
+            assert_eq!(cold_entry["status"], warm_entry["status"]);
+        }
+        assert_eq!(warm["scan_timings"]["profile_cache_hits"], 20);
+        assert!(warm["scan_timings"]["ffprobe_ms"].as_f64().unwrap() < 1.0);
+        assert!(
+            warm["scan_timings"]["total_ms"].as_f64().unwrap()
+                < cold["scan_timings"]["total_ms"].as_f64().unwrap()
+        );
+        fs::write(&clip, b"changed, invalid media").unwrap();
+        let changed = scan_media(options, |_, _, _| {}).unwrap();
+        assert_eq!(changed["scan_timings"]["profile_cache_hits"], 19);
+        assert_eq!(changed["entries"][0]["status"], "Analysis failed");
+        println!(
+            "CACHE_BENCHMARK {}",
+            json!({"cold": cold["scan_timings"], "warm": warm["scan_timings"], "changed": changed["scan_timings"]})
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

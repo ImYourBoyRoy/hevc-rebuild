@@ -1,36 +1,59 @@
 from __future__ import annotations
 
 import json
-import logging
 import math
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
 from .model import MediaProfile, StreamRef, Toolchain
-from .util import RebuildError, native_json_action, run, run_json, safe_float, safe_int
+from .util import RebuildError, native_json_action, require_json_object, run, run_json_object, safe_float, safe_int
 
 
 def ffprobe_json(tools: Toolchain, path: Path) -> dict[str, Any]:
-    return run_json([
+    value = run_json_object([
         tools.ffprobe, "-v", "error", "-show_streams", "-show_format", "-show_chapters",
         "-show_data_hash", "sha256", "-of", "json", str(path),
-    ])
+    ], required_keys=("streams",))
+    _validate_probe_shape(value, tools.ffprobe)
+    return value
 
 
 def mediainfo_json(tools: Toolchain, path: Path) -> dict[str, Any]:
     cp = run([tools.mediainfo, "--Output=JSON", str(path)])
     try:
-        return json.loads(cp.stdout)
+        value = require_json_object(json.loads(cp.stdout), f"MediaInfo {tools.mediainfo} for {path}", required_keys=("media",))
+        media = require_json_object(value["media"], "MediaInfo media")
+        tracks = media.get("track", [])
+        if not isinstance(tracks, list) or any(not isinstance(track, dict) for track in tracks):
+            raise RebuildError(f"MediaInfo {tools.mediainfo} for {path} returned invalid tracks.")
+        return value
     except json.JSONDecodeError as exc:
         raise RebuildError(f"MediaInfo produced invalid JSON for {path}: {exc}") from exc
 
 
+def _validate_probe_shape(probe: dict[str, Any], context: str = "FFprobe") -> None:
+    require_json_object(probe, context)
+    for field in ("streams", "frames", "chapters"):
+        values = probe.get(field, [])
+        if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
+            raise RebuildError(f"{context} returned invalid {field}; expected an array of objects.")
+    if probe.get("format") is not None:
+        require_json_object(probe["format"], f"{context} format")
+    for stream in probe.get("streams", []):
+        for field in ("tags", "disposition"):
+            if stream.get(field) is not None:
+                require_json_object(stream[field], f"{context} stream {field}")
+
+
 def stream_refs(probe: dict[str, Any]) -> list[StreamRef]:
+    _validate_probe_shape(probe)
     ordinals: dict[str, int] = {}
     result: list[StreamRef] = []
     for s in probe.get("streams", []):
+        for field in ("index", "width", "height"):
+            if s.get(field) is not None and safe_int(s[field]) is None:
+                raise RebuildError(f"FFprobe stream contains an invalid {field} value.")
         kind = str(s.get("codec_type", "unknown"))
         ordinal = ordinals.get(kind, 0)
         ordinals[kind] = ordinal + 1
@@ -46,12 +69,12 @@ def stream_refs(probe: dict[str, Any]) -> list[StreamRef]:
             elif kind == "video":
                 bit_depth = 8
         result.append(StreamRef(
-            index=int(s.get("index", -1)),
+            index=safe_int(s.get("index")) if s.get("index") is not None else -1,
             type_ordinal=ordinal,
             codec_type=kind,
             codec_name=s.get("codec_name"),
-            width=int(s.get("width") or 0),
-            height=int(s.get("height") or 0),
+            width=safe_int(s.get("width")) or 0,
+            height=safe_int(s.get("height")) or 0,
             pix_fmt=s.get("pix_fmt"),
             bit_depth=bit_depth,
             default=bool(disp.get("default", 0)),
@@ -200,12 +223,14 @@ def _target_pix_fmt(source_depth: int, source_chroma: str, promote_8bit_to_10bit
 
 
 def _frame_probe(tools: Toolchain, path: Path, video_ordinal: int) -> dict[str, Any]:
-    return run_json([
+    value = run_json_object([
         tools.ffprobe, "-v", "error", "-select_streams", f"v:{video_ordinal}", "-read_intervals", "%+1",
         "-show_frames", "-show_entries",
         "frame=color_range,color_space,color_primaries,color_transfer,interlaced_frame:frame_side_data",
         "-of", "json", str(path),
     ])
+    _validate_probe_shape(value, tools.ffprobe)
+    return value
 
 
 def _side_data_entries(stream: dict[str, Any], frame_probe: dict[str, Any]) -> list[dict[str, Any]]:

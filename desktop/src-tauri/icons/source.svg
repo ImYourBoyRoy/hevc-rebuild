@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="112" fill="#19392F"/>
-  <circle cx="256" cy="260" r="174" fill="#FFFFFF" fill-opacity=".045"/>
-  <path d="M94 175.5 407 126l18.3 91.2-313 49.5L94 175.5Z" fill="#9FD2A8"/>
-  <path d="m133 169 28-4.4-31.5 51.9-28 4.4 31.5-51.9ZM224 154.6l28-4.4-31.5 51.9-28 4.4 31.5-51.9ZM315 140.2l28-4.4-31.5 51.9-28 4.4 31.5-51.9Z" fill="#315E49"/>
-  <path d="m98.6 270.8 325-51.4v156.3c0 20.5-16.6 37.1-37.1 37.1H135.7c-20.5 0-37.1-16.6-37.1-37.1V270.8Z" fill="#E5F0E3"/>
-  <path d="M220 286.5c0-7.6 8.3-12.4 15-8.5l92.8 53.6c6.7 3.9 6.7 13.6 0 17.5L235 402.7c-6.7 3.9-15-.9-15-8.6V286.5Z" fill="#37785A"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <title>HEVC Rebuild Studio mark</title>
+  <path d="M147 174C185 119 272 110 338 147C399 181 417 241 382 284" stroke="#253E34" stroke-width="76" stroke-linecap="round"/>
+  <path d="M107 254C144 201 215 195 277 225C340 255 372 309 345 359C318 409 251 414 191 385" stroke="#F5F0E6" stroke-width="76" stroke-linecap="round"/>
+  <path d="M143 362C183 327 241 334 299 368C349 397 398 382 412 332" stroke="#D99820" stroke-width="76" stroke-linecap="round"/>
 </svg>

@@ -1,5 +1,5 @@
 use flate2::read::GzDecoder;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -635,11 +635,11 @@ fn parse_tool_version(text: &str) -> Option<String> {
 #[cfg(test)]
 mod hdr10plus_installer_tests {
     use super::{
-        TemporaryDirectory, extract_single_tool, find_sha256, normalize_sha256, parse_tool_version,
-        set_executable_permissions, tool_version, trusted_url,
+        extract_single_tool, find_sha256, normalize_sha256, parse_tool_version,
+        set_executable_permissions, tool_version, trusted_url, TemporaryDirectory,
     };
-    use flate2::Compression;
     use flate2::write::GzEncoder;
+    use flate2::Compression;
     use std::fs::{self, File, OpenOptions};
     use std::io;
     use std::path::Path;

@@ -51,7 +51,7 @@
         <li>Check only and short tests are in <strong>Run & settings</strong>. Before metadata-only output, a short test, or a full rebuild, review the planned destinations for all selected folders and files. Existing outputs or duplicate destinations block the run; the engine checks each source again before writing.</li>
         <li>After a restart, the app settles files that were still active. A saved successful result is marked complete. An unfinished file whose original is still in place returns to the normal queue, and only an unopened temporary encode from this app is removed. A partial encode is not resumed, and an existing output is not overwritten. A file that is missing, or whose saved success has no output, stays for review. Select failed or skipped items to prepare a retry; mark queued or failed items skipped to keep them out of the default run.</li>
       </ol>
-      <p class="help-note"><ShieldCheck size={15} /> A full rebuild keeps the source until its replacement passes validation. Stop safely finishes the current file and then stops the full multi-folder queue.</p>
+      <p class="help-note"><ShieldCheck size={15} /> A full rebuild keeps the source until its replacement passes validation. If compression finishes but a later check fails, the completed file is retained as an unvalidated review artifact beside a matching <code>+error.log</code>; an in-place rebuild never overwrites the source early. Stop safely finishes the current file and then stops the full multi-folder queue.</p>
     </article>
 
     <article class="help-card">

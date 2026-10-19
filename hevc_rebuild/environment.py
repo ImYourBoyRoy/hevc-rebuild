@@ -8,7 +8,18 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from .deps import APT_PACKAGES, MANAGED_BIN, TOOL_OVERRIDE_KEYS, get_x265_pixel_formats, os_release, version_tuple, x265_supports_dolbyvision
+from .deps import (
+    APT_PACKAGES,
+    MANAGED_BIN,
+    TOOL_OVERRIDE_KEYS,
+    companion_ffprobe,
+    get_x265_pixel_formats,
+    is_windows,
+    managed_hdr_path,
+    os_release,
+    version_tuple,
+    x265_supports_dolbyvision,
+)
 from .model import Toolchain
 from .resources import MemoryStats, effective_cpu_threads, memory_stats
 
@@ -90,6 +101,8 @@ def _candidate_paths(ffmpeg_path: str | None, tool_paths: dict[str, str | None] 
         "python3", "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "fc-list",
         "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec",
     )}
+    if not paths["python3"]:
+        paths["python3"] = shutil.which("python")
     overrides = dict(tool_paths or {})
     if ffmpeg_path and not overrides.get("ffmpeg"):
         overrides["ffmpeg"] = ffmpeg_path
@@ -99,10 +112,10 @@ def _candidate_paths(ffmpeg_path: str | None, tool_paths: dict[str, str | None] 
             paths[name] = _executable(selected) or selected
     if overrides.get("ffmpeg") and not overrides.get("ffprobe"):
         ffmpeg = _executable(overrides["ffmpeg"])
-        sibling_probe = _executable(str(Path(ffmpeg).with_name("ffprobe"))) if ffmpeg else None
+        sibling_probe = companion_ffprobe(ffmpeg)
         if sibling_probe:
             paths["ffprobe"] = sibling_probe
-    managed_hdr = _executable(str(MANAGED_BIN / "hdr10plus_tool"))
+    managed_hdr = _executable(str(managed_hdr_path()))
     paths["hdr10plus_tool"] = managed_hdr or shutil.which("hdr10plus_tool")
     return paths
 
@@ -124,6 +137,10 @@ def _check_command(key: str, label: str, path: str | None, args: tuple[str, ...]
 
 
 def _os_details() -> tuple[str, str, bool, str]:
+    if is_windows():
+        supported = bool(shutil.which("winget"))
+        note = "Supported Windows build guest" if supported else "Windows Package Manager (winget) is unavailable"
+        return "Windows", platform.version() or platform.release(), supported, note
     try:
         info = os_release()
     except Exception as exc:  # platform probes should still show the rest of the report
@@ -199,9 +216,9 @@ def inspect_environment(
     }
     labels = {key: label for key, label, _, _ in _CHECKS}
     for key, _, _, _ in _CHECKS:
-        status = _check_command(
-            key, labels[key], paths.get(key), arg_map[key], required=key != "pkexec",
-        )
+        linux_only = {"fc-list", "apt-get", "apt-cache", "dpkg", "dpkg-query", "pkexec"}
+        required = key not in linux_only if is_windows() else key != "pkexec"
+        status = _check_command(key, labels[key], paths.get(key), arg_map[key], required=required)
         if key == "ffmpeg" and ffmpeg_path and not paths.get(key):
             status = CommandStatus(key, labels[key], ffmpeg_path, None, False, True, "Selected file is missing or not executable")
         checks.append(status)
@@ -290,6 +307,8 @@ def inspect_environment(
 
 def missing_apt_packages(report: EnvironmentReport, *, using_custom_ffmpeg: bool = False) -> tuple[str, ...]:
     """Return only known APT package names needed to address missing commands."""
+    if is_windows():
+        return ()
     missing_commands = {check.key for check in report.checks if check.required and not check.available}
     missing: list[str] = []
     for package, commands in APT_PACKAGES.items():

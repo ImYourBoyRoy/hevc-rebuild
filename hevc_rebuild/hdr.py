@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 from .model import MediaProfile, Toolchain
-from .util import RebuildError, format_command, native_json_action
+from .util import MAX_HELPER_TIMEOUT_SECONDS, RebuildError, format_command, native_json_action, terminate_process_group
 
 
 _HDR10PLUS_DETECTED = re.compile(
@@ -87,6 +89,32 @@ def _native_reasons(payload: dict[str, object]) -> list[str] | None:
     return reasons
 
 
+def _run_hdr_pipeline(ffmpeg: list[str], parser: list[str], fferr):
+    started = time.monotonic()
+    p1 = subprocess.Popen(ffmpeg, stdout=subprocess.PIPE, stderr=fferr, start_new_session=os.name == "posix")
+    p2 = None
+    try:
+        p2 = subprocess.Popen(parser, stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=os.name == "posix")
+        assert p1.stdout is not None
+        p1.stdout.close()
+        out2, err2 = p2.communicate(timeout=MAX_HELPER_TIMEOUT_SECONDS)
+        rc1 = p1.wait(timeout=max(0.1, MAX_HELPER_TIMEOUT_SECONDS - (time.monotonic() - started)))
+        return out2, err2, rc1, p2.returncode
+    except BaseException as exc:
+        if p2 is not None:
+            terminate_process_group(p2)
+        terminate_process_group(p1)
+        if isinstance(exc, (OSError, subprocess.TimeoutExpired)):
+            raise RebuildError(f"HDR10+ pipeline failed ({ffmpeg[0]} / {parser[0]}): {exc}") from exc
+        raise
+    finally:
+        for proc in (p1, p2):
+            if proc is not None:
+                for stream in (proc.stdout, proc.stderr):
+                    if stream is not None:
+                        stream.close()
+
+
 def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Path | None = None) -> bool:
     # For an encoded output where primary video is guaranteed v:0, use a lightweight
     # path override rather than rebuilding the source profile.
@@ -119,19 +147,14 @@ def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Pat
     logging.debug("HDR10+ verify pipeline: %s | %s", format_command(ffmpeg), format_command(parser))
 
     with _producer_stderr_file() as fferr:
-        p1 = subprocess.Popen(ffmpeg, stdout=subprocess.PIPE, stderr=fferr)
-        p2 = subprocess.Popen(parser, stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        assert p1.stdout is not None
-        p1.stdout.close()
-        out2, err2 = p2.communicate()
-        rc1 = p1.wait()
+        out2, err2, rc1, parser_status = _run_hdr_pipeline(ffmpeg, parser, fferr)
         err1 = _read_stderr_file(fferr)
 
     parser_text = (out2 or "") + "\n" + (err2 or "")
     detected = bool(_HDR10PLUS_DETECTED.search(parser_text))
     expected_pipe_close = rc1 != 0 and _pipe_close_is_expected(err1)
 
-    if p2.returncode == 0 and detected:
+    if parser_status == 0 and detected:
         if rc1 != 0 and not expected_pipe_close:
             logging.debug("HDR10+ verifier detected metadata, but FFmpeg failed unexpectedly: %s", err1.strip())
             return False
@@ -146,7 +169,7 @@ def verify_hdr10plus(tools: Toolchain, profile: MediaProfile, path_override: Pat
             logging.debug("HDR10+ verifier closed the stream after reaching its conclusion; no HDR10+ metadata verified.")
         else:
             logging.debug("HDR10+ verify FFmpeg failed: %s", err1.strip())
-    if p2.returncode != 0:
+    if parser_status != 0:
         logging.debug("HDR10+ verification reported no usable metadata: %s", parser_text.strip())
     elif not detected:
         logging.debug("HDR10+ verifier completed without an explicit metadata-detected result.")
@@ -174,16 +197,11 @@ def extract_hdr10plus(tools: Toolchain, profile: MediaProfile, output_json: Path
     logging.info("Extracting HDR10+ dynamic metadata from selected primary video stream.")
 
     with _producer_stderr_file() as fferr:
-        p1 = subprocess.Popen(ffmpeg, stdout=subprocess.PIPE, stderr=fferr)
-        p2 = subprocess.Popen(parser, stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        assert p1.stdout is not None
-        p1.stdout.close()
-        out2, err2 = p2.communicate()
-        rc1 = p1.wait()
+        out2, err2, rc1, parser_status = _run_hdr_pipeline(ffmpeg, parser, fferr)
         err1 = _read_stderr_file(fferr)
 
-    if rc1 != 0 or p2.returncode != 0 or not output_json.exists() or output_json.stat().st_size < 16:
-        if rc1 != 0 and _pipe_close_is_expected(err1) and p2.returncode != 0:
+    if rc1 != 0 or parser_status != 0 or not output_json.exists() or output_json.stat().st_size < 16:
+        if rc1 != 0 and _pipe_close_is_expected(err1) and parser_status != 0:
             ffmpeg_detail = "FFmpeg producer stopped after hdr10plus_tool closed the pipe."
         else:
             ffmpeg_detail = err1.strip()

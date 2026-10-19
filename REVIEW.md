@@ -1,5 +1,20 @@
 # HEVC Rebuild v1.3.0 - Review / Release Notes
 
+## Current maintenance evidence — 2026-10-12
+
+Historical sections below retain their original dates and counts; they are not current readiness claims. Current task state is `2026-10-11_tasklist.md` and detailed evidence is `2026-10-11_evidence.md`.
+
+Safety/type/UI ownership tasks through T-065 and measured performance T-070–T-073 are implemented and verified in slices. Python has 187 passing configured-native tests before the final policy additions; Rust has 200 passing tests plus one explicit synthetic benchmark excluded from the default suite. Both TS6/TS7 lanes pass. Cross-path fixtures measure settings, profiles, reports, transactions, cancellation and recovery; Python orchestration and all documented fallbacks remain supported. Six shared-modal surfaces and feature callbacks pass isolated real-browser contracts. These are component/native-helper evidence, not a populated native walkthrough.
+
+Frontend dependency batch passes twelve checks, with +80 JS bytes (+142 gzip bytes). The actual debug native app launched with an isolated profile and exposed Home/Library through Linux AT-SPI. Rust dependency checks and baseline package preparation are ongoing; the source, native workflow, assistive-technology, media, package and platform acceptance gates remain separate.
+
+`PERFORMANCE.md`, `DEPENDENCIES.md`, `RUST_MIGRATION.md`, `desktop/UI_OWNERSHIP.md` and `desktop/CSS_CONTRACT.md` define measured performance, controlled updates, owner/caller contracts and UI/CSS boundaries. Current warnings include the large production route chunk, host color-environment notices and classified Clippy advisories. A historical HDR helper ETXTBSY test race passed isolated/full rechecks and stays recorded. No commit, publication, user-media operation, account upload, or host package mutation was performed.
+
+The final source gate records 192 configured-native Python tests and 201 Rust tests, with both TypeScript lanes, frontend build, focused lint and diff checks passing. The Ubuntu 24.04.5/glibc 2.39 acceptance bundle passed packaged `.deb`/AppImage smoke and WebDriver safety-dialog focus return. Synthetic HDR10+ and Dolby Vision fixtures prove detection, safe skip, and explicit HDR10 fallback; this host's x265 lacks HDR10+ dynamic-metadata encoding and Dolby Vision full encode requires VBV, so those paths remain fail-closed or explicit fallback. Screen-reader workflow announcements beyond startup/frame announcements and Windows/macOS runtime proof remain open.
+
+**Release decision: not ready for publication.** The source gate and Ubuntu 24.04.5 package smoke are green, but the documented screen-reader blocker, unsupported Windows/macOS targets, absent account upload/playback evidence, and host HDR10+/Dolby Vision encoder limitations remain open P0 acceptance limits. No commit, upload, or publication was performed.
+
+
 ## 2026-09-28 Conflicting local movie NFO handling
 
 - Local asset inspection now identifies conflicting scalar fields inside one NFO and across same-kind sidecars, names the affected fields/files, and applies neither record. Comparisons normalize whitespace/case, genre ordering, and `year`/`premiered`/`aired` aliases; layered TV-show and episode documents stay distinct. The workbench's existing NFO error surface provides the review state and prevents silent metadata assignment.

@@ -6,6 +6,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .util import safe_float
+
 
 GIB = 1024 ** 3
 
@@ -248,7 +250,9 @@ def _psi_file(name: str) -> dict[str, dict[str, float]]:
                     continue
                 key, value = token.split('=', 1)
                 try:
-                    row[key] = float(value)
+                    finite = safe_float(value)
+                    if finite is not None:
+                        row[key] = finite
                 except ValueError:
                     pass
             result[parts[0]] = row
@@ -321,7 +325,7 @@ def temperature_c() -> float | None:
 
 def load1() -> float | None:
     try:
-        return float(os.getloadavg()[0])
+        return safe_float(os.getloadavg()[0])
     except (OSError, AttributeError):
         return None
 

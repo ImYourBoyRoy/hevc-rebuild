@@ -17,23 +17,34 @@
     "check:tsgo": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:metadata-matching": "node --experimental-strip-types --test tests/metadata-match.test.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:modal": "node tests/modal-contract.mjs",
+    "test:browser:fixtures": "node tests/browser-server.mjs",
+    "test:workspace-state": "node --experimental-strip-types --test tests/workspace-state.test.mjs",
+    "test:home-help": "node tests/home-help-contract.mjs",
+    "test:library": "node tests/library-contract.mjs",
+    "test:rename": "node tests/rename-contract.mjs",
+    "test:run": "node tests/run-contract.mjs",
+    "test:youtube": "node tests/youtube-contract.mjs",
+    "test:support": "node tests/support-contract.mjs",
+    "test:responsive": "node tests/responsive-contract.mjs",
+    "test:performance": "node tests/performance-contract.mjs"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.52.0",
-    "@tauri-apps/api": "^2.12.1",
+    "@lucide/svelte": "^1.55.0",
+    "@tauri-apps/api": "^2.12.3",
     "@tauri-apps/plugin-dialog": "^2.8.1"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.0",
     "@sveltejs/kit": "^3.0.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "@tauri-apps/cli": "^2.12.1",
+    "@tauri-apps/cli": "^2.12.2",
     "@typescript/native": "npm:typescript@^7.0.2",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.6",
     "typescript": "^6.0.3",
-    "vite": "^8.3.3"
+    "vite": "^8.3.4"
   },
   "imports": {
     "#lib": "./src/lib/index.js",

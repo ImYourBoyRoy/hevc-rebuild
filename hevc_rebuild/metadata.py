@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
-import mimetypes
 import re
-import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Sequence
 
 from .model import MediaProfile, MetadataResult, Toolchain
-from .util import RebuildError, native_json_action, run, run_json
+from .util import RebuildError, native_json_action, run, run_json_object
 
 TAG_MAP = {
     "title": "TITLE", "showtitle": "SHOWTITLE", "season": "SEASON", "episode": "EPISODE",
@@ -603,7 +601,12 @@ def _poster_attachment_description(poster: Path) -> str:
 
 
 def mkv_identify(tools: Toolchain, path: Path) -> dict[str, Any]:
-    return run_json([tools.mkvmerge, "-J", str(path)])
+    value = run_json_object([tools.mkvmerge, "-J", str(path)], required_keys=("tracks",))
+    for field in ("tracks", "attachments", "chapters"):
+        records = value.get(field, [])
+        if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+            raise RebuildError(f"MKVToolNix {tools.mkvmerge} returned invalid {field} for {path}.")
+    return value
 
 
 def _extract_xml(tools: Toolchain, path: Path, mode: str, destination: Path) -> ET.Element | None:

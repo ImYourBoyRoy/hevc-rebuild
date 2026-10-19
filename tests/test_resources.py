@@ -5,7 +5,6 @@ import os
 import tempfile
 import unittest
 import shutil
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch

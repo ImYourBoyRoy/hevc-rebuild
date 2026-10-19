@@ -12,6 +12,14 @@
   align-content: start;
 }
 
+.home-heading { align-items: center; gap: 24px; }
+.home-workflow { width: min(32%, 300px); min-width: 0; margin: 0; flex: 0 1 300px; }
+.home-workflow figcaption { margin-top: 4px; text-align: center; color: var(--theme-muted); font-size: 11px; }
+@media (max-width: 620px) {
+  .home-heading { flex-wrap: wrap; }
+  .home-workflow { width: min(100%, 300px); flex-basis: 100%; }
+}
+
 .home-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -85,6 +93,7 @@
 
 .home-panel-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
@@ -92,9 +101,11 @@
 
 .home-panel-actions {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   align-items: baseline;
   gap: 10px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .home-panel-heading span,

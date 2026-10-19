@@ -6,11 +6,32 @@ In a rebuild, **audio and subtitles are never transcoded**: selected tracks are 
 
 The safe defaults are **CRF 21 + preset slow**. The program keeps the source bit depth by default: 8-bit stays 8-bit, 10-bit stays 10-bit, and 12-bit stays 12-bit. It can optionally promote 8-bit video to 10-bit if you turn that setting on.
 
-Your original file stays untouched until the rebuilt MKV passes validation. After success, the original is moved into an `old/` folder. If encoding finishes and a later metadata or validation step fails, the finished file is kept beside the source as `<name>.hevc-rebuild.kept.mkv` and the original stays in place.
+Your original file stays untouched until the rebuilt MKV passes validation. After success, the original is moved into an `old/` folder. If encoding finishes and a later metadata, validation, or install step fails, the completed output is retained and the run remains failed for review. When the intended destination is free it keeps the exact `<name>.mkv` path; an in-place rebuild keeps the source-safe sibling `<name>.hevc-rebuild.kept.mkv` because it must not overwrite the original before validation. In both cases the adjacent diagnostic is `<name>+error.log` (with a numbered suffix only if that log already exists). The retained media is never reported as a successful rebuild.
 
 If the app reopens while files were still active, it settles them without a manual check. A saved successful result is marked complete. An unfinished file whose original is still present returns to the normal queue, and only an unopened temporary encode created by this app is removed. A partial encode is not resumed, and an existing output or `old/` backup is not overwritten. A missing file, or a successful report whose output is gone, stays marked for review; output collisions still block the next run.
 
 ## Desktop GUI (v1.3.0 preview)
+
+### Current acceptance evidence (2026-10-12)
+
+The final acceptance artifacts were built inside an Ubuntu 24.04.5/glibc 2.39 userspace and passed isolated `.deb` metadata/install/environment/scan/engine smoke. Packaged WebDriver covered Home, Media Library, Run Setup, the final safety dialog, and focus return after Escape. The ordinary host-built AppImage guidance below still applies to artifacts built outside that baseline; repeat the Ubuntu 24.04 build for any release artifact. Screen-reader announcements beyond startup/frame announcements, provider/account flows, and Windows/macOS remain unverified or unsupported.
+
+**Release readiness (2026-10-12): not ready for publication.** Source and Ubuntu-baseline package gates pass, but the acceptance record still has a specific screen-reader announcement blocker, no Windows/macOS runtime proof, no account upload/playback proof, and host encoder limitations for HDR10+ dynamic-metadata encoding and Dolby Vision full re-encode. The local safety policies fail closed or require explicit fallback consent in those cases.
+
+### Windows CLI build lane
+
+The direct Python engine now has a Windows dependency path for the agent-facing
+build lane. On the configured Windows Server guest, `python -m hevc_rebuild
+--setup-only --assume-yes` installs the explicit winget packages
+`Gyan.FFmpeg`, `MediaArea.MediaInfo`, and `MoritzBunkus.MKVToolNix`, then
+validates FFmpeg/FFprobe, MediaInfo, and MKVToolNix capabilities. A synthetic
+10-bit HEVC short encode has passed this lane. This is not yet proof of the
+Tauri desktop UI, native accessibility, signed packaging, real-media
+compatibility, or macOS support.
+
+This lane is narrower than the desktop target statement below: it proves the
+direct engine's Windows dependency/build path and synthetic encode only. The
+Tauri Windows runtime remains an unverified future target.
 
 The Ubuntu-first desktop interface is built with **Tauri 2 + Svelte 5**. Its first window opens at 1600 × 1000 logical pixels when the monitor permits, then restores the last usable size and maximized state from the app’s native settings profile. Environment checks, effective-settings reads, read-only media discovery/profiling/resource forecasts, live Linux resource observations, starting/retry thread plans, and live memory/swap/disk guard decisions run through native Rust services across the GUI, CLI, and MCP. App-launched jobs also use Rust to discover input batches, resolve configured/PATH tool binaries, check versions and encoder capabilities, run bounded encoder smoke checks, and build source plus selected-video-track profiles from one base FFprobe/MediaInfo result, sampling frame details for selected additional video tracks. The Python adapter converts those typed Rust profiles for the engine stages not yet ported; direct Python CLI runs keep their profiler. Rust builds the validated FFmpeg/x265 argument vector and owns FFmpeg child start, progress-pipe relay, exit handling, cancellation, and the validated-output commit/rollback step for Rust-launched rebuilds, including multi-video mappings and source-aware HDR/deinterlace flags. Rust's `hdr_metadata.rs` streams HDR10+ verification/extraction and evaluates Dolby Vision preservation/fallback eligibility for Rust-launched runs. Rust `validation.rs` checks selected stream identity/count/order, video codec/pixel format/resolution, copied-stream hashes/dispositions, track parameters/timing, chapters, duration, and each encoded video track's color/HDR/Dolby Vision signaling; it also verifies requested HDR10+ metadata on the corresponding output track. Python still interprets progress, applies tune overrides and retry/report orchestration, prepares per-file report values, performs Matroska metadata changes, and keeps its full direct-run validation fallback. Rust appends fixed-schema CSV rows for Rust-launched jobs; direct Python retains its report-writer fallback. Rust computes calibration eligibility and machine/workload fingerprints, constructs bounded null-output commands, checks/writes the cache, monitors candidate processes/resources, rejects unsafe candidates, and selects the layout for Rust-launched jobs; direct Python retains the reference implementation. Direct Python runs retain reference implementations, including the transaction fallback. The engine and `.deb` target Ubuntu 24.04+ and Ubuntu-based Linux Mint 22+; Windows and macOS are future targets, not supported builds yet. The current AppImage was built on Ubuntu 26.04.1 and bundles GTK/WebKit libraries requiring glibc 2.43, so this artifact is not compatible with Ubuntu 24.04's glibc 2.39.
 
@@ -133,6 +154,40 @@ hevc-rebuild-studio json apt-refresh --confirm
 hevc-rebuild-studio json apt-upgrade --confirm --package ffmpeg --package mediainfo
 ```
 
+### Create short test clips
+
+`tools/extract_clip.py` is a standalone Python 3 utility for making bounded
+fixtures on Linux, macOS, and Windows. It never writes the source file,
+refuses to overwrite an existing destination, writes a temporary file beside
+the requested output, and publishes it only after FFmpeg succeeds. The
+default `copy` mode is fast, preserves all mapped streams that the output
+container supports, and drops chapters whose timestamps would no longer be
+trustworthy. Stream-copy seeking starts at a nearby keyframe, so the requested
+start and length are bounds rather than frame-accurate cuts. Use `transcode`
+mode for an accurate start; it creates a short H.264/AAC fixture and may
+change HDR, codec, or other encoding characteristics.
+
+```bash
+# Linux/macOS
+python3 tools/extract_clip.py "/path/to/input.mkv" --duration 30s
+python3 tools/extract_clip.py "/path/to/input.mkv" --start 2m --duration 45s \
+  --output ./fixtures/input-45s.mkv
+python3 tools/extract_clip.py "/path/to/input.mkv" --start 12s --duration 8s \
+  --mode transcode --output ./fixtures/input-accurate.mkv --json
+
+# Windows PowerShell or cmd.exe (single line)
+py -3 tools\extract_clip.py "D:\Media\input.mkv" --duration 30s --output .\fixtures\input-30s.mkv
+```
+
+Without `--output`, the utility writes a derived `.mkv` name in the current
+directory. `--output-dir` selects an existing directory, `--ffmpeg` selects an
+explicit executable, and `HEVC_REBUILD_FFMPEG` is the optional environment
+override. The same command can be run after a project-scoped copy to the
+macOS VM or Windows test environment; do not sync private media or rely on the
+Remote_Build macOS adapter to imply Windows support. The Remote_Build safety
+contract requires a separate authorization before touching its `WinServer`
+domain.
+
 `json environment`, `json defaults`, `json scan`, the read-only `json apt-updates` check, `json reports`, `json apt-refresh`, and `json apt-upgrade` run entirely in Rust. They inspect hardware/tool capabilities, resolve effective settings, discover and profile media with FFprobe plus optional MediaInfo, produce memory/YouTube forecasts, compare installed packages against the local APT index, read local CSV report history, explicitly refresh the catalog, and simulate/upgrade the exact confirmed package list. Rust-launched rebuilds now use the same Rust FFprobe/MediaInfo source profiler and build profile details for only the selected video tracks; Python adapts these results for engine stages still in migration. Rust-launched GUI, CLI, and MCP media runs also use native helpers for bounded-memory stream fingerprints, per-track static HDR and Dolby Vision checks, HDR10+ verification/extraction, fixed-schema CSV appends, and no-overwrite commit/rollback. Python still prepares report values, edits Matroska metadata, and verifies expected tags/posters; GUI tool setup installs the managed HDR10+ helper through the native Rust path, while direct Python engine runs retain the full compatibility path. The Rust JSON APT actions share the GUI/MCP package policy; catalog refresh and upgrades remain explicit operations.
 
 In the desktop app, reviewed package setup rechecks detected executables after changes and reports affected tools with before/after versions and paths. Live output is bounded to the latest 120 lines. Per-operation APT and HDR10+ helper logs are stored with application state, can be reopened from **Settings → Environment & capabilities**, and can be exported as `.log` or `.txt`. On Linux they are private to the current user; AppImage logs stay in the writable sibling `.data/logs/tool-setup/` folder, while installed builds use the user's state directory. A log marks any line clipped at 32 KiB and is marked if it reaches the 16 MiB per-operation limit. **Reports & errors → Delete history** permanently removes saved run reports and their companion diagnostic logs from this app’s log folder. It leaves package and HDR10+ setup logs in place. The button asks for a second confirmation before anything is deleted.
@@ -243,7 +298,7 @@ Build the Ubuntu installer and portable AppImage:
 pnpm tauri build
 ```
 
-The configured outputs are under `desktop/src-tauri/target/release/bundle/deb/` and `desktop/src-tauri/target/release/bundle/appimage/`. The `.deb` declares Python 3 and the normal GTK/WebKit runtime dependencies. The AppImage is a single-file GUI distribution but still requires system Python 3 and the external media tools that the engine inspects/repairs; it does not bundle FFmpeg, MediaInfo, or MKVToolNix. Its Rust launcher removes linuxdeploy's inherited `PYTHONHOME` before starting host Python, so the host standard library remains discoverable. The current AppImage is for Ubuntu releases with glibc 2.43 or newer; build on Ubuntu 24.04 before advertising AppImage support for Ubuntu 24.04. Make it executable and run it directly:
+The configured outputs are under `desktop/src-tauri/target/release/bundle/deb/` and `desktop/src-tauri/target/release/bundle/appimage/`. After a successful Linux release build, copy the `.deb` and AppImage into the repository-root `App/` folder for easy retrieval. The `.deb` declares Python 3 and the normal GTK/WebKit runtime dependencies. The AppImage is a single-file GUI distribution but still requires system Python 3 and the external media tools that the engine inspects/repairs; it does not bundle FFmpeg, MediaInfo, or MKVToolNix. Its Rust launcher removes linuxdeploy's inherited `PYTHONHOME` before starting host Python, so the host standard library remains discoverable. The current AppImage is for Ubuntu releases with glibc 2.43 or newer; build on Ubuntu 24.04 before advertising AppImage support for Ubuntu 24.04. Make it executable and run it directly:
 
 ```bash
 chmod +x "./<generated-file>.AppImage"
@@ -592,8 +647,15 @@ The program is designed to fail safely. If encoding, HDR/HDR10+/Dolby Vision pre
 
 At the end it prints the log and report locations. Keep those files if you need help diagnosing a problem.
 
+Each run's log and CSV report share a unique identifier, so runs started within one second stay separate. New engine logs/reports are private (`0600` on Linux), and newly created log directories use `0700`; existing artifact permissions stay intact. Direct Python and Rust writers serialize CSV appends and reject incompatible headers. Successful report writes sync the file and, on creation, its directory; a sync failure explicitly reports that the row was written but durability is unconfirmed.
+
+External inspection helpers normally have a five-minute timeout; full-media MKV/HDR helpers may run up to 24 hours. Timeout/cancellation terminates the owned process group and retains diagnostics. This helper limit does not cap active encodes, which retain their live memory/disk guards. Retained streaming diagnostics are bounded and label truncation. Malformed numeric metadata is shown as unknown or rejected; invalid external JSON reports the failing boundary.
+
 ## Supported systems
 
+- The standalone `tools/extract_clip.py` fixture utility runs on Linux, macOS,
+  and Windows when Python 3 and FFmpeg are available. That utility's portability
+  does not extend the desktop application's supported-target statement.
 - Ubuntu 24.04 LTS or newer
 - Ubuntu-based Linux Mint 22 or newer
 
@@ -602,3 +664,29 @@ For deeper implementation details, see `TECHNICAL.md` and `REVIEW.md`.
 ## License and project ownership
 
 The supplied source archive did not include a license file or maintainer/repository contact. The desktop package is marked private and is not intended for publication; confirm the project's license and release ownership before redistributing it.
+
+### Transaction and safe-stop guarantees (2026-10-11)
+
+Direct Python and native Linux validated-output commits use atomic no-overwrite moves, including the original backup and rollback. A failed final directory sync reports that installation occurred and retains the new output and original backup. Organizer rename success now requires directory sync; a failure reports applied paths retained and unconfirmed durability. Organizer rollback covers operation-time failures only. A persistent journal, undo, and power-loss recovery remain a separate design requirement; this maintenance does not claim crash recovery. Non-Unix directory sync remains an unverified no-op on unsupported targets.
+
+Desktop and MCP safe-stop requests use unique private per-job control directories (0700 on Unix) and exclusively created markers (0600), refusing symlinks. Direct CLI `--stop-request-file` retains its path interface and accepts an owned regular marker created or changed after that run starts. Stale markers and writable-by-others markers are ignored. Safe stop still finishes the current file and leaves later files untouched.
+
+### Reproducible maintenance gate
+
+From the repository root, run `python3 -m compileall -q hevc_rebuild`, `python3 -m unittest discover -s tests -q`, and `ruff check --isolated --select F401,F841 hevc_rebuild tests` (verified with Ruff 0.16.8). Optional native integration tests require `HEVC_REBUILD_NATIVE_HELPER` pointing to the locally built executable and use generated fixtures. No runtime Python package is required. From `desktop/src-tauri`, run `cargo fmt --all -- --check`, `cargo test --locked --lib`, `cargo check --locked --bin hevc-rebuild-studio`, and `cargo clippy --all-targets --locked`. From `desktop`, run `pnpm check`, `pnpm check:tsgo`, `pnpm test:metadata-matching`, and `pnpm build`.
+
+Formatting, compiler checks, focused unused-symbol lint, and tests are required source gates. Clippy must execute successfully; its remaining advisories and broader Ruff style findings are tracked in `2026-10-11_warnings.md` rather than suppressed globally. Stronger warning gates require a reviewed parity decision. These checks do not establish native keyboard/accessibility, packaged Ubuntu-baseline, representative HDR media, upload, or unsupported-platform acceptance.
+
+The desktop component acceptance commands `pnpm test:home-help`, `pnpm test:library`, `pnpm test:rename`, `pnpm test:run`, `pnpm test:youtube`, and `pnpm test:support` run isolated synthetic browser fixtures using the pinned Playwright CLI test tool. They require a locally available Chrome browser and may download that test tool through npx. Their callback checks simulate native boundaries; use the later native/package acceptance gate for real desktop behavior. See `desktop/UI_OWNERSHIP.md`. YouTube preparation creates normal-upload copies; [Live HLS ingestion](https://developers.google.com/youtube/v3/live/guides/hls-ingestion) has separate transport and encoder requirements. Local export policy checks do not prove actual upload processing or playback.
+
+### Backend request boundaries
+
+Rust domain modules retain scan, queue, report, transaction, library, and YouTube ownership. `run_arguments.rs` validates job paths and per-file overrides; `settings_arguments.rs` translates validated settings for both GUI and MCP. Python orchestration remains supported. Run shared synthetic parity fixtures with `HEVC_REBUILD_NATIVE_HELPER="$PWD/desktop/src-tauri/target/debug/hevc-rebuild-studio" python3 -m unittest discover -s tests -p test_cross_path_parity.py -v` after rebuilding the helper.
+
+Python validated-output transactions live in `hevc_rebuild/transactions.py`; existing imports from `hevc_rebuild.app` remain supported. CLI orchestration still performs validation before commit, and direct runs retain their no-overwrite fallback.
+
+### Synthetic scan performance
+
+Set `HEVC_REBUILD_SCAN_TIMING=1` to include `scan_timings` in native scan JSON. These diagnostics cover backend progress handoff, not rendered frames. `python3 tools/benchmark_scan.py --helper desktop/src-tauri/target/debug/hevc-rebuild-studio --output /tmp/hevc-scan-benchmark.json` generates its own media and removes it afterward. The process-local profile cache retains at most 128 successful profiles and 16 MiB of serialized keys/values. Keys include canonical source identity, size, nanosecond mtime, Unix inode/ctime, tool identity/version, effective settings and policy revision. Changes invalidate reuse; errors and partial MediaInfo results are not cached. Live host/resource and YouTube forecasts are recomputed. Nothing is persisted.
+
+Measured on this development host: 20 synthetic files took 4.335 s cold and 0.560 s warm in the same process (20 cache hits). This is fixture evidence, not a real-library or packaged performance guarantee. Run the explicit cache benchmark with `HEVC_REBUILD_SCAN_TIMING=1 cargo test --locked --lib measure_repeated_scan_profile_cache -- --ignored --nocapture` from `desktop/src-tauri`, using isolated XDG directories.

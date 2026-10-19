@@ -5,13 +5,28 @@
   import { Menu, type MenuOptions } from "@tauri-apps/api/menu";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+  import type { Theme, MetadataSources, TmdbCredentialStatus, TvdbCredentialStatus, AppPreferences, PreferencesPayload, RecoveryReviewItem, RepairToolOutcome, ToolSetupLogSummary } from "#lib/ui-contracts.js";
+  import SettingsPreferences from "#lib/SettingsPreferences.svelte";
+  import ReportBrowser from "#lib/ReportBrowser.svelte";
+  import ToolRepairActivity from "#lib/ToolRepairActivity.svelte";
+  import ToolRepairConfirmation from "#lib/ToolRepairConfirmation.svelte";
+  import RecoveryReview from "#lib/RecoveryReview.svelte";
   import HelpCenter from "#lib/HelpCenter.svelte";
   import HomeDashboard from "#lib/HomeDashboard.svelte";
-  import LibraryPosterGrid, { type LibraryCrumb, type LibraryPosterCard } from "#lib/LibraryPosterGrid.svelte";
+  import { insertRenameTemplateToken } from "#lib/rename-template.js";
+  import LibraryRenameDialog from "#lib/LibraryRenameDialog.svelte";
+  import LibraryQueueStatus from "#lib/LibraryQueueStatus.svelte";
+  import LibraryPosterGrid from "#lib/LibraryPosterGrid.svelte";
   import LibraryTvReview from "#lib/LibraryTvReview.svelte";
   import { episodeIdentity, episodeOutputText, fillEpisodeFromCatalog, groupLibraryEntries, preferredLocalPoster, seasonPosterFromArtwork, type LibrarySeriesGroup } from "#lib/library-browse.js";
+  import { createWorkspaceState } from "#lib/workspace.svelte.js";
+  import { RunEventBuffer, reportOutcome, selectQueuePaths } from "#lib/workspace-state.js";
+  import Modal from "#lib/Modal.svelte";
   import MetadataWorkbench from "#lib/MetadataWorkbench.svelte";
-  import ResourceTelemetry from "#lib/ResourceTelemetry.svelte";
+  import YouTubePreparation from "#lib/YouTubePreparation.svelte";
+  import RunConsole from "#lib/RunConsole.svelte";
+  import RunProgress from "#lib/RunProgress.svelte";
+  import { finiteNumber } from "#lib/telemetry-format.js";
   import {
     Activity, AlertTriangle, ArrowRight, BookOpen, Check, CheckCircle2, ChevronRight,
     Clapperboard, Cpu, Database, FileText, Film, FolderOpen, Gauge, HardDrive,
@@ -20,7 +35,7 @@ import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/w
     Trash2, Video, Wrench, X, Zap,
   } from "@lucide/svelte";
           import type {
-    AptUpdateStatus, ArtworkCacheInfo, ArtworkCachePurgeResult, CommandCheck, Environment, MediaEntry, Page, ReportRow, RunFinishedEvent, RunLineEvent,
+    OrganizerTemplates, LibraryCrumb, LibraryPosterCard, AptUpdateStatus, ArtworkCacheInfo, ArtworkCachePurgeResult, CommandCheck, Environment, MediaEntry, Page, ReportRow, RunFinishedEvent, RunLineEvent,
     InterruptedRecovery, MediaQueueDocument, MediaQueueLoadResult, MediaQueueRunState, MediaQueueRunStatus, MediaQueueSource, MetadataLookupStatus, OutputPreview, QueueArtworkCandidate, QueueMetadataSuggestion, QueueMovieReview, QueueSeasonReview, QueueSeriesReview, QueueTvEpisode, RunProgressEvent, RunResourceEvent, RuntimeResourceSnapshot,
     RunMode, RunReport, ScanProgress, ScanResult, Settings, ToolPaths,
   } from "#lib/types.js";
@@ -28,7 +43,7 @@ import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/w
   type SettingsLoad = { settings: Settings; sources: string[]; user_config: string };
   type ReportsPayload = { reports: RunReport[] };
 type RepairFinished = { jobId: string; success: boolean; error: string | null; logWarning?: string | null };
-type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: number; truncated: boolean };
+
   type SourceRunBatch = { source: MediaQueueSource; entries: MediaEntry[] };
   type LocalAssetRecord = {
     path: string;
@@ -63,63 +78,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     artwork: { name: string; path: string; role: string }[];
   };
   type LibraryTvReviewTarget = { level: "series" | "season" | "episode"; seriesRoot: string; season: number | null; episodePath: string | null };
-  type Theme = "light" | "dark" | "phosphor" | "ion" | "breach";
-  type OrganizerTemplates = {
-    movie: string;
-    series: string;
-    season: string;
-    episode: string;
-  };
-  type MetadataSources = { tmdb: boolean; wikidata: boolean; tvmaze: boolean; tvdb: boolean };
-  type TmdbCredentialStatus = { configured: boolean; secureStoreAvailable: boolean; message: string | null };
-  type TvdbCredentialStatus = { configured: boolean; subscriberPinConfigured: boolean; secureStoreAvailable: boolean; message: string | null };
+
   type TvdbCredentials = { apiKey: string; subscriberPin: string | null };
-  type RecoveryReviewItem = {
-    entry: MediaEntry;
-    state: MediaQueueRunState;
-    report: ReportRow | null;
-    targetPath: string;
-    hasRecordedOutput: boolean;
-  };
-  type RepairToolOutcome = {
-    key: string;
-    label: string;
-    before: string;
-    after: string;
-    status: "Installed" | "Updated or re-resolved" | "Ready · unchanged" | "Still missing";
-  };
-  type AppPreferences = {
-    theme: Theme;
-    windowState: { width: number; height: number; maximized: boolean };
-    lastPage: Page;
-    root: string | null;
-    toolPaths: ToolPaths;
-    recursive: boolean;
-    minimumSizeMib: string;
-    stopOnError: boolean;
-    youtubeResolution: "source" | "1440p" | "4k";
-    youtubeQualityMode: "balanced" | "recommended";
-    youtubeSourceMultiplier: number;
-    youtubeOutputDir: string | null;
-    rebuildOutputDir: string | null;
-    fileOutputDirs: Record<string, string>;
-    filenameIncludePatterns: string[];
-    filenameExcludePatterns: string[];
-    filenameExcludeDefaultsVersion: number;
-    metadataAutoLookup: boolean;
-    metadataLanguage: string;
-    metadataSources: MetadataSources;
-    organizerTemplates: OrganizerTemplates;
-    savePosterBesideMedia: boolean;
-    settings: Settings | null;
-  };
-  type PreferencesPayload = {
-    preferences: AppPreferences;
-    settingsFile: string;
-    hasSavedSettings: boolean;
-    portable: boolean;
-    storageWarning: string | null;
-  };
+
+
 
   const navigation: { id: Page; label: string; icon: typeof Activity }[] = [
     { id: "home", label: "Home", icon: House },
@@ -142,6 +104,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   type ToolPathKey = typeof toolPathOptions[number]["key"];
   const browserPreferencesKey = "hevc-rebuild-studio.preview-preferences.v1";
 
+  const workspace = createWorkspaceState();
+  const runEventBuffer = new RunEventBuffer();
   let page = $state<Page>("home");
   let theme = $state<Theme>("light");
   const defaultOrganizerTemplates: OrganizerTemplates = {
@@ -208,12 +172,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   let scanning = $state(false);
   let scanProgress = $state<ScanProgress | null>(null);
   let scanResult = $state<ScanResult | null>(null);
-  let queueSources = $state<MediaQueueSource[]>([]);
-  let activeQueueRoot = $state<string | null>(null);
-  let queueLoaded = $state(false);
-  let queueFile = $state("");
-  let queuePersistenceWarning = $state("");
-  let queuePersistenceError = $state("");
+
+
+
+
+
+
   let queueWriteChain: Promise<unknown> = Promise.resolve();
   let metadataSuggestionSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let metadataLookupPending = $state(false);
@@ -227,7 +191,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     const suggestion = queueMatchSuggestions[entry.path];
     return suggestion?.status === "ready" && Boolean(suggestion.title);
   }).length ?? 0);
-  let selectedMediaPaths = $state<string[]>([]);
+
   let pendingRunBatches = $state<SourceRunBatch[]>([]);
   let activeRunBatchIndex = $state(-1);
   let pendingRunFullConfirmed = $state(false);
@@ -247,13 +211,13 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   let recoveryCurrentItem = $derived(recoveryReviewItems[recoveryReviewIndex] ?? null);
   let recoveryReportStatus = $derived((recoveryCurrentItem?.report?.status || recoveryCurrentItem?.state.reportStatus || "").trim().toUpperCase());
   let recoveryCanMarkComplete = $derived(Boolean(recoveryCurrentItem?.hasRecordedOutput) && ["OK", "METADATA_OK", "TEST_OK"].includes(recoveryReportStatus) && recoveryProbeEntry?.status === "Ready");
-  let stopQueueAfterCurrent = $state(false);
+
   let visibleSelectAllCheckbox = $state<HTMLInputElement | null>(null);
   let fileTuneOverrides = $state<Record<string, "animation" | "none">>({});
   let fileStreamOverrides = $state<Record<string, number[]>>({});
   let queueMovieReviews = $state<Record<string, QueueMovieReview>>({});
   let queueSeriesReviews = $state<Record<string, QueueSeriesReview>>({});
-  let queueRunStates = $state<Record<string, MediaQueueRunState>>({});
+
   let queueArtworkPreviews = $state<Record<string, string>>({});
   let libraryBrowse = $state<{ seriesRoot: string; season: number | null } | null>(null);
   let libraryTvReview = $state<LibraryTvReviewTarget | null>(null);
@@ -270,32 +234,29 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   let queueArtworkPreviewBusy = $state<Record<string, boolean>>({});
   let queueRunLogs = $state<Record<string, { loading: boolean; text: string; error: string }>>({});
   let seriesReviewsByRoot = $derived.by(() => new Map(Object.entries(queueSeriesReviews).map(([path, review]) => [queuePathKey(path), review])));
-  let queueRunStatesByPath = $derived.by(() => new Map(Object.entries(queueRunStates).map(([path, state]) => [queuePathKey(path), state])));
+  let queueRunStatesByPath = $derived.by(() => new Map(Object.entries(workspace.queue.runStates).map(([path, state]) => [queuePathKey(path), state])));
   let youtubeHdr10plusLossPaths = $state<Set<string>>(new Set());
   let search = $state("");
   let mediaPage = $state(1);
   let mediaPageSize = $state(50);
   let mode = $state<RunMode>("check");
-  let activeRunMode = $state<RunMode>("check");
+
   let youtubeResolution = $state<"source" | "1440p" | "4k">("1440p");
   let youtubeQualityMode = $state<"balanced" | "recommended">("balanced");
   let youtubeSourceMultiplier = $state(2);
   let youtubeOutputDir = $state("");
   let stopOnError = $state(false);
-  let activeRunId = $state("");
-  let runStarting = $state(false);
-  let runLines = $state<string[]>([]);
-  let queuedRunLines: RunLineEvent[] = [];
-  let runProgress = $state<RunProgressEvent | null>(null);
-  let runStartedAt = $state<number | null>(null);
-  let runProgressSeenAt = $state<number | null>(null);
+
+
+
+
+
+
   let progressClock = $state(Date.now());
-  let queuedRunProgress: RunProgressEvent[] = [];
-  let liveResourceSnapshot = $state<RuntimeResourceSnapshot | null>(null);
-  let queuedRunResources: RunResourceEvent[] = [];
-  let queuedRunFinished: RunFinishedEvent | null = null;
-  let runMessage = $state("");
+
+
   let fullConfirmOpen = $state(false);
+  let runLaunchButton = $state<HTMLButtonElement | null>(null);
   let fullAck = $state(false);
   let repairConfirmOpen = $state(false);
   let aptUpdates = $state<AptUpdateStatus | null>(null);
@@ -325,8 +286,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   let repairAffectedToolKeys = $state<string[]>([]);
   let repairToolOutcomes = $state<RepairToolOutcome[]>([]);
   let hdrInstalling = $state(false);
-  let notice = $state("");
-  let noticeKind = $state<"info" | "success" | "error">("info");
+
+
   let unlisteners: UnlistenFn[] = [];
   let contextMenu: Menu | null = null;
 
@@ -340,7 +301,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   let mediaPageLast = $derived(Math.min(mediaPage * mediaPageSize, visibleEntries.length));
   let queuedEntries = $derived.by(() => {
     const unique = new Map<string, MediaEntry>();
-    for (const source of queueSources) {
+    for (const source of workspace.queue.sources) {
       for (const entry of source.scanResult?.entries ?? []) {
         if (!unique.has(entry.path)) unique.set(entry.path, entry);
       }
@@ -358,11 +319,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     const counts = new Map<string, number>();
     for (const entry of queuedEntries) {
       const saved = queueRunStatesByPath.get(queuePathKey(entry.path));
-      const activeProgress = runProgress?.filePath && queuePathKey(runProgress.filePath) === queuePathKey(entry.path) ? runProgress : null;
-      const source = queueSources.find((candidate) => candidate.scanResult?.entries.some((item) => queuePathKey(item.path) === queuePathKey(entry.path)));
+      const activeProgress = workspace.run.progress?.filePath && queuePathKey(workspace.run.progress.filePath) === queuePathKey(entry.path) ? workspace.run.progress : null;
+      const source = workspace.queue.sources.find((candidate) => candidate.scanResult?.entries.some((item) => queuePathKey(item.path) === queuePathKey(entry.path)));
       const suggestion = queueMatchSuggestions[entry.path];
       const key = activeProgress
-        ? runProgressStatus(activeProgress.phase, saved?.mode ?? activeRunMode)
+        ? runProgressStatus(activeProgress.phase, saved?.mode ?? workspace.run.mode)
         : saved?.status
           ?? (source?.status === "scanning" || suggestion?.status === "searching" ? "scanning"
             : entry.queue_stale || entry.error || entry.status !== "Ready" || suggestion?.status === "error" ? "needs_review" : "ready");
@@ -386,15 +347,15 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     return state?.mode === mode && ["completed", "failed", "skipped", "interrupted", "needs_review"].includes(state.status);
   }).length);
   let queuedInputBytes = $derived(queuedEntries.reduce((sum, entry) => sum + entry.size_bytes, 0));
-  let queuedFreeBytes = $derived(Math.min(...queueSources.map((source) => source.scanResult?.disk_free_bytes ?? Infinity)));
-  let queueHasScans = $derived(queueSources.some((source) => source.scanResult));
-  let queuedNeedsReview = $derived(queuedEntries.filter((entry) => entry.error || entry.status === "Tools required" || entry.status === "Backed up").length + queueSources.filter((source) => source.changedFiles.length || source.missingFiles.length || source.status === "interrupted" || source.status === "failed").length);
-  let queuedSourceCount = $derived(queueSources.length);
-  let queueSelectionCount = $derived(selectedMediaPaths.length);
+  let queuedFreeBytes = $derived(Math.min(...workspace.queue.sources.map((source) => source.scanResult?.disk_free_bytes ?? Infinity)));
+  let queueHasScans = $derived(workspace.queue.sources.some((source) => source.scanResult));
+  let queuedNeedsReview = $derived(queuedEntries.filter((entry) => entry.error || entry.status === "Tools required" || entry.status === "Backed up").length + workspace.queue.sources.filter((source) => source.changedFiles.length || source.missingFiles.length || source.status === "interrupted" || source.status === "failed").length);
+  let queuedSourceCount = $derived(workspace.queue.sources.length);
+  let queueSelectionCount = $derived(workspace.queue.selectedPaths.length);
   let runBatches = $derived.by(() => {
-    const selected = new Set(selectedMediaPaths);
+    const selected = new Set(workspace.queue.selectedPaths);
     const seenPaths = new Set<string>();
-    return queueSources.flatMap((source): SourceRunBatch[] => {
+    return workspace.queue.sources.flatMap((source): SourceRunBatch[] => {
       if (source.status !== "ready" || !source.scanResult) return [];
       const missing = new Set(source.missingFiles);
       const changed = new Set(source.changedFiles);
@@ -416,11 +377,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     });
   });
   let selectedRunEntries = $derived(runBatches.flatMap((batch) => batch.entries));
-  let selectedMediaPathsForRun = $derived(selectedMediaPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path)));
+  let selectedMediaPathsForRun = $derived(workspace.queue.selectedPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path)));
   let selectedRunInputBytes = $derived(selectedRunEntries.reduce((total, entry) => total + entry.size_bytes, 0));
   let selectionInOtherSources = $derived(runBatches.length > 1);
-  let selectionHasNoRunnableFiles = $derived(selectedMediaPaths.length > 0 && selectedMediaPathsForRun.length === 0);
-  let unresolvedSelectedPaths = $derived(selectedMediaPaths.length - selectedMediaPathsForRun.length);
+  let selectionHasNoRunnableFiles = $derived(workspace.queue.selectedPaths.length > 0 && selectedMediaPathsForRun.length === 0);
+  let unresolvedSelectedPaths = $derived(workspace.queue.selectedPaths.length - selectedMediaPathsForRun.length);
   let selectedRunFreeBytes = $derived(Math.min(...runBatches.map((batch) => batch.source.scanResult?.disk_free_bytes ?? Infinity)));
   let selectedRunDiskBudget = $derived.by(() => {
     const oneGiB = 1024 ** 3;
@@ -680,7 +641,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         ? metadataLookupStatus.message
         : "",
   );
-  let selectedFilteredCount = $derived(visibleEntries.filter((entry) => selectedMediaPaths.includes(entry.path)).length);
+  let selectedFilteredCount = $derived(visibleEntries.filter((entry) => workspace.queue.selectedPaths.includes(entry.path)).length);
   let staleSelectedEntries = $derived(selectedRunEntries.filter((entry) => entry.queue_stale));
   $effect(() => {
     if (mediaPage > mediaPageCount) mediaPage = mediaPageCount;
@@ -691,11 +652,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     }
   });
   $effect(() => {
-    const selectedSnapshot = [...selectedMediaPaths];
-    const activeSnapshot = activeQueueRoot;
+    const selectedSnapshot = [...workspace.queue.selectedPaths];
+    const activeSnapshot = workspace.queue.activeRoot;
     const tuneSnapshot = JSON.parse(JSON.stringify(fileTuneOverrides)) as Record<string, "animation" | "none">;
     const streamSnapshot = JSON.parse(JSON.stringify(fileStreamOverrides)) as Record<string, number[]>;
-    if (!desktopShell || !queueLoaded) return;
+    if (!desktopShell || !workspace.queue.loaded) return;
     const timer = window.setTimeout(() => {
       void persistQueueSelection(selectedSnapshot, activeSnapshot, tuneSnapshot, streamSnapshot);
     }, 200);
@@ -703,7 +664,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   });
   $effect(() => {
     const snapshot = JSON.parse(JSON.stringify(queueMovieReviews)) as Record<string, QueueMovieReview>;
-    if (!desktopShell || !queueLoaded) return;
+    if (!desktopShell || !workspace.queue.loaded) return;
     const timer = window.setTimeout(() => {
       void persistQueueMovieReviews(snapshot);
     }, 450);
@@ -711,7 +672,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   });
   $effect(() => {
     const snapshot = JSON.parse(JSON.stringify(queueSeriesReviews)) as Record<string, QueueSeriesReview>;
-    if (!desktopShell || !queueLoaded) return;
+    if (!desktopShell || !workspace.queue.loaded) return;
     const timer = window.setTimeout(() => {
       void persistQueueSeriesReviews(snapshot);
     }, 450);
@@ -748,46 +709,47 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     scanResult.settings.video.preset !== settings.video.preset ||
     scanResult.settings.video.promote_8bit_to_10bit !== settings.video.promote_8bit_to_10bit
   )));
-  let queueRenameBusy = $derived(Object.values(queueRunStates).some((state) => state.status === "renaming"));
-  let workflowBusy = $derived(Boolean(scanning || runStarting || activeRunId || repairId || hdrInstalling || outputPreviewBusy || queueRenameBusy));
+  let queueRenameBusy = $derived(Object.values(workspace.queue.runStates).some((state) => state.status === "renaming"));
+  let workflowBusy = $derived(Boolean(scanning || workspace.run.starting || workspace.run.id || repairId || hdrInstalling || outputPreviewBusy || queueRenameBusy));
   let modeToolsReady = $derived.by(() => {
     if (mode === "youtube") return environment?.youtube_ready;
     if (mode === "check") return environment?.can_analyze;
     if (mode === "metadata") return environment?.metadata_ready;
     return environment?.ready;
   });
-  let canStart = $derived(Boolean(modeToolsReady && hasQueueCandidates && selectedRunEntries.length > 0 && unresolvedSelectedPaths === 0 && !staleSelectedEntries.length && !scanning && !runStarting && !activeRunId && !repairId && !hdrInstalling && !outputPreviewBusy));
+  let canStart = $derived(Boolean(modeToolsReady && hasQueueCandidates && selectedRunEntries.length > 0 && unresolvedSelectedPaths === 0 && !staleSelectedEntries.length && !scanning && !workspace.run.starting && !workspace.run.id && !repairId && !hdrInstalling && !outputPreviewBusy));
   let overallRunPercent = $derived.by(() => {
-    if (!runProgress) return null;
-    const sourcePercent = runProgress.queuePercent ?? runProgress.filePercent;
-    if (sourcePercent == null) return null;
+    if (!workspace.run.progress) return null;
+    const sourcePercent = workspace.run.progress.queuePercent ?? workspace.run.progress.filePercent;
+    if (!finiteNumber(sourcePercent)) return null;
     const totalFiles = pendingRunBatches.reduce((sum, batch) => sum + batch.entries.length, 0);
     if (!totalFiles || activeRunBatchIndex < 0) return Math.max(0, Math.min(100, sourcePercent));
     const completedFiles = pendingRunBatches.slice(0, activeRunBatchIndex).reduce((sum, batch) => sum + batch.entries.length, 0);
-    const currentFiles = pendingRunBatches[activeRunBatchIndex]?.entries.length ?? runProgress.batchTotal;
+    const currentFiles = pendingRunBatches[activeRunBatchIndex]?.entries.length ?? workspace.run.progress.batchTotal;
     return Math.max(0, Math.min(100, ((completedFiles + currentFiles * sourcePercent / 100) / totalFiles) * 100));
   });
   let encodeMeasured = $derived(Boolean(
-    runProgress && (
-      (runProgress.filePercent != null && runProgress.filePercent > 0) ||
-      runProgress.speed != null ||
-      (runProgress.outputBytes != null && runProgress.outputBytes > 0)
+    workspace.run.progress && (
+      (finiteNumber(workspace.run.progress.filePercent) && workspace.run.progress.filePercent > 0) ||
+      finiteNumber(workspace.run.progress.speed) ||
+      (finiteNumber(workspace.run.progress.outputBytes) && workspace.run.progress.outputBytes > 0)
     ),
   ));
   let homeActivityLabel = $derived.by(() => {
-    if (activeRunId || runStarting) {
-      const name = runProgress?.fileName || runMessage || "Preparing the selected files";
+    if (workspace.run.id || workspace.run.starting) {
+      const name = workspace.run.progress?.fileName || workspace.run.message || "Preparing the selected files";
       const percent = encodeMeasured && overallRunPercent != null ? ` · ${Math.round(overallRunPercent)}%` : "";
       return `${name}${percent}`;
     }
-    const scanningSources = queueSources.filter((source) => source.status === "scanning").length;
+    const scanningSources = workspace.queue.sources.filter((source) => source.status === "scanning").length;
     if (scanningSources === 1) return "Scanning 1 source";
     if (scanningSources > 1) return `Scanning ${scanningSources} sources`;
     return "";
   });
   let progressElapsedLabel = $derived.by(() => {
-    const base = runProgress?.elapsedSeconds ?? 0;
-    const since = runProgressSeenAt ?? runStartedAt;
+    const base = workspace.run.progress?.elapsedSeconds ?? 0;
+    if (!finiteNumber(base)) return "—";
+    const since = workspace.run.progressSeenAt ?? workspace.run.startedAt;
     const extra = since ? Math.max(0, (progressClock - since) / 1000) : 0;
     const whole = Math.max(0, Math.round(base + extra));
     const minutes = Math.floor(whole / 60);
@@ -796,7 +758,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   });
 
   $effect(() => {
-    if (!activeRunId) return;
+    if (!workspace.run.id) return;
     const timer = setInterval(() => {
       progressClock = Date.now();
     }, 1000);
@@ -890,26 +852,22 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function setNotice(message: string, kind: "info" | "success" | "error" = "info") {
-    notice = message;
-    noticeKind = kind;
+    workspace.notice.message = message;
+    workspace.notice.kind = kind;
   }
 
   function setVisibleSelection(select: boolean) {
     const visible = new Set(libraryPosterCards.flatMap((card) => card.mediaPaths));
-    selectedMediaPaths = select
-      ? [...new Set([...selectedMediaPaths, ...visible])]
-      : selectedMediaPaths.filter((path) => !visible.has(path));
+    workspace.queue.selectedPaths = selectQueuePaths(workspace.queue.selectedPaths, visible, select);
   }
 
   function setFilteredSelection(select: boolean) {
     const filtered = new Set(visibleEntries.map((entry) => entry.path));
-    selectedMediaPaths = select
-      ? [...new Set([...selectedMediaPaths, ...filtered])]
-      : selectedMediaPaths.filter((path) => !filtered.has(path));
+    workspace.queue.selectedPaths = selectQueuePaths(workspace.queue.selectedPaths, filtered, select);
   }
 
   async function openMetadataForEntry(entry: MediaEntry) {
-    selectedMediaPaths = [...new Set([...selectedMediaPaths, entry.path])];
+    workspace.queue.selectedPaths = [...new Set([...workspace.queue.selectedPaths, entry.path])];
     metadataFocusPath = entry.path;
     libraryTvReview = tvReviewForEpisode(entry);
     const opened = libraryTvReview;
@@ -940,7 +898,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function libraryRenameEntries(): MediaEntry[] {
-    const selected = new Set(selectedMediaPaths);
+    const selected = new Set(workspace.queue.selectedPaths);
     return queuedEntries.filter((entry) => selected.has(entry.path));
   }
 
@@ -957,15 +915,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
 
   function insertRenameToken(kind: "movie" | "episode", token: string, field: HTMLInputElement | null) {
     const current = renameDraft[kind];
-    const start = field?.selectionStart ?? current.length;
-    const end = field?.selectionEnd ?? current.length;
-    const next = `${current.slice(0, start)}${token}${current.slice(end)}`;
-    renameDraft = { ...renameDraft, [kind]: next };
+    const insertion = insertRenameTemplateToken(current, token, field?.selectionStart ?? null, field?.selectionEnd ?? null);
+    renameDraft = { ...renameDraft, [kind]: insertion.value };
     libraryRenameError = "";
     queueMicrotask(() => {
       field?.focus();
-      const caret = start + token.length;
-      field?.setSelectionRange(caret, caret);
+      field?.setSelectionRange(insertion.caret, insertion.caret);
     });
   }
 
@@ -993,7 +948,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       return;
     }
     const roots = [...new Set(entries.flatMap((entry) => {
-      const source = queueSources.find((item) => item.scanResult?.entries.some((candidate) => candidate.path === entry.path));
+      const source = workspace.queue.sources.find((item) => item.scanResult?.entries.some((candidate) => candidate.path === entry.path));
       return source ? [source.root] : [];
     }))];
     if (roots.length !== 1) {
@@ -1064,7 +1019,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   function startMetadataOnlyFromOrganizer(mediaPaths: string[]) {
     if (workflowBusy) return;
     const queuedPaths = new Map<string, string>();
-    for (const source of queueSources) {
+    for (const source of workspace.queue.sources) {
       for (const entry of source.scanResult?.entries ?? []) {
         const key = queuePathKey(entry.path);
         if (!queuedPaths.has(key)) queuedPaths.set(key, entry.path);
@@ -1079,7 +1034,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       setNotice("Add these files to the Media Library queue and finish their scan before creating MKV copies.", "error");
       return;
     }
-    selectedMediaPaths = uniquePaths;
+    workspace.queue.selectedPaths = uniquePaths;
     mode = "metadata";
     openPage("run");
     setNotice(`${uniquePaths.length} file${uniquePaths.length === 1 ? "" : "s"} selected for metadata-only MKV output. Review the destination and collision check before starting.`, "success");
@@ -1097,8 +1052,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   function queueDocument(): MediaQueueDocument {
     return {
       version: 1,
-      sources: queueSources,
-      selectedMediaPaths: [...selectedMediaPaths],
+      sources: workspace.queue.sources,
+      selectedMediaPaths: [...workspace.queue.selectedPaths],
       fileTuneOverrides: { ...fileTuneOverrides },
       fileStreamOverrides: { ...fileStreamOverrides },
       movieReviews: Object.fromEntries(Object.entries(queueMovieReviews).map(([path, review]) => [
@@ -1110,8 +1065,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         { ...review, artworkCandidates: uniquePosterChoices(review.artworkCandidates) },
       ])),
       matchSuggestions: { ...queueMatchSuggestions },
-      runStates: { ...queueRunStates },
-      activeRoot: activeQueueRoot,
+      runStates: { ...workspace.queue.runStates },
+      activeRoot: workspace.queue.activeRoot,
       updatedAtMs: Date.now(),
     };
   }
@@ -1123,21 +1078,21 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function persistQueueSources(): Promise<boolean> {
-    if (!desktopShell || !queueLoaded) return Promise.resolve(false);
+    if (!desktopShell || !workspace.queue.loaded) return Promise.resolve(false);
     const operation = enqueueQueueWrite(async () => {
       await invoke("save_library_queue", { queue: queueDocument() });
     });
     return operation.then(() => {
-      queuePersistenceError = "";
+      workspace.queue.persistenceError = "";
       return true;
     }, (error) => {
-      queuePersistenceError = String(error);
+      workspace.queue.persistenceError = String(error);
       return false;
     });
   }
 
   function persistQueueRunStates(updates: Record<string, MediaQueueRunState>): Promise<boolean> {
-    queueRunStates = { ...queueRunStates, ...updates };
+    workspace.queue.runStates = { ...workspace.queue.runStates, ...updates };
     return persistQueueSources();
   }
 
@@ -1205,7 +1160,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function handleQueueRenameState(paths: string[], status: "renaming" | "renamed" | "failed", message = "") {
-    if (!queueLoaded || !paths.length) return;
+    if (!workspace.queue.loaded || !paths.length) return;
     const allowed = new Map(queuedEntries.map((entry) => [queuePathKey(entry.path), entry.path]));
     const updates: Record<string, MediaQueueRunState> = {};
     for (const path of paths) {
@@ -1217,17 +1172,17 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function selectFilesToReview() {
-    selectedMediaPaths = runReviewEntries.map((entry) => entry.path);
+    workspace.queue.selectedPaths = runReviewEntries.map((entry) => entry.path);
     if (runReviewEntries.some((entry) => queueRunStateForPath(entry.path)?.status === "interrupted")) {
       setNotice("Interrupted files are selected. Check their last report and output before retrying; existing outputs are never overwritten.", "info");
     } else {
-      setNotice(`${selectedMediaPaths.length} unfinished or skipped file${selectedMediaPaths.length === 1 ? "" : "s"} selected for review.`, "info");
+      setNotice(`${workspace.queue.selectedPaths.length} unfinished or skipped file${workspace.queue.selectedPaths.length === 1 ? "" : "s"} selected for review.`, "info");
     }
   }
 
   async function prepareQueueEntryForRetry(entry: MediaEntry, state: MediaQueueRunState) {
     if (workflowBusy || entry.queue_stale) return;
-    const source = queueSources.find((item) => item.scanResult?.entries.some((candidate) => queuePathKey(candidate.path) === queuePathKey(entry.path)));
+    const source = workspace.queue.sources.find((item) => item.scanResult?.entries.some((candidate) => queuePathKey(candidate.path) === queuePathKey(entry.path)));
     if (!source) {
       setNotice("This file is no longer attached to a completed queue scan. Refresh its source before retrying.", "error");
       return;
@@ -1243,12 +1198,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       setNotice("Rename review reopened for this file. Check the title and preview the proposed filename before confirming another change.", "info");
       return;
     }
-    const previousSelection = selectedMediaPaths;
+    const previousSelection = workspace.queue.selectedPaths;
     const previousMode = mode;
     activateQueueSource(source.root);
     const retryMode: RunMode = state.mode ?? mode;
     mode = retryMode;
-    selectedMediaPaths = [entry.path];
+    workspace.queue.selectedPaths = [entry.path];
     if (state.status !== "interrupted" && state.status !== "needs_review") {
       const queued = makeQueueRunState("queued", retryMode, {
         message: "Selected for a manual retry. Existing outputs remain protected by the destination check.",
@@ -1257,17 +1212,17 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         reportStatus: state.reportStatus,
       });
       if (!await persistQueueRunStates({ [entry.path]: queued })) {
-        queueRunStates = { ...queueRunStates, [entry.path]: state };
-        selectedMediaPaths = previousSelection;
+        workspace.queue.runStates = { ...workspace.queue.runStates, [entry.path]: state };
+        workspace.queue.selectedPaths = previousSelection;
         mode = previousMode;
-        setNotice(`The retry could not be saved to the queue: ${queuePersistenceError}`, "error");
+        setNotice(`The retry could not be saved to the queue: ${workspace.queue.persistenceError}`, "error");
         return;
       }
     } else {
       if (!await persistQueueSources()) {
-        selectedMediaPaths = previousSelection;
+        workspace.queue.selectedPaths = previousSelection;
         mode = previousMode;
-        setNotice(`The retry selection could not be saved to the queue: ${queuePersistenceError}`, "error");
+        setNotice(`The retry selection could not be saved to the queue: ${workspace.queue.persistenceError}`, "error");
         return;
       }
     }
@@ -1285,12 +1240,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       reportPath: state.reportPath,
       reportStatus: state.reportStatus,
     });
-    const previousSelection = selectedMediaPaths;
-    selectedMediaPaths = selectedMediaPaths.filter((path) => queuePathKey(path) !== queuePathKey(entry.path));
+    const previousSelection = workspace.queue.selectedPaths;
+    workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((path) => queuePathKey(path) !== queuePathKey(entry.path));
     if (!await persistQueueRunStates({ [entry.path]: skipped })) {
-      queueRunStates = { ...queueRunStates, [entry.path]: state };
-      selectedMediaPaths = previousSelection;
-      setNotice(`The skipped state could not be saved: ${queuePersistenceError}`, "error");
+      workspace.queue.runStates = { ...workspace.queue.runStates, [entry.path]: state };
+      workspace.queue.selectedPaths = previousSelection;
+      setNotice(`The skipped state could not be saved: ${workspace.queue.persistenceError}`, "error");
       return;
     }
     setNotice(`${entry.name} is skipped for ${skipped.mode?.toUpperCase() ?? "this task"}. Select it again to review or run it.`, "success");
@@ -1323,12 +1278,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function persistQueueSelection(
-    selected = [...selectedMediaPaths],
-    active = activeQueueRoot,
+    selected = [...workspace.queue.selectedPaths],
+    active = workspace.queue.activeRoot,
     tunes: Record<string, "animation" | "none"> = JSON.parse(JSON.stringify(fileTuneOverrides)) as Record<string, "animation" | "none">,
     streams: Record<string, number[]> = JSON.parse(JSON.stringify(fileStreamOverrides)) as Record<string, number[]>,
   ): Promise<void> {
-    if (!desktopShell || !queueLoaded) return Promise.resolve();
+    if (!desktopShell || !workspace.queue.loaded) return Promise.resolve();
     return enqueueQueueWrite(async () => {
       await invoke("save_library_queue_selection", {
         selectedMediaPaths: selected,
@@ -1337,50 +1292,50 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         fileStreamOverrides: streams,
       });
     }).then(() => {
-      queuePersistenceError = "";
+      workspace.queue.persistenceError = "";
     }).catch((error) => {
-      queuePersistenceError = String(error);
+      workspace.queue.persistenceError = String(error);
     });
   }
 
   function persistQueueMovieReviews(reviews: Record<string, QueueMovieReview>): Promise<void> {
-    if (!desktopShell || !queueLoaded) return Promise.resolve();
+    if (!desktopShell || !workspace.queue.loaded) return Promise.resolve();
     return enqueueQueueWrite(async () => {
       await invoke("save_library_queue_movie_reviews", { movieReviews: reviews });
     }).then(() => {
-      queuePersistenceError = "";
+      workspace.queue.persistenceError = "";
     }).catch((error) => {
-      queuePersistenceError = String(error);
+      workspace.queue.persistenceError = String(error);
     });
   }
 
   function persistQueueSeriesReviews(reviews: Record<string, QueueSeriesReview>): Promise<void> {
-    if (!desktopShell || !queueLoaded) return Promise.resolve();
+    if (!desktopShell || !workspace.queue.loaded) return Promise.resolve();
     return enqueueQueueWrite(async () => {
       await invoke("save_library_queue_series_reviews", { seriesReviews: reviews });
     }).then(() => {
-      queuePersistenceError = "";
+      workspace.queue.persistenceError = "";
     }).catch((error) => {
-      queuePersistenceError = String(error);
+      workspace.queue.persistenceError = String(error);
     });
   }
 
   function persistQueueMetadataSuggestions(suggestions: Record<string, QueueMetadataSuggestion> = queueMatchSuggestions): Promise<void> {
-    if (!desktopShell || !queueLoaded) return Promise.resolve();
+    if (!desktopShell || !workspace.queue.loaded) return Promise.resolve();
     if (metadataSuggestionSaveTimer) clearTimeout(metadataSuggestionSaveTimer);
     metadataSuggestionSaveTimer = null;
     const snapshot = JSON.parse(JSON.stringify(suggestions)) as Record<string, QueueMetadataSuggestion>;
     return enqueueQueueWrite(async () => {
       await invoke("save_library_queue_metadata_suggestions", { matchSuggestions: snapshot });
     }).then(() => {
-      queuePersistenceError = "";
+      workspace.queue.persistenceError = "";
     }).catch((error) => {
-      queuePersistenceError = String(error);
+      workspace.queue.persistenceError = String(error);
     });
   }
 
   function scheduleQueueMetadataSuggestionSave() {
-    if (!desktopShell || !queueLoaded) return;
+    if (!desktopShell || !workspace.queue.loaded) return;
     if (metadataSuggestionSaveTimer) clearTimeout(metadataSuggestionSaveTimer);
     metadataSuggestionSaveTimer = setTimeout(() => {
       metadataSuggestionSaveTimer = null;
@@ -1402,10 +1357,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function activateQueueSource(sourceRoot: string) {
-    const source = queueSources.find((item) => item.root === sourceRoot);
+    const source = workspace.queue.sources.find((item) => item.root === sourceRoot);
     if (!source) return;
-    if (activeQueueRoot !== source.root) metadataLookupClaimed = false;
-    activeQueueRoot = source.root;
+    if (workspace.queue.activeRoot !== source.root) metadataLookupClaimed = false;
+    workspace.queue.activeRoot = source.root;
     root = source.root;
     search = "";
     mediaPage = 1;
@@ -1460,14 +1415,14 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
 
   function removeQueueSource(sourceRoot: string) {
     if (workflowBusy) return;
-    const removed = queueSources.find((source) => source.root === sourceRoot);
+    const removed = workspace.queue.sources.find((source) => source.root === sourceRoot);
     if (!removed) return;
-    queueSources = queueSources.filter((source) => source.root !== sourceRoot);
-    const remainingPaths = new Set(queueSources.flatMap((source) => source.scanResult?.entries.map((entry) => entry.path) ?? []));
-    selectedMediaPaths = selectedMediaPaths.filter((path) => remainingPaths.has(path));
+    workspace.queue.sources = workspace.queue.sources.filter((source) => source.root !== sourceRoot);
+    const remainingPaths = new Set(workspace.queue.sources.flatMap((source) => source.scanResult?.entries.map((entry) => entry.path) ?? []));
+    workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((path) => remainingPaths.has(path));
     fileTuneOverrides = Object.fromEntries(Object.entries(fileTuneOverrides).filter(([path]) => remainingPaths.has(path)));
     fileStreamOverrides = Object.fromEntries(Object.entries(fileStreamOverrides).filter(([path]) => remainingPaths.has(path)));
-    queueRunStates = Object.fromEntries(Object.entries(queueRunStates).filter(([path]) => remainingPaths.has(path)));
+    workspace.queue.runStates = Object.fromEntries(Object.entries(workspace.queue.runStates).filter(([path]) => remainingPaths.has(path)));
     queueMatchSuggestions = Object.fromEntries(Object.entries(queueMatchSuggestions).filter(([path]) => remainingPaths.has(path)));
     queueMovieReviews = Object.fromEntries(Object.entries(queueMovieReviews).filter(([path]) => remainingPaths.has(path)));
     queueSeriesReviews = Object.fromEntries(Object.entries(queueSeriesReviews).filter(([seriesRoot, review]) => {
@@ -1478,11 +1433,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         || Object.keys(review.episodeAssignments).some((path) => pathIsWithin(sourceRoot, path));
       return hasRemainingEpisode || hasRemainingSeriesMedia || !belongedToRemovedSource;
     }));
-    if (activeQueueRoot === sourceRoot) {
-      const next = queueSources.find((source) => source.scanResult) ?? queueSources[0];
+    if (workspace.queue.activeRoot === sourceRoot) {
+      const next = workspace.queue.sources.find((source) => source.scanResult) ?? workspace.queue.sources[0];
       if (next) activateQueueSource(next.root);
       else {
-        activeQueueRoot = null;
+        workspace.queue.activeRoot = null;
         scanResult = null;
         root = "";
       }
@@ -1495,13 +1450,13 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       setNotice("Open HEVC Rebuild Studio from the desktop app to inspect this computer and connect to the media tools.", "error");
       return;
     }
-    if (activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     const requestedRoot = path.trim();
     if (!requestedRoot) {
       setNotice("Choose a media file or folder first.", "error");
       return;
     }
-    const existing = queueSources.find((source) => source.root === requestedRoot);
+    const existing = workspace.queue.sources.find((source) => source.root === requestedRoot);
     if (existing && !refresh && existing.scanResult) {
       if (activate) activateQueueSource(existing.root);
       setNotice("This source is already in the queue. Use Refresh on its card to scan it again.", "info");
@@ -1519,9 +1474,9 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     const scanningSource: MediaQueueSource = existing
       ? { ...existing, status: "scanning", error: null, updatedAtMs: scanStartedAt }
       : { root: requestedRoot, status: "scanning", scanResult: null, error: null, updatedAtMs: scanStartedAt, changedFiles: [], missingFiles: [] };
-    queueSources = existing
-      ? queueSources.map((source) => source.root === requestedRoot ? scanningSource : source)
-      : [...queueSources, scanningSource];
+    workspace.queue.sources = existing
+      ? workspace.queue.sources.map((source) => source.root === requestedRoot ? scanningSource : source)
+      : [...workspace.queue.sources, scanningSource];
     root = requestedRoot;
     scanning = true;
     scanProgress = null;
@@ -1549,21 +1504,21 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       };
       let replaced = false;
       const nextSources: MediaQueueSource[] = [];
-      for (const source of queueSources) {
+      for (const source of workspace.queue.sources) {
         if (source.root === requestedRoot || source.root === result.root) {
           if (!replaced) nextSources.push(updatedSource);
           replaced = true;
         } else nextSources.push(source);
       }
       if (!replaced) nextSources.push(updatedSource);
-      queueSources = nextSources;
-      const availablePaths = new Set(queueSources.flatMap((source) => source.scanResult?.entries.map((entry) => entry.path) ?? []));
-      selectedMediaPaths = selectedMediaPaths.filter((mediaPath) => availablePaths.has(mediaPath));
+      workspace.queue.sources = nextSources;
+      const availablePaths = new Set(workspace.queue.sources.flatMap((source) => source.scanResult?.entries.map((entry) => entry.path) ?? []));
+      workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((mediaPath) => availablePaths.has(mediaPath));
       fileTuneOverrides = Object.fromEntries(Object.entries(fileTuneOverrides).filter(([mediaPath]) => availablePaths.has(mediaPath)));
       queueMatchSuggestions = Object.fromEntries(Object.entries(queueMatchSuggestions).filter(([mediaPath]) => availablePaths.has(mediaPath)));
       const oldEntries = new Map((existing?.scanResult?.entries ?? []).map((entry) => [queuePathKey(entry.path), entry]));
       const refreshedEntries = new Map(result.entries.map((entry) => [queuePathKey(entry.path), entry]));
-      queueRunStates = Object.fromEntries(Object.entries(queueRunStates)
+      workspace.queue.runStates = Object.fromEntries(Object.entries(workspace.queue.runStates)
         .filter(([path]) => availablePaths.has(path))
         .map(([path, state]) => {
           if (!refreshedPaths.has(path)) return [path, state];
@@ -1583,7 +1538,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         void persistPreferences({ fileOutputDirs: retainedOutputDirs });
       }
       if (activate) {
-        activeQueueRoot = result.root;
+        workspace.queue.activeRoot = result.root;
         root = result.root;
         scanResult = result;
         recursive = result.recursive;
@@ -1608,9 +1563,9 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       );
       if (page !== "youtube" && mode === "youtube") mode = "check";
     } catch (error) {
-      const failed = queueSources.find((source) => source.root === requestedRoot);
+      const failed = workspace.queue.sources.find((source) => source.root === requestedRoot);
       if (failed) {
-        queueSources = queueSources.map((source) => source.root === requestedRoot
+        workspace.queue.sources = workspace.queue.sources.map((source) => source.root === requestedRoot
           ? { ...source, status: source.scanResult ? "ready" : "failed", error: String(error), updatedAtMs: Date.now() }
           : source);
       }
@@ -1624,7 +1579,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
 
   async function addQueueSources(paths: string[]) {
     for (const path of [...new Set(paths.map((item) => item.trim()).filter(Boolean))]) {
-      const existing = queueSources.find((source) => source.root === path);
+      const existing = workspace.queue.sources.find((source) => source.root === path);
       if (existing?.scanResult) {
         activateQueueSource(existing.root);
         continue;
@@ -1947,13 +1902,13 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function noteRunProgress(event: RunProgressEvent) {
-    runProgress = event;
-    runProgressSeenAt = Date.now();
+    workspace.run.progress = event;
+    workspace.run.progressSeenAt = Date.now();
     recordQueueRunProgress(event);
   }
 
   function openProgressDetails() {
-    openPage(activeRunMode === "youtube" ? "youtube" : "run");
+    openPage(workspace.run.mode === "youtube" ? "youtube" : "run");
     requestAnimationFrame(() => requestAnimationFrame(() => {
       document.getElementById("run-activity")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }));
@@ -2135,13 +2090,13 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     const tune = effectiveContentTuneForEntry(entry, reviewed, settingsForEntry(entry));
     const forecast = resourceForecastFor(entry);
     const queueRun = queueRunStateForPath(entry.path);
-    const rowProgress = runProgress?.filePath && queuePathKey(runProgress.filePath) === queuePathKey(entry.path) ? runProgress : null;
+    const rowProgress = workspace.run.progress?.filePath && queuePathKey(workspace.run.progress.filePath) === queuePathKey(entry.path) ? workspace.run.progress : null;
     const profile = entry.profile;
     return {
       path: entry.path,
       filename: entry.name,
       relativePath: entry.relative_path,
-      selected: selectedMediaPaths.includes(entry.path),
+      selected: workspace.queue.selectedPaths.includes(entry.path),
       title,
       year,
       proposedName: proposal?.name && proposal.name !== entry.name ? proposal.name : null,
@@ -2176,7 +2131,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       kind: "media",
       seasonNumber: null,
       mediaPaths: [entry.path],
-      selection: selectedMediaPaths.includes(entry.path) ? "all" : "none",
+      selection: workspace.queue.selectedPaths.includes(entry.path) ? "all" : "none",
       animation: animationSelection([entry.path]),
       summary: "",
       reviewLabel: "",
@@ -2213,7 +2168,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function cardSelection(paths: string[]): LibraryPosterCard["selection"] {
-    const selected = paths.filter((path) => selectedMediaPaths.includes(path)).length;
+    const selected = paths.filter((path) => workspace.queue.selectedPaths.includes(path)).length;
     if (!selected) return "none";
     return selected === paths.length ? "all" : "some";
   }
@@ -2888,8 +2843,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function queueArtworkRoot(mediaPath: string, artworkPath: string): string | null {
-    const sources = queueSources.filter((source) => source.scanResult?.entries.some((entry) => queuePathKey(entry.path) === queuePathKey(mediaPath)));
-    const candidates = sources.length ? sources : queueSources;
+    const sources = workspace.queue.sources.filter((source) => source.scanResult?.entries.some((entry) => queuePathKey(entry.path) === queuePathKey(mediaPath)));
+    const candidates = sources.length ? sources : workspace.queue.sources;
     for (const source of candidates) {
       const scan = source.scanResult;
       if (!scan) continue;
@@ -2997,7 +2952,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       }
       return updated;
     };
-    queueSources = queueSources.map((source) => {
+    workspace.queue.sources = workspace.queue.sources.map((source) => {
       const sourceRoot = remapQueuePath(source.root, movedPaths);
       if (!source.scanResult) return { ...source, root: sourceRoot };
       const scanRoot = remapQueuePath(source.scanResult.root, movedPaths);
@@ -3023,7 +2978,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         missingFiles: source.missingFiles.filter((path) => remapQueuePath(path, movedPaths) === path),
       };
     });
-    selectedMediaPaths = [...new Set(selectedMediaPaths.map((path) => remapQueuePath(path, movedPaths)))];
+    workspace.queue.selectedPaths = [...new Set(workspace.queue.selectedPaths.map((path) => remapQueuePath(path, movedPaths)))];
     fileTuneOverrides = remapRecord(fileTuneOverrides);
     fileStreamOverrides = remapRecord(fileStreamOverrides);
     queueMovieReviews = Object.fromEntries(Object.entries(remapRecord(queueMovieReviews)).map(([path, review]) => [
@@ -3042,7 +2997,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         episodeAssignments: remapRecord(review.episodeAssignments),
       },
     ]));
-    queueRunStates = Object.fromEntries(Object.entries(queueRunStates).map(([path, state]) => {
+    workspace.queue.runStates = Object.fromEntries(Object.entries(workspace.queue.runStates).map(([path, state]) => {
       const target = remapQueuePath(path, movedPaths);
       if (target === path) return [path, state];
       return [target, makeQueueRunState(state.status === "queued" ? "queued" : "needs_review", state.mode ?? mode, {
@@ -3054,32 +3009,17 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     queueArtworkPreviews = {};
     queueArtworkPreviewErrors = {};
     queueArtworkPreviewBusy = {};
-    activeQueueRoot = activeQueueRoot ? remapQueuePath(activeQueueRoot, movedPaths) : activeQueueRoot;
+    workspace.queue.activeRoot = workspace.queue.activeRoot ? remapQueuePath(workspace.queue.activeRoot, movedPaths) : workspace.queue.activeRoot;
     root = root ? remapQueuePath(root, movedPaths) : root;
       metadataFocusPath = metadataFocusPath ? remapQueuePath(metadataFocusPath, movedPaths) : metadataFocusPath;
     queueMatchSuggestions = remapRecord(queueMatchSuggestions);
     if (scanResult) {
-      const active = queueSources.find((source) => source.root === activeQueueRoot);
+      const active = workspace.queue.sources.find((source) => source.root === workspace.queue.activeRoot);
       if (active?.scanResult) scanResult = scanResultWithQueueStatus(active);
     }
     const fileOutputDirs = remapRecord(appPreferences.fileOutputDirs);
     void persistPreferences({ root, fileOutputDirs });
     void persistQueueSources();
-  }
-
-  function metadataTextChanges(row: ReportRow): Array<{ scope?: string; field?: string; before?: string; after?: string; rules?: string[] }> {
-    try {
-      const parsed: unknown = JSON.parse(row.metadata_text_scrub_details ?? row.release_group_scrub_details ?? "[]");
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter((item): item is { scope?: string; field?: string; before?: string; after?: string; rules?: string[] } => {
-        if (typeof item !== "object" || item === null) return false;
-        const detail = item as Record<string, unknown>;
-        return ["scope", "field", "before", "after"].every((key) => detail[key] === undefined || typeof detail[key] === "string") &&
-          (detail.rules === undefined || (Array.isArray(detail.rules) && detail.rules.every((rule) => typeof rule === "string")));
-      });
-    } catch {
-      return [];
-    }
   }
 
   function addMetadataBlacklistPattern() {
@@ -3285,11 +3225,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   function settingsForEntry(entry: MediaEntry): Settings | null | undefined {
-    const source = queueSources.find((candidate) =>
+    const source = workspace.queue.sources.find((candidate) =>
       candidate.scanResult?.entries.some((item) => queuePathKey(item.path) === queuePathKey(entry.path)),
     );
     if (!source) return settings;
-    return source.root === activeQueueRoot
+    return source.root === workspace.queue.activeRoot
       ? settings ?? source.scanResult?.settings
       : source.scanResult?.settings ?? settings;
   }
@@ -3762,10 +3702,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     try {
       const recovery = await invoke<InterruptedRecovery>("reconcile_interrupted_runs");
       if (recovery.skipped) {
-        queueRunStates = recovery.runStates;
+        workspace.queue.runStates = recovery.runStates;
         return;
       }
-      queueRunStates = recovery.runStates;
+      workspace.queue.runStates = recovery.runStates;
       if (recovery.summary) setNotice(recovery.summary, recovery.held > 0 ? "info" : "success");
     } catch (error) {
       setNotice(`Could not recover the interrupted session: ${String(error)}`, "error");
@@ -3775,8 +3715,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   async function loadMediaQueue() {
     try {
       const payload = await invoke<MediaQueueLoadResult>("load_library_queue");
-      queueSources = payload.queue.sources ?? [];
-      selectedMediaPaths = payload.queue.selectedMediaPaths ?? [];
+      workspace.queue.sources = payload.queue.sources ?? [];
+      workspace.queue.selectedPaths = payload.queue.selectedMediaPaths ?? [];
       fileTuneOverrides = payload.queue.fileTuneOverrides ?? {};
       fileStreamOverrides = payload.queue.fileStreamOverrides ?? {};
       queueMovieReviews = payload.queue.movieReviews ?? {};
@@ -3785,12 +3725,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         { ...review, seasonRecords: review.seasonRecords ?? {}, localSeasonPosterPaths: review.localSeasonPosterPaths ?? {}, episodeAssignments: review.episodeAssignments ?? {} },
       ]));
       queueMatchSuggestions = payload.queue.matchSuggestions ?? {};
-      queueRunStates = payload.queue.runStates ?? {};
-      queueFile = payload.queueFile;
-      queuePersistenceWarning = payload.warning ?? "";
-      const active = queueSources.find((source) => source.root === payload.queue.activeRoot && source.scanResult)
-        ?? queueSources.find((source) => source.scanResult);
-      activeQueueRoot = active?.root ?? null;
+      workspace.queue.runStates = payload.queue.runStates ?? {};
+      workspace.queue.file = payload.queueFile;
+      workspace.queue.persistenceWarning = payload.warning ?? "";
+      const active = workspace.queue.sources.find((source) => source.root === payload.queue.activeRoot && source.scanResult)
+        ?? workspace.queue.sources.find((source) => source.scanResult);
+      workspace.queue.activeRoot = active?.root ?? null;
       if (active) {
         root = active.root;
         scanResult = scanResultWithQueueStatus(active);
@@ -3805,16 +3745,16 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
           minimumSizeMib = String(scanResult.minimum_size_mib);
         }
       }
-      queueLoaded = true;
+      workspace.queue.loaded = true;
       metadataLookupPending = active ? sourceNeedsMetadataLookup(active) : false;
       if (metadataLookupPending) metadataLookupClaimed = false;
-      if (Object.values(queueRunStates).some((state) => state.status === "interrupted")) {
+      if (Object.values(workspace.queue.runStates).some((state) => state.status === "interrupted")) {
         await recoverInterruptedSession();
       }
-      if (queuePersistenceWarning) setNotice(queuePersistenceWarning, "error");
+      if (workspace.queue.persistenceWarning) setNotice(workspace.queue.persistenceWarning, "error");
     } catch (error) {
-      queueLoaded = true;
-      queuePersistenceError = String(error);
+      workspace.queue.loaded = true;
+      workspace.queue.persistenceError = String(error);
       setNotice(`Could not restore the media queue: ${String(error)}`, "error");
     }
   }
@@ -3857,9 +3797,9 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       youtubeOutputDir = appPreferences.youtubeOutputDir ?? "";
       root = appPreferences.root ?? await invoke<string>("default_media_root");
       await loadMediaQueue();
-      const queueHasMedia = queueSources.some((source) => (source.scanResult?.entries.length ?? 0) > 0);
+      const queueHasMedia = workspace.queue.sources.some((source) => (source.scanResult?.entries.length ?? 0) > 0);
       page = queueHasMedia ? normalizePage(appPreferences.lastPage) : "home";
-      if (activeQueueRoot) migration.root = activeQueueRoot;
+      if (workspace.queue.activeRoot) migration.root = workspace.queue.activeRoot;
       if (!stored.hasSavedSettings || migration.root === undefined) {
         const saved = await persistPreferences({ ...migration, root });
         if (saved && !stored.hasSavedSettings) {
@@ -3882,8 +3822,8 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function browseFolder() {
-    if (!desktopShell || activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
-    let defaultPath = root.trim() || activeQueueRoot || appPreferences.root || undefined;
+    if (!desktopShell || workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
+    let defaultPath = root.trim() || workspace.queue.activeRoot || appPreferences.root || undefined;
     if (defaultPath && /\.(mkv|mp4|m4v|mov|avi|ts|m2ts|mts|webm)$/i.test(defaultPath)) {
       const separator = Math.max(defaultPath.lastIndexOf("/"), defaultPath.lastIndexOf("\\"));
       defaultPath = separator > 0 ? defaultPath.slice(0, separator) : undefined;
@@ -3897,7 +3837,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function browseFile() {
-    if (!desktopShell || activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (!desktopShell || workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     const picked = await openDialog({
       directory: false,
       multiple: true,
@@ -3909,7 +3849,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function chooseYoutubeOutput() {
-    if (!desktopShell || activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (!desktopShell || workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     const picked = await openDialog({ directory: true, multiple: false, title: "Choose the YouTube export folder" });
     if (typeof picked !== "string") return;
     youtubeOutputDir = picked;
@@ -3951,7 +3891,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function chooseToolPath(key: ToolPathKey, label: string) {
-    if (!desktopShell || activeRunId || runStarting || repairId || hdrInstalling) return;
+    if (!desktopShell || workspace.run.id || workspace.run.starting || repairId || hdrInstalling) return;
     const picked = await openDialog({ directory: false, multiple: false, title: `Choose ${label} executable` });
     if (typeof picked !== "string") return;
     setToolPathValue(key, picked);
@@ -4199,20 +4139,20 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
 
   async function beginQueuedRun(fullRebuildConfirmed: boolean) {
     if (!settings) return;
-    activeRunMode = mode;
+    workspace.run.mode = mode;
     fullConfirmOpen = false;
     pendingRunBatches = runBatches.map((batch) => ({ source: batch.source, entries: [...batch.entries] }));
     activeRunBatchIndex = -1;
     pendingRunFullConfirmed = fullRebuildConfirmed;
-    stopQueueAfterCurrent = false;
+    workspace.run.stopAfterCurrent = false;
     const queuedStates = Object.fromEntries(pendingRunBatches.flatMap((batch) => batch.entries.map((entry) => [
       entry.path,
-      makeQueueRunState("queued", activeRunMode),
+      makeQueueRunState("queued", workspace.run.mode),
     ])));
     recoveryReviewedPaths = new Set();
     if (!await persistQueueRunStates(queuedStates)) {
       pendingRunBatches = [];
-      setNotice(`The queue could not save its run plan, so the workflow did not start: ${queuePersistenceError}`, "error");
+      setNotice(`The queue could not save its run plan, so the workflow did not start: ${workspace.queue.persistenceError}`, "error");
       return;
     }
     await startNextRunBatch();
@@ -4261,7 +4201,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         updatedAtMs: Date.now(),
       };
       if (!await persistQueueRunStates({ [item.entry.path]: completed })) {
-        setNotice(`Could not save the reviewed run result. ${queuePersistenceError}`, "error");
+        setNotice(`Could not save the reviewed run result. ${workspace.queue.persistenceError}`, "error");
         return;
       }
     } else {
@@ -4285,11 +4225,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function startNextRunBatch() {
-    const runMode = activeRunMode;
+    const runMode = workspace.run.mode;
     const nextIndex = activeRunBatchIndex + 1;
     const batch = pendingRunBatches[nextIndex];
     if (!batch) return;
-    const batchSettings = batch.source.root === activeQueueRoot
+    const batchSettings = batch.source.root === workspace.queue.activeRoot
       ? settings
       : batch.source.scanResult?.settings ?? settings;
     if (!batchSettings) {
@@ -4305,21 +4245,18 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     if (!await persistQueueRunStates(activeBatchStates)) {
       pendingRunBatches = [];
       activeRunBatchIndex = -1;
-      setNotice(`The queue could not record the active batch, so it was not started: ${queuePersistenceError}`, "error");
+      setNotice(`The queue could not record the active batch, so it was not started: ${workspace.queue.persistenceError}`, "error");
       return;
     }
     activeRunBatchIndex = nextIndex;
-    runLines = [];
-    queuedRunLines = [];
-    runProgress = null;
-    runStartedAt = Date.now();
-    runProgressSeenAt = null;
-    queuedRunProgress = [];
-    liveResourceSnapshot = null;
-    queuedRunResources = [];
-    queuedRunFinished = null;
-    runStarting = true;
-    runMessage = `Starting source ${nextIndex + 1} of ${pendingRunBatches.length}…`;
+    runEventBuffer.reset();
+    workspace.run.lines = [];
+    workspace.run.progress = null;
+    workspace.run.startedAt = Date.now();
+    workspace.run.progressSeenAt = null;
+    workspace.run.resources = null;
+    workspace.run.starting = true;
+    workspace.run.message = `Starting source ${nextIndex + 1} of ${pendingRunBatches.length}…`;
     try {
       const runId = await invoke<string>("start_run", {
         request: {
@@ -4347,23 +4284,24 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
           allowYoutubeHdr10plusLossPaths: runMode === "youtube" ? [...youtubeHdr10plusLossPaths].filter((path) => batch.entries.some((entry) => entry.path === path)) : [],
         },
       });
-      activeRunId = runId;
-      runStarting = false;
-      runLines = queuedRunLines.filter((event) => event.runId === runId).map((event) => event.line).slice(-240);
-      const startedProgress = queuedRunProgress.filter((event) => event.runId === runId).at(-1) ?? null;
+      const earlyEvents = runEventBuffer.claim(runId);
+      workspace.run.id = runId;
+      workspace.run.starting = false;
+      workspace.run.lines = earlyEvents.lines;
+      const startedProgress = earlyEvents.progress;
       if (startedProgress) noteRunProgress(startedProgress);
-      else runProgress = null;
-      liveResourceSnapshot = queuedRunResources.filter((event) => event.runId === runId).at(-1)?.snapshot ?? null;
+      else workspace.run.progress = null;
+      workspace.run.resources = earlyEvents.resources;
       const batchLabel = `${nextIndex + 1}/${pendingRunBatches.length} · ${fileName(batch.source.root)} · ${batch.entries.length} file${batch.entries.length === 1 ? "" : "s"}`;
-      runMessage = runMode === "full" ? `Full rebuild ${batchLabel}. Originals stay protected until each rebuilt file validates.` : runMode === "test" ? `Short tests ${batchLabel}. Originals remain untouched.` : runMode === "metadata" ? `Metadata-only copies ${batchLabel}. All tracks are preserved; no video is encoded and sources stay in place.` : runMode === "youtube" ? `Separate YouTube copies ${batchLabel}. Originals stay in place.` : `Check-only pass ${batchLabel}. No media will be encoded.`;
+      workspace.run.message = runMode === "full" ? `Full rebuild ${batchLabel}. Originals stay protected until each rebuilt file validates.` : runMode === "test" ? `Short tests ${batchLabel}. Originals remain untouched.` : runMode === "metadata" ? `Metadata-only copies ${batchLabel}. All tracks are preserved; no video is encoded and sources stay in place.` : runMode === "youtube" ? `Separate YouTube copies ${batchLabel}. Originals stay in place.` : `Check-only pass ${batchLabel}. No media will be encoded.`;
       openPage(runMode === "youtube" ? "youtube" : "run");
       setNotice("Run started. Live progress and diagnostics are shown below.", "success");
-      const earlyFinish = queuedRunFinished as RunFinishedEvent | null;
+      const earlyFinish = earlyEvents.finished;
       if (earlyFinish?.runId === runId) await finishRun(earlyFinish);
     } catch (error) {
-      activeRunId = "";
-      runStarting = false;
-      runMessage = "Could not start the selected workflow.";
+      workspace.run.id = "";
+      workspace.run.starting = false;
+      workspace.run.message = "Could not start the selected workflow.";
       await persistQueueRunStates(Object.fromEntries(batch.entries.map((entry) => [
         entry.path,
         makeQueueRunState("failed", runMode, { message: String(error) }),
@@ -4375,11 +4313,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function finishRun(payload: RunFinishedEvent) {
-    activeRunId = "";
-    if (payload.error) runMessage = payload.error;
-    else if (payload.stopRequested) runMessage = "Queue stopped safely after the active file.";
-    else if (payload.exitCode === 0) runMessage = "Workflow finished. Review the report and any skipped files.";
-    else runMessage = `Workflow finished with exit code ${payload.exitCode ?? "unknown"}. Review the diagnostics.`;
+    workspace.run.id = "";
+    if (payload.error) workspace.run.message = payload.error;
+    else if (payload.stopRequested) workspace.run.message = "Queue stopped safely after the active file.";
+    else if (payload.exitCode === 0) workspace.run.message = "Workflow finished. Review the report and any skipped files.";
+    else workspace.run.message = `Workflow finished with exit code ${payload.exitCode ?? "unknown"}. Review the diagnostics.`;
     await loadReports();
     const finishedBatch = pendingRunBatches[activeRunBatchIndex];
     const matchingReport = payload.reportPath
@@ -4391,22 +4329,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     for (const entry of finishedBatch?.entries ?? []) {
       const row = reportRows.get(queuePathKey(entry.path));
       const reportStatus = row?.status?.trim().toUpperCase() ?? null;
-      const status: MediaQueueRunStatus = reportStatus === "OK" || reportStatus === "METADATA_OK" || reportStatus === "TEST_OK" || reportStatus === "INFO"
-        ? "completed"
-        : reportStatus === "FAILED"
-          ? "failed"
-          : reportStatus === "SKIPPED"
-            ? "skipped"
-            : reportStatus === "INTERRUPTED"
-              ? "interrupted"
-              : !row && payload.stopRequested
-                ? "queued"
-                : !row && (payload.error || payload.exitCode !== 0)
-                  ? "interrupted"
-                  : "needs_review";
+      const status = reportOutcome(reportStatus, Boolean(row), payload);
       completedStates[entry.path] = {
         status,
-        mode: activeRunMode,
+        mode: workspace.run.mode,
         message: (() => {
           const message = row?.message || (status === "queued"
           ? "Not started before the safe stop."
@@ -4424,47 +4350,47 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
     if (Object.keys(completedStates).length && !await persistQueueRunStates(completedStates)) {
       pendingRunBatches = [];
       activeRunBatchIndex = -1;
-      stopQueueAfterCurrent = false;
-      runMessage = "The report was written, but queue state could not be saved. Later source batches were not started.";
-      setNotice(`${runMessage} ${queuePersistenceError}`, "error");
+      workspace.run.stopAfterCurrent = false;
+      workspace.run.message = "The report was written, but queue state could not be saved. Later source batches were not started.";
+      setNotice(`${workspace.run.message} ${workspace.queue.persistenceError}`, "error");
       return;
     }
     const hasFailure = payload.exitCode !== 0 || Boolean(payload.error);
     const isLastBatch = activeRunBatchIndex >= pendingRunBatches.length - 1;
-    const shouldContinue = !isLastBatch && !payload.stopRequested && !stopQueueAfterCurrent && !(stopOnError && hasFailure);
+    const shouldContinue = !isLastBatch && !payload.stopRequested && !workspace.run.stopAfterCurrent && !(stopOnError && hasFailure);
     if (shouldContinue) {
-      runMessage = `Finished source ${activeRunBatchIndex + 1} of ${pendingRunBatches.length}. Starting the next source…`;
+      workspace.run.message = `Finished source ${activeRunBatchIndex + 1} of ${pendingRunBatches.length}. Starting the next source…`;
       await startNextRunBatch();
       return;
     }
     if (payload.logPath) void openLog(payload.logPath);
     const remainingBatches = Math.max(0, pendingRunBatches.length - activeRunBatchIndex - 1);
-    if (remainingBatches > 0 && (payload.stopRequested || stopQueueAfterCurrent || (stopOnError && hasFailure))) {
-      runMessage = payload.stopRequested || stopQueueAfterCurrent
+    if (remainingBatches > 0 && (payload.stopRequested || workspace.run.stopAfterCurrent || (stopOnError && hasFailure))) {
+      workspace.run.message = payload.stopRequested || workspace.run.stopAfterCurrent
         ? `Stopped safely. ${remainingBatches} source batch${remainingBatches === 1 ? "" : "es"} remain queued.`
         : `Stopped after an error. ${remainingBatches} source batch${remainingBatches === 1 ? "" : "es"} remain queued.`;
     }
     pendingRunBatches = [];
     activeRunBatchIndex = -1;
-    stopQueueAfterCurrent = false;
-    setNotice(runMessage, payload.exitCode === 0 ? "success" : "error");
+    workspace.run.stopAfterCurrent = false;
+    setNotice(workspace.run.message, payload.exitCode === 0 ? "success" : "error");
   }
 
   async function stopAfterCurrent() {
-    if (!activeRunId) return;
+    if (!workspace.run.id) return;
     try {
-      stopQueueAfterCurrent = true;
-      await invoke("request_stop", { runId: activeRunId });
-      runMessage = "Safe stop requested. The current file will finish before the queue stops.";
+      workspace.run.stopAfterCurrent = true;
+      await invoke("request_stop", { runId: workspace.run.id });
+      workspace.run.message = "Safe stop requested. The current file will finish before the queue stops.";
       setNotice("Safe stop requested; the active file will finish first.", "success");
     } catch (error) {
-      stopQueueAfterCurrent = false;
+      workspace.run.stopAfterCurrent = false;
       setNotice(`Could not request a safe stop: ${String(error)}`, "error");
     }
   }
 
   async function repairApt() {
-    if (activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     if (!environment?.os.supported) {
       setNotice("Automatic APT repair is available only on supported Ubuntu and Linux Mint releases.", "error");
       return;
@@ -4599,7 +4525,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function confirmAptRepair() {
-    if (activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     if (!environment || !aptUpdates || aptUpdates.catalog_stale) return;
     const missingPackages = [...environment.missing_apt_packages];
     const updatePackages = aptUpdates.packages.map((item) => item.name);
@@ -4636,7 +4562,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   }
 
   async function installHdrHelper(preservePreviousResults = false) {
-    if (activeRunId || runStarting || repairId || hdrInstalling || scanning) return;
+    if (workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
     hdrInstalling = true;
     repairToolChecksBefore = environment?.checks.map((check) => ({ ...check })) ?? null;
     repairAffectedToolKeys = ["hdr10plus_tool"];
@@ -4720,22 +4646,22 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       const listeners = await Promise.all([
         listen<ScanProgress>("scan-progress", (event) => { scanProgress = event.payload; }),
         listen<RunLineEvent>("run-line", (event) => {
-          if (event.payload.runId === activeRunId) runLines = [...runLines, event.payload.line].slice(-240);
-          else if (runStarting) queuedRunLines = [...queuedRunLines, event.payload].slice(-240);
+          if (event.payload.runId === workspace.run.id) workspace.run.lines = [...workspace.run.lines, event.payload.line].slice(-240);
+          else if (workspace.run.starting) runEventBuffer.line(event.payload);
         }),
         listen<RunProgressEvent>("run-progress", (event) => {
-          if (event.payload.runId === activeRunId) {
+          if (event.payload.runId === workspace.run.id) {
             noteRunProgress(event.payload);
           }
-          else if (runStarting) queuedRunProgress = [...queuedRunProgress, event.payload].slice(-8);
+          else if (workspace.run.starting) runEventBuffer.update(event.payload);
         }),
         listen<RunResourceEvent>("run-resources", (event) => {
-          if (event.payload.runId === activeRunId) liveResourceSnapshot = event.payload.snapshot;
-          else if (runStarting) queuedRunResources = [...queuedRunResources, event.payload].slice(-8);
+          if (event.payload.runId === workspace.run.id) workspace.run.resources = event.payload.snapshot;
+          else if (workspace.run.starting) runEventBuffer.sample(event.payload);
         }),
         listen<RunFinishedEvent>("run-finished", async (event) => {
-          if (event.payload.runId !== activeRunId) {
-            if (runStarting) queuedRunFinished = event.payload;
+          if (event.payload.runId !== workspace.run.id) {
+            if (workspace.run.starting) runEventBuffer.finish(event.payload);
             return;
           }
           await finishRun(event.payload);
@@ -4828,62 +4754,18 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
 </svelte:head>
 
 {#snippet MetadataWorkbenchSurface(compactItemMode: boolean, backgroundWorker = false)}
-  <MetadataWorkbench {scanResult} focusMediaPath={metadataFocusPath} workbenchActive={backgroundWorker || (compactItemMode ? metadataDialogOpen : page === "metadata")} {compactItemMode} autoLookupPending={metadataLookupPending} metadataAutoLookup={appPreferences.metadataAutoLookup} metadataLanguage={appPreferences.metadataLanguage} textBlacklistPatterns={settings?.metadata.text_blacklist ?? []} savePosterBesideMedia={appPreferences.savePosterBesideMedia} {tmdbCredentialStatus} {tvdbCredentialStatus} metadataSources={appPreferences.metadataSources} queueSuggestions={queueMatchSuggestions} onOpenSettings={openMetadataProviderSettings} onStartMetadataOnly={startMetadataOnlyFromOrganizer} onAutoLookupConsumed={() => metadataLookupPending = false} onClaimAutoLookup={claimMetadataLookup} onLookupStatus={(status) => {
-    if (!status.sourceRoot || !activeQueueRoot || queuePathKey(status.sourceRoot) === queuePathKey(activeQueueRoot)) {
+  <MetadataWorkbench {scanResult} focusMediaPath={metadataFocusPath} workbenchActive={backgroundWorker || (compactItemMode ? metadataDialogOpen : page === "metadata")} {compactItemMode} autoLookupPending={metadataLookupPending} metadataAutoLookup={appPreferences.metadataAutoLookup} metadataLanguage={appPreferences.metadataLanguage} textBlacklistPatterns={settings?.metadata.text_blacklist ?? []} savePosterBesideMedia={appPreferences.savePosterBesideMedia} {tmdbCredentialStatus} {tvdbCredentialStatus} metadataSources={appPreferences.metadataSources} queueSuggestions={queueMatchSuggestions} onOpenSettings={openMetadataProviderSettings} onStartMetadataOnly={startMetadataOnlyFromOrganizer} onAutoLookupConsumed={() => metadataLookupPending = false} onClaimAutoLookup={claimMetadataLookup} onLookupStatus={(status: MetadataLookupStatus) => {
+    if (!status.sourceRoot || !workspace.queue.activeRoot || queuePathKey(status.sourceRoot) === queuePathKey(workspace.queue.activeRoot)) {
       metadataLookupStatus = status;
       if (status.status !== "searching") void persistQueueMetadataSuggestions();
     }
-  }} onMatchSuggestion={(mediaPath, suggestion) => {
+  }} onMatchSuggestion={(mediaPath: string, suggestion: QueueMetadataSuggestion) => {
     queueMatchSuggestions = { ...queueMatchSuggestions, [mediaPath]: suggestion };
     scheduleQueueMetadataSuggestionSave();
-  }} onPathsRenamed={handleQueuePathsRenamed} onRenameState={handleQueueRenameState} bind:selectedMediaPaths={selectedMediaPaths} bind:movieAssignments={queueMovieReviews} bind:seriesAssignments={queueSeriesReviews} bind:organizerTemplates={appPreferences.organizerTemplates} onOrganizerTemplatesChange={(templates) => void persistPreferences({ organizerTemplates: templates })} animationForPath={(path) => { const entry = queuedEntries.find((item) => item.path === path); if (!entry) return fileTuneOverrides[path] === "animation"; return effectiveContentTuneForEntry(entry, queueMovieReviews[path] ?? reviewedSeriesForPath(path), settingsForEntry(entry)) === "animation"; }} onAnimationChange={(path, animated) => setFileTuneOverride(path, animated ? "animation" : "none")} />
+  }} onPathsRenamed={handleQueuePathsRenamed} onRenameState={handleQueueRenameState} bind:selectedMediaPaths={workspace.queue.selectedPaths} bind:movieAssignments={queueMovieReviews} bind:seriesAssignments={queueSeriesReviews} bind:organizerTemplates={appPreferences.organizerTemplates} onOrganizerTemplatesChange={(templates: OrganizerTemplates) => void persistPreferences({ organizerTemplates: templates })} animationForPath={(path: string) => { const entry = queuedEntries.find((item) => item.path === path); if (!entry) return fileTuneOverrides[path] === "animation"; return effectiveContentTuneForEntry(entry, queueMovieReviews[path] ?? reviewedSeriesForPath(path), settingsForEntry(entry)) === "animation"; }} onAnimationChange={(path: string, animated: boolean) => setFileTuneOverride(path, animated ? "animation" : "none")} />
 {/snippet}
 
-{#snippet ToolRepairActivity(showLogHistory: boolean)}
-  {#if repairSummary}
-    <div class="repair-activity-summary" class:error={repairSummaryIsError} role="status" aria-live="polite">
-      {#if repairId || hdrInstalling}<LoaderCircle size={16} class="spin" />{:else if repairSummaryIsError}<AlertTriangle size={16} />{:else}<CheckCircle2 size={16} />{/if}
-      <strong>{repairSummary}</strong>
-    </div>
-  {/if}
-  {#if repairToolOutcomes.length}
-    <details class="repair-tool-results">
-      <summary>Tool-by-tool recheck · {repairToolOutcomes.length} executable{repairToolOutcomes.length === 1 ? "" : "s"}</summary>
-      <div class="repair-tool-result-list">{#each repairToolOutcomes as outcome (outcome.key)}
-        <article><div><strong>{outcome.label}</strong><span class:success={outcome.status === "Installed" || outcome.status === "Updated or re-resolved"} class:missing={outcome.status === "Still missing"}>{outcome.status}</span></div><small>Before · {outcome.before}</small><small>After · {outcome.after}</small></article>
-      {/each}</div>
-    </details>
-  {/if}
-  {#if repairLogWarning}<p class="repair-log-warning" role="status">{repairLogWarning}</p>{/if}
-  {#if repairLines.length}
-    <details class="repair-diagnostics">
-      <summary>Live setup output · last {Math.min(repairLines.length, 120)} lines</summary>
-      <pre class="repair-output">{repairLines.slice(-120).join("\n")}</pre>
-    </details>
-  {/if}
-  {#if showLogHistory}<details class="repair-diagnostics repair-log-history">
-    <summary>Saved setup logs · {toolSetupLogs.length}</summary>
-    <div class="repair-log-history-body">
-      <p class="repair-log-empty">Saved in this app’s state folder; URL credentials are redacted before storage.</p>
-      {#if toolSetupLogs.length}
-        <label class="repair-log-picker">Saved operation
-          <select bind:value={selectedToolSetupLog} disabled={toolSetupLogLoading} onchange={() => viewedToolSetupLog = ""}>
-            {#each toolSetupLogs as log (log.jobId)}
-              <option value={log.jobId}>{new Date(log.modifiedUnix * 1000).toLocaleString()} · {log.sizeBytes >= 1048576 ? `${(log.sizeBytes / 1048576).toFixed(1)} MiB` : `${Math.max(1, Math.round(log.sizeBytes / 1024))} KiB`}{log.truncated ? " · size limit reached" : ""}</option>
-            {/each}
-          </select>
-        </label>
-        <div class="repair-log-actions">
-          <button class="button secondary compact" type="button" disabled={!selectedToolSetupLog || toolSetupLogLoading} onclick={() => openToolSetupLog()}>{toolSetupLogLoading ? "Opening…" : "View complete log"}</button>
-          <button class="button secondary compact" type="button" disabled={!selectedToolSetupLog || toolSetupLogExporting} onclick={exportToolSetupLog}>{toolSetupLogExporting ? "Exporting…" : "Export log…"}</button>
-        </div>
-        {#if toolSetupLogs.find((log) => log.jobId === selectedToolSetupLog)?.truncated}<p class="repair-log-warning">This operation exceeded 16 MiB. The saved log marks where output was truncated.</p>{/if}
-        {#if viewedToolSetupLog && selectedToolSetupLog}<pre class="repair-output repair-full-output">{viewedToolSetupLog}</pre>{/if}
-      {:else}<p class="repair-log-empty">No package or helper setup logs have been saved on this device yet.</p>{/if}
-      {#if toolSetupLogError}<p class="repair-log-warning" role="alert">{toolSetupLogError}</p>{/if}
-    </div>
-  </details>{/if}
-{/snippet}
+
 
 <div class="app-shell" data-theme={theme} data-instrument={instrumentTheme ? theme : undefined}>
   <aside class="sidebar">
@@ -4946,68 +4828,30 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       </div>
     </header>
 
-    {#if notice}
-      <div class="notice" class:error={noticeKind === "error"} class:success={noticeKind === "success"} role="status">
-        {#if noticeKind === "error"}<AlertTriangle size={16} />{:else if noticeKind === "success"}<CheckCircle2 size={16} />{:else}<Info size={16} />{/if}
-        <span>{notice}</span><button class="notice-close" aria-label="Dismiss notification" onclick={() => (notice = "")}><X size={15} /></button>
+    {#if workspace.notice.message}
+      <div class="notice" class:error={workspace.notice.kind === "error"} class:success={workspace.notice.kind === "success"} role="status">
+        {#if workspace.notice.kind === "error"}<AlertTriangle size={16} />{:else if workspace.notice.kind === "success"}<CheckCircle2 size={16} />{:else}<Info size={16} />{/if}
+        <span>{workspace.notice.message}</span><button class="notice-close" aria-label="Dismiss notification" onclick={() => (workspace.notice.message = "")}><X size={15} /></button>
       </div>
     {/if}
 
-    {#if activeRunId || runStarting}
-      <section class="global-run-progress" aria-label="Workflow progress" aria-live="polite">
-        <div class="global-run-progress-heading">
-          <span class="global-run-indicator" class:running={Boolean(activeRunId)}></span>
-          <div class="global-run-progress-title">
-            <span>{runStarting ? "STARTING WORKFLOW" : "WORKFLOW IN PROGRESS"}</span>
-            <strong>{encodeMeasured ? (runProgress?.fileName ?? runMessage ?? "Preparing the selected files…") : (runProgress?.phase || runMessage || "Preparing the selected files")}</strong>
-            <small>
-              {#if runProgress}
-                {encodeMeasured ? runProgress.phase : runProgress.fileName} · file {runProgress.batchNumber} of {runProgress.batchTotal} in this source
-              {:else}
-                {runMessage || "The engine is preparing the selected files."}
-              {/if}
-              {#if pendingRunBatches.length && activeRunBatchIndex >= 0} · source {activeRunBatchIndex + 1} of {pendingRunBatches.length}{/if}
-            </small>
-          </div>
-        </div>
-        <div class="global-run-progress-body">
-          <div class="global-run-progress-metrics">
-            {#if runProgress?.inputBytes != null}<span><small>INPUT</small><strong>{bytes(runProgress.inputBytes)}</strong></span>{/if}
-            {#if runProgress?.outputBytes != null}<span><small>OUTPUT SO FAR</small><strong>{bytes(runProgress.outputBytes)}</strong></span>{/if}
-            {#if runProgress?.estimatedOutputBytes != null}<span><small>LIVE SIZE ESTIMATE</small><strong>{bytes(runProgress.estimatedOutputBytes)}</strong></span>{/if}
-            {#if runProgress?.speed != null}<span><small>ENCODE SPEED</small><strong>{runProgress.speed.toFixed(2)}×</strong></span>{/if}
-            {#if runProgress?.etaSeconds != null}<span><small>ENCODE ETA</small><strong>{duration(runProgress.etaSeconds)}</strong></span>{/if}
-            {#if liveResourceSnapshot?.memory_available_gib != null}<span><small>RAM AVAILABLE</small><strong>{liveResourceSnapshot.memory_available_gib.toFixed(1)} GiB</strong></span>{/if}
-            {#if liveResourceSnapshot?.swap_used_percent != null}<span><small>SWAP USED</small><strong>{liveResourceSnapshot.swap_used_percent.toFixed(0)}%</strong></span>{/if}
-          </div>
-          <div class="global-run-progress-track" role="progressbar" aria-label="Selected queue progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={encodeMeasured ? overallRunPercent ?? undefined : undefined} aria-busy={!encodeMeasured}>
-            <span class:indeterminate={!encodeMeasured} style={encodeMeasured ? `width:${overallRunPercent ?? 0}%` : ""}></span>
-          </div>
-          <div class="global-run-progress-footer">
-            <small>{encodeMeasured ? `Selected queue · ${overallRunPercent?.toFixed(0) ?? 0}%` : "Preparing"}{encodeMeasured && runProgress?.etaSeconds != null ? ` · ${duration(runProgress.etaSeconds)} left` : ""} · {progressElapsedLabel} elapsed</small>
-            <div>
-              <button class="text-button" type="button" onclick={openProgressDetails}>Open progress details</button>
-              {#if activeRunId}<button class="text-button" type="button" disabled={stopQueueAfterCurrent} onclick={stopAfterCurrent}>{stopQueueAfterCurrent ? "Stopping safely…" : "Stop after this file"}</button>{/if}
-            </div>
-          </div>
-        </div>
-      </section>
-    {/if}
+    <RunProgress run={workspace.run} {encodeMeasured} {overallRunPercent} {progressElapsedLabel} batchCount={pendingRunBatches.length} batchIndex={activeRunBatchIndex} {bytes} {duration} {openProgressDetails} {stopAfterCurrent} />
 
     <div class="page-wrap" class:page-wrap-library={page === "library"} class:page-wrap-home={page === "home"}>
       {#if page === "home"}
         <HomeDashboard
+          skin={theme === "phosphor" || theme === "ion" || theme === "breach" ? theme : null}
           environment={environment}
           environmentLoading={environmentLoading || booting}
           sourceCount={queuedSourceCount}
           fileCount={queuedEntryCount}
-          activeFolder={activeQueueRoot ? fileName(activeQueueRoot) : ""}
+          activeFolder={workspace.queue.activeRoot ? fileName(workspace.queue.activeRoot) : ""}
           statusCounts={queueStatusCounts}
           activityLabel={homeActivityLabel}
           reports={reports}
           setupLogs={toolSetupLogs}
           onOpen={openPage}
-          onOpenReport={(csvPath) => { openPage("reports"); chooseReport(csvPath); }}
+          onOpenReport={(csvPath: string) => { openPage("reports"); chooseReport(csvPath); }}
           onAddFolder={() => { void browseFolder(); }}
           onAddFiles={() => { void browseFile(); }}
           onRefreshChecks={() => { void loadEnvironment(); }}
@@ -5015,207 +4859,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       {:else if page === "help"}
         <HelpCenter />
       {:else if page === "settings"}
-        <section class="page-heading">
-          <div><div class="eyebrow">APP-WIDE PREFERENCES</div><h1>Settings</h1><p>Choose the services and defaults the library tools use across the app.</p></div>
-          <div class="heading-actions">
-            {#if preferenceStorage}<div class="library-chip"><Settings2 size={15} /><span title={preferenceStorage.settingsFile}>{preferenceStorage.portable ? "Portable profile" : "User profile"}</span></div>{/if}
-            {#if settings}<button class="button primary" type="button" disabled={!settingsChanged || workflowBusy} onclick={saveSettings}>{settingsChanged ? "Save app defaults" : "Defaults saved"}</button>{/if}
-          </div>
-        </section>
+        <SettingsPreferences {preferenceStorage} bind:settings {settingsChanged} {workflowBusy} {appPreferences} bind:metadataLanguageDraft {tmdbCredentialStatus} {tvdbCredentialStatus} {desktopShell} bind:tmdbTokenDraft bind:tmdbTokenVisible {tmdbCredentialBusy} bind:tvdbApiKeyDraft bind:tvdbCredentialsVisible {tvdbCredentialBusy} bind:tvdbSubscriberPinDraft bind:tvdbAccessConfirmed {artworkCacheLoading} {artworkCachePurging} {artworkCacheInfo} {artworkCacheError} bind:artworkCacheConfirm bind:newFilenameIncludePattern bind:newFilenameExcludePattern {filenameFilterError} bind:newMetadataBlacklistPattern {metadataBlacklistError} {saveSettings} {persistPreferences} {saveMetadataLanguageDraft} {updateMetadataSources} {openMetadataProviderSettings} {toggleTmdbCredentialVisibility} {saveTmdbCredential} {removeTmdbCredential} {toggleTvdbCredentialVisibility} {saveTvdbCredential} {removeTvdbCredential} {refreshArtworkCache} {bytes} {purgeUnusedArtworkCache} {addFilenamePattern} {clearFilenamePatterns} {removeFilenamePattern} {addMetadataBlacklistPattern} {clearMetadataBlacklist} {removeMetadataBlacklistPattern}>
+          {#snippet environmentPanel()}{@render EnvironmentPanel(environment)}{/snippet}
+        </SettingsPreferences>
 
-        <section class="settings-card metadata-provider-settings" aria-labelledby="metadata-provider-title">
-          <div class="settings-card-heading">
-            <div class="settings-icon purple"><Database size={18} /></div>
-            <div>
-              <h2 id="metadata-provider-title">Metadata sources</h2>
-              <p>Choose where film and series details come from. Results stay attached to a scanned record until you review them.</p>
-            </div>
-          </div>
-
-          <label class="toggle-row metadata-auto-lookup">
-            <span><strong>Find titles after a scan</strong><small>Searches enabled public sources by default when no Kodi NFO is present. Exact title-and-year matches with no provider conflict are associated automatically; uncertain matches wait for review. NFO metadata remains a local fallback.</small></span>
-            <input type="checkbox" checked={appPreferences.metadataAutoLookup} onchange={(event) => void persistPreferences({ metadataAutoLookup: event.currentTarget.checked })} />
-          </label>
-
-          <label class="form-row metadata-language-setting">
-            <span><strong>Metadata language and region</strong><small>TMDB and Wikidata use localized fields when available. TheTVDB supports selected languages. TVmaze text follows its contributors.</small></span>
-            <input aria-label="Metadata language and region" list="metadata-language-options" maxlength="5" pattern="[A-Za-z]{2}(-[A-Za-z]{2})?" value={metadataLanguageDraft} placeholder="en-US" oninput={(event) => metadataLanguageDraft = event.currentTarget.value} onblur={saveMetadataLanguageDraft} onkeydown={(event) => { if (event.key === "Enter") { event.preventDefault(); saveMetadataLanguageDraft(); } }} />
-            <datalist id="metadata-language-options">
-              <option value="en-US">English · United States</option><option value="en-GB">English · United Kingdom</option><option value="es-ES">Spanish · Spain</option><option value="es-MX">Spanish · Mexico</option><option value="fr-FR">French · France</option><option value="fr-CA">French · Canada</option><option value="de-DE">German · Germany</option><option value="it-IT">Italian · Italy</option><option value="pt-BR">Portuguese · Brazil</option><option value="pt-PT">Portuguese · Portugal</option><option value="ja-JP">Japanese · Japan</option><option value="ko-KR">Korean · South Korea</option><option value="zh-CN">Chinese · Simplified</option><option value="zh-TW">Chinese · Taiwan</option><option value="ru-RU">Russian · Russia</option><option value="nl-NL">Dutch · Netherlands</option><option value="ar-SA">Arabic · Saudi Arabia</option><option value="hi-IN">Hindi · India</option><option value="tr-TR">Turkish · Türkiye</option><option value="pl-PL">Polish · Poland</option><option value="sv-SE">Swedish · Sweden</option><option value="da-DK">Danish · Denmark</option><option value="fi-FI">Finnish · Finland</option><option value="no-NO">Norwegian · Norway</option><option value="cs-CZ">Czech · Czechia</option><option value="el-GR">Greek · Greece</option>
-            </datalist>
-          </label>
-
-          <div class="metadata-source-grid" aria-label="Available metadata providers">
-            <article class="metadata-provider-card" class:provider-selected={appPreferences.metadataSources.tmdb}>
-              <div class="metadata-provider-card-top">
-                <label class="metadata-provider-choice"><input type="checkbox" checked={appPreferences.metadataSources.tmdb} onchange={(event) => updateMetadataSources({ tmdb: event.currentTarget.checked })} /><strong>TMDB</strong></label>
-                <span class="provider-state" class:provider-state-ready={tmdbCredentialStatus.configured} class:provider-state-needed={!tmdbCredentialStatus.configured}>{tmdbCredentialStatus.configured ? "Token saved" : "Token required"}</span>
-              </div>
-              <p>Movies and series, localized details, episode guides, ratings, and artwork.</p>
-              {#if !tmdbCredentialStatus.configured}<button class="provider-setup-link" type="button" onclick={() => void openMetadataProviderSettings("tmdb")}>Add TMDB token <ArrowRight size={14} /></button>{/if}
-            </article>
-
-            <article class="metadata-provider-card" class:provider-selected={appPreferences.metadataSources.wikidata}>
-              <div class="metadata-provider-card-top">
-                <label class="metadata-provider-choice"><input type="checkbox" checked={appPreferences.metadataSources.wikidata} onchange={(event) => updateMetadataSources({ wikidata: event.currentTarget.checked })} /><strong>Wikidata</strong></label>
-                <span class="provider-state provider-state-open">Open catalog</span>
-              </div>
-              <p>Movie titles, release years, language-aware labels, and links to related public records. Coverage varies by film.</p>
-            </article>
-
-            <article class="metadata-provider-card" class:provider-selected={appPreferences.metadataSources.tvmaze}>
-              <div class="metadata-provider-card-top">
-                <label class="metadata-provider-choice"><input type="checkbox" checked={appPreferences.metadataSources.tvmaze} onchange={(event) => updateMetadataSources({ tvmaze: event.currentTarget.checked })} /><strong>TVmaze</strong></label>
-                <span class="provider-state provider-state-open">No key needed</span>
-              </div>
-              <p>TV series, seasons, episodes, audience ratings, and artwork. Descriptions use the language supplied by contributors.</p>
-            </article>
-
-            <article class="metadata-provider-card" class:provider-selected={appPreferences.metadataSources.tvdb}>
-              <div class="metadata-provider-card-top">
-                <label class="metadata-provider-choice"><input type="checkbox" checked={appPreferences.metadataSources.tvdb} onchange={(event) => updateMetadataSources({ tvdb: event.currentTarget.checked })} /><strong>TheTVDB</strong></label>
-                <span class="provider-state" class:provider-state-ready={tvdbCredentialStatus.configured} class:provider-state-needed={!tvdbCredentialStatus.configured}>{tvdbCredentialStatus.configured ? "Key saved" : "Project key required"}</span>
-              </div>
-              <p>TV and movie records, posters, and the provider’s default season order. Anime may use different aired, DVD, or absolute episode numbering.</p>
-              {#if !tvdbCredentialStatus.configured}<button class="provider-setup-link" type="button" onclick={() => void openMetadataProviderSettings("tvdb")}>Set up TheTVDB access <ArrowRight size={14} /></button>{/if}
-            </article>
-          </div>
-
-          <section class="metadata-credential-card" id="tmdb-credential-settings" aria-labelledby="tmdb-credential-title">
-            <div class="metadata-credential-heading">
-              <div><strong id="tmdb-credential-title">TMDB API Read Access Token</strong><small>{tmdbCredentialStatus.configured ? "Saved in this user’s operating-system keyring." : desktopShell ? "Add a token to include TMDB results in searches." : "Open the installed desktop app to save this token securely."}</small></div>
-              <span class="status-tag" class:status-ready={tmdbCredentialStatus.configured} class:status-warning={!desktopShell} class:status-error={desktopShell && !tmdbCredentialStatus.secureStoreAvailable}>{tmdbCredentialStatus.configured ? "TOKEN SAVED" : desktopShell ? tmdbCredentialStatus.secureStoreAvailable ? "SETUP NEEDED" : "KEYRING UNAVAILABLE" : "DESKTOP APP"}</span>
-            </div>
-            {#if tmdbCredentialStatus.message}<p class="metadata-credential-message" role="status">{tmdbCredentialStatus.message}</p>{/if}
-            <label class="metadata-token" for="tmdb-api-token">{tmdbCredentialStatus.configured ? "Saved token or replacement" : "API Read Access Token"}
-              <input id="tmdb-api-token" aria-label="TMDB API Read Access Token" bind:value={tmdbTokenDraft} type={tmdbTokenVisible ? "text" : "password"} autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder={tmdbCredentialStatus.configured ? "Use Show saved token to view the keyring value" : "Paste the TMDB API Read Access Token"} disabled={!desktopShell || !tmdbCredentialStatus.secureStoreAvailable || tmdbCredentialBusy} />
-            </label>
-            <div class="metadata-credential-actions">
-              <a class="text-button" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Get a TMDB API token <ArrowRight size={14} /></a>
-              <div>{#if tmdbCredentialStatus.configured || tmdbTokenDraft}<button class="button secondary" aria-pressed={tmdbTokenVisible} disabled={tmdbCredentialBusy} onclick={toggleTmdbCredentialVisibility}>{tmdbTokenDraft ? tmdbTokenVisible ? "Hide token" : "Show token" : "Show saved token"}</button>{/if}<button class="button primary" disabled={!desktopShell || !tmdbCredentialStatus.secureStoreAvailable || !tmdbTokenDraft.trim() || tmdbCredentialBusy} onclick={saveTmdbCredential}>{tmdbCredentialBusy ? "Saving…" : tmdbCredentialStatus.configured ? "Replace token" : "Save token"}</button>{#if tmdbCredentialStatus.configured}<button class="button secondary" disabled={tmdbCredentialBusy} onclick={removeTmdbCredential}>Remove</button>{/if}</div>
-            </div>
-            <small class="metadata-credential-note">The token stays in the operating-system keyring. Save keeps it visible in this window; after reopening the app, choose Show saved token to read it back. It is never written to portable settings, browser storage, logs, CLI output, or MCP.</small>
-          </section>
-
-          <section class="metadata-credential-card tvdb-credential-card" id="tvdb-credential-settings" aria-labelledby="tvdb-credential-title">
-            <div class="metadata-credential-heading">
-              <div><strong id="tvdb-credential-title">TheTVDB project access</strong><small>{tvdbCredentialStatus.configured ? `Project key saved${tvdbCredentialStatus.subscriberPinConfigured ? " with subscriber PIN" : ""} in this user’s operating-system keyring.` : desktopShell ? "Enter a project API key before TheTVDB can be searched." : "Open the installed desktop app to save credentials securely."}</small></div>
-              <span class="status-tag" class:status-ready={tvdbCredentialStatus.configured} class:status-warning={!desktopShell} class:status-error={desktopShell && !tvdbCredentialStatus.secureStoreAvailable}>{tvdbCredentialStatus.configured ? "KEY SAVED" : desktopShell ? tvdbCredentialStatus.secureStoreAvailable ? "SETUP NEEDED" : "KEYRING UNAVAILABLE" : "DESKTOP APP"}</span>
-            </div>
-            {#if tvdbCredentialStatus.message}<p class="metadata-credential-message" role="status">{tvdbCredentialStatus.message}</p>{/if}
-            <p class="provider-access-copy">The key belongs to a TheTVDB API project. Direct access requires an approved project access model; subscriber-supported keys may also require your personal PIN. Check current terms with TheTVDB before saving a key.</p>
-            <div class="metadata-credential-fields">
-              <label class="metadata-token" for="tvdb-project-key">{tvdbCredentialStatus.configured ? "Replace project API key" : "Project API key"}
-                <input id="tvdb-project-key" aria-label="TheTVDB project API key" bind:value={tvdbApiKeyDraft} type={tvdbCredentialsVisible ? "text" : "password"} autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="Paste your TheTVDB project API key" disabled={!desktopShell || !tvdbCredentialStatus.secureStoreAvailable || tvdbCredentialBusy} />
-              </label>
-              <label class="metadata-token" for="tvdb-subscriber-pin">Subscriber PIN <span>(if your key requires one)</span>
-                <input id="tvdb-subscriber-pin" aria-label="TheTVDB subscriber PIN" bind:value={tvdbSubscriberPinDraft} type={tvdbCredentialsVisible ? "text" : "password"} autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="Optional subscriber PIN" disabled={!desktopShell || !tvdbCredentialStatus.secureStoreAvailable || tvdbCredentialBusy} />
-              </label>
-            </div>
-            <label class="provider-access-confirm"><input type="checkbox" bind:checked={tvdbAccessConfirmed} disabled={!desktopShell || !tvdbCredentialStatus.secureStoreAvailable || tvdbCredentialBusy} /><span>I have valid TheTVDB access for this project and any subscription required by its access model.</span></label>
-            <div class="metadata-credential-actions">
-              <div class="metadata-provider-links">
-                <a href="https://www.thetvdb.com/api-information/signup" target="_blank" rel="noreferrer">Apply for API access <ArrowRight size={14} /></a>
-                <a href="https://github.com/thetvdb/v4-api/blob/main/README.md" target="_blank" rel="noreferrer">Read API access terms <ArrowRight size={14} /></a>
-              </div>
-              <div>{#if tvdbCredentialStatus.configured || tvdbApiKeyDraft || tvdbSubscriberPinDraft}<button class="button secondary" aria-pressed={tvdbCredentialsVisible} disabled={tvdbCredentialBusy} onclick={toggleTvdbCredentialVisibility}>{tvdbApiKeyDraft || tvdbSubscriberPinDraft ? tvdbCredentialsVisible ? "Hide credentials" : "Show credentials" : "Show saved credentials"}</button>{/if}<button class="button primary" disabled={!desktopShell || !tvdbCredentialStatus.secureStoreAvailable || !tvdbApiKeyDraft.trim() || !tvdbAccessConfirmed || tvdbCredentialBusy} onclick={saveTvdbCredential}>{tvdbCredentialBusy ? "Saving…" : tvdbCredentialStatus.configured ? "Replace credentials" : "Save credentials"}</button>{#if tvdbCredentialStatus.configured}<button class="button secondary" disabled={tvdbCredentialBusy} onclick={removeTvdbCredential}>Remove</button>{/if}</div>
-            </div>
-            <small class="metadata-credential-note">The project key and optional PIN stay in the operating-system keyring. Save keeps them visible in this window; after reopening the app, choose Show saved credentials to read them back. They are never written to app preferences, logs, CLI output, or MCP.</small>
-          </section>
-
-          <details class="metadata-provider-notes">
-            <summary>Provider coverage, anime order, and local use</summary>
-            <p>TMDB and TheTVDB cover films and series. Wikidata adds public film records. TVmaze covers series and episodes and needs no key. Results stay suggestions until you review them.</p>
-            <p>TheTVDB is read in its default season order. Check anime episode numbers against your files before you assign them. AniList is not used; its terms forbid storing its data as a backup.</p>
-          </details>
-        </section>
-
-        <section class="settings-card poster-storage-settings" aria-labelledby="poster-storage-title">
-          <div class="settings-card-heading"><div class="settings-icon green-bg"><Film size={18} /></div><div><h2 id="poster-storage-title">Poster storage</h2><p>Choose where a reviewed poster image is kept.</p></div></div>
-          <label class="toggle-row"><span><strong>Save poster beside the media</strong><small>Uses <code>[media filename]-poster.[jpg|png|webp]</code> and stores source details beside it. Turn off to keep posters in the private app cache.</small></span><input type="checkbox" checked={appPreferences.savePosterBesideMedia} onchange={(event) => void persistPreferences({ savePosterBesideMedia: event.currentTarget.checked })} /></label>
-          {#if settings}
-            <label class="toggle-row"><span><strong>Embed poster in the new MKV</strong><small>Attach the selected image as cover art during a metadata-only copy or video rebuild. It does not change the original file.</small></span><input type="checkbox" checked={settings.metadata.embed_artwork} disabled={workflowBusy} onchange={(event) => settings!.metadata.embed_artwork = event.currentTarget.checked} /></label>
-          {:else}
-            <p class="filename-filter-saved">Load a library’s effective settings to choose whether its new MKV outputs include embedded cover art.</p>
-          {/if}
-          <div class="artwork-settings-save"><p class="filename-filter-saved">The two choices are independent. Save app defaults to keep embedding for new libraries.</p></div>
-        </section>
-
-        <section class="settings-card artwork-cache-settings" aria-labelledby="artwork-cache-title">
-          <div class="settings-card-heading"><div class="settings-icon purple"><Database size={18} /></div><div><h2 id="artwork-cache-title">Saved poster artwork</h2><p>Check the private poster cache and remove unused images when you need the space.</p></div><button class="button secondary compact" type="button" disabled={!desktopShell || artworkCacheLoading || artworkCachePurging} onclick={() => void refreshArtworkCache()}><RefreshCw size={14} class={artworkCacheLoading ? "spin" : ""} /> Refresh</button></div>
-          {#if !desktopShell}
-            <div class="artwork-cache-note"><Info size={16} /><span>Cache details are available from the installed desktop app. The browser preview does not read local application files.</span></div>
-          {:else if artworkCacheLoading && !artworkCacheInfo}
-            <div class="artwork-cache-note" role="status"><LoaderCircle size={16} class="spin" /><span>Checking saved poster images…</span></div>
-          {:else if artworkCacheInfo}
-            <div class="artwork-cache-summary">
-              <div><span>IN USE</span><strong>{bytes(artworkCacheInfo.totalBytes)}</strong><small>{artworkCacheInfo.totalFileCount} files · {artworkCacheInfo.imageCount} managed posters</small></div>
-              <div><span>ASSIGNED TO QUEUE ITEMS</span><strong>{bytes(artworkCacheInfo.protectedBytes)}</strong><small>{artworkCacheInfo.protectedImageCount} posters kept with saved reviews</small></div>
-              <div><span>UNUSED POSTERS</span><strong>{bytes(artworkCacheInfo.purgeableBytes)}</strong><small>{artworkCacheInfo.purgeableImageCount} managed posters can be removed</small></div>
-            </div>
-            {#if artworkCacheInfo.unmanagedEntryCount}<p class="artwork-cache-note"><Info size={16} /><span>{artworkCacheInfo.unmanagedEntryCount} unrecognized cache entr{artworkCacheInfo.unmanagedEntryCount === 1 ? "y is" : "ies are"} counted where possible and will be left untouched.</span></p>{/if}
-            <p class="filename-filter-saved">Only unused posters and their credit files can be removed. Artwork assigned to the queue stays. This does not clear the x265 calibration cache; clearing that cache makes large-file jobs run a new short benchmark.</p>
-            {#if artworkCacheError}<p class="blacklist-error" role="alert">Artwork cache: {artworkCacheError}</p>{/if}
-            {#if artworkCacheInfo.purgeableImageCount && !artworkCacheConfirm}
-              <button class="button secondary artwork-cache-review" type="button" disabled={artworkCachePurging || workflowBusy} onclick={() => artworkCacheConfirm = true}><Trash2 size={15} /> Review unused posters</button>
-            {:else if artworkCacheConfirm}
-              <div class="artwork-cache-confirm" role="group" aria-label="Confirm artwork cleanup">
-                <div><strong>Remove {artworkCacheInfo.purgeableImageCount} unused poster{artworkCacheInfo.purgeableImageCount === 1 ? "" : "s"}?</strong><span>This permanently removes up to {bytes(artworkCacheInfo.purgeableBytes)} of app-managed artwork and its matching attribution files. Assigned posters and unrecognized files stay in place.</span></div>
-                <button class="button danger-outline compact" type="button" disabled={artworkCachePurging || workflowBusy} onclick={() => void purgeUnusedArtworkCache()}>{#if artworkCachePurging}<LoaderCircle size={14} class="spin" /> Removing…{:else}<Trash2 size={14} /> Remove unused posters{/if}</button>
-                <button class="button secondary compact" type="button" disabled={artworkCachePurging} onclick={() => artworkCacheConfirm = false}>Cancel</button>
-              </div>
-            {:else if artworkCacheInfo.purgeableImageCount === 0}
-              <p class="blacklist-empty">No unused app-managed poster images to remove.</p>
-            {/if}
-          {:else if artworkCacheError}
-            <p class="blacklist-error" role="alert">Could not read the artwork cache: {artworkCacheError}</p>
-          {/if}
-        </section>
-
-        <section class="settings-card filename-filter-settings" aria-labelledby="filename-filter-title">
-          <div class="settings-card-heading"><div class="settings-icon purple"><Search size={18} /></div><div><h2 id="filename-filter-title">Filename filters</h2><p>Limit scans and jobs using file and folder names.</p></div></div>
-          <p class="filename-filter-help">Ignores case. <code>*</code> matches any length and <code>?</code> matches one character. With no include patterns, every supported name is scanned. Excludes override includes and match files and folders. The starting chips skip extras, samples, trailers, and hidden folders; remove a chip to scan that name. App state folders stay excluded.</p>
-          <div class="filename-filter-columns">
-            {#each [{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }] as filter (filter.kind)}
-              {@const kind = filter.kind as "include" | "exclude"}
-              {@const key = kind === "include" ? "filenameIncludePatterns" : "filenameExcludePatterns"}
-              {@const draft = kind === "include" ? newFilenameIncludePattern : newFilenameExcludePattern}
-              <div class="filename-filter-list">
-                <div class="filename-filter-heading"><strong>{filter.title}</strong><span>{appPreferences[key].length}/100</span></div>
-                <small>{filter.hint}</small>
-                <div class="blacklist-add-row"><input aria-label={`New ${filter.title.toLowerCase()} pattern`} maxlength="128" placeholder={kind === "include" ? "*.mkv or *featurette*" : "*sample*"} value={draft} oninput={(event) => kind === "include" ? newFilenameIncludePattern = event.currentTarget.value : newFilenameExcludePattern = event.currentTarget.value} onkeydown={(event) => { if (event.key === "Enter") { event.preventDefault(); addFilenamePattern(kind); } }} /><button class="button secondary" type="button" disabled={appPreferences[key].length >= 100} onclick={() => addFilenamePattern(kind)}>Add</button></div>
-                {#if appPreferences[key].length}
-                  <div class="blacklist-list-actions"><span>{appPreferences[key].length} active rule{appPreferences[key].length === 1 ? "" : "s"}{appPreferences[key].length > 20 ? " · scroll to see all" : ""}</span><button class="text-button" type="button" onclick={() => clearFilenamePatterns(kind)}>Clear all</button></div>
-                  <ul class="blacklist-pattern-list">{#each appPreferences[key] as pattern, patternIndex (`${kind}-${pattern}-${patternIndex}`)}<li><code>{pattern}</code><button class="blacklist-remove" type="button" aria-label={`Remove ${kind} pattern ${pattern}`} title="Remove pattern" onclick={() => removeFilenamePattern(kind, patternIndex)}><X size={16} /></button></li>{/each}</ul>
-                {:else}<p class="blacklist-empty">No {kind} patterns configured.</p>{/if}
-              </div>
-            {/each}
-          </div>
-          {#if filenameFilterError}<p class="blacklist-error" role="status">{filenameFilterError}</p>{/if}
-          <p class="filename-filter-saved">Saved with application preferences{preferenceStorage ? ` · ${preferenceStorage.settingsFile}` : !desktopShell ? " · browser preview preferences saved in this browser" : ""}. Changing a pattern requires a fresh scan.</p>
-        </section>
-
-        <section class="settings-card filename-filter-settings title-cleanup-settings" aria-labelledby="title-cleanup-title">
-          <div class="settings-card-heading"><div class="settings-icon purple"><FileText size={18} /></div><div><h2 id="title-cleanup-title">Title cleanup</h2><p>Clean imported filename clues before title searches and rename previews.</p></div></div>
-          {#if settings}
-            <div class="metadata-blacklist">
-              <div class="blacklist-heading"><div><strong>Blocked text patterns</strong><small>Removes matched text from title searches, rename previews, and output tags. The file on disk changes only when you confirm a rename.</small></div><span>{settings.metadata.text_blacklist.length}/100</span></div>
-              <p class="blacklist-help"><code>*</code> matches any length, ignoring case. <code>Movie*Group</code> removes text such as <code>movieReleaseGroup</code> and leaves the rest of the title.</p>
-              <div class="blacklist-add-row"><input aria-label="New blocked text pattern" maxlength="128" placeholder="Add a pattern, e.g. Movie*Group" bind:value={newMetadataBlacklistPattern} onkeydown={(event) => { if (event.key === "Enter") { event.preventDefault(); addMetadataBlacklistPattern(); } }} /><button class="button secondary" type="button" disabled={settings.metadata.text_blacklist.length >= 100 || workflowBusy} onclick={addMetadataBlacklistPattern}>Add pattern</button></div>
-              {#if metadataBlacklistError}<p class="blacklist-error" role="status">{metadataBlacklistError}</p>{/if}
-              {#if settings.metadata.text_blacklist.length}
-                <div class="blacklist-list-actions"><span>{settings.metadata.text_blacklist.length} active rule{settings.metadata.text_blacklist.length === 1 ? "" : "s"}{settings.metadata.text_blacklist.length > 20 ? " · scroll to see all" : ""}</span><button class="text-button" type="button" disabled={workflowBusy} onclick={clearMetadataBlacklist}>Clear all</button></div>
-                <ul class="blacklist-pattern-list">{#each settings.metadata.text_blacklist as pattern, patternIndex (`title-${pattern}-${patternIndex}`)}<li><code>{pattern}</code><button class="blacklist-remove" type="button" aria-label={`Remove ${pattern}`} title="Remove pattern" disabled={workflowBusy} onclick={() => removeMetadataBlacklistPattern(patternIndex)}><X size={15} /></button></li>{/each}</ul>
-              {:else}
-                <p class="blacklist-empty">No custom patterns yet. Built-in release-group cleanup still runs.</p>
-              {/if}
-              <p class="filename-filter-saved">Extra and trailer folders are controlled under Filename filters. <code>Movie*Group</code> is the default pattern here. Save app defaults to keep these edits.</p>
-            </div>
-          {:else}
-            <p class="filename-filter-saved">Load application defaults to edit blocked text patterns.</p>
-          {/if}
-        </section>
-        {@render EnvironmentPanel(environment)}
       {:else if page === "metadata"}
         <!-- The record workbench is mounted below so scans can look up matches from the queue. -->
       {:else if page === "library"}
@@ -5224,27 +4871,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
           <div class="toolbar-options"><label class="check-label"><input type="checkbox" bind:checked={recursive} disabled={workflowBusy} onchange={() => void persistPreferences({ recursive })} /> Include subfolders on new scans</label><label class="small-field">Ignore smaller than <input type="number" min="0" max="4096" step="1" bind:value={minimumSizeMib} disabled={workflowBusy} onblur={() => void persistPreferences({ minimumSizeMib })} /> MiB</label><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}><FolderOpen size={17} /> Add folder</button><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFile}><Video size={17} /> Add files</button></div>
         </section>
 
-        {#if queueSources.length}
-          <section class="library-source-strip" aria-label="Queued media sources">
-            {#if queuePersistenceWarning}<div class="queue-persistence-warning"><Info size={15} /><span>{queuePersistenceWarning}</span></div>{/if}
-            {#if queuePersistenceError}<div class="queue-persistence-warning error"><AlertTriangle size={15} /><span>Queue changes could not be saved: {queuePersistenceError}</span></div>{/if}
-            {#each queueSources as source (source.root)}
-              <div class="library-source-chip" class:active={source.root === activeQueueRoot}>
-                <button class="library-source-name" type="button" title={source.root} aria-current={source.root === activeQueueRoot ? "true" : undefined} onclick={() => activateQueueSource(source.root)}>{fileName(source.root)} · {source.scanResult?.candidate_count ?? 0}</button>
-                <button class="text-button" type="button" disabled={workflowBusy} onclick={() => void scanQueueSource(source.root, true, true)}>Refresh</button>
-                <button class="text-button" type="button" disabled={workflowBusy} aria-label={`Remove ${fileName(source.root)} from queue`} onclick={() => removeQueueSource(source.root)}>Remove</button>
-              </div>
-            {/each}
-          </section>
-        {/if}
-
-        {#if scanning}
-          <div class="scan-progress card-surface"><LoaderCircle class="spin" size={19} /><div><strong>{scanProgress ? `Reading ${scanProgress.current} of ${scanProgress.total}` : "Preparing the analysis…"}</strong><span>{scanProgress?.file ?? "Finding media files and checking stream metadata"}</span></div><div class="progress-track"><div style={`width:${scanProgress?.total ? Math.max(4, scanProgress.current / scanProgress.total * 100) : 9}%`}></div></div></div>
-        {/if}
+        <LibraryQueueStatus queue={workspace.queue} busy={workflowBusy} {scanning} {scanProgress} {fileName} onActivate={activateQueueSource} onRefresh={(path: string) => scanQueueSource(path, true, true)} onRemove={removeQueueSource} />
 
         {#if scanResult}
           {#if runReviewEntries.some((entry) => queueRunStateForPath(entry.path)?.status === "interrupted")}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>Some files were still active when the last session ended.</strong><span>Automatic recovery did not finish. Originals and existing outputs were left untouched, and the encode was not resumed.</span></div></div>{/if}
-          {#if unresolvedSelectedPaths > 0}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{selectionHasNoRunnableFiles ? "These selected files are not ready to run." : `${unresolvedSelectedPaths} selected file${unresolvedSelectedPaths === 1 ? " is" : "s are"} not in a completed scan.`}</strong><span>Rescan or remove the interrupted source before starting this selection.</span></div><button class="text-button" onclick={() => selectedMediaPaths = selectedMediaPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path))}>Keep ready files</button></div>{/if}
+          {#if unresolvedSelectedPaths > 0}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{selectionHasNoRunnableFiles ? "These selected files are not ready to run." : `${unresolvedSelectedPaths} selected file${unresolvedSelectedPaths === 1 ? " is" : "s are"} not in a completed scan.`}</strong><span>Rescan or remove the interrupted source before starting this selection.</span></div><button class="text-button" onclick={() => workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path))}>Keep ready files</button></div>{/if}
           {#if staleSelectedEntries.length}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{staleSelectedEntries.length} queued file{staleSelectedEntries.length === 1 ? " has" : "s have"} changed or gone missing.</strong><span>Refresh each affected source and review the updated scan before running.</span><details><summary>Sources to refresh · {staleRunSources.length}</summary>{#each staleRunSources as batch (batch.source.root)}<button class="text-button" disabled={workflowBusy} onclick={() => refreshQueueSource(batch.source.root)}>Refresh {fileName(batch.source.root)}</button>{/each}</details></div></div>{/if}
           {#if analysisErrors.length}
             <div class="inline-warning"><AlertTriangle size={17} /><div><strong>{analysisErrors.length} file{analysisErrors.length === 1 ? "" : "s"} could not be analyzed</strong><span>Open the card details for the error. These files stay out of a run until the scan succeeds.</span></div></div>
@@ -5259,7 +4890,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
             selectedOnPage={selectedVisibleCount}
             selectedTotal={queueSelectionCount}
             readyCount={selectedRunEntries.length}
-            lookupMessage={runProgress?.fileName ? `${runProgress.fileName} · ${runProgress.phase}` : libraryLookupMessage}
+            lookupMessage={workspace.run.progress?.fileName ? `${workspace.run.progress.fileName} · ${workspace.run.progress.phase}` : libraryLookupMessage}
             lookupFailed={metadataLookupStatus?.status === "error"}
             crumbs={libraryCrumbs}
             reviewCurrentLabel={libraryBrowse ? (libraryBrowse.season === null ? "Review series" : "Review season") : ""}
@@ -5267,10 +4898,10 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
             canRename={!workflowBusy && queueSelectionCount > 0}
             canProcess={!workflowBusy && selectedRunEntries.length > 0}
             observeArtwork={observeQueueArtwork}
-            onToggleSelect={(paths, selected) => { selectedMediaPaths = selected ? [...new Set([...selectedMediaPaths, ...paths])] : selectedMediaPaths.filter((item) => !paths.includes(item)); }}
+            onToggleSelect={(paths: string[], selected: boolean) => { workspace.queue.selectedPaths = selectQueuePaths(workspace.queue.selectedPaths, paths, selected); }}
             onToggleAnimated={setPathsAnimated}
             onOpenReview={openLibraryPoster}
-            onOpenLocation={(path) => void openFileLocation(path)}
+            onOpenLocation={(path: string) => void openFileLocation(path)}
             onReview={openLibraryReview}
             onRename={() => chooseLibraryTask("organize")}
             onMetadata={() => chooseLibraryTask("metadata")}
@@ -5279,74 +4910,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
             onClearOutput={clearFileOutput}
             onSelectPage={setVisibleSelection}
           />
-          {#if libraryRenameOpen}
-            <dialog class="metadata-review-dialog library-rename-dialog" bind:this={libraryRenameDialog} aria-labelledby="library-rename-title" onclose={() => (libraryRenameOpen = false)}>
-              <header class="metadata-review-dialog-header">
-                <div class="metadata-review-dialog-title">
-                  <span class="eyebrow">RENAME</span>
-                  <h2 id="library-rename-title">{libraryRenameEntries().length === 1 ? "Name this file" : `Name ${libraryRenameEntries().length} files`}</h2>
-                </div>
-                <button class="icon-button" type="button" aria-label="Close rename preview" onclick={() => libraryRenameDialog?.close()}><X size={16} /></button>
-              </header>
-              <div class="metadata-review-dialog-content">
-                {#if !libraryRenameEntries().length}
-                  <p>Select the files to rename.</p>
-                {:else}
-                  {@const shape = libraryRenameShape()}
-                  <div class="library-rename-builder">
-                    <p>{libraryRenameEntries().length === 1 ? "The file stays in its folder. Only the name changes." : "Every selected file stays in its folder. The same pattern names the batch."}</p>
-                    {#if shape !== "episode"}
-                      <label class="library-rename-pattern">Film pattern
-                        <input bind:this={moviePatternField} bind:value={renameDraft.movie} spellcheck="false" aria-label="Film filename pattern" oninput={() => libraryRenameError = ""} />
-                        <span class="library-rename-tokens">
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("movie", "{title}", moviePatternField)}>Title</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("movie", "{year}", moviePatternField)}>Year</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("movie", "{certification}", moviePatternField)}>Certificate</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("movie", "{ext}", moviePatternField)}>Extension</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("movie", " [[({year} {certification})]]", moviePatternField)}>Year and certificate, when present</button>
-                          <button type="button" class="library-rename-token" onclick={() => resetRenamePattern("movie")}>Standard film name</button>
-                        </span>
-                      </label>
-                    {/if}
-                    {#if shape !== "movie"}
-                      <label class="library-rename-pattern">Episode pattern
-                        <input bind:this={episodePatternField} bind:value={renameDraft.episode} spellcheck="false" aria-label="Episode filename pattern" oninput={() => libraryRenameError = ""} />
-                        <span class="library-rename-tokens">
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("episode", "S{season:02}E{episode:02}", episodePatternField)}>Season and episode</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("episode", "{episode_title}", episodePatternField)}>Episode title</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("episode", "{series_title}", episodePatternField)}>Series title</button>
-                          <button type="button" class="library-rename-token" onclick={() => insertRenameToken("episode", "{ext}", episodePatternField)}>Extension</button>
-                          <button type="button" class="library-rename-token" onclick={() => resetRenamePattern("episode")}>Standard episode name</button>
-                        </span>
-                      </label>
-                    {/if}
-                  </div>
-                  <div class="library-rename-list">
-                    {#each libraryRenameEntries() as entry (entry.path)}
-                      {@const rename = libraryRenameNote(entry, renameDraft)}
-                      <div class="library-rename-row">
-                        <div><span>Original name</span><strong>{entry.name}</strong></div>
-                        {#if rename.next}
-                          <ArrowRight size={16} />
-                          <div><span>{rename.note}</span><strong>{rename.next}</strong></div>
-                        {:else}
-                          <span class="library-rename-same">{rename.note}</span>
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-                {#if libraryRenameError}<p class="library-poster-note">{libraryRenameError}</p>{/if}
-              </div>
-              <footer class="metadata-review-dialog-footer">
-                <span>The video is not re-encoded. A file that already has this name stays where it is.</span>
-                <div>
-                  <button class="button secondary" type="button" disabled={libraryRenameBusy} onclick={() => libraryRenameDialog?.close()}>Close</button>
-                  <button class="button primary" type="button" disabled={libraryRenameBusy || !libraryRenameEntries().length} onclick={() => void applyLibraryRename()}>{libraryRenameBusy ? "Renaming…" : libraryRenameEntries().length === 1 ? "Rename this file" : `Rename ${libraryRenameEntries().length} files`}</button>
-                </div>
-              </footer>
-            </dialog>
-          {/if}
+          <LibraryRenameDialog {libraryRenameOpen} bind:libraryRenameDialog bind:renameDraft bind:moviePatternField bind:episodePatternField bind:libraryRenameError {libraryRenameBusy} {libraryRenameEntries} {libraryRenameShape} {libraryRenameNote} {insertRenameToken} {resetRenamePattern} {applyLibraryRename} onClose={() => libraryRenameOpen = false} />
           {#if visibleEntries.length > mediaPageSize}
             <nav class="media-pagination" aria-label="Media file pages">
               <span>Showing {mediaPageFirst}–{mediaPageLast} of {visibleEntries.length} files · page {mediaPage} of {mediaPageCount}</span>
@@ -5355,60 +4919,13 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
             </nav>
           {/if}
         {:else if !scanning}
-          <div class="empty-state large"><div class="empty-icon"><Layers size={26} /></div><div><div class="eyebrow">LIBRARY QUEUE</div><h2>{queueSources.length ? "Choose a folder to review." : "Add your first media."}</h2><p>{queueSources.length ? "Select a folder above, or add another folder or a group of files." : "Add a video or folder. Posters and titles will appear here as each file is matched."}</p></div><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}>Add folder</button></div>
+          <div class="empty-state large"><div class="empty-icon"><Layers size={26} /></div><div><div class="eyebrow">LIBRARY QUEUE</div><h2>{workspace.queue.sources.length ? "Choose a folder to review." : "Add your first media."}</h2><p>{workspace.queue.sources.length ? "Select a folder above, or add another folder or a group of files." : "Add a video or folder. Posters and titles will appear here as each file is matched."}</p></div><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}>Add folder</button></div>
         {/if}
 
       {:else if page === "youtube"}
-        <section class="page-heading">
-          <div><div class="eyebrow">UPLOAD COPY WORKFLOW</div><h1>YouTube <em>prep.</em></h1><p>Set the upload profile, inspect every source, and create separate copies for YouTube.</p></div>
-          <div class="heading-actions"><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}><FolderOpen size={17} /> Add folder</button><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFile}><Video size={17} /> Add files</button><button class="button primary" disabled={!desktopShell || workflowBusy || !root} onclick={analyzeFolder}>{#if scanning}<LoaderCircle class="spin" size={17} /> Scanning{:else}<ScanSearch size={17} /> Add path to queue{/if}</button></div>
-        </section>
-
-        <section class="library-toolbar card-surface">
-          <div class="folder-field"><FolderOpen size={18} /><input aria-label="Path to add to the media queue" bind:value={root} placeholder="Paste a media file or folder path to add" disabled={workflowBusy} onblur={() => void persistPreferences({ root })} /><button class="icon-button" aria-label="Add media folders" disabled={workflowBusy} onclick={browseFolder}><ChevronRight size={17} /></button></div>
-          <div class="toolbar-options"><label class="check-label"><input type="checkbox" bind:checked={recursive} disabled={workflowBusy} onchange={() => void persistPreferences({ recursive })} /> Include subfolders on new scans</label><label class="small-field">Ignore smaller than <input type="number" min="0" max="4096" step="1" bind:value={minimumSizeMib} disabled={workflowBusy} onblur={() => void persistPreferences({ minimumSizeMib })} /> MiB</label></div>
-        </section>
-
-        {#if scanning}
-          <div class="scan-progress card-surface"><LoaderCircle class="spin" size={19} /><div><strong>{scanProgress ? `Reading ${scanProgress.current} of ${scanProgress.total}` : "Preparing the analysis…"}</strong><span>{scanProgress?.file ?? "Finding media files and checking stream metadata"}</span></div><div class="progress-track"><div style={`width:${scanProgress?.total ? Math.max(4, scanProgress.current / scanProgress.total * 100) : 9}%`}></div></div></div>
-        {/if}
-
-        <section class="upload-profile-card">
-          <div class="upload-profile-intro"><div class="settings-icon blue"><Video size={18} /></div><div><div class="eyebrow">YOUTUBE OUTPUT SETTINGS</div><h2>Choose your upload profile</h2><p>SDR sources use H.264. Compatible HDR sources use 10-bit HEVC Main 10. Audio is encoded to AAC, and exports go to a separate folder.</p></div></div>
-          <div class="upload-profile-controls youtube-settings-grid">
-            <label><span>Minimum output tier</span><select bind:value={youtubeResolution} onchange={() => void persistPreferences({ youtubeResolution })}><option value="source">Keep source size</option><option value="1440p">1440p · smaller sources upscale</option><option value="4k">4K · larger upload copies</option></select></label>
-            <label><span>Bitrate profile</span><select bind:value={youtubeQualityMode} onchange={() => void persistPreferences({ youtubeQualityMode })}><option value="balanced">Balanced · source-aware size</option><option value="recommended">YouTube bitrate guidance</option></select></label>
-            <label class="youtube-multiplier" class:disabled={youtubeQualityMode !== "balanced"}><span>Balanced size target <strong>{youtubeSourceMultiplier.toFixed(2)}× source</strong></span><input aria-label="Balanced source size target multiplier" type="range" min="0.5" max="4" step="0.25" value={youtubeSourceMultiplier} disabled={youtubeQualityMode !== "balanced" || workflowBusy} oninput={(event) => { youtubeSourceMultiplier = Number(event.currentTarget.value); }} onchange={() => void persistPreferences({ youtubeSourceMultiplier })} /><small>Video target floor: 250 kb/s. YouTube's rate is the ceiling; this is not a strict size cap.</small></label>
-            <div class="upload-destination"><span>Output folder</span><strong>{youtubeOutputDir || (root ? `Default: YouTube Uploads beside ${fileName(root)}` : "Default: YouTube Uploads beside the selected media")}</strong><div><button class="text-button" disabled={!desktopShell || workflowBusy} onclick={chooseYoutubeOutput}>Choose folder</button><button class="text-button" disabled={!youtubeOutputDir || workflowBusy} onclick={() => { youtubeOutputDir = ""; void persistPreferences({ youtubeOutputDir: null }); }}>Use default</button></div></div>
-          </div>
-          {#if youtubeEstimateSummary}<div class="youtube-estimate"><div><span>ESTIMATED OUTPUT</span><strong>{bytes(youtubeEstimateSummary.outputBytes)}</strong></div><small>{youtubeEstimateSummary.files} currently eligible file{youtubeEstimateSummary.files === 1 ? "" : "s"} · eligible source total {bytes(youtubeEstimateSummary.sourceBytes)} · estimate varies with content and is not a hard size limit</small></div>{/if}
-          <div class="upload-profile-note"><Info size={17} /><span>The Balanced slider targets an approximate multiple of each source's average total bitrate, then caps video bitrate at YouTube's published recommendation. YouTube bitrate guidance may create much larger files. Upscaling adds no source detail and does not guarantee a codec or playback tier. HDR export requires 10-bit video with Rec. 2020 primaries/matrix and PQ or HLG; Dolby Vision files are skipped. HDR10+ files are skipped unless you explicitly approve the dynamic-metadata loss for that individual file below. Subtitle streams are omitted from the MP4; prepare supported caption files separately.</span></div>
-        </section>
-
-        {#if !modeToolsReady}
-          <div class="inline-warning"><Wrench size={17} /><div><strong>YouTube export needs FFmpeg, FFprobe, MediaInfo, libx264, and AAC.</strong><span>Check the environment and install missing tools only after reviewing the package list.</span></div><button class="text-button" onclick={() => openPage("settings")}>Open Settings</button></div>
-        {/if}
-        {#if scanResult}
-          <section class="library-summary-grid">
-            <div class="summary-tile"><span>FILES ANALYZED</span><strong>{scanResult.candidate_count}</strong><small>{recursive ? "Recursive scan" : "Top-level folder"}</small></div>
-            <div class="summary-tile"><span>SOURCE TOTAL</span><strong>{bytes(scanResult.total_input_bytes)}</strong><small>Originals stay in place</small></div>
-            <div class="summary-tile"><span>ESTIMATED COPIES</span><strong>{youtubeEstimateSummary ? bytes(youtubeEstimateSummary.outputBytes) : "—"}</strong><small>{youtubeResolution.toUpperCase()} · {youtubeQualityMode === "balanced" ? `${youtubeSourceMultiplier.toFixed(2)}× source` : "YouTube bitrate guidance"}</small></div>
-            <div class="summary-tile"><span>NEEDS REVIEW</span><strong>{analysisErrors.length + toolsRequiredEntries.length}</strong><small>Analysis errors or missing tools</small></div>
-          </section>
-          {#if scanResult.warnings?.length}
-            <div class="inline-warning"><Info size={17} /><div><strong>Scan notices</strong><ul class="scan-warning-list">{#each scanResult.warnings as warning (warning)}<li>{warning}</li>{/each}</ul></div></div>
-          {/if}
-          {#if analysisErrors.length}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{analysisErrors.length} file{analysisErrors.length === 1 ? "" : "s"} could not be analyzed</strong><span>They will not be silently treated as eligible exports. Open each row for the exact error.</span></div></div>{/if}
-          <section class="table-card"><div class="table-header"><div><div class="eyebrow">ACTIVE SOURCE · {activeQueueRoot ? fileName(activeQueueRoot) : "NONE"}</div><h2>{visibleEntries.length} files</h2><small>{selectedVisibleCount} selected on this page · exports use selected files from this source, or all its files when none are selected</small></div><div class="table-header-tools">{#if visibleEntries.length > mediaPageSize}<button class="text-button" disabled={workflowBusy} onclick={() => setFilteredSelection(selectedFilteredCount !== visibleEntries.length)}>{selectedFilteredCount === visibleEntries.length ? `Clear ${visibleEntries.length} filtered selections` : `Select all ${visibleEntries.length} matches`}</button>{/if}<button class="text-button" disabled={!selectedMediaPaths.length || workflowBusy} onclick={() => selectedMediaPaths = []}>Clear selection</button><button class="text-button" disabled={workflowBusy} onclick={() => openPage("library")}>Choose another source</button><label class="search-box"><Search size={16} /><input aria-label="Search files" value={search} oninput={(event) => { search = event.currentTarget.value; mediaPage = 1; }} placeholder="Search files or status" /></label></div></div>{@render MediaTable(currentPageEntries, () => {})}</section>
-        {:else if !scanning}
-          <div class="empty-state large"><div class="empty-icon"><Video size={26} /></div><div><div class="eyebrow">READ-ONLY SOURCE ANALYSIS</div><h2>Add a source before exporting.</h2><p>The review includes video and audio tracks, HDR metadata, output-size estimates, memory forecasts, and any file that needs attention.</p></div><button class="button primary" disabled={!desktopShell || !root || workflowBusy} onclick={analyzeFolder}><ScanSearch size={17} /> Add path to queue</button></div>
-        {/if}
-        <section class="run-launch card-surface"><div class="launch-left"><div class="launch-icon"><Video size={19} /></div><div><strong>{activeRunId ? "YouTube export is running" : "Create separate upload copies"}</strong><span>{scanResult ? `${selectedRunEntries.length} files · ${bytes(selectedRunInputBytes)} source data${selectedMediaPathsForRun.length ? " · selected files only" : ""}` : "Analyze a video or folder before starting"} · originals remain in place</span></div></div>
-          {#if activeRunId}<button class="button danger-outline" onclick={stopAfterCurrent}><Square size={15} /> Stop after current file</button>{:else}<button class="button primary" disabled={!canStart} onclick={beginRun}><Video size={17} /> Create upload copies</button>{/if}
-        </section>
-        {#if runMessage || runLines.length}
-          <section id="run-activity" class="run-console-card"><div class="run-console-heading"><div><span class="console-indicator" class:running={Boolean(activeRunId)}></span><strong>Export activity</strong><span>{activeRunId ? "LIVE" : "LATEST"}</span></div>{#if activeRunId}<button class="text-button" onclick={stopAfterCurrent}>Stop safely</button>{/if}</div>{#if activeRunId && runProgress}<p class="run-message">{runProgress.phase} · {progressElapsedLabel} elapsed</p>{:else if runMessage}<p class="run-message">{runMessage}</p>{/if}<ResourceTelemetry snapshot={liveResourceSnapshot} /><pre class="run-console">{runLines.length ? runLines.join("\n") : "Waiting for engine output…"}</pre></section>
-        {/if}
+        <YouTubePreparation queue={workspace.queue} run={workspace.run} bind:root bind:recursive bind:minimumSizeMib bind:youtubeResolution bind:youtubeQualityMode bind:youtubeSourceMultiplier bind:youtubeOutputDir bind:search bind:mediaPage {scanResult} {scanProgress} {scanning} {workflowBusy} {desktopShell} {youtubeEstimateSummary} {analysisErrors} {toolsRequiredEntries} {selectedRunEntries} {visibleEntries} {selectedVisibleCount} {selectedFilteredCount} {mediaPageSize} {selectedRunInputBytes} {selectedMediaPathsForRun} {modeToolsReady} {canStart} {progressElapsedLabel} {bytes} {fileName} {persistPreferences} {browseFolder} {browseFile} {analyzeFolder} {chooseYoutubeOutput} {openPage} {setFilteredSelection} {stopAfterCurrent} {beginRun}>
+          {#snippet mediaTable()}{@render MediaTable(currentPageEntries, () => {})}{/snippet}
+        </YouTubePreparation>
 
       {:else if page === "run"}
         <section class="page-heading">
@@ -5497,89 +5014,22 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
           <div class="config-source"><Info size={14} /><span title={settingsSources.join(" · ")}>Configuration: {settingsSources.length ? settingsSources.map((source) => fileName(source)).join(" · ") : fileName(settingsPath) || "application defaults"}{preferenceStorage ? ` · ${fileName(preferenceStorage.settingsFile)}` : !desktopShell ? " · browser preview" : ""}</span><button class="text-button" disabled={workflowBusy} onclick={() => loadSettings(root)}>Reload effective values</button></div>
         {/if}
 
-        {#if selectionInOtherSources}<div class="inline-warning"><Info size={17} /><div><strong>This workflow will process {runBatches.length} queued sources.</strong><span>{selectedMediaPaths.length ? `${selectedRunEntries.length} selected files` : `${selectedRunEntries.length} queued files`} will run sequentially, with each source’s saved scan settings.</span></div></div>{/if}
+        {#if selectionInOtherSources}<div class="inline-warning"><Info size={17} /><div><strong>This workflow will process {runBatches.length} queued sources.</strong><span>{workspace.queue.selectedPaths.length ? `${selectedRunEntries.length} selected files` : `${selectedRunEntries.length} queued files`} will run sequentially, with each source’s saved scan settings.</span></div></div>{/if}
         {#if runBatches.length}<details class="queue-run-plan"><summary>Review {selectedRunEntries.length} files in {runBatches.length} source batch{runBatches.length === 1 ? "" : "es"}</summary>{#each runBatches as batch (batch.source.root)}{@const previewEntries = runPlanPreviewByRoot.get(batch.source.root) ?? []}<details class="queue-run-source"><summary><strong>{fileName(batch.source.root)}</strong><span>{batch.entries.length} file{batch.entries.length === 1 ? "" : "s"}</span><code title={batch.source.root}>{batch.source.root}</code></summary><ul>{#each previewEntries as entry (entry.path)}<li><strong>{entry.name}</strong><code title={entry.path}>{entry.path}</code></li>{/each}</ul></details>{/each}{#if selectedRunEntries.length > 250}<small>Showing the first 250 files across the queue plan. All {selectedRunEntries.length} files remain included.</small>{/if}</details>{/if}
-        {#if unresolvedSelectedPaths > 0}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{unresolvedSelectedPaths} selected file{unresolvedSelectedPaths === 1 ? " is" : "s are"} not available from a completed scan.</strong><span>Refresh or remove that source before starting. Ready files can be kept in the selection.</span></div><button class="text-button" onclick={() => selectedMediaPaths = selectedMediaPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path))}>Keep ready files</button></div>{/if}
+        {#if unresolvedSelectedPaths > 0}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{unresolvedSelectedPaths} selected file{unresolvedSelectedPaths === 1 ? " is" : "s are"} not available from a completed scan.</strong><span>Refresh or remove that source before starting. Ready files can be kept in the selection.</span></div><button class="text-button" onclick={() => workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path))}>Keep ready files</button></div>{/if}
         {#if staleSelectedEntries.length}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>Refresh {staleRunSources.length} affected source{staleRunSources.length === 1 ? "" : "s"} before running.</strong><span>{staleSelectedEntries.length} file{staleSelectedEntries.length === 1 ? " has" : "s have"} changed or disappeared since scanning. Refresh only the source groups shown here.</span><details><summary>Sources to refresh</summary>{#each staleRunSources as batch (batch.source.root)}<button class="text-button" disabled={workflowBusy} onclick={() => refreshQueueSource(batch.source.root)}>Refresh {fileName(batch.source.root)}</button>{/each}</details></div></div>{/if}
-        <section class="run-launch card-surface"><div class="launch-left"><div class="launch-icon"><TerminalSquare size={19} /></div><div><strong>{activeRunId ? "A workflow is running" : mode === "full" ? "Full rebuild requires confirmation" : mode === "test" ? "Short test run" : mode === "metadata" ? "Create validated MKV copies without re-encoding" : mode === "youtube" ? "Create a YouTube upload copy" : "Ready for a check-only pass"}</strong><span>{scanResult ? `${selectedRunEntries.length} file${selectedRunEntries.length === 1 ? "" : "s"}${selectedMediaPathsForRun.length ? " selected" : ""} · ${bytes(selectedRunInputBytes)} total` : "Add a file or folder to the queue"}{mode !== "metadata" && mode !== "check" && environment?.hardware.gpu_devices.length ? ` · ${environment.hardware.gpu_devices.length} GPU detected, CPU encoder selected` : ""}</span></div></div>
+        <section class="run-launch card-surface"><div class="launch-left"><div class="launch-icon"><TerminalSquare size={19} /></div><div><strong>{workspace.run.id ? "A workflow is running" : mode === "full" ? "Full rebuild requires confirmation" : mode === "test" ? "Short test run" : mode === "metadata" ? "Create validated MKV copies without re-encoding" : mode === "youtube" ? "Create a YouTube upload copy" : "Ready for a check-only pass"}</strong><span>{scanResult ? `${selectedRunEntries.length} file${selectedRunEntries.length === 1 ? "" : "s"}${selectedMediaPathsForRun.length ? " selected" : ""} · ${bytes(selectedRunInputBytes)} total` : "Add a file or folder to the queue"}{mode !== "metadata" && mode !== "check" && environment?.hardware.gpu_devices.length ? ` · ${environment.hardware.gpu_devices.length} GPU detected, CPU encoder selected` : ""}</span></div></div>
           <label class="check-label stop-error"><input type="checkbox" bind:checked={stopOnError} onchange={() => void persistPreferences({ stopOnError })} /> Stop queue on first error</label>
-          {#if activeRunId}<button class="button danger-outline" onclick={stopAfterCurrent}><Square size={15} /> Stop after current file</button>{:else}<button class="button primary" disabled={!canStart} onclick={beginRun}>{#if mode === "full"}<ShieldCheck size={17} />{:else if mode === "test"}<Play size={17} />{:else if mode === "metadata"}<FileText size={17} />{:else if mode === "youtube"}<Video size={17} />{:else}<ScanSearch size={17} />{/if}{mode === "full" ? "Review & start full rebuild" : mode === "test" ? "Start short tests" : mode === "metadata" ? "Create metadata-only MKVs" : mode === "youtube" ? "Create upload copies" : "Start check-only pass"}</button>{/if}
+          {#if workspace.run.id}<button class="button danger-outline" onclick={stopAfterCurrent}><Square size={15} /> Stop after current file</button>{:else}<button bind:this={runLaunchButton} class="button primary" disabled={!canStart} onclick={beginRun}>{#if mode === "full"}<ShieldCheck size={17} />{:else if mode === "test"}<Play size={17} />{:else if mode === "metadata"}<FileText size={17} />{:else if mode === "youtube"}<Video size={17} />{:else}<ScanSearch size={17} />{/if}{mode === "full" ? "Review & start full rebuild" : mode === "test" ? "Start short tests" : mode === "metadata" ? "Create metadata-only MKVs" : mode === "youtube" ? "Create upload copies" : "Start check-only pass"}</button>{/if}
         </section>
 
-        {#if runMessage || runLines.length}
-          <section id="run-activity" class="run-console-card"><div class="run-console-heading"><div><span class="console-indicator" class:running={Boolean(activeRunId)}></span><strong>Run activity</strong><span>{activeRunId ? "LIVE" : "LATEST"}</span></div>{#if activeRunId}<button class="text-button" onclick={stopAfterCurrent}>Stop safely</button>{/if}</div>{#if activeRunId && runProgress}<p class="run-message">{runProgress.phase} · {progressElapsedLabel} elapsed</p>{:else if runMessage}<p class="run-message">{runMessage}</p>{/if}<ResourceTelemetry snapshot={liveResourceSnapshot} /><pre class="run-console">{runLines.length ? runLines.join("\n") : "Waiting for engine output…"}</pre></section>
+        {#if workspace.run.message || workspace.run.lines.length}
+          <RunConsole run={workspace.run} title="Run activity" elapsedLabel={progressElapsedLabel} onStop={stopAfterCurrent} />
         {/if}
 
       {:else if page === "reports"}
-        <section class="page-heading">
-          <div><div class="eyebrow">AUDIT TRAIL</div><h1>Reports & <em>errors.</em></h1><p>Review completed runs, per-file outcomes, and diagnostic logs from the media engine.</p></div>
-          <div class="heading-actions">
-            <button class="button secondary" disabled={Boolean(repairId) || hdrInstalling || reportDeleteBusy} onclick={loadReports}><RefreshCw size={16} /> Refresh history</button>
-            {#if reportDeleteConfirm}
-              <button class="button danger-outline" type="button" disabled={reportDeleteBusy} onclick={deleteReportHistory}>{reportDeleteBusy ? "Deleting…" : "Delete permanently"}</button>
-              <button class="button secondary" type="button" disabled={reportDeleteBusy} onclick={() => (reportDeleteConfirm = false)}>Cancel</button>
-            {:else}
-              <button class="button secondary" type="button" disabled={!reports.length || reportDeleteBusy} onclick={() => (reportDeleteConfirm = true)}>Delete history</button>
-            {/if}
-          </div>
-        </section>
-        {#if failedRows.length}
-          <section class="report-failures" aria-label="Failed results">
-            <h2>{failedRows.length} failed result{failedRows.length === 1 ? "" : "s"}</h2>
-            <ul>
-              {#each failedRows as row, index (`${row.input}:${index}`)}
-                <li>
-                  <strong>{fileName(row.input || "Unknown file")}</strong>
-                  <span>{row.status || "Failed"}</span>
-                  <p>{row.message || "No detail was saved for this result."}</p>
-                </li>
-              {/each}
-            </ul>
-          </section>
-        {/if}
-        {#if reports.length}
-          <section class="reports-layout">
-            <aside class="report-list card-surface"><div class="report-list-heading"><div class="eyebrow">RECENT RUNS</div><span>{reports.length} reports</span></div>
-              {#each reports as report (report.csv_path)}
-                {@const reportName = fileName(report.csv_path).replace(/\.csv$/i, "")}
-                <button class="report-item" class:active={activeReport?.csv_path === report.csv_path} onclick={() => chooseReport(report.csv_path)}><span class="report-item-icon" class:failed={Object.entries(report.counts ?? {}).some(([status, count]) => count > 0 && isFailure(status))}><FileText size={17} /></span><span class="report-item-copy"><strong>{reportName}</strong><small>{new Date(report.created * 1000).toLocaleString()}</small></span><ChevronRight size={15} /></button>
-              {/each}
-            </aside>
-            {#if activeReport}
-              <section class="report-detail">
-                <div class="report-heading card-surface"><div><div class="eyebrow">RUN REPORT</div><h2>{fileName(activeReport.csv_path).replace(/\.csv$/i, "")}</h2><p>{new Date(activeReport.created * 1000).toLocaleString()}</p></div><button class="button secondary" onclick={() => openLog(activeReport.log_path)}><TerminalSquare size={16} /> {logLoading ? "Loading…" : "Open diagnostics"}</button></div>
-                {#if activeReport.rows.some((row) => row.hdr10plus_note)}<div class="inline-warning"><Info size={17} /><div><strong>HDR10+ metadata loss was approved for some YouTube copies.</strong><span>Only the individually approved files were exported without dynamic metadata; static HDR10/PQ signaling is retained. Other HDR10+ files are skipped.</span></div></div>{/if}
-                {#if activeReport.rows.some((row) => row.subtitle_note)}<div class="inline-warning"><Info size={17} /><div><strong>Source subtitle streams are not embedded in YouTube upload copies.</strong><span>The affected rows are identified in the CSV report; add supported caption files separately through YouTube.</span></div></div>{/if}
-                <div class="report-counts">{#each Object.entries(activeReport.counts) as [status, count] (status)}<div class="report-count"><span class:bad-count={isFailure(status)}>{status}</span><strong>{count}</strong></div>{/each}</div>
-                <div class="table-card report-table"><div class="table-header"><div><div class="eyebrow">FILE OUTCOMES</div><h2>{activeReport.rows.length} entries</h2></div></div>
-                  <div class="table-scroll"><table><thead><tr><th>INPUT</th><th>RESULT</th><th>DETAIL</th><th>SIZE</th></tr></thead><tbody>
-                    {#each activeReport.rows as row, rowIndex (row.input + rowIndex)}<tr><td><strong class="file-cell-title">{fileName(row.input)}</strong><small class="file-cell-sub">{row.resolution ?? row.primary_video ?? "Media file"}</small>{#if row.content_tune}<small class="file-cell-sub">Content tune: {row.content_tune}</small>{/if}{#if row.output_resolution}<small class="file-cell-sub">Output: {row.output_resolution}</small>{/if}</td><td><span class="status-tag" class:status-error={isFailure(row.status)} class:status-ready={!isFailure(row.status)}>{row.status}</span></td><td class="detail-cell" title={row.memory_forecast_message ?? ""}>{row.message || row.dolby_vision_action || "—"}{#if row.estimated_output_bytes || row.output_bytes}<small class="file-cell-sub">YouTube size: estimated {row.estimated_output_bytes ? bytes(Number(row.estimated_output_bytes)) : "—"} · actual {row.output_bytes ? bytes(Number(row.output_bytes)) : "pending"}{row.upload_video_bitrate_kbps ? ` · ${row.upload_video_bitrate_kbps} kb/s video` : ""}{row.upload_source_multiplier ? ` · ${row.upload_source_multiplier}× source` : ""}{row.youtube_recommended_video_bitrate_kbps ? ` · YouTube guide ${row.youtube_recommended_video_bitrate_kbps} kb/s` : ""}</small>{/if}{#if row.calibration_source}<small class="file-cell-sub">Calibration: {row.calibration_source}{row.calibration_workers ? ` · ${row.calibration_workers} workers / ${row.calibration_frame_threads ?? "—"} frame threads` : ""}{Number(row.calibration_candidate_count) > 0 ? ` · ${row.calibration_candidate_count} candidate(s)` : ""}{row.calibration_note ? ` · ${row.calibration_note}` : ""}</small>{/if}{#if row.memory_forecast}<small class="file-cell-sub">Memory: {row.memory_forecast.toUpperCase()} · {row.planned_workers ?? "—"} workers · {row.planned_frame_threads ?? "—"} frame threads</small>{/if}{#if row.min_memory_available_gib}<small class="file-cell-sub">Min available RAM: {Number(row.min_memory_available_gib).toFixed(1)} GiB</small>{/if}{#if row.max_encoder_rss_gib}<small class="file-cell-sub">Peak encoder RSS: {Number(row.max_encoder_rss_gib).toFixed(2)} GiB</small>{/if}{#if row.max_swap_used_percent || row.max_encoder_swap_gib || row.max_swap_in_mib_s || row.max_swap_out_mib_s}<small class="file-cell-sub">Peak swap: {row.max_swap_used_percent ? `${Number(row.max_swap_used_percent).toFixed(0)}% system used` : "usage unknown"}{row.max_encoder_swap_gib ? ` · FFmpeg process ${Number(row.max_encoder_swap_gib).toFixed(2)} GiB` : ""} · in {row.max_swap_in_mib_s ? `${Number(row.max_swap_in_mib_s).toFixed(1)} MiB/s` : "—"} · out {row.max_swap_out_mib_s ? `${Number(row.max_swap_out_mib_s).toFixed(1)} MiB/s` : "—"}{row.max_memory_full_psi_percent ? ` · memory stalls ${Number(row.max_memory_full_psi_percent).toFixed(1)}%` : ""}</small>{/if}</td><td>{row.input_bytes ? bytes(Number(row.input_bytes)) : "—"}</td></tr>{/each}
-                  </tbody></table></div>
-                  {#if activeReport.rows.length === 0}<div class="empty-state compact"><div><strong>This report has no readable rows.</strong><p>The CSV may be incomplete; inspect the companion log for context.</p></div></div>{/if}
-                </div>
-                {#if activeReport.rows.some((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0)}
-                  <section class="report-scrub-card card-surface">
-                    <div class="report-scrub-heading"><div><div class="eyebrow">METADATA CLEANUP</div><h3>Text removed from metadata</h3><p>Only matching text was removed. Technical encoder and stream data remain unchanged.</p></div></div>
-                    {#each activeReport.rows.filter((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0) as row (row.input)}
-                      {@const changes = metadataTextChanges(row)}
-                      <details class="report-scrub-file">
-                        <summary><span>{fileName(row.input)}</span><small>{row.metadata_text_scrub_count ?? row.release_group_scrub_count} field(s)</small></summary>
-                        {#if changes.length}
-                          <ul>{#each changes as change, changeIndex (`${row.input}-${changeIndex}`)}
-                            <li><small>{change.scope ?? "metadata"} · {change.field ?? "text"}{change.rules?.length ? ` · ${change.rules.join(", ")}` : ""}</small><div><code>{change.before ?? ""}</code><span aria-hidden="true">→</span><code>{change.after || "(removed)"}</code></div></li>
-                          {/each}</ul>
-                        {:else}<p class="report-scrub-empty">Detailed values are available in the CSV report.</p>{/if}
-                      </details>
-                    {/each}
-                  </section>
-                {/if}
-                <section class="diagnostic-card"><div class="diagnostic-heading"><div><div class="eyebrow">DIAGNOSTIC LOG</div><h3>Engine output</h3></div><button class="text-button" disabled={!selectedLog} onclick={copyLog}>Copy excerpt</button></div><pre>{selectedLog || "Select Open diagnostics to load the companion log. The viewer is limited to the latest 1 MB."}</pre></section>
-              </section>
-            {/if}
-          </section>
-        {:else}
-          <div class="empty-state large"><div class="empty-icon"><History size={26} /></div><div><div class="eyebrow">NO RUN HISTORY YET</div><h2>Reports appear here after your first analysis or rebuild.</h2><p>File-level statuses and diagnostic logs are stored locally in your user state directory.</p></div><button class="button primary" onclick={() => openPage(scanResult ? "run" : "library")}>Go to workflow <ArrowRight size={16} /></button></div>
-        {/if}
+        <ReportBrowser {repairId} {hdrInstalling} {reportDeleteBusy} bind:reportDeleteConfirm {failedRows} {loadReports} {deleteReportHistory} {reports} {activeReport} {logLoading} {selectedLog} {fileName} {bytes} {isFailure} {chooseReport} {openLog} {copyLog} {openPage} hasScan={Boolean(scanResult)} />
+
       {/if}
 
       {#if page === "metadata"}
@@ -5601,7 +5051,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         {@const focusedProposedName = focusedFilename?.name ?? focusedEntry.name}
         {@const focusedDestination = reviewDestinationPath(focusedEntry, focusedProposedName)}
         {@const focusedFolder = focusedEntry.path.slice(0, Math.max(focusedEntry.path.lastIndexOf("/"), focusedEntry.path.lastIndexOf("\\")))}
-        <dialog class="metadata-review-dialog" bind:this={metadataDialogElement} aria-labelledby="metadata-review-dialog-title" onclick={(event) => { if (event.target === event.currentTarget) closeMetadataDialog(); }} onclose={() => { metadataDialogOpen = false; libraryTvReview = null; }}>
+        <Modal open={metadataDialogOpen} class="metadata-review-dialog" bind:element={metadataDialogElement} labelId="metadata-review-dialog-title" closeOnBackdrop={true} onClose={() => { metadataDialogOpen = false; libraryTvReview = null; }} initialFocus=".metadata-review-dialog-header button">
           <header class="metadata-review-dialog-header">
             <div class="metadata-review-dialog-title">
               <span class="eyebrow">{libraryTvReview?.level === "series" ? "SERIES REVIEW" : libraryTvReview?.level === "season" ? "SEASON REVIEW" : libraryTvReview ? "EPISODE REVIEW" : "MEDIA FILE REVIEW"}</span>
@@ -5667,23 +5117,23 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
                   selectedPosterPath={posterPath}
                   animated={marked === "all"}
                   animatedMixed={marked === "some"}
-                  onTitle={(value) => patchTvField(target, "title", value)}
-                  onYear={(value) => patchTvField(target, "year", value)}
-                  onCertification={(value) => patchTvField(target, "certification", value)}
+                  onTitle={(value: string) => patchTvField(target, "title", value)}
+                  onYear={(value: string) => patchTvField(target, "year", value)}
+                  onCertification={(value: string) => patchTvField(target, "certification", value)}
                   onUseSharedCertification={() => patchTvField(target, "certification", "")}
-                  onPlot={(value) => patchTvField(target, "plot", value)}
+                  onPlot={(value: string) => patchTvField(target, "plot", value)}
                   onUseSharedPlot={() => patchTvField(target, "plot", "")}
-                  onGenres={(value) => patchTvField(target, "genresText", value)}
-                  onRating={(value) => patchTvField(target, "ratingText", value)}
+                  onGenres={(value: string) => patchTvField(target, "genresText", value)}
+                  onRating={(value: string) => patchTvField(target, "ratingText", value)}
                   onUseSharedRating={() => patchTvField(target, "ratingText", "")}
-                  onSeasonNumber={(value) => patchTvField(target, "season", value)}
-                  onEpisodeNumber={(value) => patchTvField(target, "episode", value)}
-                  onAirdate={(value) => patchTvField(target, "airdate", value)}
-                  onComment={(value) => setReviewComment(target, value)}
+                  onSeasonNumber={(value: string) => patchTvField(target, "season", value)}
+                  onEpisodeNumber={(value: string) => patchTvField(target, "episode", value)}
+                  onAirdate={(value: string) => patchTvField(target, "airdate", value)}
+                  onComment={(value: string) => setReviewComment(target, value)}
                   onUseSharedComment={() => setReviewComment(target, "")}
-                  onSelectPoster={(path) => selectReviewPoster(target, path)}
+                  onSelectPoster={(path: string) => selectReviewPoster(target, path)}
                   onChooseImage={() => void chooseReviewImage()}
-                  onAnimated={(animated) => setPathsAnimated(markedPaths, animated)}
+                  onAnimated={(animated: boolean) => setPathsAnimated(markedPaths, animated)}
                 />
               {:else}
                 <p class="review-status">Preparing this review…</p>
@@ -5729,7 +5179,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
             <span>{libraryTvReview ? "Edits are saved as you type. Done closes this review." : "Choose a poster and confirm the title. Batch rename stays in the organizer."}</span>
             <div><button class="button secondary" type="button" onclick={() => void openFileLocation(reviewLocationPath(libraryTvReview, focusedEntry.path))}>Open file location</button><button class="button secondary" type="button" onclick={openFullMetadataOrganizer}>Open full organizer <ArrowRight size={15} /></button><button class="button primary" type="button" onclick={closeMetadataDialog}>Done</button></div>
           </footer>
-        </dialog>
+        </Modal>
       {/if}
 
       <footer class="page-footer"><span><ShieldCheck size={14} /> Local processing · Originals protected</span><span>HEVC Rebuild Studio <i>•</i> Ubuntu-first preview</span></footer>
@@ -5737,8 +5187,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
   </main>
 
 {#if fullConfirmOpen}
-  <div class="modal-backdrop" role="presentation">
-    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" tabindex="-1">
+  <Modal returnFocus={runLaunchButton} open={fullConfirmOpen} class="confirm-modal" labelId="confirm-title" onClose={() => (fullConfirmOpen = false)}>
       <div class="confirm-symbol"><AlertTriangle size={22} /></div><button class="icon-button modal-close" aria-label="Close confirmation" onclick={() => (fullConfirmOpen = false)}><X size={18} /></button>
       <div class="eyebrow">FINAL SAFETY CHECK</div><h2 id="confirm-title">Start the full rebuild?</h2><p>This will encode {selectedMediaPathsForRun.length ? `${selectedMediaPathsForRun.length} selected file${selectedMediaPathsForRun.length === 1 ? "" : "s"}` : "every eligible queued file"} across {runBatches.length} source{runBatches.length === 1 ? "" : "s"}, one source at a time.{#if appPreferences.rebuildOutputDir || Object.keys(appPreferences.fileOutputDirs).some((path) => selectedRunEntries.some((entry) => entry.path === path))} Rebuilt files will be saved to the configured output folders. Originals stay in place. Per-file choices override the default folder, and existing output files will not be replaced.{:else} Each original stays untouched until its rebuilt output passes validation, then moves into that folder’s <code>old/</code> directory.{/if}</p>
       {#if appPreferences.rebuildOutputDir || Object.keys(appPreferences.fileOutputDirs).some((path) => selectedRunEntries.some((entry) => entry.path === path))}
@@ -5750,13 +5199,11 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
       <div class="confirm-facts"><span><Film size={16} /> {selectedRunEntries.length} {selectedMediaPathsForRun.length ? "selected" : "queued"} file{selectedRunEntries.length === 1 ? "" : "s"}</span><span class="confirm-disk"><HardDrive size={16} /> About {bytes(selectedRunDiskBudget.working)} of temporary space for {selectedRunEntries.length === 1 ? "this file" : "the largest file"}{#if selectedRunDiskBudget.floored}. The finished size is not known yet, so the budget stays at 2 GB even for a small file{/if}. {Number.isFinite(selectedRunFreeBytes) ? `${bytes(selectedRunFreeBytes)} is already free on ${runBatches.length === 1 ? "this volume" : "the tightest volume"}` : "Free space is checked again before the file starts"}.</span><span><Cpu size={16} /> CPU libx265 · one file at a time</span></div>
       <label class="confirm-check"><input type="checkbox" bind:checked={fullAck} /> I reviewed the analysis and understand this starts real encodes.</label>
       <div class="modal-actions"><button class="button secondary" onclick={() => (fullConfirmOpen = false)}>Go back</button><button class="button primary" disabled={!fullAck || !canStart} onclick={() => launchRun(true)}><ShieldCheck size={16} /> Start full rebuild</button></div>
-    </div>
-  </div>
+  </Modal>
 {/if}
 
 {#if outputPreviewOpen && outputPreview}
-  <div class="modal-backdrop queue-output-backdrop" role="presentation">
-    <div class="confirm-modal queue-output-modal" role="dialog" aria-modal="true" aria-labelledby="output-preview-title" tabindex="-1">
+  <Modal returnFocus={runLaunchButton} open={outputPreviewOpen} class="confirm-modal queue-output-modal" labelId="output-preview-title" onClose={() => (outputPreviewOpen = false)}>
       <button class="icon-button modal-close" aria-label="Close output review" onclick={() => (outputPreviewOpen = false)}><X size={18} /></button>
       <div class="eyebrow">OUTPUT REVIEW · {outputPreview.mode.toUpperCase()}</div>
       <h2 id="output-preview-title">Review where these files will go</h2>
@@ -5808,76 +5255,12 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         {#if !outputPreview.eligible}<button class="button secondary" onclick={() => { outputPreviewOpen = false; openPage("run"); }}>Adjust output folders</button>{/if}
         <button class="button primary" disabled={!outputPreview.eligible || outputPreviewBusy || !canStart} onclick={confirmOutputPreview}>{outputPreviewBusy ? "Checking paths…" : outputPreview.eligible ? (outputPreview.targets.every((target) => target.replacesSource) ? "Confirm and start" : "Confirm destinations and start") : "Resolve collisions first"}</button>
       </div>
-    </div>
-  </div>
+  </Modal>
 {/if}
 
-{#if recoveryReviewOpen && recoveryCurrentItem}
-  <div class="modal-backdrop queue-output-backdrop" role="presentation">
-    <div class="confirm-modal queue-recovery-modal" role="dialog" aria-modal="true" aria-labelledby="recovery-review-title" tabindex="-1">
-      <button class="icon-button modal-close" aria-label="Close recovery review" onclick={() => (recoveryReviewOpen = false)}><X size={18} /></button>
-      <div class="eyebrow">RECOVERY REVIEW · {recoveryReviewIndex + 1} OF {recoveryReviewItems.length}</div>
-      <h2 id="recovery-review-title">Check this file before another run</h2>
-      <p>An earlier run ended without a saved per-file result. The app will not resume it automatically. Review the report and probe the recorded output (or the source path when no output was recorded). A readable file alone does not prove the rebuild passed validation.</p>
+<RecoveryReview returnFocus={runLaunchButton} {recoveryReviewOpen} {recoveryCurrentItem} {recoveryReviewIndex} {recoveryReportStatus} {recoveryProbeEntry} {recoveryProbeError} {recoveryProbeAttempted} {desktopShell} {recoveryProbeBusy} {workflowBusy} bind:recoveryAcknowledged {recoveryCanMarkComplete} {queueRunStatusLabel} {inspectRecoveryTarget} {finishRecoveryReview} itemCount={recoveryReviewItems.length} onClose={() => recoveryReviewOpen = false} />
 
-      <div class="queue-recovery-file">
-        <strong>{recoveryCurrentItem.entry.name}</strong>
-        <code title={recoveryCurrentItem.targetPath}>{recoveryCurrentItem.targetPath}</code>
-        <small>{queueRunStatusLabel(recoveryCurrentItem.state.status)}{recoveryCurrentItem.state.mode ? ` · ${recoveryCurrentItem.state.mode.toUpperCase()}` : ""} · source {recoveryCurrentItem.entry.status}</small>
-      </div>
-
-      <section class="queue-recovery-evidence" aria-label="Last run report">
-        <div class="queue-recovery-section-title"><strong>Last report</strong><span class="status-tag" class:status-ready={recoveryReportStatus === "OK" || recoveryReportStatus === "METADATA_OK" || recoveryReportStatus === "TEST_OK"} class:status-error={recoveryReportStatus === "FAILED"}>{recoveryReportStatus || "NOT RECORDED"}</span></div>
-        {#if recoveryCurrentItem.state.reportPath}<code class="queue-recovery-report-path">{recoveryCurrentItem.state.reportPath}</code>{/if}
-        {#if recoveryCurrentItem.report}
-          <p>{recoveryCurrentItem.report.message || "The report has no additional message for this file."}</p>
-          {#if recoveryCurrentItem.report.output}<small>Reported output · {recoveryCurrentItem.report.output}</small>{/if}
-          {#if recoveryCurrentItem.report.resolution || recoveryCurrentItem.report.primary_video}<small>{[recoveryCurrentItem.report.resolution, recoveryCurrentItem.report.primary_video].filter(Boolean).join(" · ")}</small>{/if}
-        {:else}
-          <p>No matching per-file result is available from the saved report. Check the report history or output folder before deciding what to do.</p>
-        {/if}
-        {#if recoveryCurrentItem.state.message}<small>Queue note · {recoveryCurrentItem.state.message}</small>{/if}
-      </section>
-
-      <div class="queue-recovery-inspection">
-        <div class="queue-recovery-section-title"><strong>Output check</strong>{#if recoveryProbeEntry}<span class="status-tag" class:status-ready={recoveryProbeEntry.status === "Ready"} class:status-error={recoveryProbeEntry.status !== "Ready"}>{recoveryProbeEntry.status}</span>{/if}</div>
-        {#if recoveryProbeEntry?.profile}
-          <p>{recoveryProbeEntry.profile.video.width} × {recoveryProbeEntry.profile.video.height} · {recoveryProbeEntry.profile.video.source_bit_depth}-bit · {recoveryProbeEntry.profile.video.codec ?? "video codec unknown"}{recoveryProbeEntry.profile.hdr.dolby_vision ? " · Dolby Vision" : recoveryProbeEntry.profile.hdr.hdr10plus ? " · HDR10+" : recoveryProbeEntry.profile.hdr.hdr10 ? " · HDR10" : recoveryProbeEntry.profile.hdr.hlg ? " · HLG" : " · SDR"}</p>
-          <small>{recoveryProbeEntry.profile.tracks.length} streams · {recoveryProbeEntry.profile.chapters_count} chapters · {(recoveryProbeEntry.size_bytes / (1024 ** 3)).toFixed(2)} GiB</small>
-          {#if recoveryProbeEntry.error}<small class="row-error">{recoveryProbeEntry.error}</small>{/if}
-        {:else if recoveryProbeError}
-          <p class="row-error">{recoveryProbeError}</p>
-        {:else if recoveryProbeAttempted}
-          <p>No media profile was returned for this path.</p>
-        {:else}
-          <p>Probe the existing file to confirm FFprobe can read its container and streams.</p>
-        {/if}
-        <button class="button secondary" disabled={!desktopShell || recoveryProbeBusy || workflowBusy} onclick={inspectRecoveryTarget}>{#if recoveryProbeBusy}<LoaderCircle class="spin" size={15} /> Checking file…{:else}<ScanSearch size={15} /> {recoveryProbeAttempted ? "Check again" : "Inspect recorded target"}{/if}</button>
-      </div>
-
-      <label class="confirm-check queue-recovery-ack"><input type="checkbox" bind:checked={recoveryAcknowledged} disabled={!recoveryProbeAttempted || recoveryProbeBusy} /><span>I reviewed the report and file check above. I understand this inspection does not substitute for the encoder’s validation report.</span></label>
-      <div class="modal-actions queue-recovery-actions">
-        <button class="button secondary" onclick={() => (recoveryReviewOpen = false)}>Cancel</button>
-        {#if recoveryCanMarkComplete}<button class="button secondary" disabled={!recoveryAcknowledged || recoveryProbeBusy} onclick={() => finishRecoveryReview(true)}><CheckCircle2 size={15} /> Record as complete</button>{/if}
-        <button class="button primary" disabled={!recoveryAcknowledged || !recoveryProbeAttempted || recoveryProbeBusy} onclick={() => finishRecoveryReview(false)}>{recoveryReviewIndex + 1 < recoveryReviewItems.length ? "Review next file" : "Continue to output review"}<ArrowRight size={15} /></button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if repairConfirmOpen && environment && aptUpdates}
-  <div class="modal-backdrop" role="presentation">
-    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="repair-title" tabindex="-1">
-      <div class="confirm-symbol repair-symbol"><Wrench size={21} /></div><button class="icon-button modal-close" aria-label="Close confirmation" onclick={() => (repairConfirmOpen = false)}><X size={18} /></button>
-      <div class="eyebrow">SYSTEM TOOL SETUP</div><h2 id="repair-title">Install or update these tools?</h2><p>The app will install missing packages, then update only the listed packages from your enabled Ubuntu sources. Each APT plan is simulated first and stops if it would remove packages or change unlisted updates. Ubuntu will request administrator authentication.</p>
-      {#if environment.missing_apt_packages.length}<div class="repair-plan-group"><strong>Install missing</strong><div class="repair-package-list">{#each environment.missing_apt_packages as pkg (pkg)}<code>{pkg}</code>{/each}</div></div>{/if}
-      {#if aptUpdates.packages.length}<div class="repair-plan-group"><strong>Update from {aptUpdates.source}</strong><div class="apt-update-list modal-apt-update-list">{#each aptUpdates.packages as update (update.name)}<div><code>{update.name}</code><span>{update.installed_version}</span><ArrowRight size={13} /><strong>{update.candidate_version}</strong></div>{/each}</div></div>{/if}
-      {#if environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)}<div class="repair-helper-note"><CheckCircle2 size={16} /><span><strong>HDR10+ helper</strong> will also be installed from its verified upstream release after the package setup succeeds.</span></div>{/if}
-      <small class="repair-plan-footnote">Ubuntu package versions come from the enabled APT repositories and may lag upstream releases. Custom binary overrides are left untouched.</small>
-      <div class="modal-actions"><button class="button secondary" onclick={() => (repairConfirmOpen = false)}>Cancel</button><button class="button primary" disabled={workflowBusy || aptUpdates.catalog_stale} onclick={confirmAptRepair}><Wrench size={16} /> Continue to authentication</button></div>
-    </div>
-  </div>
-{/if}
+<ToolRepairConfirmation {repairConfirmOpen} {environment} {aptUpdates} {workflowBusy} {confirmAptRepair} onClose={() => repairConfirmOpen = false} />
 </div>
 
 {#snippet MediaTable(entries: MediaEntry[], onOpenLibrary: () => void)}
@@ -5888,7 +5271,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         {@const memoryForecast = resourceForecastFor(entry)}
         {@const queueRun = page === "library" ? queueRunStateForPath(entry.path) : undefined}
         {@const queueRunLog = queueRun ? queueRunLogs[queuePathKey(entry.path)] : undefined}
-        {@const rowProgress = runProgress?.filePath && queuePathKey(runProgress.filePath) === queuePathKey(entry.path) ? runProgress : null}
+        {@const rowProgress = workspace.run.progress?.filePath && queuePathKey(workspace.run.progress.filePath) === queuePathKey(entry.path) ? workspace.run.progress : null}
         {@const entrySettings = page === "library" ? settingsForEntry(entry) : settings}
         {@const reviewedMovie = queueMovieReviews[entry.path]}
         {@const reviewedSeries = page === "library" ? reviewedSeriesForPath(entry.path) : undefined}
@@ -5899,7 +5282,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         {@const localPosterPath = reviewedMetadata?.localPosterPath ?? ""}
         {@const localPosterKey = localPosterPath ? queuePathKey(localPosterPath) : ""}
         <tr data-media-path={entry.path}>
-          <td><input type="checkbox" aria-label={`Select ${entry.name}`} checked={selectedMediaPaths.includes(entry.path)} disabled={workflowBusy || (entry.queue_stale === "missing" && !selectedMediaPaths.includes(entry.path))} onchange={(event) => { selectedMediaPaths = event.currentTarget.checked ? [...new Set([...selectedMediaPaths, entry.path])] : selectedMediaPaths.filter((path) => path !== entry.path); }} /></td>
+          <td><input type="checkbox" aria-label={`Select ${entry.name}`} checked={workspace.queue.selectedPaths.includes(entry.path)} disabled={workflowBusy || (entry.queue_stale === "missing" && !workspace.queue.selectedPaths.includes(entry.path))} onchange={(event) => { workspace.queue.selectedPaths = event.currentTarget.checked ? [...new Set([...workspace.queue.selectedPaths, entry.path])] : workspace.queue.selectedPaths.filter((path) => path !== entry.path); }} /></td>
           <td>
             <div class="file-cell">
               {#if page === "library" && reviewedMetadata}
@@ -6099,7 +5482,7 @@ type ToolSetupLogSummary = { jobId: string; modifiedUnix: number; sizeBytes: num
         {:else}
           <p class="apt-update-empty">Checking Python, FFmpeg, MediaInfo, MKVToolNix, Fontconfig, and certificate packages against the local APT catalog…</p>
         {/if}
-        {@render ToolRepairActivity(true)}
+        <ToolRepairActivity showLogHistory={true} {repairSummary} {repairSummaryIsError} {repairId} {hdrInstalling} {repairToolOutcomes} {repairLogWarning} {repairLines} {toolSetupLogs} bind:selectedToolSetupLog {toolSetupLogLoading} bind:viewedToolSetupLog {toolSetupLogExporting} {toolSetupLogError} {openToolSetupLog} {exportToolSetupLog} />
       </section>
       <div class="encoder-note"><Info size={15} /><span>Hardware inventory is used for resource planning and diagnostics. The current rebuild engine uses <strong>CPU libx265</strong>; GPU encoding is not enabled.</span><button class="text-button" onclick={() => openPage("run")}>Resource settings <ArrowRight size={14} /></button></div>
     {:else}<div class="empty-state compact"><LoaderCircle class="spin" size={18} /><div><strong>{environmentLoading || booting ? "Checking this computer…" : "Could not read the environment"}</strong><p>{environmentError || "The desktop backend may be unavailable. Recheck after setup."}</p></div>{#if !environmentLoading}<button class="button secondary" onclick={loadEnvironment}>Retry check</button>{/if}</div>{/if}

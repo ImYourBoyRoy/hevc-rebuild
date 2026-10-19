@@ -629,8 +629,8 @@ struct RecoveryDecision {
 
 fn recover_interrupted_file(media_path: &str, state: &QueueRunState) -> RecoveryDecision {
     let source = Path::new(media_path);
-    let source_exists = fs::symlink_metadata(source)
-        .is_ok_and(|metadata| metadata.file_type().is_file());
+    let source_exists =
+        fs::symlink_metadata(source).is_ok_and(|metadata| metadata.file_type().is_file());
     let removed_temporary_files = remove_incomplete_outputs(source, state.output_path.as_deref());
     let report_status = state
         .report_status
@@ -656,7 +656,10 @@ fn recover_interrupted_file(media_path: &str, state: &QueueRunState) -> Recovery
     if let Some(status) = report_status.as_deref() {
         if matches!(status, "OK" | "METADATA_OK" | "TEST_OK" | "INFO") {
             let output_ok = state.output_path.is_none() && (status == "INFO" || source_exists)
-                || state.output_path.as_deref().is_some_and(nonempty_regular_file);
+                || state
+                    .output_path
+                    .as_deref()
+                    .is_some_and(nonempty_regular_file);
             if output_ok {
                 return RecoveryDecision {
                     removed_temporary_files,
@@ -705,7 +708,8 @@ fn recover_interrupted_file(media_path: &str, state: &QueueRunState) -> Recovery
 }
 
 fn nonempty_regular_file(path: &str) -> bool {
-    fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file() && metadata.len() > 0)
+    fs::symlink_metadata(path)
+        .is_ok_and(|metadata| metadata.file_type().is_file() && metadata.len() > 0)
 }
 
 fn remove_incomplete_outputs(source: &Path, output_path: Option<&str>) -> u32 {
@@ -807,7 +811,12 @@ fn regular_file_is_open(path: &Path) -> bool {
     false
 }
 
-fn recovery_summary(completed: u32, cleared: u32, held: u32, removed_temporary_files: u32) -> String {
+fn recovery_summary(
+    completed: u32,
+    cleared: u32,
+    held: u32,
+    removed_temporary_files: u32,
+) -> String {
     let mut parts = Vec::new();
     if cleared > 0 {
         parts.push(format!(
@@ -818,13 +827,21 @@ fn recovery_summary(completed: u32, cleared: u32, held: u32, removed_temporary_f
         if removed_temporary_files > 0 {
             parts.push(format!(
                 "{removed_temporary_files} unfinished temporary file{} removed",
-                if removed_temporary_files == 1 { " was" } else { "s were" },
+                if removed_temporary_files == 1 {
+                    " was"
+                } else {
+                    "s were"
+                },
             ));
         }
     } else if removed_temporary_files > 0 {
         parts.push(format!(
             "{removed_temporary_files} unfinished temporary file{} removed",
-            if removed_temporary_files == 1 { " was" } else { "s were" },
+            if removed_temporary_files == 1 {
+                " was"
+            } else {
+                "s were"
+            },
         ));
     }
     if completed > 0 {
@@ -1138,7 +1155,8 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
         if !review.source_url.is_empty() && !review.source_url.starts_with("https://") {
             return Err("A saved movie review source URL must use HTTPS.".into());
         }
-        if !review.local_poster_path.is_empty() && !saved_poster_reference(&review.local_poster_path)
+        if !review.local_poster_path.is_empty()
+            && !saved_poster_reference(&review.local_poster_path)
         {
             return Err("A saved local movie poster must use an absolute path.".into());
         }
@@ -1236,7 +1254,8 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
         if !review.source_url.is_empty() && !review.source_url.starts_with("https://") {
             return Err("A saved series review source URL must use HTTPS.".into());
         }
-        if !review.local_poster_path.is_empty() && !saved_poster_reference(&review.local_poster_path)
+        if !review.local_poster_path.is_empty()
+            && !saved_poster_reference(&review.local_poster_path)
         {
             return Err("A saved local series poster must use an absolute path.".into());
         }
@@ -1941,13 +1960,15 @@ mod tests {
         fs::write(&source, b"original-video").expect("create original");
         fs::write(&finished, b"finished-source").expect("create finished source");
         fs::write(&output, b"validated-output").expect("create finished output");
-        let temp = directory.join(
-            ".Chaos Theory.hevc-rebuild.abcdef0123456789abcdef0123456789.tmp.mkv",
-        );
+        let temp =
+            directory.join(".Chaos Theory.hevc-rebuild.abcdef0123456789abcdef0123456789.tmp.mkv");
         fs::write(&temp, b"partial-encode").expect("create temporary encode");
         fs::create_dir(directory.join("old")).expect("create backup folder");
-        fs::write(directory.join("old").join("Chaos Theory.mkv"), b"older-backup")
-            .expect("create backup");
+        fs::write(
+            directory.join("old").join("Chaos Theory.mkv"),
+            b"older-backup",
+        )
+        .expect("create backup");
         fs::write(directory.join("Chaos Theory.hevc-rebuild.nfo"), b"nfo").expect("create nfo");
         let queue_path = directory.join("library-queue.json");
         let mut queue = QueueDocument::default();
@@ -2012,10 +2033,18 @@ mod tests {
         assert_eq!(recovery.removed_temporary_files, 1);
         assert!(!temp.exists());
         assert_eq!(fs::read(&source).unwrap(), b"original-video");
-        assert_eq!(fs::read(directory.join("old").join("Chaos Theory.mkv")).unwrap(), b"older-backup");
-        assert_eq!(fs::read(directory.join("Chaos Theory.hevc-rebuild.nfo")).unwrap(), b"nfo");
+        assert_eq!(
+            fs::read(directory.join("old").join("Chaos Theory.mkv")).unwrap(),
+            b"older-backup"
+        );
+        assert_eq!(
+            fs::read(directory.join("Chaos Theory.hevc-rebuild.nfo")).unwrap(),
+            b"nfo"
+        );
         assert_eq!(fs::read(&output).unwrap(), b"validated-output");
-        assert!(!recovery.run_states.contains_key(source.to_string_lossy().as_ref()));
+        assert!(!recovery
+            .run_states
+            .contains_key(source.to_string_lossy().as_ref()));
         assert_eq!(
             recovery.run_states[&finished.to_string_lossy().into_owned()].status,
             "completed"
@@ -2141,9 +2170,10 @@ mod tests {
 
         let mut series = sample_series_review();
         series.local_poster_path = "https://image.tmdb.org/t/p/original/series.jpg".into();
-        series
-            .local_season_poster_paths
-            .insert("1".into(), "https://artworks.thetvdb.com/banners/season.jpg".into());
+        series.local_season_poster_paths.insert(
+            "1".into(),
+            "https://artworks.thetvdb.com/banners/season.jpg".into(),
+        );
         queue.series_reviews.insert("/media/show".into(), series);
         assert!(validate(&queue).is_ok());
     }

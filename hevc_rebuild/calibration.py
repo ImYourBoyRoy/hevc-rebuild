@@ -25,7 +25,7 @@ from .encode import (
 )
 from .model import MediaProfile, Toolchain
 from .resources import SwapSampler, memory_stats, snapshot
-from .util import RebuildError, format_command, portable_data_dir, start_stderr_drain
+from .util import DiagnosticTail, RebuildError, format_command, portable_data_dir, start_stderr_drain
 
 GIB = 1024**3
 MIB = 1024**2
@@ -663,7 +663,7 @@ def benchmark_candidate(
     except (OSError, subprocess.SubprocessError) as exc:
         return CalibrationResult(workers, frames, 0.0, media_seconds, 0.0, None, None, None, None, None, False, f"Could not start calibration: {exc}")
 
-    stderr_lines: list[str] = []
+    stderr_lines = DiagnosticTail()
     drain = start_stderr_drain(proc.stderr, stderr_lines)
     swap_sampler = SwapSampler()
     peak_rss: float | None = None
@@ -724,7 +724,7 @@ def benchmark_candidate(
             return_code = proc.poll()
         if return_code != 0:
             healthy = False
-            diagnostic = "".join(stderr_lines)[-3000:].strip()
+            diagnostic = stderr_lines.text(3000).strip()
             reason = reason or f"FFmpeg calibration exited {return_code}" + (f": {diagnostic}" if diagnostic else "")
     finally:
         if proc.poll() is None:

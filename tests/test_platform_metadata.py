@@ -10,6 +10,27 @@ from hevc_rebuild.util import RebuildError
 
 
 class PlatformTests(unittest.TestCase):
+    def setUp(self):
+        managed = tempfile.TemporaryDirectory()
+        self.addCleanup(managed.cleanup)
+        self.managed_bin = Path(managed.name)
+        patcher = patch.object(deps, "MANAGED_BIN", self.managed_bin)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_metadata_helper_discovery_managed_path_and_missing_precedence(self):
+        executable = self.managed_bin / "hdr10plus_tool"
+        with patch.object(deps, "_native_toolchain", return_value=None), patch.object(deps, "validate_platform"), patch.object(deps, "run", return_value=type("Result", (), {"returncode": 0})()), patch.object(deps, "get_x265_help", side_effect=AssertionError("metadata must not probe x265")), patch.object(deps, "which") as lookup:
+            lookup.side_effect = lambda name: f"/path/{name}"
+            executable.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+            executable.chmod(0o700)
+            self.assertEqual(deps.resolve_toolchain(install_missing=False, purpose="metadata").hdr10plus_tool, str(executable))
+            executable.chmod(0o600)
+            self.assertEqual(deps.resolve_toolchain(install_missing=False, purpose="metadata").hdr10plus_tool, "/path/hdr10plus_tool")
+            executable.unlink()
+            lookup.side_effect = lambda name: None if name == "hdr10plus_tool" else f"/path/{name}"
+            self.assertEqual(deps.resolve_toolchain(install_missing=False, purpose="metadata").hdr10plus_tool, "hdr10plus_tool")
+
     @patch.object(deps, "native_json_action")
     def test_metadata_toolchain_does_not_require_x265_or_hdr10plus_helper(self, native_action):
         native_action.return_value = {

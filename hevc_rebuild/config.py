@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import math
 import os
 import tomllib
 from pathlib import Path
@@ -333,6 +334,11 @@ def validate_metadata_text_blacklist(value: Any) -> list[str]:
 
 
 def validate_config(cfg: dict[str, Any]) -> None:
+    for section, values in cfg.items():
+        if isinstance(values, dict):
+            for key, value in values.items():
+                if isinstance(value, float) and not math.isfinite(value):
+                    raise RebuildError(f"Config {section}.{key} must be finite.")
     crf = cfg["video"]["crf"]
     if not isinstance(crf, int) or isinstance(crf, bool) or not 0 <= crf <= 51:
         raise RebuildError("Config video.crf must be an integer from 0 to 51.")
@@ -428,6 +434,7 @@ def load_config(root: Path, *, create_user: bool = True) -> tuple[dict[str, Any]
 
 
 def apply_to_args(args: Any, cfg: dict[str, Any]) -> None:
+    """Apply settings to parser/compatibility namespaces; optional fields may be absent."""
     # CLI values win. argparse uses None for settings that are configurable here.
     args.crf = cfg["video"]["crf"] if args.crf is None else args.crf
     args.preset = cfg["video"]["preset"] if args.preset is None else args.preset
@@ -442,7 +449,8 @@ def apply_to_args(args: Any, cfg: dict[str, Any]) -> None:
     args.secondary_video = cfg["streams"]["secondary_video"] if args.secondary_video is None else args.secondary_video
     args.data_streams = cfg["streams"]["data_streams"] if args.data_streams is None else args.data_streams
     args.comment = cfg["metadata"]["comment"] if args.comment is None else args.comment
-    args.embed_artwork = cfg["metadata"].get("embed_artwork", True) if args.embed_artwork is None else args.embed_artwork
+    current_artwork = getattr(args, "embed_artwork", None)
+    args.embed_artwork = cfg["metadata"].get("embed_artwork", True) if current_artwork is None else current_artwork
     cli_patterns = getattr(args, "metadata_text_blacklist", None)
     if getattr(args, "replace_metadata_text_blacklist", False):
         patterns = list(cli_patterns or [])

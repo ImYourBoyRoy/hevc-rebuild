@@ -12,6 +12,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 from typing import Mapping
 
@@ -26,13 +27,32 @@ APT_PACKAGES = {
     "fontconfig": ["fc-list"],
     "ca-certificates": [],
 }
+WINDOWS_WINGET_PACKAGES = {
+    "ffmpeg": "Gyan.FFmpeg",
+    "mediainfo": "MediaArea.MediaInfo",
+    "mkvtoolnix": "MoritzBunkus.MKVToolNix",
+}
+WINDOWS_COMMANDS = {
+    "ffmpeg": ("ffmpeg", "ffprobe"),
+    "mediainfo": ("mediainfo",),
+    "mkvtoolnix": ("mkvpropedit", "mkvmerge", "mkvextract"),
+}
 TOOL_OVERRIDE_KEYS = (
     "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract",
 )
 GITHUB_RELEASE_API = "https://api.github.com/repos/quietvoid/hdr10plus_tool/releases/latest"
 _PORTABLE_DATA = portable_data_dir()
-APP_DATA = (_PORTABLE_DATA / "share" / "hevc-rebuild") if _PORTABLE_DATA else Path.home() / ".local" / "share" / "hevc-rebuild"
+if _PORTABLE_DATA:
+    APP_DATA = _PORTABLE_DATA / "share" / "hevc-rebuild"
+elif os.name == "nt":
+    APP_DATA = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "hevc-rebuild"
+else:
+    APP_DATA = Path.home() / ".local" / "share" / "hevc-rebuild"
 MANAGED_BIN = APP_DATA / "bin"
+
+
+def is_windows() -> bool:
+    return os.name == "nt" or platform.system().lower() == "windows"
 
 
 def os_release() -> dict[str, str]:
@@ -54,12 +74,22 @@ def version_tuple(text: str) -> tuple[int, ...]:
 
 
 def validate_platform(allow_unsupported: bool = False) -> None:
-    """Accept supported Ubuntu and Ubuntu-based Linux Mint releases.
+    """Accept supported Ubuntu/Mint or Windows hosts with the right resolver.
 
     Runtime capability tests remain authoritative. Distro/version checks only prevent
-    accidental use on unrelated package ecosystems where our automated APT repair
-    logic could be unsafe.
+    accidental use on unrelated package ecosystems where automated package repair
+    could be unsafe.
     """
+    if is_windows():
+        if which("winget"):
+            logging.info("Supported Windows platform detected with winget.")
+            return
+        msg = "Windows builds require the Windows Package Manager (winget) for dependency repair."
+        if allow_unsupported:
+            logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
+            return
+        raise RebuildError(msg)
+
     info = os_release()
     ident = info.get("ID", "").lower()
     version = info.get("VERSION_ID", "0")
@@ -89,6 +119,89 @@ def validate_platform(allow_unsupported: bool = False) -> None:
         logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
     else:
         raise RebuildError(msg)
+
+
+def _refresh_windows_path() -> None:
+    """Refresh this Python process after winget changes PATH."""
+    if not is_windows():
+        return
+    machine = os.environ.get("PATH", "")
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment") as key:
+            machine = winreg.QueryValueEx(key, "Path")[0] or machine
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+            user = winreg.QueryValueEx(key, "Path")[0] or ""
+    except (ImportError, OSError):
+        user = ""
+    links = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "Microsoft" / "WinGet" / "Links"
+    entries = [item for item in (machine, user, str(links)) if item]
+    for candidate in (
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "MediaInfo",
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "MKVToolNix",
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "FFmpeg" / "bin",
+    ):
+        if candidate.is_dir():
+            entries.append(str(candidate))
+    os.environ["PATH"] = os.pathsep.join(dict.fromkeys(entries))
+
+
+def _windows_command_paths() -> dict[str, str | None]:
+    _refresh_windows_path()
+    return {
+        command: which(command)
+        for command in (
+            "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract",
+        )
+    }
+
+
+def _winget_package_present(package_id: str) -> bool:
+    result = run(
+        ["winget", "list", "--id", package_id, "--exact", "--accept-source-agreements"],
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def ensure_windows_dependencies(*, assume_yes: bool = False, required_packages: tuple[str, ...] | None = None) -> None:
+    """Install only HEVC-owned media packages through explicit winget IDs."""
+    if not is_windows():
+        raise RebuildError("Windows dependency repair was requested on a non-Windows host.")
+    validate_platform()
+    package_names = required_packages or tuple(WINDOWS_WINGET_PACKAGES)
+    unknown = set(package_names) - set(WINDOWS_WINGET_PACKAGES)
+    if unknown:
+        raise RebuildError("Unknown Windows dependency package(s): " + ", ".join(sorted(unknown)))
+    for package_name in package_names:
+        commands = WINDOWS_COMMANDS[package_name]
+        missing = [command for command in commands if not which(command)]
+        if not missing:
+            continue
+        package_id = WINDOWS_WINGET_PACKAGES[package_name]
+        if not _winget_package_present(package_id):
+            if not assume_yes:
+                prompt_enter(
+                    f"Press ENTER to install {package_id} through winget for missing commands: "
+                    + ", ".join(missing)
+                )
+            run(
+                [
+                    "winget", "install", "--id", package_id, "--exact", "--silent",
+                    "--accept-source-agreements", "--accept-package-agreements",
+                    "--disable-interactivity",
+                ],
+                capture=False,
+            )
+        _refresh_windows_path()
+        paths = _windows_command_paths()
+        still_missing = [command for command in commands if not paths.get(command)]
+        if still_missing:
+            raise RebuildError(
+                f"winget package {package_id} completed but commands remain unavailable: "
+                + ", ".join(still_missing)
+            )
 
 
 def apt_lists_fresh(max_age_hours: float = 12.0) -> bool:
@@ -140,6 +253,8 @@ def apt_candidate(package: str) -> str | None:
 
 def apt_update_status() -> dict:
     """Inspect only the local APT cache; this function never refreshes or installs packages."""
+    if is_windows():
+        raise RebuildError("APT package updates are Linux-only; use the Windows HEVC dependency resolver.")
     validate_platform()
     packages: list[dict[str, str]] = []
     for package in sorted(APT_PACKAGES):
@@ -267,6 +382,8 @@ def ensure_apt_dependencies(
     skip_update_check: bool = False,
     required_packages: tuple[str, ...] | None = None,
 ) -> None:
+    if is_windows():
+        raise RebuildError("APT dependency repair is Linux-only; use ensure_windows_dependencies().")
     package_names = required_packages or tuple(APT_PACKAGES)
     unknown_packages = set(package_names) - set(APT_PACKAGES)
     if unknown_packages:
@@ -332,7 +449,11 @@ def github_latest_hdr10plus(timeout: float = 6.0) -> dict:
         headers={"Accept": "application/vnd.github+json", "User-Agent": "hevc-rebuild-ubuntu/1.0"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
-        return json.load(response)
+        from .util import require_json_object
+        value = require_json_object(json.load(response), "GitHub HDR10+ release", required_keys=("assets", "tag_name"))
+        if not isinstance(value["assets"], list) or any(not isinstance(asset, dict) for asset in value["assets"]):
+            raise RebuildError("GitHub HDR10+ release returned invalid assets.")
+        return value
 
 
 def parse_tool_version(text: str) -> str | None:
@@ -348,10 +469,30 @@ def hdr10plus_version(path: str) -> str | None:
 def arch_asset_token() -> str:
     machine = platform.machine().lower()
     if machine in {"x86_64", "amd64"}:
+        if is_windows():
+            return "x86_64-pc-windows-msvc"
         return "x86_64-unknown-linux-musl"
     if machine in {"aarch64", "arm64"}:
+        if is_windows():
+            return "aarch64-pc-windows-msvc"
         return "aarch64-unknown-linux-musl"
     raise RebuildError(f"No managed hdr10plus_tool binary is configured for architecture {machine!r}.")
+
+
+def managed_hdr_path() -> Path:
+    return MANAGED_BIN / ("hdr10plus_tool.exe" if is_windows() else "hdr10plus_tool")
+
+
+def companion_ffprobe(ffmpeg_path: str | None) -> str | None:
+    if not ffmpeg_path:
+        return None
+    ffmpeg = Path(ffmpeg_path)
+    names = ("ffprobe.exe", "ffprobe") if is_windows() else ("ffprobe",)
+    for name in names:
+        candidate = ffmpeg.with_name(name)
+        if candidate.is_file() and (is_windows() or os.access(candidate, os.X_OK)):
+            return str(candidate.resolve())
+    return None
 
 
 def _asset_checksum(release: dict, asset: dict, timeout: float) -> str | None:
@@ -374,12 +515,13 @@ def _asset_checksum(release: dict, asset: dict, timeout: float) -> str | None:
 
 def install_hdr10plus(release: dict, *, assume_yes: bool = False, timeout: float = 20.0) -> str:
     token = arch_asset_token()
+    suffix = ".zip" if is_windows() else ".tar.gz"
     asset = next(
-        (a for a in release.get("assets", []) if token in a.get("name", "") and a.get("name", "").endswith(".tar.gz")),
+        (a for a in release.get("assets", []) if token in a.get("name", "") and a.get("name", "").endswith(suffix)),
         None,
     )
     if not asset:
-        raise RebuildError(f"Latest hdr10plus_tool release has no {token} tarball.")
+        raise RebuildError(f"Latest hdr10plus_tool release has no {token} {suffix} asset.")
     checksum = _asset_checksum(release, asset, timeout)
     if not checksum:
         raise RebuildError(
@@ -403,32 +545,48 @@ def install_hdr10plus(release: dict, *, assume_yes: bool = False, timeout: float
                 h.update(chunk)
         if h.hexdigest().lower() != checksum:
             raise RebuildError("hdr10plus_tool SHA-256 verification failed; refusing installation.")
-        with tarfile.open(archive, "r:gz") as tf:
-            # Avoid arbitrary-path extraction.
-            candidates = [m for m in tf.getmembers() if Path(m.name).name == "hdr10plus_tool" and m.isfile()]
-            if len(candidates) != 1:
-                raise RebuildError("Unexpected hdr10plus_tool release archive layout.")
-            member = candidates[0]
-            extracted = tf.extractfile(member)
-            if extracted is None:
-                raise RebuildError("Unable to read hdr10plus_tool from release archive.")
-            temp_binary = tmp_path / "hdr10plus_tool"
-            with temp_binary.open("wb") as out:
-                shutil.copyfileobj(extracted, out)
-            temp_binary.chmod(temp_binary.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-            target = MANAGED_BIN / "hdr10plus_tool"
-            staged = MANAGED_BIN / ".hdr10plus_tool.new"
+        if is_windows():
+            with zipfile.ZipFile(archive) as zf:
+                candidates = [
+                    info for info in zf.infolist()
+                    if Path(info.filename).name.lower() == "hdr10plus_tool.exe" and not info.is_dir()
+                ]
+                if len(candidates) != 1:
+                    raise RebuildError("Unexpected Windows hdr10plus_tool release archive layout.")
+                temp_binary = tmp_path / "hdr10plus_tool.exe"
+                with zf.open(candidates[0]) as extracted, temp_binary.open("wb") as out:
+                    shutil.copyfileobj(extracted, out)
+            target = managed_hdr_path()
+            staged = MANAGED_BIN / ".hdr10plus_tool.new.exe"
             shutil.copy2(temp_binary, staged)
-            staged.chmod(0o755)
             os.replace(staged, target)
-    version = hdr10plus_version(str(MANAGED_BIN / "hdr10plus_tool"))
+        else:
+            with tarfile.open(archive, "r:gz") as tf:
+                # Avoid arbitrary-path extraction.
+                candidates = [m for m in tf.getmembers() if Path(m.name).name == "hdr10plus_tool" and m.isfile()]
+                if len(candidates) != 1:
+                    raise RebuildError("Unexpected hdr10plus_tool release archive layout.")
+                member = candidates[0]
+                extracted = tf.extractfile(member)
+                if extracted is None:
+                    raise RebuildError("Unable to read hdr10plus_tool from release archive.")
+                temp_binary = tmp_path / "hdr10plus_tool"
+                with temp_binary.open("wb") as out:
+                    shutil.copyfileobj(extracted, out)
+                temp_binary.chmod(temp_binary.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                target = managed_hdr_path()
+                staged = MANAGED_BIN / ".hdr10plus_tool.new"
+                shutil.copy2(temp_binary, staged)
+                staged.chmod(0o755)
+                os.replace(staged, target)
+    version = hdr10plus_version(str(managed_hdr_path()))
     if not version:
         raise RebuildError("Installed hdr10plus_tool did not pass its version smoke test.")
-    return str(MANAGED_BIN / "hdr10plus_tool")
+    return str(managed_hdr_path())
 
 
 def ensure_hdr10plus(*, assume_yes: bool = False, skip_update_check: bool = False) -> str:
-    managed = MANAGED_BIN / "hdr10plus_tool"
+    managed = managed_hdr_path()
     current = str(managed) if managed.exists() else which("hdr10plus_tool")
     current_version = hdr10plus_version(current) if current else None
     release = None
@@ -555,7 +713,18 @@ def resolve_toolchain(
         if native is not None:
             return native
     validate_platform(allow_unsupported=allow_unsupported_os)
-    if install_missing:
+    if install_missing and is_windows():
+        required_packages = ("ffmpeg", "mediainfo", "mkvtoolnix")
+        ensure_windows_dependencies(
+            assume_yes=assume_yes,
+            required_packages=required_packages,
+        )
+        if purpose == "rebuild":
+            hdr = ensure_hdr10plus(assume_yes=assume_yes, skip_update_check=skip_update_check)
+        else:
+            managed_hdr = managed_hdr_path()
+            hdr = str(managed_hdr) if managed_hdr.is_file() else (which("hdr10plus_tool") or "hdr10plus_tool")
+    elif install_missing:
         required_packages = ("python3", "ffmpeg", "mediainfo", "mkvtoolnix") if purpose == "metadata" else None
         ensure_apt_dependencies(
             assume_yes=assume_yes,
@@ -567,9 +736,15 @@ def resolve_toolchain(
         else:
             managed_hdr = MANAGED_BIN / "hdr10plus_tool"
             hdr = str(managed_hdr) if managed_hdr.is_file() and os.access(managed_hdr, os.X_OK) else (which("hdr10plus_tool") or "hdr10plus_tool")
-    else:
-        managed_hdr = MANAGED_BIN / "hdr10plus_tool"
-        hdr = str(managed_hdr) if managed_hdr.is_file() and os.access(managed_hdr, os.X_OK) else which("hdr10plus_tool")
+    elif install_missing is False:
+        # The non-installing Windows path still uses the managed .exe name when
+        # a caller has already installed the helper.
+        if purpose == "rebuild" and is_windows():
+            managed = managed_hdr_path()
+            hdr = str(managed) if managed.is_file() else (which("hdr10plus_tool") or which("hdr10plus_tool.exe"))
+        else:
+            managed_hdr = MANAGED_BIN / "hdr10plus_tool"
+            hdr = str(managed_hdr) if managed_hdr.is_file() and os.access(managed_hdr, os.X_OK) else which("hdr10plus_tool")
         if not hdr and purpose == "rebuild":
             raise RebuildError("hdr10plus_tool is missing. Use Environment → Install HDR10+ helper, or install it and retry.")
         if not hdr:
@@ -577,6 +752,7 @@ def resolve_toolchain(
     overrides = dict(tool_paths or {})
     if ffmpeg_path and not overrides.get("ffmpeg"):
         overrides["ffmpeg"] = ffmpeg_path
+    _refresh_windows_path()
     paths = {name: which(name) for name in TOOL_OVERRIDE_KEYS}
     for name, value in overrides.items():
         if name not in TOOL_OVERRIDE_KEYS or not value:
@@ -590,9 +766,9 @@ def resolve_toolchain(
             raise RebuildError(f"Selected {name} path is not an executable file: {selected}")
         paths[name] = str(selected)
     if overrides.get("ffmpeg") and not overrides.get("ffprobe"):
-        companion_probe = Path(paths["ffmpeg"] or "").with_name("ffprobe")
-        if companion_probe.is_file() and os.access(companion_probe, os.X_OK):
-            paths["ffprobe"] = str(companion_probe.resolve())
+        sibling_probe = companion_ffprobe(paths["ffmpeg"])
+        if sibling_probe:
+            paths["ffprobe"] = sibling_probe
     required_commands = ("ffmpeg", "ffprobe") if purpose == "check" else tuple(paths) if purpose == "rebuild" else (
         "ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract",
     )
@@ -687,9 +863,9 @@ def resolve_youtube_toolchain(
             raise RebuildError(f"Selected {name} path is not an executable file: {selected}")
         paths[name] = str(selected)
     if overrides.get("ffmpeg") and not overrides.get("ffprobe"):
-        companion_probe = Path(paths["ffmpeg"] or "").with_name("ffprobe")
-        if companion_probe.is_file() and os.access(companion_probe, os.X_OK):
-            paths["ffprobe"] = str(companion_probe.resolve())
+        sibling_probe = companion_ffprobe(paths["ffmpeg"])
+        if sibling_probe:
+            paths["ffprobe"] = sibling_probe
 
     missing = [name for name, value in paths.items() if not value]
     if missing:

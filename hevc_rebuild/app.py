@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile
@@ -22,28 +21,28 @@ from .config import apply_to_args, load_config, user_config_path
 from .content import resolve_run_tune
 from .deps import TOOL_OVERRIDE_KEYS, resolve_toolchain, resolve_youtube_toolchain
 from .discovery import discover
-from .encode import DiskPressureError, MemoryPressureError, ResourcePlan, choose_resource_plan, encode_args, run_encode
+from .encode import MemoryPressureError, ResourcePlan, choose_resource_plan, encode_args, run_encode
 from .hdr import (
     dolbyvision_hdr10_fallback_reasons, dolbyvision_safe_preservation_reasons,
     extract_hdr10plus, verify_hdr10plus,
 )
-from .metadata import apply_metadata, choose_poster
+from .metadata import apply_metadata
 from .model import MediaProfile, Toolchain
 from .probe import (
     build_native_profile_set,
     build_native_video_profiles,
     build_profile,
     choose_primary_video,
-    ffprobe_json,
     stream_refs,
 )
 from .util import (
-    ConsoleClosed, RebuildError, UserAbort, append_csv, configure_logging, fsync_dir, fsync_file,
-    human_bytes, unique_backup, user_log_directory,
+    ConsoleClosed, RebuildError, StopRequest, UserAbort, append_csv, configure_logging,
+    fsync_dir, fsync_file, human_bytes, rename_no_replace, unique_backup, user_log_directory,
 )
+from .transactions import commit_transaction as commit_transaction, install_output_copy as install_output_copy
 from .validate import validate_output
 from .ui import emit_gui_progress, print_batch_card, print_batch_summary, print_encode_card, print_phase, print_success, print_warning
-from .resources import automatic_memory_reserve_gib, disk_stats, effective_cpu_threads, memory_stats, pressure_stats, snapshot
+from .resources import automatic_memory_reserve_gib, disk_stats, effective_cpu_threads, memory_stats, snapshot
 
 
 def parser() -> argparse.ArgumentParser:
@@ -703,99 +702,6 @@ def _log_failure_summary(source: Path, phase: str, exc: Exception) -> None:
     )
 
 
-def commit_transaction(source: Path, temp_output: Path, final_output: Path, backup: Path) -> None:
-    native_helper = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
-    if native_helper:
-        command = [
-            native_helper,
-            "internal",
-            "commit-output",
-            "--source",
-            str(source),
-            "--temporary",
-            str(temp_output),
-            "--final",
-            str(final_output),
-            "--backup",
-            str(backup),
-        ]
-        try:
-            result = subprocess.run(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                errors="replace",
-                check=False,
-            )
-        except OSError as exc:
-            raise RebuildError(f"Could not start Rust's validated-output transaction: {exc}") from exc
-        if result.returncode != 0:
-            detail = result.stderr.strip()
-            raise RebuildError(
-                detail or f"Rust's validated-output transaction exited with status {result.returncode}."
-            )
-        return
-
-    backup.parent.mkdir(parents=True, exist_ok=True)
-    fsync_file(temp_output)
-    fsync_dir(temp_output.parent)
-    if final_output != source and final_output.exists():
-        raise RebuildError(f"Final output already exists and will not be overwritten: {final_output}")
-    if backup.exists():
-        raise RebuildError(f"Backup path already exists and will not be overwritten: {backup}")
-
-    source_moved = False
-    final_installed = False
-    try:
-        os.replace(source, backup)
-        source_moved = True
-        fsync_dir(backup.parent)
-        os.replace(temp_output, final_output)
-        final_installed = True
-        fsync_dir(final_output.parent)
-    except Exception:
-        # Before the replacement file is installed, restore the original immediately.
-        # If final installation already happened and only durability syncing failed, keep
-        # both the new final file and the original backup rather than destroying either.
-        if source_moved and not final_installed and not source.exists() and backup.exists():
-            try:
-                os.replace(backup, source)
-                fsync_dir(source.parent)
-            except Exception:
-                logging.exception("CRITICAL: automatic rollback failed; original remains at %s", backup)
-        raise
-
-
-def install_output_copy(temp_output: Path, final_output: Path) -> None:
-    """Install a validated separate output without moving or replacing its source."""
-    native_helper = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
-    if native_helper:
-        command = [native_helper, "internal", "install-output-copy", "--temporary", str(temp_output), "--final", str(final_output)]
-        try:
-            result = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", check=False)
-        except OSError as exc:
-            raise RebuildError(f"Could not start Rust's no-overwrite output installer: {exc}") from exc
-        if result.returncode != 0:
-            raise RebuildError(result.stderr.strip() or f"Rust's output installer exited with status {result.returncode}.")
-        return
-
-    fsync_file(temp_output)
-    fsync_dir(temp_output.parent)
-    try:
-        os.link(temp_output, final_output)
-    except FileExistsError as exc:
-        raise RebuildError(f"Output already exists and will not be overwritten: {final_output}") from exc
-    except OSError as exc:
-        raise RebuildError(f"Could not install validated output at {final_output} without overwriting existing data: {exc}") from exc
-    try:
-        temp_output.unlink()
-        fsync_dir(final_output.parent)
-    except OSError as exc:
-        raise RebuildError(f"Validated output was installed at {final_output}, but temporary cleanup or directory sync failed: {exc}") from exc
-
-
 def _record_memory_forecast(row: dict, plan) -> None:
     forecast = plan.memory_forecast
     if forecast is None:
@@ -858,6 +764,8 @@ def process_metadata_only_one(
         input_bytes=input_bytes,
     )
     temp_output: Path | None = None
+    final_output: Path | None = None
+    failure_detail: str | None = None
     work_dir = Path(tempfile.mkdtemp(prefix="hevc-metadata-only-"))
     try:
         native_profile = build_native_profile_set(
@@ -1071,12 +979,14 @@ def process_metadata_only_one(
             estimated_output_bytes=final_bytes,
         )
         print_success(f"Metadata-only MKV ready: {final_output.name}")
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
         row["status"] = "INTERRUPTED"
         row["message"] = "Interrupted before validated output install; source was left untouched."
+        failure_detail = f"{type(exc).__name__}: {exc}".rstrip()
         raise
     except Exception as exc:
         row["message"] = str(exc)
+        failure_detail = f"{type(exc).__name__}: {exc}"
         emit_gui_progress(
             file_name=source.name,
             file_path=str(source),
@@ -1095,7 +1005,15 @@ def process_metadata_only_one(
         if args.stop_on_error:
             raise
     finally:
-        _release_temporary_output(temp_output, phase, row, args.keep_work)
+        _release_temporary_output(
+            temp_output,
+            phase,
+            row,
+            args.keep_work,
+            final_output=final_output,
+            source=source,
+            failure_detail=failure_detail,
+        )
         row["elapsed_seconds"] = round(time.monotonic() - started, 3)
         append_csv(csv_path, row)
         if args.keep_work:
@@ -1114,8 +1032,13 @@ _FINISHED_OUTPUT_PHASES = frozenset({
 })
 
 
-def _keep_finished_output(temp_output: Path) -> Path:
-    """Move a finished temp encode to a visible name the next launch will not delete."""
+def _keep_finished_output(temp_output: Path, final_output: Path | None = None) -> Path:
+    """Move a finished temp encode to a visible, no-overwrite output path.
+
+    If the intended destination is free, use it exactly. In an in-place rebuild
+    the source still occupies that path until validation succeeds, so use a
+    diagnostic sibling instead of replacing the source.
+    """
     name = temp_output.name
     marker = ".hevc-rebuild."
     if name.startswith(".") and marker in name and name.endswith(".tmp.mkv"):
@@ -1124,34 +1047,196 @@ def _keep_finished_output(temp_output: Path) -> Path:
     else:
         stem = temp_output.stem
         identity = "file"
-    parent = temp_output.parent
-    kept = parent / f"{stem}.hevc-rebuild.kept.mkv"
-    if kept.exists():
-        kept = parent / f"{stem}.hevc-rebuild.kept.{identity}.mkv"
-    if kept.exists():
-        return temp_output
-    temp_output.rename(kept)
-    return kept
-
-
-def _release_temporary_output(temp_output: Path | None, phase: str, row: dict, keep_work: bool) -> None:
-    """Delete an unfinished temp file. Keep a finished encode when a later step fails."""
-    if temp_output is None or not temp_output.exists() or keep_work:
-        return
-    if phase in _FINISHED_OUTPUT_PHASES and row.get("status") not in {"OK", "METADATA_OK", "TEST_OK"}:
-        try:
-            kept = _keep_finished_output(temp_output)
-        except OSError:
-            kept = temp_output
-        row["output"] = str(kept)
-        note = f" The finished file was kept at {kept}."
-        row["message"] = f"{row.get('message') or ''}".rstrip() + note
-        logging.warning("Kept finished output after %s failed: %s", phase, kept)
-        return
     try:
-        temp_output.unlink()
-    except OSError:
-        pass
+        fsync_file(temp_output)
+    except OSError as exc:
+        # Keep the completed media even when a filesystem cannot confirm the
+        # data flush; the adjacent diagnostic will make that boundary visible.
+        logging.warning("Retained output file durability is unconfirmed: %s", exc)
+    if final_output is not None and not os.path.lexists(final_output):
+        try:
+            rename_no_replace(temp_output, final_output)
+            try:
+                fsync_dir(final_output.parent)
+            except OSError as exc:
+                logging.warning("Retained output directory durability is unconfirmed: %s", exc)
+            return final_output
+        except FileExistsError:
+            # A concurrent creator won the destination race. Fall through to
+            # the collision-safe diagnostic sibling without replacing it.
+            pass
+
+    parent = final_output.parent if final_output is not None else temp_output.parent
+    retained_stem = final_output.stem if final_output is not None else stem
+    candidates = [
+        parent / f"{retained_stem}.hevc-rebuild.kept.mkv",
+        parent / f"{retained_stem}.hevc-rebuild.kept.{identity}.mkv",
+    ]
+    for number in range(1, 10000):
+        candidates.append(parent / f"{retained_stem}.hevc-rebuild.kept.{identity}.{number}.mkv")
+    for candidate in candidates:
+        if os.path.lexists(candidate):
+            continue
+        try:
+            rename_no_replace(temp_output, candidate)
+        except FileExistsError:
+            continue
+        try:
+            fsync_dir(candidate.parent)
+        except OSError as exc:
+            logging.warning("Retained output directory durability is unconfirmed: %s", exc)
+        return candidate
+    raise OSError(f"Unable to retain completed output without overwriting an existing file: {parent}")
+
+
+def _error_log_path(final_output: Path) -> Path:
+    """Return the user-facing sibling name for a failed completed output."""
+    return final_output.with_name(f"{final_output.stem}+error.log")
+
+
+def _write_retained_output_error_log(
+    path: Path,
+    *,
+    source: Path | None,
+    intended_output: Path | None,
+    retained_output: Path | None,
+    phase: str,
+    status: str | None,
+    message: str | None,
+    failure_detail: str | None,
+) -> Path | None:
+    """Write one private, exclusive per-file diagnostic log.
+
+    The requested unsuffixed name is used when available. An existing log is
+    never overwritten; a numbered sibling preserves both diagnostic records.
+    """
+    if intended_output is None:
+        return None
+    resource_line = "resource metrics unavailable"
+    if source is not None:
+        try:
+            resource_line = _resource_log_line(source.parent)
+        except Exception as exc:  # Diagnostics must not mask output retention.
+            resource_line = f"resource metrics unavailable ({type(exc).__name__}: {exc})"
+    original_note = (
+        "The original source was still protected because validation had not accepted this output."
+        if phase in {"metadata embedding", "output validation", "lossless output validation"}
+        else "Review the original and any old/backup path before retrying; this run did not report a successful replacement."
+    )
+    contents = "\n".join([
+        "HEVC Rebuild retained-output diagnostic",
+        f"Phase: {phase}",
+        f"Status: {status or 'FAILED'}",
+        f"Source: {source if source is not None else 'unknown'}",
+        f"Intended output: {intended_output}",
+        f"Retained output: {retained_output if retained_output is not None else 'not available'}",
+        f"Error: {failure_detail or message or 'unknown failure'}",
+        f"Message: {message or 'none'}",
+        f"Resources: {resource_line}",
+        "Outcome: the completed output was retained for investigation but was not accepted as a successful rebuild.",
+        original_note,
+        "Do not delete or retry over these files until this diagnostic and the media have been reviewed.",
+        "",
+    ])
+    base = path
+    for number in range(0, 10000):
+        candidate = base if number == 0 else base.with_name(f"{base.stem}.{number}{base.suffix}")
+        try:
+            descriptor = os.open(
+                candidate,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+        except FileExistsError:
+            continue
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                descriptor = None
+                stream.write(contents)
+                stream.flush()
+                os.fsync(stream.fileno())
+            try:
+                fsync_dir(candidate.parent)
+            except OSError as exc:
+                logging.warning("Per-file error log durability is unconfirmed: %s", exc)
+            return candidate
+        except OSError as exc:
+            if descriptor is not None:
+                os.close(descriptor)
+            logging.warning("Could not finish per-file error log %s: %s", candidate, exc)
+            return None
+    logging.warning("Could not allocate a per-file error log beside %s", intended_output)
+    return None
+
+
+def _release_temporary_output(
+    temp_output: Path | None,
+    phase: str,
+    row: dict,
+    keep_work: bool,
+    *,
+    final_output: Path | None = None,
+    source: Path | None = None,
+    failure_detail: str | None = None,
+) -> None:
+    """Remove unfinished work; retain completed late-failure output with a log."""
+    failed_after_output = (
+        phase in _FINISHED_OUTPUT_PHASES
+        and row.get("status") not in {"OK", "METADATA_OK", "TEST_OK"}
+    )
+    if not failed_after_output:
+        if temp_output is None or not temp_output.exists() or keep_work:
+            return
+        try:
+            temp_output.unlink()
+        except OSError:
+            pass
+        return
+
+    retained: Path | None = None
+    if temp_output is not None and temp_output.exists():
+        try:
+            retained = _keep_finished_output(temp_output, final_output)
+        except OSError as exc:
+            logging.exception("Could not move completed output to a visible retained path: %s", exc)
+            retained = temp_output if temp_output.exists() else None
+    elif final_output is not None and os.path.lexists(final_output):
+        # Native install/commit can finish the move and then fail on a final
+        # directory sync. Preserve the installed file and still explain the
+        # failed/unconfirmed operation beside it.
+        retained = final_output
+
+    if retained is not None and retained.exists():
+        row["output"] = str(retained)
+        try:
+            row["output_bytes"] = retained.stat().st_size
+        except OSError:
+            pass
+    intended_output = final_output or retained
+    error_log = (
+        _write_retained_output_error_log(
+            _error_log_path(intended_output),
+            source=source,
+            intended_output=intended_output,
+            retained_output=retained,
+            phase=phase,
+            status=row.get("status"),
+            message=row.get("message"),
+            failure_detail=failure_detail,
+        )
+        if intended_output is not None
+        else None
+    )
+    if retained is not None:
+        note = f" The completed output was retained at {retained}, but remains unvalidated."
+    else:
+        note = " The completed output could not be moved to a visible retained path."
+    if error_log is not None:
+        note += f" Details were written to {error_log}."
+    else:
+        note += " See the run diagnostics for the failure details."
+    row["message"] = f"{row.get('message') or ''}".rstrip() + note
+    logging.warning("Completed output handling after %s failed: retained=%s error_log=%s", phase, retained, error_log)
 
 
 def _select_file_streams(profile: MediaProfile, args) -> tuple[list, set[int], bool]:
@@ -1223,6 +1308,8 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
         input_bytes=source_size,
     )
     temp_output: Path | None = None
+    final_output: Path | None = None
+    failure_detail: str | None = None
     work_dir = Path(tempfile.mkdtemp(prefix="hevc-rebuild-"))
     try:
         native_profile = build_native_profile_set(
@@ -1878,7 +1965,7 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
             output_bytes=temp_output.stat().st_size if temp_output and temp_output.exists() else None,
         )
         expect_poster = meta.poster_path is not None
-        validation = validate_output(
+        validate_output(
             tools, profile, temp_output, secondary_video_policy=args.secondary_video,
             verify_copy_hashes=args.verify_copy_hashes, expect_poster=expect_poster, test_mode=args.test,
             expected_global_tags=meta.expected_global_tags, preserve_hdr10plus=args.preserve_hdr10plus,
@@ -1948,11 +2035,13 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
     except ConsoleClosed as exc:
         row["status"] = "INTERRUPTED"
         row["message"] = str(exc)
+        failure_detail = f"{type(exc).__name__}: {exc}"
         logging.warning("Encode stopped because the desktop progress pipe closed: %s", source)
         raise
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
         row["status"] = "INTERRUPTED"
         row["message"] = "Interrupted; source was not committed/moved."
+        failure_detail = f"{type(exc).__name__}: {exc}".rstrip()
         emit_gui_progress(
             file_name=source.name,
             file_path=str(source),
@@ -1968,6 +2057,7 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
         raise
     except Exception as exc:
         row["message"] = str(exc)
+        failure_detail = f"{type(exc).__name__}: {exc}"
         emit_gui_progress(
             file_name=source.name,
             file_path=str(source),
@@ -1986,7 +2076,15 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
         if args.stop_on_error:
             raise
     finally:
-        _release_temporary_output(temp_output, phase, row, args.keep_work)
+        _release_temporary_output(
+            temp_output,
+            phase,
+            row,
+            args.keep_work,
+            final_output=final_output,
+            source=source,
+            failure_detail=failure_detail,
+        )
         row["elapsed_seconds"] = round(time.monotonic() - started, 3)
         append_csv(csv_path, row)
         if args.keep_work:
@@ -2013,6 +2111,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: Media input does not exist or is not a supported file/folder: {root}", file=sys.stderr)
         return 2
     try:
+        args.stop_request = StopRequest(args.stop_request_file)
         args.output_dir = canonical_output_directory(args.output_dir, "Default rebuild output folder") if args.output_dir else None
         if args.file_output_dirs_json:
             args.file_output_dirs = parse_file_output_directories(args.file_output_dirs_json, root)
@@ -2302,7 +2401,7 @@ def main(argv: list[str] | None = None) -> int:
 
         results: list[dict] = []
         for i, source in enumerate(eligible, start=1):
-            if args.stop_request_file and Path(args.stop_request_file).exists():
+            if args.stop_request.requested():
                 logging.info("Stop requested by operator; remaining files will stay untouched.")
                 print_warning(f"Stopped before file {i}/{len(eligible)}; remaining files were not changed.")
                 break
@@ -2330,6 +2429,6 @@ def main(argv: list[str] | None = None) -> int:
     except RebuildError as exc:
         logging.error("%s", exc)
         return 1
-    except Exception as exc:
+    except Exception:
         logging.exception("Unhandled failure")
         return 1

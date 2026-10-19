@@ -3,6 +3,7 @@
 
 .library-poster-grid {
   display: grid;
+  min-width: 0;
   gap: 14px;
 }
 
@@ -41,6 +42,8 @@
 
 .library-poster-toolbar {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;

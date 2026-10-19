@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -15,6 +14,30 @@ HELPER = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
 
 @unittest.skipUnless(HELPER, "Rust helper path not configured")
 class NativeEncodeSupervisorTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "Owned groups require Unix")
+    def test_cancel_does_not_wait_for_resistant_pipe_holding_descendant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "descendant.pid"
+            source = "import signal,subprocess,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); p=subprocess.Popen([sys.executable,'-c','import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);time.sleep(30)']);open(sys.argv[1],'w').write(str(p.pid));time.sleep(30)"
+            proc = self.start_fake_encoder(source, str(path))
+            try:
+                deadline = time.monotonic()+5
+                while not path.exists() and time.monotonic()<deadline:
+                    time.sleep(0.01)
+                self.assertTrue(path.exists())
+                proc.stdin.write("cancel\n")
+                proc.stdin.flush()
+                self.assertNotEqual(proc.wait(timeout=5), 0)
+                stat = Path(f"/proc/{int(path.read_text())}/stat")
+                if stat.exists():
+                    self.assertEqual(stat.read_text().split()[2], "Z")
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=5)
+                for stream in (proc.stdin, proc.stdout, proc.stderr):
+                    stream.close()
+
     def start_fake_encoder(self, source: str, *args: str) -> subprocess.Popen[str]:
         assert HELPER is not None
         return subprocess.Popen(

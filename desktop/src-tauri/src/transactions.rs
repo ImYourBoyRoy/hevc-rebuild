@@ -120,6 +120,16 @@ fn commit_output(
     final_output: &Path,
     backup: &Path,
 ) -> Result<(), String> {
+    commit_output_with_sync(source, temporary, final_output, backup, sync_directory)
+}
+
+fn commit_output_with_sync(
+    source: &Path,
+    temporary: &Path,
+    final_output: &Path,
+    backup: &Path,
+    sync: impl Fn(&Path) -> io::Result<()>,
+) -> Result<(), String> {
     let source_parent = source
         .parent()
         .ok_or("Source path has no parent directory.")?
@@ -162,7 +172,7 @@ fn commit_output(
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             fs::create_dir(&old_directory)
                 .map_err(|error| format!("Could not create backup directory: {error}"))?;
-            sync_directory(&source_parent)
+            sync(&source_parent)
                 .map_err(|error| format!("Could not sync source directory: {error}"))?;
         }
         Err(error) => return Err(format!("Could not inspect backup directory: {error}")),
@@ -181,7 +191,7 @@ fn commit_output(
 
     sync_file(temporary)
         .map_err(|error| format!("Could not make temporary output durable: {error}"))?;
-    sync_directory(&source_parent)
+    sync(&source_parent)
         .map_err(|error| format!("Could not sync output directory before commit: {error}"))?;
     if final_output != source && path_exists(final_output)? {
         return Err(format!(
@@ -202,14 +212,14 @@ fn commit_output(
             backup.display()
         )
     })?;
-    if let Err(error) = sync_directory(&backup_parent) {
-        return rollback_source(source, backup, error);
+    if let Err(error) = sync(&backup_parent) {
+        return rollback_source(source, backup, error, &sync);
     }
 
     if let Err(error) = rename_no_replace(temporary, final_output) {
-        return rollback_source(source, backup, error);
+        return rollback_source(source, backup, error, &sync);
     }
-    sync_directory(&final_parent)
+    sync(&final_parent)
         .map_err(|error| format!("Output was installed, but its directory could not be synced: {error}. The output and original backup were retained."))
 }
 
@@ -268,9 +278,14 @@ pub(crate) fn install_export_output(temporary: &Path, final_output: &Path) -> Re
     })
 }
 
-fn rollback_source(source: &Path, backup: &Path, cause: io::Error) -> Result<(), String> {
+fn rollback_source(
+    source: &Path,
+    backup: &Path,
+    cause: io::Error,
+    sync: &impl Fn(&Path) -> io::Result<()>,
+) -> Result<(), String> {
     match rename_no_replace(backup, source) {
-        Ok(()) => match source.parent().map(sync_directory) {
+        Ok(()) => match source.parent().map(sync) {
             Some(Ok(())) => Err(format!(
                 "Commit failed and the original was restored: {cause}"
             )),
@@ -304,12 +319,13 @@ fn sync_file(path: &Path) -> io::Result<()> {
 }
 
 #[cfg(unix)]
-fn sync_directory(path: &Path) -> io::Result<()> {
+pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
     File::open(path)?.sync_all()
 }
 
 #[cfg(not(unix))]
-fn sync_directory(_path: &Path) -> io::Result<()> {
+pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
+    // Unsupported targets have no directory durability confirmation.
     Ok(())
 }
 
@@ -394,7 +410,7 @@ fn rename_no_replace(_from: &Path, _to: &Path) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::install_export_output;
+    use super::*;
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -436,5 +452,85 @@ mod tests {
             b"validated output"
         );
         fs::remove_dir_all(directory).expect("remove test directory");
+    }
+
+    #[test]
+    fn commit_sync_failures_preserve_original_and_report_installed_state() {
+        use std::cell::Cell;
+        for fail_at in 1..=4 {
+            let directory = test_directory();
+            let source = directory.join("source.mkv");
+            let temporary = directory.join("temporary.mkv");
+            let backup = directory.join("old/original.mkv");
+            fs::write(&source, b"original").unwrap();
+            fs::write(&temporary, b"validated").unwrap();
+            let count = Cell::new(0);
+            let error = commit_output_with_sync(&source, &temporary, &source, &backup, |_| {
+                count.set(count.get() + 1);
+                if count.get() == fail_at {
+                    Err(io::Error::other("injected sync failure"))
+                } else {
+                    Ok(())
+                }
+            })
+            .unwrap_err();
+            if fail_at == 4 {
+                assert!(error.contains("Output was installed"));
+                assert_eq!(fs::read(&source).unwrap(), b"validated");
+                assert_eq!(fs::read(&backup).unwrap(), b"original");
+            } else {
+                assert_eq!(fs::read(&source).unwrap(), b"original");
+                assert_eq!(fs::read(&temporary).unwrap(), b"validated");
+            }
+            fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn competing_final_or_rollback_creator_cannot_be_overwritten() {
+        for block_rollback in [false, true] {
+            let directory = test_directory();
+            let source = directory.join("source.mkv");
+            let temporary = directory.join("temporary.mkv");
+            let final_output = directory.join("final.mkv");
+            let backup = directory.join("old/original.mkv");
+            fs::write(&source, b"original").unwrap();
+            fs::write(&temporary, b"validated").unwrap();
+            let error =
+                commit_output_with_sync(&source, &temporary, &final_output, &backup, |path| {
+                    if path == directory.join("old") {
+                        fs::write(&final_output, b"competitor").unwrap();
+                        if block_rollback {
+                            fs::write(&source, b"new source occupant").unwrap();
+                        }
+                    }
+                    Ok(())
+                })
+                .unwrap_err();
+            assert_eq!(fs::read(&final_output).unwrap(), b"competitor");
+            assert_eq!(fs::read(&temporary).unwrap(), b"validated");
+            if block_rollback {
+                assert!(error.contains("original remains preserved"));
+                assert_eq!(fs::read(&backup).unwrap(), b"original");
+                assert_eq!(fs::read(&source).unwrap(), b"new source occupant");
+            } else {
+                assert!(error.contains("original was restored"));
+                assert_eq!(fs::read(&source).unwrap(), b"original");
+            }
+            fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn no_replace_and_directory_sync_reject_occupied_and_missing_paths() {
+        let directory = test_directory();
+        let source = directory.join("source");
+        let target = directory.join("target");
+        fs::write(&source, b"original").unwrap();
+        fs::write(&target, b"competitor").unwrap();
+        assert!(rename_no_replace(&source, &target).is_err());
+        assert_eq!(fs::read(&target).unwrap(), b"competitor");
+        assert!(sync_directory(&directory.join("missing")).is_err());
+        fs::remove_dir_all(directory).unwrap();
     }
 }

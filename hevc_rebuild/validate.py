@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 import hashlib
-import logging
-import math
 import os
 import re
 import subprocess

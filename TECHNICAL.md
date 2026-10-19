@@ -1,5 +1,9 @@
 # HEVC Rebuild v1.3.0 - Technical Notes
 
+## Current acceptance boundary — 2026-10-12
+
+The final `.deb` and AppImage acceptance artifacts were built inside an Ubuntu 24.04.5/glibc 2.39 userspace and passed isolated metadata/install/environment/scan/engine smoke. Packaged WebDriver exercised the real GUI safety dialog and Escape focus return. Screen-reader workflow announcements beyond startup/frame announcements and provider/account paths remain open; Windows/macOS require separate implementation and runtime validation.
+
 ## Design goal
 
 Recompress the selected primary video while changing as little else as possible. The tool treats audio/subtitle mutation, silent HDR metadata loss, unsafe Dolby Vision conversion, accidental poster substitution, and replacing an unverified output as hard failures.
@@ -278,3 +282,7 @@ FFmpeg's supported machine-readable `-progress pipe:1` feed drives a two-line in
 - hdr10plus_tool: https://github.com/quietvoid/hdr10plus_tool
 - dovi_tool behavior/reference: https://github.com/quietvoid/dovi_tool
 - MKVToolNix/mkvpropedit: https://mkvtoolnix.download/doc/mkvpropedit.html
+
+## Maintenance domain boundaries (2026-10-12)
+
+GUI/MCP validated job arguments share `run_arguments.rs`; pure settings translation is `settings_arguments.rs`. Python validated-output transactions are in `hevc_rebuild/transactions.py`, re-exported through the previous app functions. Successful scan profiles use bounded process-local `profile_cache.rs`, keyed by canonical source/tool identity, file metadata, effective settings, versions and policy revision; live forecasts remain uncached. See the current owner table in `RUST_MIGRATION.md` and measured limits in `PERFORMANCE.md`. No ownership change retires a compatibility path.

@@ -12,10 +12,11 @@ import time
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from . import resources
 from .model import MediaProfile, StreamRef, Toolchain
-from .util import ConsoleClosed, ExternalCommandError, RebuildError, duration_text, format_command, human_bytes, native_json_action, start_stderr_drain
+from .util import ConsoleClosed, DiagnosticTail, ExternalCommandError, RebuildError, duration_text, format_command, human_bytes, native_json_action, safe_float, start_stderr_drain, terminate_process_group
 from .ui import ProgressView
-from .resources import CpuSampler, DiskStats, MemoryStats, PressureStats, ResourceSnapshot, SwapActivityStats, SwapSampler, automatic_memory_reserve_gib, disk_stats, effective_cpu_threads, memory_stats, pressure_stats, process_rss_gib, snapshot
+from .resources import CpuSampler, DiskStats, MemoryStats, PressureStats, ResourceSnapshot, SwapActivityStats, SwapSampler, automatic_memory_reserve_gib, effective_cpu_threads, memory_stats, pressure_stats, process_rss_gib, snapshot
 
 
 SWAP_IN_PRESSURE_BPS = 4 * 1024**2
@@ -497,12 +498,13 @@ class _NativeRuntimeGuard:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                start_new_session=os.name == "posix",
             )
         except OSError as exc:
             raise RebuildError(f"Could not start the Rust runtime guard: {exc}") from exc
         assert self.proc.stdin is not None
         assert self.proc.stdout is not None
-        self._stderr_lines: list[str] = []
+        self._stderr_lines = DiagnosticTail()
         self._stderr_drain = start_stderr_drain(self.proc.stderr, self._stderr_lines)
         self._closed = False
 
@@ -526,7 +528,7 @@ class _NativeRuntimeGuard:
         except (OSError, ValueError) as exc:
             raise RebuildError(f"Could not communicate with the Rust runtime guard: {exc}") from exc
         if not response:
-            detail = "".join(self._stderr_lines)[-4000:]
+            detail = self._stderr_lines.text(4000)
             suffix = f" Details: {detail.strip()}" if detail.strip() else ""
             raise RebuildError(f"The Rust runtime guard stopped responding.{suffix}")
         try:
@@ -562,31 +564,25 @@ class _NativeRuntimeGuard:
             except subprocess.TimeoutExpired:
                 self.proc.kill()
                 return_code = self.proc.wait(timeout=1)
+        self._stderr_drain.join(timeout=2)
+        if self._stderr_drain.is_alive():
+            terminate_process_group(self.proc)
+            self._stderr_drain.join(timeout=2)
         if self.proc.stdout:
             self.proc.stdout.close()
-        if self.proc.stderr:
+        if self.proc.stderr and not self._stderr_drain.is_alive():
             self.proc.stderr.close()
-        self._stderr_drain.join(timeout=2)
+        if check_exit and self._stderr_drain.is_alive():
+            raise RebuildError("Rust runtime guard diagnostic drain did not stop.")
         if check_exit and return_code != 0:
-            detail = "".join(self._stderr_lines)[-4000:]
+            detail = self._stderr_lines.text(4000)
             suffix = f" Details: {detail.strip()}" if detail.strip() else ""
             raise RebuildError(f"The Rust runtime guard exited with status {return_code}.{suffix}")
 
 
 def _meminfo_values() -> dict[str, int]:
-    # Compatibility helper retained for older callers/tests.
-    values: dict[str, int] = {}
-    try:
-        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
-            if ":" not in line:
-                continue
-            key, rest = line.split(":", 1)
-            token = rest.strip().split()[0]
-            if token.isdigit():
-                values[key] = int(token)
-    except OSError:
-        pass
-    return values
+    # Compatibility adapter; canonical parser is shared with memory_stats().
+    return resources._meminfo_values()
 
 
 def _cgroup_available_gib() -> float | None:
@@ -978,7 +974,12 @@ def encode_args(
                 )
     args = [
         tools.ffmpeg, "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-nostats", "-stats_period", "0.5",
-        "-progress", "pipe:1", "-i", str(profile.path),
+        "-progress", "pipe:1",
+    ]
+    if test_seconds is None:
+        # Preserve negative codec priming and copied-track offsets exactly.
+        args += ["-copyts"]
+    args += ["-i", str(profile.path),
     ]
     if test_seconds:
         args += ["-t", str(test_seconds)]
@@ -1071,6 +1072,8 @@ def encode_args(
             if kind in {"audio", "subtitle"}:
                 args += [f"-disposition:{short}:{out_ord}", _disposition_value(stream.disposition)]
 
+    if test_seconds is None:
+        args += ["-avoid_negative_ts", "disabled"]
     args += ["-f", "matroska", str(output)]
     return args, output_video_map
 
@@ -1082,6 +1085,7 @@ def _terminate_child(
     native_supervisor: bool = False,
 ) -> None:
     if proc.poll() is not None:
+        terminate_process_group(proc, timeout=timeout)
         return
     if native_supervisor and proc.stdin is not None:
         try:
@@ -1092,20 +1096,15 @@ def _terminate_child(
         try:
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
+            terminate_process_group(proc, timeout=5)
         finally:
             try:
                 proc.stdin.close()
             except OSError:
                 pass
+        terminate_process_group(proc, timeout=5)
         return
-    proc.terminate()
-    try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait(timeout=5)
+    terminate_process_group(proc, timeout=timeout)
 
 
 def _resource_detail(path: Path, pid: int | None = None, resources: ResourceSnapshot | None = None) -> str:
@@ -1199,12 +1198,13 @@ def run_encode(
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            start_new_session=os.name == "posix",
         )
     except BaseException:
         if native_guard is not None:
             native_guard.close(check_exit=False)
         raise
-    stderr_lines: list[str] = []
+    stderr_lines = DiagnosticTail()
     drain = start_stderr_drain(proc.stderr, stderr_lines)
     state: dict[str, str] = {}
     start = time.monotonic()
@@ -1256,10 +1256,7 @@ def run_encode(
                     pass
             done = max(0.0, out_us / 1_000_000.0)
             speed_text = state.get("speed", "0x").rstrip("x")
-            try:
-                speed = float(speed_text)
-            except ValueError:
-                speed = 0.0
+            speed = max(0.0, safe_float(speed_text) or 0.0)
             try:
                 size = int(state.get("total_size", "0"))
             except ValueError:
@@ -1509,7 +1506,9 @@ def run_encode(
     if proc.stdin is not None:
         proc.stdin.close()
     if native_supervisor:
-        visible_stderr: list[str] = []
+        visible_stderr = DiagnosticTail()
+        visible_stderr.truncated = stderr_lines.truncated
+        visible_stderr.error = stderr_lines.error
         child_signal: int | None = None
         for line in stderr_lines:
             if line.startswith("__HEVC_NATIVE_CHILD_SIGNAL__="):
@@ -1523,7 +1522,7 @@ def run_encode(
         if child_signal is not None and child_signal > 0:
             rc = -child_signal
     if rc != 0:
-        stderr_tail = "".join(stderr_lines)[-16000:]
+        stderr_tail = stderr_lines.text(16000)
         resource_detail = _resource_detail(monitor_path, proc.pid, last_snapshot)
         logging.error("Encoder exit rc=%s; %s", rc, resource_detail)
         if rc == -signal.SIGKILL:

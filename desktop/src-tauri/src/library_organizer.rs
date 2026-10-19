@@ -484,6 +484,8 @@ fn media_companions(
     Ok(companions)
 }
 
+// Compatibility delegate retained; canonical callers/tests use the pattern-aware path.
+#[allow(dead_code)]
 fn build_plan(root: &str, inputs: Vec<RenameTemplateInput>) -> Result<InternalPlan, String> {
     build_plan_with_patterns(root, inputs, &[])
 }
@@ -789,6 +791,8 @@ fn build_plan_with_patterns(
     Ok(InternalPlan { items, preview })
 }
 
+// Compatibility delegate retained; canonical callers/tests use the pattern-aware path.
+#[allow(dead_code)]
 pub(crate) fn preview_rename_batch(
     root: String,
     inputs: Vec<RenameTemplateInput>,
@@ -939,10 +943,19 @@ fn rollback_group(
             ));
         }
     }
-    Ok(())
+    crate::transactions::sync_directory(&group.parent).map_err(|error| {
+        format!("Rename rollback restored paths but directory durability is unconfirmed: {error}")
+    })
 }
 
 fn apply_plan(plan: InternalPlan) -> Result<RenameApplyResult, String> {
+    apply_plan_with_sync(plan, crate::transactions::sync_directory)
+}
+
+fn apply_plan_with_sync(
+    plan: InternalPlan,
+    sync: impl Fn(&Path) -> io::Result<()>,
+) -> Result<RenameApplyResult, String> {
     if !plan.preview.can_apply {
         return Err(
             "This rename preview has conflicts or contains no changes; nothing was renamed.".into(),
@@ -1039,6 +1052,10 @@ fn apply_plan(plan: InternalPlan) -> Result<RenameApplyResult, String> {
                 Err(rollback_error) => format!("{error}; rollback failed: {rollback_error}. Check the displayed source and .tmp paths."),
             });
         }
+        sync(&group.parent).map_err(|error| format!(
+            "Reviewed renames were applied in {}, but directory durability could not be confirmed: {error}. Applied paths were retained; review the plan before retrying. No crash-recovery journal exists.",
+            group.parent.display()
+        ))?;
         completed.push(group);
     }
 
@@ -1054,6 +1071,8 @@ fn apply_plan(plan: InternalPlan) -> Result<RenameApplyResult, String> {
     })
 }
 
+// Compatibility delegate retained; canonical callers/tests use the pattern-aware path.
+#[allow(dead_code)]
 pub(crate) fn apply_rename_batch(
     root: String,
     inputs: Vec<RenameTemplateInput>,
@@ -1422,6 +1441,33 @@ mod tests {
         path
     }
 
+    #[test]
+    fn installed_rename_sync_failure_keeps_paths_and_reports_unconfirmed_durability() {
+        let root = scratch();
+        let source = root.join("source.mkv");
+        fs::write(&source, b"original bytes").unwrap();
+        let plan = build_plan_with_patterns(
+            &root.to_string_lossy(),
+            vec![input(
+                &source,
+                RenameTemplateKind::Movie,
+                "{title}{ext}",
+                &[("title", "Renamed")],
+            )],
+            &[],
+        )
+        .unwrap();
+        let error = apply_plan_with_sync(plan, |_| Err(io::Error::other("injected sync failure")))
+            .unwrap_err();
+        assert!(error.contains("durability could not be confirmed"));
+        assert!(!source.exists());
+        assert_eq!(
+            fs::read(root.join("Renamed.mkv")).unwrap(),
+            b"original bytes"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
     fn input(
         source: &Path,
         kind: RenameTemplateKind,
@@ -1496,7 +1542,7 @@ mod tests {
         let second = root.join("second.mkv");
         fs::write(&first, b"first").unwrap();
         fs::write(&second, b"second").unwrap();
-        let plan = build_plan(
+        let plan = build_plan_with_patterns(
             &root.to_string_lossy(),
             vec![
                 input(
@@ -1512,6 +1558,7 @@ mod tests {
                     &[("title", "unused")],
                 ),
             ],
+            &[],
         )
         .unwrap();
         assert!(!plan.preview.can_apply);
@@ -1531,7 +1578,7 @@ mod tests {
         let destination = root.join("destination.mkv");
         fs::write(&source, b"source bytes").unwrap();
         fs::write(&destination, b"destination bytes").unwrap();
-        let plan = build_plan(
+        let plan = build_plan_with_patterns(
             &root.to_string_lossy(),
             vec![input(
                 &source,
@@ -1539,10 +1586,11 @@ mod tests {
                 "destination{ext}",
                 &[],
             )],
+            &[],
         )
         .unwrap();
         assert!(!plan.preview.can_apply);
-        assert!(apply_rename_batch(
+        assert!(apply_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             vec![input(
                 &source,
@@ -1550,6 +1598,7 @@ mod tests {
                 "destination{ext}",
                 &[]
             ),],
+            Vec::new(),
             plan.preview.preview_id,
             true
         )
@@ -1567,7 +1616,7 @@ mod tests {
         fs::create_dir_all(&season).unwrap();
         let episode = season.join("Faerie.Tale.Theatre.S01E01.avi");
         fs::write(&episode, b"video bytes").unwrap();
-        let plan = build_plan(
+        let plan = build_plan_with_patterns(
             &root.to_string_lossy(),
             vec![
                 input(
@@ -1596,6 +1645,7 @@ mod tests {
                     ],
                 ),
             ],
+            &[],
         )
         .unwrap();
         let expected = root.join(
@@ -1607,7 +1657,7 @@ mod tests {
             .items
             .iter()
             .any(|item| item.target_path == expected.to_string_lossy()));
-        let applied = apply_rename_batch(
+        let applied = apply_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             vec![
                 input(
@@ -1636,6 +1686,7 @@ mod tests {
                     ],
                 ),
             ],
+            Vec::new(),
             plan.preview.preview_id,
             true,
         )
@@ -1675,7 +1726,12 @@ mod tests {
                 ),
             ]
         };
-        let preview = preview_rename_batch(root.to_string_lossy().into_owned(), inputs()).unwrap();
+        let preview = preview_rename_batch_with_patterns(
+            root.to_string_lossy().into_owned(),
+            inputs(),
+            Vec::new(),
+        )
+        .unwrap();
         let episode_preview = preview
             .items
             .iter()
@@ -1687,9 +1743,10 @@ mod tests {
         );
         assert!(!episode_preview.unchanged);
 
-        let applied = apply_rename_batch(
+        let applied = apply_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             inputs(),
+            Vec::new(),
             preview.preview_id,
             true,
         )
@@ -1736,7 +1793,12 @@ mod tests {
             )]
         };
 
-        let preview = preview_rename_batch(root.to_string_lossy().into_owned(), inputs()).unwrap();
+        let preview = preview_rename_batch_with_patterns(
+            root.to_string_lossy().into_owned(),
+            inputs(),
+            Vec::new(),
+        )
+        .unwrap();
         assert_eq!(preview.items.len(), 10);
         assert!(preview
             .items
@@ -1773,9 +1835,10 @@ mod tests {
             .ends_with("Renamed Movie-cover.png.attribution.json")));
         assert!(preview.can_apply);
 
-        let applied = apply_rename_batch(
+        let applied = apply_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             inputs(),
+            Vec::new(),
             preview.preview_id,
             true,
         )
@@ -1896,18 +1959,24 @@ mod tests {
                 &[("title", "renamed")],
             )]
         };
-        let preview =
-            preview_rename_batch(root.to_string_lossy().into_owned(), make_plan()).unwrap();
-        assert!(apply_rename_batch(
+        let preview = preview_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             make_plan(),
+            Vec::new(),
+        )
+        .unwrap();
+        assert!(apply_rename_batch_with_patterns(
+            root.to_string_lossy().into_owned(),
+            make_plan(),
+            Vec::new(),
             preview.preview_id.clone(),
             false
         )
         .is_err());
-        assert!(apply_rename_batch(
+        assert!(apply_rename_batch_with_patterns(
             root.to_string_lossy().into_owned(),
             make_plan(),
+            Vec::new(),
             "stale-preview".into(),
             true
         )

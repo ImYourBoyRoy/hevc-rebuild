@@ -19,7 +19,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-width: 1000px; min-height: 100%; }
+/* The supported viewport floor applies at every width; tables own local scrolling. */
+html, body { margin: 0; min-width: 360px; min-height: 100%; }
 body { background: #f3f5f4; }
 button, input, select { font: inherit; }
 button { color: inherit; }
@@ -291,7 +292,7 @@ tbody tr:last-child td { border-bottom: 0; }tbody tr:hover td { background: #fcf
   .metric-grid { grid-template-columns: repeat(2, 1fr); }.environment-layout { grid-template-columns: 1fr; }.gpu-strip small { font-size: 7px; }
 }
 @media (max-width: 800px) {
-  html, body { min-width: 360px; }.sidebar { width: 60px; flex-basis: 60px; }.page-wrap { padding: 23px 15px; }.topbar { height: 58px; padding: 0 15px; }.breadcrumbs > span { display: none; }.page-heading { align-items: flex-start; flex-direction: column; gap: 14px; }.page-heading h1 { font-size: 26px; }.heading-actions { width: 100%; }.hero-card { min-height: 260px; padding: 24px; }.hero-visual { position: absolute; right: -12%; bottom: -16px; width: 58%; opacity: .62; }.hero-copy { max-width: 70%; }.hero-copy h2 { font-size: 31px; }.hero-copy p { font-size: 10px; }.metric-grid { gap: 8px; }.metric-card { min-height: 108px; }.library-toolbar { grid-template-columns: 1fr; }.toolbar-options { justify-content: space-between; }.library-summary-grid { grid-template-columns: 1fr 1fr; }.mode-grid { grid-template-columns: 1fr; }.mode-card { min-height: 120px; }.settings-grid { grid-template-columns: 1fr; }.wide-settings { grid-column: auto; }.resource-grid { grid-template-columns: 1fr 1fr; }.reports-layout { grid-template-columns: 1fr; }.report-list { display: flex; gap: 4px; overflow-x: auto; }.report-list-heading { display: none; }.report-item { min-width: 190px; }.run-launch { align-items: flex-start; flex-wrap: wrap; }.run-launch > .button { width: 100%; }.scan-next-step { align-items: flex-start; flex-wrap: wrap; }.scan-next-step > .button { width: 100%; }.environment-layout { grid-template-columns: 1fr; }.setup-card { grid-template-columns: 36px 1fr; }.setup-actions { grid-column: 2; }.repair-output { grid-column: 1 / -1; }.page-footer { align-items: flex-start; flex-direction: column; }
+  .sidebar { width: 60px; flex-basis: 60px; }.page-wrap { padding: 23px 15px; }.topbar { height: 58px; padding: 0 15px; }.breadcrumbs > span { display: none; }.page-heading { align-items: flex-start; flex-direction: column; gap: 14px; }.page-heading h1 { font-size: 26px; }.heading-actions { width: 100%; }.hero-card { min-height: 260px; padding: 24px; }.hero-visual { position: absolute; right: -12%; bottom: -16px; width: 58%; opacity: .62; }.hero-copy { max-width: 70%; }.hero-copy h2 { font-size: 31px; }.hero-copy p { font-size: 10px; }.metric-grid { gap: 8px; }.metric-card { min-height: 108px; }.library-toolbar { grid-template-columns: 1fr; }.toolbar-options { justify-content: space-between; }.library-summary-grid { grid-template-columns: 1fr 1fr; }.mode-grid { grid-template-columns: 1fr; }.mode-card { min-height: 120px; }.settings-grid { grid-template-columns: 1fr; }.wide-settings { grid-column: auto; }.resource-grid { grid-template-columns: 1fr 1fr; }.reports-layout { grid-template-columns: 1fr; }.report-list { display: flex; gap: 4px; overflow-x: auto; }.report-list-heading { display: none; }.report-item { min-width: 190px; }.run-launch { align-items: flex-start; flex-wrap: wrap; }.run-launch > .button { width: 100%; }.scan-next-step { align-items: flex-start; flex-wrap: wrap; }.scan-next-step > .button { width: 100%; }.environment-layout { grid-template-columns: 1fr; }.setup-card { grid-template-columns: 36px 1fr; }.setup-actions { grid-column: 2; }.repair-output { grid-column: 1 / -1; }.page-footer { align-items: flex-start; flex-direction: column; }
 }
 .repair-symbol { color: #4e8567; background: #eaf4eb; }
 .repair-package-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 7px; }
@@ -443,6 +444,18 @@ tbody tr:last-child td { border-bottom: 0; }tbody tr:hover td { background: #fcf
 /* Product design system: readable type, calmer surfaces, and complete theme palettes. */
 .app-shell {
   --theme-page: #f2f5f3;
+  /* Compatibility aliases resolve against this shell's canonical theme tokens. */
+  --ink: var(--theme-text);
+  --muted: var(--theme-muted);
+  --line: var(--theme-line);
+  --panel: var(--theme-surface);
+  --green: var(--theme-accent);
+  --green-dark: var(--theme-accent-strong);
+  --green-pale: var(--theme-accent-soft);
+  --amber: var(--theme-warning-text);
+  --red: var(--theme-danger-text);
+  --sidebar: var(--theme-sidebar);
+  --sidebar-muted: var(--theme-muted);
   --theme-surface: #ffffff;
   --theme-raised: #f6f8f7;
   --theme-text: #202c29;
@@ -588,7 +601,6 @@ html[data-theme="light"] body { background: #f2f5f3; }
 html[data-theme="dark"] { color-scheme: dark; background: #14191a; }
 html[data-theme="dark"] body { background: #14191a; }
 
-html, body { min-width: 360px; }
 .app-shell { min-height: 100vh; }
 .sidebar { width: 252px; flex-basis: 252px; color: #e7f0e9; background: var(--theme-sidebar); }
 .brand-lockup { padding-bottom: 38px; }

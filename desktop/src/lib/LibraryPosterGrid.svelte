@@ -5,6 +5,7 @@
      Streams, memory, and output stay behind the card. -->
 <script lang="ts">
   import { ChevronRight, Film, LoaderCircle } from "@lucide/svelte";
+  import type { LibraryCrumb, LibraryPosterCard } from "./types.js";
   import type { Action } from "svelte/action";
   import type { Attachment } from "svelte/attachments";
   import "../styles/components/library-poster-grid.css";
@@ -29,50 +30,6 @@
         node.removeEventListener("error", finish);
       };
     };
-  }
-
-  export type PosterMatchState = "matching" | "matched" | "suggested" | "local" | "none" | "error";
-
-  export interface LibraryCrumb {
-    label: string;
-    onSelect: (() => void) | null;
-  }
-
-  export interface LibraryPosterCard {
-    path: string;
-    filename: string;
-    relativePath: string;
-    selected: boolean;
-    title: string;
-    year: string;
-    proposedName: string | null;
-    proposedNeedsReview: boolean;
-    posterUrl: string | null;
-    localArtworkPath: string;
-    matchState: PosterMatchState;
-    matchLabel: string;
-    provider: string;
-    animated: boolean;
-    statusLabel: string;
-    sourceBytes: string;
-    profileLine: string;
-    streamLine: string;
-    memoryLine: string;
-    outputLine: string;
-    outputIsCustom: boolean;
-    error: string;
-    warning: string;
-    stale: string;
-    runLabel: string;
-    progressLabel: string;
-    progressPercent: number | null;
-    kind: "media" | "series" | "season";
-    seasonNumber: number | null;
-    mediaPaths: string[];
-    selection: "none" | "some" | "all";
-    animation: "none" | "some" | "all";
-    summary: string;
-    reviewLabel: string;
   }
 
   interface Props {

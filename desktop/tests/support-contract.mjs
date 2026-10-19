@@ -1,0 +1,32 @@
+import {runBrowserContract} from './browser-contract-runner.mjs';
+async function contract(page){
+  const callback=page.getByRole('status',{name:'Support callback'}),view=page.getByRole('combobox',{name:'Support view'}),opener=page.getByRole('button',{name:'Open support review'});
+  await page.getByRole('button',{name:'Refresh history',exact:true}).click();if(await callback.textContent()!=='refresh-reports')throw new Error('Reports refresh');
+  await page.getByRole('button',{name:'Open diagnostics',exact:true}).click();if(await callback.textContent()!=='/synthetic/report.log')throw new Error('Exact log identity');
+  await page.getByRole('button',{name:'Copy excerpt',exact:true}).click();if(await callback.textContent()!=='copy-log')throw new Error('Log copy');
+  await page.getByRole('button',{name:'Delete history',exact:true}).click();await page.getByRole('button',{name:'Cancel',exact:true}).click();if(await callback.textContent()==='delete-reports')throw new Error('Delete cancellation');
+  await page.getByRole('checkbox',{name:'Empty reports'}).check();if(!await page.getByText('Reports appear here after your first analysis or rebuild.',{exact:true}).isVisible())throw new Error('Empty reports');
+  await view.selectOption('settings');await page.getByRole('heading',{name:'Settings',exact:true}).waitFor();
+  const token=page.getByRole('textbox',{name:'TMDB API Read Access Token',exact:true});await token.fill('synthetic-test-token');
+  if(await token.getAttribute('type')!=='password')throw new Error('Secret display gate');
+  await page.getByRole('button',{name:'Save token',exact:true}).click();if(await callback.textContent()!=='save-tmdb')throw new Error('Credential callback');
+  await page.getByRole('checkbox',{name:'Wikidata',exact:true}).uncheck();if(!(await callback.textContent()).includes('wikidata'))throw new Error('Provider callback');
+  await page.getByRole('button',{name:'Review unused posters',exact:true}).click();if(await callback.textContent()==='cache-purge')throw new Error('Cache preview mutated');
+  await page.getByRole('group',{name:'Confirm artwork cleanup'}).getByRole('button',{name:'Cancel',exact:true}).click();if(await callback.textContent()==='cache-purge')throw new Error('Cache cancel mutated');
+  await view.selectOption('repair');await opener.click();
+  const authenticate=page.getByRole('button',{name:'Continue to authentication',exact:true});if(!await authenticate.isDisabled())throw new Error('Stale catalog gate');
+  await page.keyboard.press('Escape');await page.getByRole('checkbox',{name:'Stale catalog',exact:true}).uncheck();await opener.click();
+  if(await authenticate.isDisabled())throw new Error('Fresh exact-plan action missing');if(!(await page.getByRole('dialog').textContent()).includes('mediainfo'))throw new Error('Exact package plan lost');
+  await authenticate.click();if(await callback.textContent()!=='authenticate')throw new Error('Auth callback');await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.getByText('Saved setup logs · 1',{exact:true}).click();await page.getByRole('button',{name:'View complete log',exact:true}).click();if(await callback.textContent()!=='open-setup-log')throw new Error('Setup log callback');
+  await page.getByRole('button',{name:'Export log…',exact:true}).click();if(await callback.textContent()!=='export-setup-log')throw new Error('Setup export callback');
+  await view.selectOption('recovery');await opener.click();
+  const next=page.getByRole('button',{name:'Continue to output review',exact:true});if(!await next.isDisabled())throw new Error('Recovery inspection gate lost');
+  const ack=page.getByRole('checkbox',{name:/I reviewed the report/});if(!await ack.isDisabled())throw new Error('Premature acknowledgment');
+  if(await page.getByRole('button',{name:'Record as complete',exact:true}).count())throw new Error('Uncertain output marked complete');
+  await page.getByRole('button',{name:'Inspect recorded target',exact:true}).click();if(!await next.isDisabled())throw new Error('Acknowledgment bypass');
+  if(!await page.getByText('Synthetic probe failed',{exact:true}).isVisible())throw new Error('Probe error hidden');await ack.check();await next.click();if(await callback.textContent()!=='continue-recovery')throw new Error('Recovery continuation');
+  await page.keyboard.press('Escape');if(!await opener.evaluate(el=>el===document.activeElement))throw new Error('Recovery focus');
+  return {reportsEmptyFailureExactLogs:true,deleteCancel:true,settingsCredentialProvider:true,cacheReviewCancel:true,repairStaleExactAuth:true,savedLogs:true,recoveryInspectionAckError:true,focus:true};
+}
+await runBrowserContract('support',contract);

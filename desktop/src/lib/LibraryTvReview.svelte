@@ -2,6 +2,7 @@
      Poster-first review for one series, season, or episode.
      The parent owns the saved fields. This view edits title, plot, poster, and the animated mark. -->
 <script lang="ts">
+  import "../styles/components/metadata-review.css";
   import { Film, ImagePlus } from "@lucide/svelte";
   import type { Attachment } from "svelte/attachments";
 

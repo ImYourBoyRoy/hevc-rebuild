@@ -2,8 +2,8 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::ffi::OsString;
-use std::fs::{self, OpenOptions};
-use std::io::{self, Read, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
@@ -96,7 +96,7 @@ pub(crate) fn cli_mode(args: Vec<OsString>) -> i32 {
     match append_report(&request) {
         Ok(()) => match serde_json::to_writer(
             io::stdout().lock(),
-            &serde_json::json!({ "appended": true }),
+            &serde_json::json!({ "appended": true, "durability": "confirmed" }),
         ) {
             Ok(()) => 0,
             Err(error) => {
@@ -145,24 +145,98 @@ fn append_report(request: &AppendReportRequest) -> Result<(), String> {
     for field in REPORT_FIELDS {
         values.push(csv_value(request.row.get(*field))?);
     }
-    let existed = requested.exists();
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&requested)
-        .map_err(|error| format!("Could not open run report: {error}"))?;
+    append_report_file(&requested, values)
+}
 
+// The descriptor owns the flock, including on an error return. Python uses the
+// same lock on the CSV inode, so mixed native/direct writers also serialize.
+fn lock_report(file: &File) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsRawFd;
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+    #[cfg(not(unix))]
+    {
+        file.lock()
+    }
+}
+
+fn append_report_file(requested: &Path, values: Vec<String>) -> Result<(), String> {
+    let mut options = OpenOptions::new();
+    options.create(true).read(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW).mode(0o600);
+    }
+    let mut file = options
+        .open(requested)
+        .map_err(|error| format!("Could not open run report: {error}"))?;
+    lock_report(&file).map_err(|error| format!("Could not lock run report: {error}"))?;
+    let original_size = file.metadata().map_err(|error| error.to_string())?.len();
+    let mut header = Vec::new();
+    append_csv_record(
+        &mut header,
+        REPORT_FIELDS.iter().copied().map(str::to_owned),
+    );
+    if original_size != 0 {
+        let mut existing_header = vec![0; header.len()];
+        file.read_exact(&mut existing_header)
+            .map_err(|error| format!("Run report header is incomplete: {error}"))?;
+        if existing_header != header {
+            return Err("Run report schema mismatch; existing report was preserved.".into());
+        }
+        file.seek(SeekFrom::End(-1))
+            .map_err(|error| error.to_string())?;
+        let mut tail = [0];
+        file.read_exact(&mut tail)
+            .map_err(|error| error.to_string())?;
+        if tail != *b"\n" {
+            return Err("Run report has an incomplete write; review before retrying.".into());
+        }
+    }
     let mut output = Vec::new();
-    if !existed {
-        append_csv_record(
-            &mut output,
-            REPORT_FIELDS.iter().copied().map(str::to_owned),
-        );
+    if original_size == 0 {
+        output.extend_from_slice(&header);
     }
     append_csv_record(&mut output, values);
-    file.write_all(&output)
-        .and_then(|()| file.flush())
-        .map_err(|error| format!("Could not append run report: {error}"))
+    if let Err(error) = file.write_all(&output).and_then(|()| file.flush()) {
+        let rollback = file.set_len(original_size);
+        return Err(format!(
+            "Could not append run report: {error}; append rollback: {rollback:?}"
+        ));
+    }
+    confirm_report_durability(
+        || file.sync_all(),
+        || {
+            if original_size == 0 {
+                File::open(
+                    requested
+                        .parent()
+                        .ok_or_else(|| io::Error::other("Report has no parent directory"))?,
+                )
+                .and_then(|directory| directory.sync_all())
+            } else {
+                Ok(())
+            }
+        },
+    )
+}
+
+fn confirm_report_durability(
+    sync_file: impl FnOnce() -> io::Result<()>,
+    sync_directory: impl FnOnce() -> io::Result<()>,
+) -> Result<(), String> {
+    sync_file().map_err(|error| {
+        format!("Run report was written but file durability is unconfirmed: {error}")
+    })?;
+    sync_directory().map_err(|error| {
+        format!("Run report was written but directory durability is unconfirmed: {error}")
+    })
 }
 
 fn csv_value(value: Option<&Value>) -> Result<String, String> {
@@ -375,8 +449,7 @@ pub(crate) fn delete_saved_reports(directory: &Path) -> Result<usize, String> {
         if resolved.parent() != Some(allowed.as_path()) {
             continue;
         }
-        fs::remove_file(&resolved)
-            .map_err(|error| format!("Could not delete {name}: {error}"))?;
+        fs::remove_file(&resolved).map_err(|error| format!("Could not delete {name}: {error}"))?;
         deleted += 1;
     }
     Ok(deleted)
@@ -427,6 +500,50 @@ pub(crate) fn read_report(directory: &Path, requested: &Path) -> Result<Value, S
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn report_durability_errors_identify_the_unconfirmed_boundary() {
+        assert!(confirm_report_durability(
+            || Err(io::Error::other("file sync failed")),
+            || panic!("directory must not sync after file failure")
+        )
+        .unwrap_err()
+        .contains("file durability is unconfirmed"));
+        assert!(confirm_report_durability(
+            || Ok(()),
+            || Err(io::Error::other("directory sync failed"))
+        )
+        .unwrap_err()
+        .contains("directory durability is unconfirmed"));
+        assert!(confirm_report_durability(|| Ok(()), || Ok(())).is_ok());
+    }
+
+    #[test]
+    fn report_writer_initializes_empty_file_and_rejects_schema_or_partial_tail() {
+        let directory =
+            std::env::temp_dir().join(format!("hevc-report-append-{}", std::process::id()));
+        fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("hevc-rebuild-schema.csv");
+        fs::write(&path, b"").unwrap();
+        let values = || REPORT_FIELDS.iter().map(|_| String::new()).collect();
+        append_report_file(&path, values()).unwrap();
+        append_report_file(&path, values()).unwrap();
+        assert_eq!(
+            parse_csv_records(&fs::read_to_string(&path).unwrap())
+                .unwrap()
+                .len(),
+            3
+        );
+        for bytes in [
+            b"wrong,header\n".as_slice(),
+            b"input,status\npartial".as_slice(),
+        ] {
+            fs::write(&path, bytes).unwrap();
+            assert!(append_report_file(&path, values()).is_err());
+            assert_eq!(fs::read(&path).unwrap(), bytes);
+        }
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn csv_reader_handles_quoted_commas_newlines_and_escaped_quotes() {
@@ -484,7 +601,11 @@ mod tests {
             std::env::temp_dir().join(format!("hevc-report-delete-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&directory);
         fs::create_dir_all(directory.join("tool-setup")).unwrap();
-        fs::write(directory.join("hevc-rebuild-one.csv"), "input,status\nFilm.mkv,FAILED\n").unwrap();
+        fs::write(
+            directory.join("hevc-rebuild-one.csv"),
+            "input,status\nFilm.mkv,FAILED\n",
+        )
+        .unwrap();
         fs::write(directory.join("hevc-rebuild-one.log"), "diagnostic\n").unwrap();
         fs::write(directory.join("notes.txt"), "keep\n").unwrap();
         fs::write(
@@ -504,7 +625,10 @@ mod tests {
         assert_eq!(deleted, 2);
         assert!(!directory.join("hevc-rebuild-one.csv").exists());
         assert!(!directory.join("hevc-rebuild-one.log").exists());
-        assert_eq!(fs::read_to_string(directory.join("notes.txt")).unwrap(), "keep\n");
+        assert_eq!(
+            fs::read_to_string(directory.join("notes.txt")).unwrap(),
+            "keep\n"
+        );
         assert!(directory.join("tool-setup/hevc-rebuild-setup.csv").exists());
         assert!(directory.join("hevc-rebuild-folder.csv").is_dir());
         assert!(directory.join("hevc-rebuild-link.csv").exists());

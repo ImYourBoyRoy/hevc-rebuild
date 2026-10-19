@@ -14,13 +14,36 @@ from hevc_rebuild.util import RebuildError
 
 
 class ConfigTests(unittest.TestCase):
+    def test_artwork_cli_precedence_and_optional_compatibility_field(self):
+        from hevc_rebuild.app import parser
+        for configured in (False, True):
+            for cli in (None, False, True, "absent"):
+                args = parser().parse_args(["."])
+                if cli == "absent":
+                    del args.embed_artwork
+                else:
+                    args.embed_artwork = cli
+                cfg = {**config.DEFAULTS, "metadata": {**config.DEFAULTS["metadata"], "embed_artwork": configured}}
+                config.apply_to_args(args, cfg)
+                with self.subTest(configured=configured, cli=cli):
+                    self.assertEqual(args.embed_artwork, configured if cli is None or cli == "absent" else cli)
+
+    def test_default_blacklist_removes_example_release_group_without_renaming_source(self):
+        from hevc_rebuild.metadata import clean_metadata_text
+        # This editable example default is intentional, not an empty-list
+        # placeholder. Only matched output text is removed.
+        with patch.dict("os.environ", {"HEVC_REBUILD_NATIVE_HELPER": ""}):
+            cleaned, matches = clean_metadata_text("Film movieReleaseGroup Edition", config.DEFAULTS["metadata"]["text_blacklist"])
+        self.assertEqual(cleaned, "Film Edition")
+        self.assertEqual(matches, ["Movie*Group"])
+
     def test_defaults_are_source_faithful_and_slow(self):
         self.assertEqual(config.DEFAULTS["video"]["crf"], 21)
         self.assertEqual(config.DEFAULTS["video"]["preset"], "slow")
         self.assertFalse(config.DEFAULTS["video"]["promote_8bit_to_10bit"])
         self.assertEqual(config.DEFAULTS["hdr"]["dolby_vision"], "safe")
         self.assertTrue(config.DEFAULTS["hdr"]["preserve_hdr10plus"])
-        self.assertEqual(config.DEFAULTS["metadata"]["text_blacklist"], [])
+        self.assertEqual(config.DEFAULTS["metadata"]["text_blacklist"], ["Movie*Group"])
 
     def test_metadata_blacklist_validates_as_individual_patterns(self):
         self.assertEqual(config.validate_metadata_text_blacklist(["Movie*Group", "Explicit"]), ["Movie*Group", "Explicit"])
@@ -68,7 +91,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(parsed["resources"]["reserved_cpu_threads"], 1)
         self.assertEqual(parsed["resources"]["memory_reserve_percent"], 8.0)
         self.assertEqual(parsed["resources"]["min_free_disk_gib"], 0.0)
-        self.assertEqual(parsed["metadata"]["text_blacklist"], [])
+        self.assertEqual(parsed["metadata"]["text_blacklist"], ["Movie*Group"])
 
     def test_old_resource_config_migrates_without_overwriting_choices(self):
         import tomllib

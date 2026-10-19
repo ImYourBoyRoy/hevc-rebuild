@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 import unittest
@@ -14,6 +13,7 @@ from hevc_rebuild.youtube import (
     _hdr10plus_loss_decision,
     _install_youtube_output,
     _upload_args,
+    _upload_color_mode,
     _validate_upload,
     _video_rate_kbps,
     youtube_output_estimate,
@@ -117,6 +117,40 @@ class YouTubeHdr10PlusConsentTests(unittest.TestCase):
 
 class NativeYouTubePlanTests(unittest.TestCase):
     helper = os.environ.get("HEVC_REBUILD_NATIVE_HELPER")
+
+    @unittest.skipUnless(helper, "Rust helper path not configured")
+    def test_shared_supported_and_fail_closed_color_policy_matrix(self):
+        cases = [
+            ({}, "sdr"),
+            ({"hdr10": True, "source_bit_depth": 10, "color_primaries": "bt2020", "color_matrix": "bt2020nc", "transfer": "smpte2084"}, "hdr10"),
+            ({"hlg": True, "source_bit_depth": 10, "color_primaries": "bt2020", "color_matrix": "bt2020nc", "transfer": "arib-std-b67"}, "hlg"),
+            ({"dolby_vision": True}, "unsupported-dolby-vision"),
+            ({"hdr10": True}, "unsupported-bit-depth"),
+            ({"hdr10": True, "source_bit_depth": 10}, "unsupported-color-tags"),
+            ({"hdr10": True, "source_bit_depth": 10, "color_primaries": "bt2020", "color_matrix": "bt2020nc", "transfer": "unknown"}, "unsupported-transfer"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            for fields, expected in cases:
+                for native in (False, True):
+                    with self.subTest(fields=fields, native=native):
+                        media = profile(Path(directory) / "synthetic.mkv")
+                        for name, value in fields.items():
+                            setattr(media, name, value)
+                        with patch.dict(os.environ, {"HEVC_REBUILD_NATIVE_HELPER": self.helper if native else ""}):
+                            self.assertEqual(_upload_color_mode(media), expected)
+
+    @unittest.skipUnless(helper, "Rust helper path not configured")
+    def test_shared_orchestrator_retains_per_file_loss_gate_with_native_policy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            media = profile(Path(directory) / "hdr10plus.mkv")
+            media.hdr10plus_hint = True
+            for native in (False, True):
+                with patch.dict(os.environ, {"HEVC_REBUILD_NATIVE_HELPER": self.helper if native else ""}):
+                    for accepted in (False, True):
+                        allowed, note = _hdr10plus_loss_decision(media, accepted=accepted)
+                        self.assertEqual(allowed, accepted)
+                        self.assertIn("explicit", note)
+                        self.assertIn("No copy was written" if not accepted else "static HDR10/PQ", note)
 
     @unittest.skipUnless(helper, "Rust helper path not configured")
     def test_rust_policy_matches_python_size_estimates(self):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 import time
 import uuid
 from pathlib import Path
@@ -13,7 +12,7 @@ from .encode import MemoryPressureError, choose_resource_plan, run_encode
 from .model import MediaProfile, Toolchain
 from .probe import build_profile, ffprobe_json
 from .resources import disk_stats, effective_cpu_threads, memory_stats
-from .util import RebuildError, append_csv, human_bytes, native_json_action
+from .util import RebuildError, StopRequest, append_csv, human_bytes, native_json_action, safe_float
 from .ui import print_batch_card, print_batch_summary, print_phase, print_warning
 
 
@@ -118,13 +117,9 @@ def _fps(profile: MediaProfile) -> float:
     )
     for key in ("avg_frame_rate", "r_frame_rate"):
         value = raw_stream.get(key)
-        try:
-            if isinstance(value, str) and "/" in value:
-                numerator, denominator = value.split("/", 1)
-                return float(numerator) / float(denominator)
-            return float(value)
-        except (TypeError, ValueError, ZeroDivisionError, IndexError):
-            continue
+        parsed = safe_float(value)
+        if parsed is not None and parsed > 0:
+            return parsed
     return 30.0
 
 
@@ -206,6 +201,8 @@ def _video_rate_kbps(
     quality_mode: str = "balanced",
     source_multiplier: float = DEFAULT_SOURCE_MULTIPLIER,
 ) -> int:
+    if safe_float(profile.duration) is None:
+        raise RebuildError("YouTube source duration must be finite; forecast is unavailable.")
     if policy := _native_youtube_policy(profile, resolution, quality_mode, source_multiplier):
         return int(policy["video_bitrate_kbps"])
     recommended = _recommended_video_rate_kbps(profile, resolution)
@@ -239,6 +236,8 @@ def youtube_output_estimate(
     source_multiplier: float = DEFAULT_SOURCE_MULTIPLIER,
 ) -> dict[str, int]:
     """Return a preflight estimate; actual size varies with content and rate control."""
+    if safe_float(profile.duration) is None:
+        raise RebuildError("YouTube source duration must be finite; forecast is unavailable.")
     if policy := _native_youtube_policy(profile, resolution, quality_mode, source_multiplier):
         return {
             key: int(policy[key])
@@ -470,7 +469,9 @@ def _validate_upload(tools: Toolchain, source: MediaProfile, output: Path, resol
     audio_out = [stream for stream in streams if stream.get("codec_type") == "audio"]
     if audio_in and (not audio_out or any(stream.get("codec_name") != "aac" for stream in audio_out)):
         raise RebuildError("The source has audio, but the upload copy did not validate as AAC audio.")
-    actual_duration = float((probe.get("format") or {}).get("duration") or 0)
+    actual_duration = safe_float((probe.get("format") or {}).get("duration"))
+    if actual_duration is None or actual_duration <= 0:
+        raise RebuildError("Upload copy has an invalid or unavailable duration.")
     if source.duration > 0 and abs(actual_duration - source.duration) > max(2.0, source.duration * 0.005):
         raise RebuildError("Upload copy duration differs from the source by more than the validation tolerance.")
     formats = str((probe.get("format") or {}).get("format_name") or "")
@@ -514,6 +515,7 @@ def youtube_upload_batch(
     selected_paths: Sequence[str] = (),
 ) -> int:
     """Create separate SDR or source-compatible HDR YouTube copies."""
+    stop_request = getattr(args, "stop_request", None) or StopRequest(getattr(args, "stop_request_file", None))
     root = root.expanduser().resolve()
     if resolution not in RESOLUTION_HEIGHTS:
         raise RebuildError("Upload resolution must be source, 1440p, or 4k.")
@@ -793,7 +795,7 @@ def youtube_upload_batch(
         if row["status"] == "FAILED" and args.stop_on_error:
             print_warning("Stop-on-error is enabled; remaining files were not started.")
             break
-        if args.stop_request_file and Path(args.stop_request_file).exists():
+        if stop_request.requested():
             print_warning("Safe stop requested; remaining files were not started.")
             break
 

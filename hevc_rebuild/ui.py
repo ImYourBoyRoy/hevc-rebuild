@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from .model import MediaProfile
 from .resources import ResourceSnapshot
-from .util import ConsoleClosed, duration_text, human_bytes
+from .util import ConsoleClosed, RebuildError, duration_text, human_bytes
 
 
 _USE_COLOR = sys.stderr.isatty() and not os.environ.get("NO_COLOR")
@@ -256,6 +256,8 @@ class ProgressView:
         resources: ResourceSnapshot,
         phase: str = "Encoding",
     ) -> None:
+        if any(not math.isfinite(value) for value in (done, speed, size, self.expected_duration)):
+            raise RebuildError("Progress values must be finite; ETA and output forecasts are unavailable.")
         pct = min(100.0, max(0.0, done / self.expected_duration * 100.0)) if self.expected_duration else 0.0
         eta = (self.expected_duration - done) / speed if speed > 0 else None
         # Encoding is most of the job, but metadata writing, validation, and

@@ -1,5 +1,9 @@
 # Project Agent Instructions
 
+## Current acceptance boundary — 2026-10-12
+
+Ubuntu 24.04.5/glibc 2.39 package acceptance and populated native queue walkthrough are recorded in `2026-10-11_evidence.md`. Screen-reader workflow announcements beyond startup/frame announcements, provider/account paths, and Windows/macOS runtime remain separate limitations; do not generalize Linux evidence to those surfaces.
+
 ## Project boundary
 
 This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu-first Tauri/Svelte desktop preview. The source archive is kept one directory above this project and is the untouched reference. Media libraries and files are user data; do not scan or process them during build checks.
@@ -52,7 +56,7 @@ This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu
 
 ## Platform and data safety
 
-- Current supported engine platforms are Ubuntu 24.04+ and Ubuntu-based Linux Mint 22+. Ubuntu `.deb` and x86-64 AppImage targets are configured. The current AppImage bundles libraries requiring glibc 2.43 (built on Ubuntu 26.04.1); rebuild on the oldest supported Ubuntu baseline before claiming compatibility there. Windows/macOS support is not implemented.
+- Current supported desktop engine platforms are Ubuntu 24.04+ and Ubuntu-based Linux Mint 22+. Ubuntu `.deb` and x86-64 AppImage targets are configured. The current AppImage bundles libraries requiring glibc 2.43 (built on Ubuntu 26.04.1); rebuild on the oldest supported Ubuntu baseline before claiming compatibility there. The direct Windows CLI now has an explicit winget dependency resolver and a separately verified synthetic build lane, but Windows desktop/runtime acceptance is still open; macOS support is not implemented.
 - Environment checks, settings reads, and folder analysis must remain read-only. The Rust resolver and Python bridge use non-creating settings reads for the GUI/scan path. A direct engine run may retain the CLI's existing config-creation behavior.
 - AppImage portable state belongs in the writable sibling `<AppImage filename>.data/` directory. If it is unavailable, report the fallback to the user's XDG config location. Never try to write preferences inside the mounted AppImage or beside the system-installed `/usr/bin` executable.
 - The AppImage launcher may set `PYTHONHOME` to its mounted AppDir even though media stages use host Python. Every Rust-launched Python module subprocess must remove that inherited override and use its explicit bundled-engine `PYTHONPATH`; test the packaged engine path, not only the native queue CLI.
@@ -64,11 +68,30 @@ This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu
 
 ## Documentation and validation
 
+- Engine run logs/reports use one UUID per artifact pair and exact-path queue association. New files are Unix-private 0600, new log directories 0700; preserve existing modes. Python/Rust writers share inode flock, schema validation, file sync and creation-directory sync; distinguish written content from confirmed durability on errors. Process readers must return I/O errors rather than flatten them, and streaming stderr retention must stay bounded with explicit truncation. Helper deadlines are bounded; active encodes retain the independent live guard lifecycle.
+
 - Keep `README.md`, `MEMORY.md`, `TECHNICAL.md`, and `REVIEW.md` current when behavior or platform support changes.
 - Keep `VERSION`, `hevc_rebuild.__version__`, `desktop/package.json`, `desktop/src-tauri/Cargo.toml`, and Tauri's version aligned.
 - Frontend check commands: `pnpm check` is the TypeScript 6 compatibility lane; `pnpm check:tsgo` checks the additional TypeScript 7 compiler path. Run both when changing frontend types or Svelte checker configuration.
 - After source/document changes, regenerate `SHA256SUMS` from tracked and non-ignored project files, excluding that checksum file, generated output, dependency caches, and build targets.
-- Desktop checks: from `desktop/`, use `pnpm check`, `pnpm build`, and `pnpm tauri build`; use `cargo check` from `desktop/src-tauri/` for Rust bridge checks. Inspect both the `.deb` and AppImage outputs when a release build is reported. Do not call a frontend/package build evidence of native UI or cross-platform support.
+- Desktop checks: from `desktop/`, use `pnpm check`, `pnpm build`, and `pnpm tauri build`; use `cargo check` from `desktop/src-tauri/` for Rust bridge checks. Inspect both the `.deb` and AppImage outputs when a release build is reported, then copy the successful Linux bundles into the repository-root `App/` artifact drop and report their hashes. Do not call a frontend/package build evidence of native UI or cross-platform support.
 - Use the committed lockfiles for normal builds (`pnpm install --frozen-lockfile`, `cargo check --locked`).
 - Existing engine tests live under `tests/`; inspect applicable tests when changing engine behavior. Do not claim test results unless run in this task.
 - Before reporting a release build, inspect its actual package metadata and bundled resources. Distinguish frontend/Rust compilation from a packaged runtime launch.
+- Use `tools/extract_clip.py` for short synthetic or explicitly authorized test fixtures. It defaults to a stream-copy MKV in the current directory, never overwrites an existing destination, and leaves the source untouched; use `--mode transcode` when a frame-accurate start is required. The utility is portable with Python 3 and FFmpeg, but its use does not establish desktop support for an otherwise unsupported OS.
+
+## Transaction/control invariants
+
+- Direct and native validated-output commits and rollbacks must use atomic no-overwrite moves. `unique_backup` is an advisory name choice, never a reservation. Retain output/backup on post-install sync failure and report unconfirmed durability. If encoding reaches a late metadata, validation, install, or commit failure, retain the completed output when possible, write an adjacent `<final-stem>+error.log` without overwriting an existing diagnostic, and keep the report failed/unvalidated. An in-place source path must remain protected; use a collision-safe `.hevc-rebuild.kept.mkv` sibling when the intended final path is occupied by the original.
+- Organizer renames sync affected directories and report applied paths if sync fails. No persistent crash journal exists; do not imply power-loss recovery or undo. Design journal/recovery separately before adding such a guarantee.
+- `stop_control.rs` owns native per-job private stop directories and marker creation/validation. Keep its RAII lifetime through the job. Python `StopRequest` rejects stale direct markers, symlinks, replaced inodes, and peer-writable markers. Preserve finish-current-file semantics and CLI/MCP payloads.
+
+## Maintenance checks
+
+Use the reproducible maintenance commands in README. Focused Ruff uses `--isolated --select F401,F841` to avoid inheriting client-specific style policy. rustfmt/compiler/tests/frontend lanes are required source gates. Clippy exit success is required while remaining classified advisories stay visible; do not silently introduce `-D warnings` until compatibility/parity is reviewed. Preserve historical evidence and consult `2026-10-11_warnings.md` for intentional compatibility/portable-width findings.
+
+- Current hybrid domain ownership, callers and compatibility retirement gates are in the dated current-owner table in `RUST_MIGRATION.md`; older evidence below it is historical. UI contracts are in `desktop/UI_OWNERSHIP.md` and `desktop/CSS_CONTRACT.md`. Maintain actual callback/native command boundaries during extraction. Browser fixture callbacks simulate IPC; they cannot establish native, credential, APT, upload or packaged-runtime proof.
+
+- `profile_cache.rs` is a bounded process-local cache of successful scan profiles only. Preserve canonical file/tool identity, size, nanosecond mtime, effective settings, versions and policy revision in keys; bump `POLICY_REVISION` when profile semantics change. Do not cache live resource forecasts, partial/error profiles, or persist private scan paths. Keep opt-in scan timings diagnostic-only.
+
+- Noninteractive GUI/MCP process output readers require `process_output::spawn_owned` so a fatal read error stops the owned process group, including pipe-holding descendants. Preserve the foreground group for interactive sudo CLI authentication; its raw-byte forwarding must report read/write errors. Python encode cleanup must stop owned descendants even after the parent exits. Native encoder supervision owns its encoder group and joins/reaps before reporting cancellation. Validate resistant-child/descendant fixtures before release.

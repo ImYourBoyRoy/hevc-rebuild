@@ -4,6 +4,7 @@
      The parent owns navigation and folder selection. -->
 <script lang="ts">
   import { Check, X } from "@lucide/svelte";
+  import WorkflowIllustration from "#lib/WorkflowIllustration.svelte";
   import type { CommandCheck, Environment, Page, RunReport } from "#lib/types.js";
   import "../styles/components/home.css";
 
@@ -20,6 +21,7 @@
   }
 
   interface Props {
+    skin?: "phosphor" | "ion" | "breach" | null;
     environment: Environment | null;
     environmentLoading: boolean;
     sourceCount: number;
@@ -37,6 +39,7 @@
   }
 
   let {
+    skin = null,
     environment,
     environmentLoading,
     sourceCount,
@@ -99,12 +102,16 @@
   }
 </script>
 
-<section class="page-heading">
+<section class="page-heading home-heading">
   <div>
     <div class="eyebrow">WORKSPACE</div>
     <h1>Home</h1>
     <p>{intro}</p>
   </div>
+  <figure class="home-workflow" aria-label="Local rebuild workflow illustration">
+    <WorkflowIllustration {skin} />
+    <figcaption>Source → encode → validate</figcaption>
+  </figure>
 </section>
 
 <div class="home-layout">

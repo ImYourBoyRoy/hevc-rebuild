@@ -1,4 +1,3 @@
-use rmcp::schemars;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -32,425 +31,28 @@ mod metadata_credentials;
 mod metadata_text;
 mod output_targets;
 mod packet_verify;
+mod process_output;
+mod profile_cache;
 mod reports;
 mod resource_monitor;
 mod resource_plan;
+mod run_arguments;
 mod runtime_guard;
+pub(crate) use run_arguments::{
+    append_filename_filter_arguments, append_selected_file_arguments, append_tool_path_arguments,
+    metadata_override_arguments, poster_override_arguments, rebuild_output_arguments,
+    stream_override_arguments, youtube_hdr10plus_loss_arguments, ToolPaths,
+};
 mod settings;
+mod settings_arguments;
+#[cfg(test)]
+use settings_arguments::metadata_text_blacklist_arguments;
+use settings_arguments::settings_arguments;
+mod stop_control;
 mod tool_diagnostics;
 mod transactions;
 mod validation;
 mod youtube;
-
-#[derive(Clone, Default, Deserialize, Serialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
-pub(crate) struct ToolPaths {
-    /// Encoder/muxer executable. A matching sibling FFprobe is detected when unset.
-    pub(crate) ffmpeg: Option<String>,
-    /// Optional explicit stream-analysis executable.
-    pub(crate) ffprobe: Option<String>,
-    /// Optional explicit MediaInfo executable.
-    pub(crate) mediainfo: Option<String>,
-    /// Optional MKVToolNix editor executable.
-    pub(crate) mkvpropedit: Option<String>,
-    /// Optional MKVToolNix merger executable.
-    pub(crate) mkvmerge: Option<String>,
-    /// Optional MKVToolNix extractor executable.
-    pub(crate) mkvextract: Option<String>,
-}
-
-pub(crate) fn append_tool_path_arguments(
-    args: &mut Vec<String>,
-    mut paths: ToolPaths,
-    legacy_ffmpeg_path: Option<String>,
-) -> Result<(), String> {
-    if paths.ffmpeg.is_none() {
-        paths.ffmpeg = legacy_ffmpeg_path;
-    }
-    for (name, path) in [
-        ("ffmpeg", paths.ffmpeg),
-        ("ffprobe", paths.ffprobe),
-        ("mediainfo", paths.mediainfo),
-        ("mkvpropedit", paths.mkvpropedit),
-        ("mkvmerge", paths.mkvmerge),
-        ("mkvextract", paths.mkvextract),
-    ] {
-        let Some(path) = path.filter(|value| !value.trim().is_empty()) else {
-            continue;
-        };
-        if path.len() > 8192 {
-            return Err(format!("The selected {name} path is too long."));
-        }
-        let binary = PathBuf::from(&path)
-            .canonicalize()
-            .map_err(|error| format!("Selected {name} executable is unavailable: {error}"))?;
-        if !binary.is_file() {
-            return Err(format!("Selected {name} path is not a file."));
-        }
-        args.extend([
-            format!("--{}-path", name.replace('_', "-")),
-            binary.to_string_lossy().into_owned(),
-        ]);
-    }
-    Ok(())
-}
-
-pub(crate) fn append_filename_filter_arguments(
-    args: &mut Vec<String>,
-    include: &[String],
-    exclude: &[String],
-) -> Result<(), String> {
-    media_scan::validate_filename_patterns(include, "include")?;
-    media_scan::validate_filename_patterns(exclude, "exclude")?;
-    for pattern in include {
-        args.extend(["--include-filename-pattern".into(), pattern.clone()]);
-    }
-    for pattern in exclude {
-        args.extend(["--exclude-filename-pattern".into(), pattern.clone()]);
-    }
-    Ok(())
-}
-
-pub(crate) fn append_selected_file_arguments(
-    args: &mut Vec<String>,
-    root: &Path,
-    selected_files: &[String],
-) -> Result<(), String> {
-    if selected_files.len() > 10_000 {
-        return Err("A job can select at most 10,000 media files.".into());
-    }
-    if selected_files.is_empty() {
-        return Ok(());
-    }
-    let mut unique = BTreeSet::new();
-    for raw_path in selected_files {
-        if raw_path.len() > 8192 || !Path::new(raw_path).is_absolute() {
-            return Err("Selected media paths must be absolute paths.".into());
-        }
-        let path = PathBuf::from(raw_path)
-            .canonicalize()
-            .map_err(|error| format!("A selected media file is no longer available: {error}"))?;
-        if !path.is_file()
-            || (root.is_dir() && !path.starts_with(root))
-            || (root.is_file() && path.as_path() != root)
-        {
-            return Err("Every selected media file must belong to the analyzed input.".into());
-        }
-        if !unique.insert(path.clone()) {
-            return Err("Selected media paths must be unique.".into());
-        }
-        args.extend([
-            "--selected-file".into(),
-            path.to_string_lossy().into_owned(),
-        ]);
-    }
-    Ok(())
-}
-
-pub(crate) fn rebuild_output_arguments(
-    root: &Path,
-    output_dir: Option<&str>,
-    file_output_dirs: BTreeMap<String, String>,
-) -> Result<(Vec<String>, Option<PathBuf>), String> {
-    if file_output_dirs.len() > 512 {
-        return Err("Per-file output folders are limited to 512 media files.".into());
-    }
-    let mut args = Vec::new();
-    let mut resource_path = None;
-    if let Some(raw) = output_dir.filter(|value| !value.trim().is_empty()) {
-        if raw.len() > 8192 || !Path::new(raw).is_absolute() {
-            return Err("The default rebuild output folder must be an absolute path of at most 8192 characters.".into());
-        }
-        let folder = PathBuf::from(raw)
-            .canonicalize()
-            .map_err(|error| format!("Default rebuild output folder is unavailable: {error}"))?;
-        if !folder.is_dir() {
-            return Err("Default rebuild output folder is not an existing folder.".into());
-        }
-        resource_path = Some(folder.clone());
-        args.extend(["--output-dir".into(), folder.to_string_lossy().into_owned()]);
-    }
-    if file_output_dirs.is_empty() {
-        return Ok((args, resource_path));
-    }
-    let input_root = if root.is_dir() {
-        root.to_path_buf()
-    } else {
-        root.parent().unwrap_or(Path::new(".")).to_path_buf()
-    };
-    let mut canonical = BTreeMap::new();
-    for (raw_source, raw_destination) in file_output_dirs {
-        if raw_source.len() > 8192
-            || raw_destination.len() > 8192
-            || !Path::new(&raw_source).is_absolute()
-            || !Path::new(&raw_destination).is_absolute()
-        {
-            return Err("Per-file output source and folder paths must be absolute and no longer than 8192 characters.".into());
-        }
-        let source = PathBuf::from(&raw_source)
-            .canonicalize()
-            .map_err(|error| format!("Per-file output source is unavailable: {error}"))?;
-        if !source.is_file()
-            || !source.starts_with(&input_root)
-            || (root.is_file() && source != root)
-        {
-            return Err("Per-file output sources must belong to the analyzed input.".into());
-        }
-        let destination = PathBuf::from(raw_destination)
-            .canonicalize()
-            .map_err(|error| format!("Per-file output folder is unavailable: {error}"))?;
-        if !destination.is_dir() {
-            return Err("Each per-file output destination must be an existing folder.".into());
-        }
-        if canonical
-            .insert(source.clone(), destination.clone())
-            .is_some()
-        {
-            return Err(
-                "Per-file output settings contain duplicate canonical source paths.".into(),
-            );
-        }
-        if resource_path.is_none() {
-            resource_path = Some(destination);
-        }
-    }
-    let serialized = serde_json::to_string(
-        &canonical
-            .into_iter()
-            .map(|(source, destination)| {
-                (
-                    source.to_string_lossy().into_owned(),
-                    destination.to_string_lossy().into_owned(),
-                )
-            })
-            .collect::<BTreeMap<_, _>>(),
-    )
-    .map_err(|error| format!("Could not encode per-file output folders: {error}"))?;
-    if serialized.len() > 65536 {
-        return Err("Per-file output folders exceed the 64 KiB limit.".into());
-    }
-    args.extend(["--file-output-dirs-json".into(), serialized]);
-    Ok((args, resource_path))
-}
-
-pub(crate) fn stream_override_arguments(
-    root: &Path,
-    overrides: BTreeMap<String, Vec<u16>>,
-) -> Result<Vec<String>, String> {
-    if overrides.is_empty() {
-        return Ok(Vec::new());
-    }
-    if overrides.len() > 512 {
-        return Err("Per-file stream selections are limited to 512 media files.".into());
-    }
-    let mut canonical_overrides = BTreeMap::new();
-    for (raw_path, indices) in overrides {
-        if !Path::new(&raw_path).is_absolute() {
-            return Err("Per-file stream selection paths must be absolute.".into());
-        }
-        if indices.is_empty() || indices.len() > 1024 {
-            return Err(
-                "Each media file must select at least one stream and no more than 1024 streams."
-                    .into(),
-            );
-        }
-        let unique: BTreeSet<_> = indices.iter().copied().collect();
-        if unique.len() != indices.len() {
-            return Err(
-                "Per-file stream selections must contain unique FFprobe stream indices.".into(),
-            );
-        }
-        let selected = PathBuf::from(raw_path)
-            .canonicalize()
-            .map_err(|error| format!("Selected stream source is unavailable: {error}"))?;
-        if !selected.is_file()
-            || (root.is_dir() && !selected.starts_with(root))
-            || (root.is_file() && selected != root)
-        {
-            return Err(
-                "Per-file stream selections must refer to media inside the selected input.".into(),
-            );
-        }
-        if canonical_overrides
-            .insert(selected.to_string_lossy().into_owned(), indices)
-            .is_some()
-        {
-            return Err(
-                "A media file was included more than once in the stream selections.".into(),
-            );
-        }
-    }
-    let serialized = serde_json::to_string(&canonical_overrides)
-        .map_err(|error| format!("Could not encode per-file stream selections: {error}"))?;
-    if serialized.len() > 65536 {
-        return Err("Per-file stream selections exceed the 64 KiB limit.".into());
-    }
-    Ok(vec!["--file-stream-overrides-json".into(), serialized])
-}
-
-pub(crate) fn poster_override_arguments(
-    root: &Path,
-    overrides: BTreeMap<String, String>,
-    artwork_cache_root: &Path,
-) -> Result<Vec<String>, String> {
-    if overrides.is_empty() {
-        return Ok(Vec::new());
-    }
-    if overrides.len() > 512 {
-        return Err("Per-file poster selections are limited to 512 media files.".into());
-    }
-    let input_root = if root.is_dir() {
-        root.to_path_buf()
-    } else {
-        root.parent().unwrap_or(Path::new(".")).to_path_buf()
-    };
-    let canonical_cache_root = artwork_cache_root.canonicalize().ok();
-    let mut uses_cached_artwork = false;
-    let mut canonical_overrides = BTreeMap::new();
-    for (raw_media, raw_poster) in overrides {
-        if raw_media.len() > 8192
-            || raw_poster.len() > 8192
-            || !Path::new(&raw_media).is_absolute()
-            || !Path::new(&raw_poster).is_absolute()
-        {
-            return Err("Per-file media and poster paths must be absolute and no longer than 8192 characters.".into());
-        }
-        let media = PathBuf::from(raw_media)
-            .canonicalize()
-            .map_err(|error| format!("Selected poster's media file is unavailable: {error}"))?;
-        if !media.is_file() || !media.starts_with(&input_root) || (root.is_file() && media != root)
-        {
-            return Err("Poster selections must refer to media inside the analyzed input.".into());
-        }
-        let poster = PathBuf::from(raw_poster)
-            .canonicalize()
-            .map_err(|error| format!("Selected poster image is unavailable: {error}"))?;
-        let inside_input = poster.starts_with(&input_root);
-        let inside_app_cache = canonical_cache_root
-            .as_ref()
-            .is_some_and(|cache| poster.starts_with(cache));
-        if (!inside_input && !inside_app_cache) || !library_assets::valid_image_file(&poster) {
-            return Err("Selected poster images must be valid JPEG, PNG, or WebP files inside the analyzed input or the private app artwork cache.".into());
-        }
-        uses_cached_artwork |= inside_app_cache;
-        if canonical_overrides
-            .insert(
-                media.to_string_lossy().into_owned(),
-                poster.to_string_lossy().into_owned(),
-            )
-            .is_some()
-        {
-            return Err(
-                "A media file was included more than once in the poster selections.".into(),
-            );
-        }
-    }
-    let serialized = serde_json::to_string(&canonical_overrides)
-        .map_err(|error| format!("Could not encode per-file poster selections: {error}"))?;
-    if serialized.len() > 65536 {
-        return Err("Per-file poster selections exceed the 64 KiB limit.".into());
-    }
-    let mut args = Vec::with_capacity(4);
-    if uses_cached_artwork {
-        let cache = canonical_cache_root
-            .ok_or("The private artwork cache is unavailable for this selected poster.")?;
-        args.extend([
-            "--allowed-poster-cache-root".into(),
-            cache.to_string_lossy().into_owned(),
-        ]);
-    }
-    args.extend(["--file-poster-overrides-json".into(), serialized]);
-    Ok(args)
-}
-
-pub(crate) fn metadata_override_arguments(
-    root: &Path,
-    overrides: BTreeMap<String, Value>,
-) -> Result<Vec<String>, String> {
-    if overrides.is_empty() {
-        return Ok(Vec::new());
-    }
-    if overrides.len() > 512 {
-        return Err("Reviewed metadata is limited to 512 media files per run.".into());
-    }
-    let input_root = if root.is_dir() {
-        root.to_path_buf()
-    } else {
-        root.parent().unwrap_or(Path::new(".")).to_path_buf()
-    };
-    let mut canonical = BTreeMap::new();
-    for (raw_path, metadata) in overrides {
-        if raw_path.len() > 8192 || !Path::new(&raw_path).is_absolute() {
-            return Err(
-                "Reviewed metadata paths must be absolute and no longer than 8192 characters."
-                    .into(),
-            );
-        }
-        let path = PathBuf::from(raw_path)
-            .canonicalize()
-            .map_err(|error| format!("Reviewed metadata source is unavailable: {error}"))?;
-        if !path.is_file() || !path.starts_with(&input_root) || (root.is_file() && path != root) {
-            return Err("Reviewed metadata must refer to media inside the analyzed input.".into());
-        }
-        if !metadata.is_object() || metadata.as_object().is_some_and(|fields| fields.is_empty()) {
-            return Err("Each reviewed metadata value must be a non-empty object.".into());
-        }
-        if canonical
-            .insert(path.to_string_lossy().into_owned(), metadata)
-            .is_some()
-        {
-            return Err("A media file was included more than once in reviewed metadata.".into());
-        }
-    }
-    let serialized = serde_json::to_string(&canonical)
-        .map_err(|error| format!("Could not encode reviewed metadata: {error}"))?;
-    if serialized.len() > 65536 {
-        return Err("Reviewed metadata overrides exceed the 64 KiB limit.".into());
-    }
-    Ok(vec!["--file-metadata-overrides-json".into(), serialized])
-}
-
-pub(crate) fn youtube_hdr10plus_loss_arguments(
-    root: &Path,
-    paths: Vec<String>,
-) -> Result<Vec<String>, String> {
-    if paths.len() > 512 {
-        return Err("YouTube HDR10+ loss consent is limited to 512 media files.".into());
-    }
-    let mut selected_paths = BTreeSet::new();
-    let mut args = Vec::new();
-    for raw_path in paths {
-        if raw_path.len() > 8192 {
-            return Err(
-                "YouTube HDR10+ loss consent paths are limited to 8192 characters each.".into(),
-            );
-        }
-        if !Path::new(&raw_path).is_absolute() {
-            return Err("YouTube HDR10+ loss consent paths must be absolute.".into());
-        }
-        let selected = PathBuf::from(raw_path)
-            .canonicalize()
-            .map_err(|error| format!("Selected HDR10+ source is unavailable: {error}"))?;
-        if !selected.is_file()
-            || (root.is_dir() && !selected.starts_with(root))
-            || (root.is_file() && selected != root)
-        {
-            return Err(
-                "YouTube HDR10+ loss consent paths must refer to files inside the selected input."
-                    .into(),
-            );
-        }
-        let canonical = selected.to_string_lossy().into_owned();
-        if !selected_paths.insert(canonical.clone()) {
-            return Err("YouTube HDR10+ loss consent can be supplied only once per file.".into());
-        }
-        args.extend(["--allow-youtube-hdr10plus-loss".into(), canonical]);
-    }
-    if args.iter().map(String::len).sum::<usize>() > 65536 {
-        return Err("YouTube HDR10+ loss consent exceeds the 64 KiB path limit.".into());
-    }
-    Ok(args)
-}
 
 pub(crate) const APT_ALLOWLIST: &[&str] = &[
     "python3",
@@ -1351,24 +953,25 @@ fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Could not start the APT operation: {error}"))?;
+    let process_id = child.id();
     let stdout_reader = child
         .stdout
         .take()
-        .map(|reader| thread::spawn(move || forward_command_output(reader)));
+        .map(|reader| thread::spawn(move || forward_command_output(reader, process_id)));
     let stderr_reader = child
         .stderr
         .take()
-        .map(|reader| thread::spawn(move || forward_command_output(reader)));
+        .map(|reader| thread::spawn(move || forward_command_output(reader, process_id)));
     let status = child.wait();
     if let Some(reader) = stdout_reader {
         reader
             .join()
-            .map_err(|_| "Could not forward APT standard output.".to_string())?;
+            .map_err(|_| "Could not forward APT standard output.".to_string())??;
     }
     if let Some(reader) = stderr_reader {
         reader
             .join()
-            .map_err(|_| "Could not forward APT diagnostics.".to_string())?;
+            .map_err(|_| "Could not forward APT diagnostics.".to_string())??;
     }
     let status =
         status.map_err(|error| format!("Could not wait for the APT operation: {error}"))?;
@@ -1378,23 +981,35 @@ fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-fn forward_command_output(mut reader: impl Read) {
-    let mut reader = BufReader::new(&mut reader);
-    let mut line = Vec::new();
-    loop {
-        line.clear();
-        match reader.read_until(b'\n', &mut line) {
-            Ok(0) | Err(_) => break,
-            Ok(_) => {
-                let stderr = std::io::stderr();
-                let mut stderr = stderr.lock();
-                if stderr.write_all(&line).is_err() {
-                    break;
-                }
-                let _ = stderr.flush();
+fn forward_command_output(mut reader: impl Read, process_id: u32) -> Result<(), String> {
+    // Preserve raw CLI bytes and interactive sudo's foreground-terminal group.
+    // Unlike noninteractive GUI/MCP jobs, this command must not create a group.
+    let result = (|| {
+        let mut bytes = [0_u8; 8192];
+        loop {
+            let count = reader
+                .read(&mut bytes)
+                .map_err(|error| format!("Could not read APT output: {error}"))?;
+            if count == 0 {
+                return Ok(());
+            }
+            let stderr = std::io::stderr();
+            let mut stderr = stderr.lock();
+            stderr
+                .write_all(&bytes[..count])
+                .and_then(|_| stderr.flush())
+                .map_err(|error| format!("Could not forward APT output: {error}"))?;
+        }
+    })();
+    if result.is_err() {
+        #[cfg(unix)]
+        unsafe {
+            if let Ok(pid) = libc::pid_t::try_from(process_id) {
+                libc::kill(pid, libc::SIGKILL);
             }
         }
     }
+    result
 }
 
 fn run_json_cli_apt_refresh(args: &[String]) -> i32 {
@@ -1710,13 +1325,14 @@ fn forward_lines<R: Read + Send + 'static>(
     event: &'static str,
     run_id: String,
     stream: R,
-) -> thread::JoinHandle<()> {
+    process_id: u32,
+) -> thread::JoinHandle<Result<(), String>> {
     thread::spawn(move || {
-        for line in BufReader::new(stream).lines().flatten() {
+        crate::process_output::read_process_lines(stream, process_id, |line| {
             if event == "run-line" {
                 if let Some(progress) = parse_engine_progress(&run_id, &line) {
                     let _ = app.emit("run-progress", progress);
-                    continue;
+                    return;
                 }
             }
             let _ = app.emit(
@@ -1726,7 +1342,7 @@ fn forward_lines<R: Read + Send + 'static>(
                     line,
                 },
             );
-        }
+        })
     })
 }
 
@@ -1751,11 +1367,12 @@ fn forward_repair_lines<R: Read + Send + 'static>(
     job_id: String,
     logger: Arc<tool_diagnostics::ToolSetupLogger>,
     stream: R,
-) -> thread::JoinHandle<()> {
+    process_id: u32,
+) -> thread::JoinHandle<Result<(), String>> {
     thread::spawn(move || {
-        for line in BufReader::new(stream).lines().flatten() {
+        crate::process_output::read_process_lines(stream, process_id, |line| {
             emit_repair_line(&app, &logger, &job_id, line);
-        }
+        })
     })
 }
 
@@ -2224,11 +1841,7 @@ async fn scan_folder(
 async fn reconcile_interrupted_runs(
     state: State<'_, RunState>,
 ) -> Result<media_queue::InterruptedRecovery, String> {
-    let job_active = state
-        .0
-        .lock()
-        .map(|guard| guard.is_some())
-        .unwrap_or(true);
+    let job_active = state.0.lock().map(|guard| guard.is_some()).unwrap_or(true);
     let queue_file = media_queue_file()?;
     tauri::async_runtime::spawn_blocking(move || {
         if job_active {
@@ -2513,14 +2126,7 @@ fn normalize_app_preferences(value: Value) -> Result<Value, String> {
             .as_str()
             .ok_or("The saved workspace tab must be text.")?;
         if ![
-            "home",
-            "library",
-            "metadata",
-            "youtube",
-            "run",
-            "settings",
-            "reports",
-            "help",
+            "home", "library", "metadata", "youtube", "run", "settings", "reports", "help",
         ]
         .contains(&last_page)
         {
@@ -2905,273 +2511,6 @@ fn read_log(path: String) -> Result<String, String> {
     Ok(result)
 }
 
-fn config_value<'a>(settings: &'a Value, path: &str) -> Result<&'a Value, String> {
-    let mut value = settings;
-    for key in path.split('.') {
-        value = value
-            .get(key)
-            .ok_or_else(|| format!("Setting {path} is missing."))?;
-    }
-    Ok(value)
-}
-
-fn config_string(settings: &Value, path: &str, allowed: &[&str]) -> Result<String, String> {
-    let value = config_value(settings, path)?
-        .as_str()
-        .ok_or_else(|| format!("Setting {path} must be text."))?;
-    if !allowed.contains(&value) {
-        return Err(format!("Setting {path} has an unsupported value."));
-    }
-    Ok(value.to_string())
-}
-
-fn config_bool(settings: &Value, path: &str) -> Result<bool, String> {
-    config_value(settings, path)?
-        .as_bool()
-        .ok_or_else(|| format!("Setting {path} must be true or false."))
-}
-
-fn config_integer(settings: &Value, path: &str, minimum: i64, maximum: i64) -> Result<i64, String> {
-    let value = config_value(settings, path)?
-        .as_i64()
-        .ok_or_else(|| format!("Setting {path} must be a whole number."))?;
-    if value < minimum || value > maximum {
-        return Err(format!(
-            "Setting {path} must be between {minimum} and {maximum}."
-        ));
-    }
-    Ok(value)
-}
-
-fn config_number(settings: &Value, path: &str, minimum: f64, maximum: f64) -> Result<f64, String> {
-    let value = config_value(settings, path)?
-        .as_f64()
-        .ok_or_else(|| format!("Setting {path} must be a number."))?;
-    if !value.is_finite() || value < minimum || value > maximum {
-        return Err(format!(
-            "Setting {path} must be between {minimum} and {maximum}."
-        ));
-    }
-    Ok(value)
-}
-
-fn add_boolean_option(args: &mut Vec<String>, name: &str, value: bool) {
-    args.push(format!("--{}{}", if value { "" } else { "no-" }, name));
-}
-
-fn metadata_text_blacklist_arguments(settings: &Value) -> Result<Vec<String>, String> {
-    let embed_artwork = settings
-        .get("metadata")
-        .and_then(|metadata| metadata.get("embed_artwork"))
-        .and_then(Value::as_bool)
-        .unwrap_or(true);
-    let mut args = vec![format!(
-        "--{}embed-artwork",
-        if embed_artwork { "" } else { "no-" }
-    )];
-    let Some(configured) = settings
-        .get("metadata")
-        .and_then(|metadata| metadata.get("text_blacklist"))
-    else {
-        return Ok(args);
-    };
-    let patterns = configured
-        .as_array()
-        .ok_or("Metadata text blacklist must be an array of patterns.")?;
-    if patterns.len() > 100 {
-        return Err("Metadata text blacklist is limited to 100 patterns.".into());
-    }
-    args.push("--replace-metadata-text-blacklist".into());
-    let mut seen = std::collections::HashSet::new();
-    for pattern in patterns {
-        let value = pattern
-            .as_str()
-            .ok_or("Metadata text blacklist patterns must be text.")?;
-        if value.is_empty() || value.trim() != value {
-            return Err(
-                "Metadata text blacklist patterns cannot be empty or padded with spaces.".into(),
-            );
-        }
-        if value.len() > 128 {
-            return Err("Metadata text blacklist patterns are limited to 128 UTF-8 bytes.".into());
-        }
-        if value.chars().all(|character| character == '*') {
-            return Err("Metadata text blacklist patterns must include text besides '*'.".into());
-        }
-        if value.chars().any(char::is_control) {
-            return Err(
-                "Metadata text blacklist patterns cannot contain control characters.".into(),
-            );
-        }
-        if !seen.insert(value.to_lowercase()) {
-            return Err("Metadata text blacklist cannot contain duplicate patterns.".into());
-        }
-        args.extend(["--metadata-text-blacklist".into(), value.to_string()]);
-    }
-    Ok(args)
-}
-
-fn settings_arguments(settings: &Value) -> Result<Vec<String>, String> {
-    let mut args = Vec::new();
-    args.extend([
-        "--crf".into(),
-        config_integer(settings, "video.crf", 0, 51)?.to_string(),
-    ]);
-    args.extend([
-        "--preset".into(),
-        config_string(
-            settings,
-            "video.preset",
-            &[
-                "ultrafast",
-                "superfast",
-                "veryfast",
-                "faster",
-                "fast",
-                "medium",
-                "slow",
-                "slower",
-                "veryslow",
-            ],
-        )?,
-    ]);
-    add_boolean_option(
-        &mut args,
-        "promote-8bit-to-10bit",
-        config_bool(settings, "video.promote_8bit_to_10bit")?,
-    );
-    args.extend([
-        "--tune".into(),
-        config_string(
-            settings,
-            "content.tune",
-            &["auto", "animation", "grain", "none"],
-        )?,
-    ]);
-    add_boolean_option(
-        &mut args,
-        "detect-animation",
-        config_bool(settings, "content.detect_animation")?,
-    );
-    add_boolean_option(
-        &mut args,
-        "preserve-hdr10plus",
-        config_bool(settings, "hdr.preserve_hdr10plus")?,
-    );
-    args.extend([
-        "--dolby-vision-policy".into(),
-        config_string(
-            settings,
-            "hdr.dolby_vision",
-            &["safe", "skip", "hdr10-fallback"],
-        )?,
-    ]);
-    args.extend([
-        "--secondary-video".into(),
-        config_string(
-            settings,
-            "streams.secondary_video",
-            &["encode", "copy", "drop"],
-        )?,
-    ]);
-    args.extend([
-        "--data-streams".into(),
-        config_string(settings, "streams.data_streams", &["preserve", "drop"])?,
-    ]);
-    add_boolean_option(
-        &mut args,
-        "verify-copy-hashes",
-        config_bool(settings, "safety.verify_copy_hashes")?,
-    );
-
-    let comment = config_value(settings, "metadata.comment")?
-        .as_str()
-        .ok_or("Metadata comment must be text.")?;
-    if comment.len() > 500 {
-        return Err("Metadata comment is limited to 500 UTF-8 bytes.".into());
-    }
-    args.extend(["--comment".into(), comment.to_string()]);
-    args.extend(metadata_text_blacklist_arguments(settings)?);
-
-    args.extend([
-        "--resource-threading".into(),
-        config_string(settings, "resources.threading", &["auto", "unlimited"])?,
-    ]);
-    args.extend([
-        "--reserved-cpu-threads".into(),
-        config_integer(settings, "resources.reserved_cpu_threads", 0, 64)?.to_string(),
-    ]);
-    args.extend([
-        "--max-worker-threads".into(),
-        config_integer(settings, "resources.max_worker_threads", 0, 64)?.to_string(),
-    ]);
-    args.extend([
-        "--frame-threads".into(),
-        config_integer(settings, "resources.frame_threads", 0, 16)?.to_string(),
-    ]);
-    args.extend([
-        "--min-free-memory-gib".into(),
-        config_number(settings, "resources.min_free_memory_gib", 0.0, 1_000_000.0)?.to_string(),
-    ]);
-    args.extend([
-        "--memory-reserve-percent".into(),
-        config_number(settings, "resources.memory_reserve_percent", 0.0, 50.0)?.to_string(),
-    ]);
-    args.extend([
-        "--min-free-disk-gib".into(),
-        config_number(settings, "resources.min_free_disk_gib", 0.0, 1_000_000.0)?.to_string(),
-    ]);
-    args.extend([
-        "--preflight-output-ratio".into(),
-        config_number(settings, "resources.preflight_output_ratio", 0.25, 4.0)?.to_string(),
-    ]);
-    args.extend([
-        "--disk-projection-margin-percent".into(),
-        config_number(
-            settings,
-            "resources.disk_projection_margin_percent",
-            0.0,
-            100.0,
-        )?
-        .to_string(),
-    ]);
-    args.extend([
-        "--calibration-mode".into(),
-        config_string(
-            settings,
-            "calibration.mode",
-            &["auto", "ask", "always", "off"],
-        )?,
-    ]);
-    args.extend([
-        "--calibration-cache-hours".into(),
-        config_number(settings, "calibration.cache_hours", 0.0, 720.0)?.to_string(),
-    ]);
-    args.extend([
-        "--calibration-large-file-gib".into(),
-        config_number(settings, "calibration.large_file_gib", 0.0, 1000.0)?.to_string(),
-    ]);
-    args.extend([
-        "--calibration-sample-seconds".into(),
-        config_number(settings, "calibration.sample_seconds", 1.0, 15.0)?.to_string(),
-    ]);
-    args.extend([
-        "--calibration-max-candidates".into(),
-        config_integer(settings, "calibration.max_candidates", 1, 4)?.to_string(),
-    ]);
-    args.extend([
-        "--calibration-tolerance-percent".into(),
-        config_number(
-            settings,
-            "calibration.throughput_tolerance_percent",
-            0.0,
-            20.0,
-        )?
-        .to_string(),
-    ]);
-    Ok(args)
-}
-
 fn new_job_id() -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -3437,7 +2776,8 @@ fn start_run(
     }
 
     let id = new_job_id();
-    let stop_file = std::env::temp_dir().join(format!("hevc-rebuild-stop-{id}"));
+    let stop_token = stop_control::StopToken::new()?;
+    let stop_file = stop_token.path().to_path_buf();
     args.extend([
         "--stop-request-file".into(),
         stop_file.to_string_lossy().into_owned(),
@@ -3452,14 +2792,14 @@ fn start_run(
     let run_state = state.inner().clone();
     let worker_id = id.clone();
     thread::spawn(move || {
+        let _stop_token = stop_token;
         let mut log_path = None;
         let mut report_path = None;
         let mut error = None;
         let mut exit_code = None;
         match engine_command(&app_handle, &args).and_then(|mut command| {
             command.stdout(Stdio::piped()).stderr(Stdio::piped());
-            command
-                .spawn()
+            crate::process_output::spawn_owned(&mut command)
                 .map_err(|error| format!("Could not start the rebuild engine: {error}"))
         }) {
             Ok(mut child) => {
@@ -3480,7 +2820,13 @@ fn start_run(
                     },
                 );
                 let stderr_thread = child.stderr.take().map(|stream| {
-                    forward_lines(app_handle.clone(), "run-line", worker_id.clone(), stream)
+                    forward_lines(
+                        app_handle.clone(),
+                        "run-line",
+                        worker_id.clone(),
+                        stream,
+                        child.id(),
+                    )
                 });
                 if let Some(stdout) = child.stdout.take() {
                     for line in BufReader::new(stdout).lines() {
@@ -3502,12 +2848,18 @@ fn start_run(
                             Err(read_error) => {
                                 error =
                                     Some(format!("Could not read rebuild output: {read_error}"));
+                                let _ = child.kill();
+                                break;
                             }
                         }
                     }
                 }
                 if let Some(handle) = stderr_thread {
-                    let _ = handle.join();
+                    match handle.join() {
+                        Ok(Err(read_error)) => error = Some(read_error),
+                        Err(_) => error = Some("Rebuild diagnostic reader panicked.".into()),
+                        Ok(Ok(())) => {}
+                    }
                 }
                 match child.wait() {
                     Ok(status) => exit_code = status.code(),
@@ -3521,7 +2873,7 @@ fn start_run(
             }
             Err(start_error) => error = Some(start_error),
         }
-        let stop_requested = stop_file.exists();
+        let stop_requested = stop_control::requested(&stop_file);
         let _ = fs::remove_file(&stop_file);
         let _ = app_handle.emit(
             "run-finished",
@@ -3554,12 +2906,7 @@ fn request_stop(state: State<'_, RunState>, run_id: String) -> Result<(), String
             .clone()
             .ok_or("This system repair cannot be stopped from the run controls.")?
     };
-    if !path.exists() {
-        File::create(path)
-            .and_then(|mut file| file.write_all(b"finish current file, then stop\n"))
-            .map_err(|error| format!("Could not request a safe stop: {error}"))?;
-    }
-    Ok(())
+    stop_control::request(&path)
 }
 
 pub(crate) fn executable_in_path(program: &str) -> bool {
@@ -3644,12 +2991,12 @@ fn start_apt_commands_job(
                 command_parts.join(" ")
             );
             emit_repair_line(&app_handle, &logger, &worker_id, stage);
-            match Command::new(program)
-                .args(command_parts.iter().skip(1))
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-            {
+            match crate::process_output::spawn_owned(
+                Command::new(program)
+                    .args(command_parts.iter().skip(1))
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped()),
+            ) {
                 Ok(mut child) => {
                     let stderr_thread = child.stderr.take().map(|stream| {
                         forward_repair_lines(
@@ -3657,17 +3004,28 @@ fn start_apt_commands_job(
                             worker_id.clone(),
                             logger.clone(),
                             stream,
+                            child.id(),
                         )
                     });
+                    let mut output_result = Ok(());
                     if let Some(stdout) = child.stdout.take() {
-                        for line in BufReader::new(stdout).lines().flatten() {
-                            emit_repair_line(&app_handle, &logger, &worker_id, line);
-                        }
+                        output_result =
+                            crate::process_output::read_process_lines(stdout, child.id(), |line| {
+                                emit_repair_line(&app_handle, &logger, &worker_id, line);
+                            });
                     }
-                    if let Some(thread) = stderr_thread {
-                        let _ = thread.join();
-                    }
+                    let diagnostic_result = match stderr_thread {
+                        Some(handle) => handle
+                            .join()
+                            .unwrap_or_else(|_| Err("Package diagnostic reader panicked.".into())),
+                        None => Ok(()),
+                    };
+                    let reader_result = output_result.and(diagnostic_result);
                     match child.wait() {
+                        Ok(_) if reader_result.is_err() => {
+                            success = false;
+                            error_message = reader_result.err();
+                        }
                         Ok(status) if status.success() => success = true,
                         Ok(status) => {
                             error_message =
@@ -3898,7 +3256,7 @@ fn install_apt_tools(
                 .args(parts.iter().skip(1))
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
-            match command.spawn() {
+            match crate::process_output::spawn_owned(&mut command) {
                 Ok(mut child) => {
                     let stderr_thread = child.stderr.take().map(|stream| {
                         forward_repair_lines(
@@ -3906,17 +3264,28 @@ fn install_apt_tools(
                             worker_id.clone(),
                             logger.clone(),
                             stream,
+                            child.id(),
                         )
                     });
+                    let mut output_result = Ok(());
                     if let Some(stdout) = child.stdout.take() {
-                        for line in BufReader::new(stdout).lines().flatten() {
-                            emit_repair_line(&app_handle, &logger, &worker_id, line);
-                        }
+                        output_result =
+                            crate::process_output::read_process_lines(stdout, child.id(), |line| {
+                                emit_repair_line(&app_handle, &logger, &worker_id, line);
+                            });
                     }
-                    if let Some(handle) = stderr_thread {
-                        let _ = handle.join();
-                    }
+                    let diagnostic_result = match stderr_thread {
+                        Some(handle) => handle
+                            .join()
+                            .unwrap_or_else(|_| Err("Package diagnostic reader panicked.".into())),
+                        None => Ok(()),
+                    };
+                    let reader_result = output_result.and(diagnostic_result);
                     match child.wait() {
+                        Ok(_) if reader_result.is_err() => {
+                            success = false;
+                            last_error = reader_result.err();
+                        }
                         Ok(status) if status.success() => {}
                         Ok(status) => {
                             success = false;

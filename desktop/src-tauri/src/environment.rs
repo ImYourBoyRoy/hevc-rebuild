@@ -5,7 +5,7 @@
 //! Svelte UI, CLI, and MCP clients.
 
 use crate::ToolPaths;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Read;
@@ -1314,16 +1314,12 @@ mod tests {
             required_engine_tools("check").unwrap(),
             &["ffmpeg", "ffprobe"]
         );
-        assert!(
-            required_engine_tools("rebuild")
-                .unwrap()
-                .contains(&"hdr10plus_tool")
-        );
-        assert!(
-            required_engine_tools("metadata")
-                .unwrap()
-                .contains(&"mkvmerge")
-        );
+        assert!(required_engine_tools("rebuild")
+            .unwrap()
+            .contains(&"hdr10plus_tool"));
+        assert!(required_engine_tools("metadata")
+            .unwrap()
+            .contains(&"mkvmerge"));
         assert!(required_engine_tools("unknown").is_err());
     }
 

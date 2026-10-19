@@ -1,0 +1,14 @@
+import '../../src/app.css';
+import '../../src/instrument.css';
+import '../../src/styles/type-scale.css';
+import { mount } from 'svelte';
+import ModalHarness from './ModalHarness.svelte';
+import SupportHarness from './SupportHarness.svelte';
+import YouTubeHarness from './YouTubeHarness.svelte';
+import RunHarness from './RunHarness.svelte';
+import RenameHarness from './RenameHarness.svelte';
+import LibraryHarness from './LibraryHarness.svelte';
+import HomeHelpHarness from './HomeHelpHarness.svelte';
+const fixture = new URLSearchParams(location.search).get('fixture');
+const Harness = fixture === 'support' ? SupportHarness : fixture === 'youtube' ? YouTubeHarness : fixture === 'run' ? RunHarness : fixture === 'rename' ? RenameHarness : fixture === 'library' ? LibraryHarness : new URLSearchParams(location.search).get('fixture') === 'home' ? HomeHelpHarness : ModalHarness;
+mount(Harness, { target: document.getElementById('app') });

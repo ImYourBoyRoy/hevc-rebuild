@@ -1,19 +1,18 @@
 use super::{
-    APT_ALLOWLIST, ToolPaths, append_tool_path_arguments, executable_in_path, settings_arguments,
-    standalone_command, stream_override_arguments, validate_apt_update_confirmation,
-    validate_apt_upgrade_plan, youtube_hdr10plus_loss_arguments,
+    append_tool_path_arguments, executable_in_path, settings_arguments, standalone_command,
+    stream_override_arguments, validate_apt_update_confirmation, validate_apt_upgrade_plan,
+    youtube_hdr10plus_loss_arguments, ToolPaths, APT_ALLOWLIST,
 };
 use rmcp::{
-    ErrorData, ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
-    schemars, tool, tool_handler, tool_router,
+    schemars, tool, tool_handler, tool_router, ErrorData, ServerHandler, ServiceExt,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, HashMap},
     fs::{self, File},
-    io::{BufRead, BufReader, Read, Write},
+    io::Read,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{Arc, Mutex},
@@ -888,7 +887,9 @@ impl McpServer {
         Parameters(params): Parameters<StartRunParams>,
     ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
         let id = job_id();
-        let stop_file = std::env::temp_dir().join(format!("hevc-rebuild-stop-{id}"));
+        let stop_token = crate::stop_control::StopToken::new()
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let stop_file = stop_token.path().to_path_buf();
         let prepared = prepare_media_run(params, &stop_file)?;
         let root = prepared.root.clone();
         let mode = prepared.mode.clone();
@@ -932,7 +933,10 @@ impl McpServer {
         let queue_items_tracked = queue_sync.as_ref().map_or(0, |sync| sync.media_paths.len());
         let jobs = self.jobs.clone();
         let worker_id = id.clone();
-        thread::spawn(move || run_media_job(jobs, worker_id, args, stop_file, queue_sync));
+        thread::spawn(move || {
+            let _stop_token = stop_token;
+            run_media_job(jobs, worker_id, args, stop_file, queue_sync)
+        });
         Ok(rmcp::handler::server::wrapper::Json(
             json!({"job_id": id, "status": "running", "poll_with": "get_job", "queue_items_tracked": queue_items_tracked, "queue_sync_warning": queue_sync_warning}),
         ))
@@ -955,7 +959,9 @@ impl McpServer {
             ));
         }
         let id = job_id();
-        let stop_file = std::env::temp_dir().join(format!("hevc-rebuild-stop-{id}"));
+        let stop_token = crate::stop_control::StopToken::new()
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let stop_file = stop_token.path().to_path_buf();
         let mut prepared = Vec::with_capacity(params.runs.len());
         for mut run in params.runs {
             if run.selected_files.as_ref().is_none_or(Vec::is_empty) {
@@ -1038,6 +1044,7 @@ impl McpServer {
         let jobs = self.jobs.clone();
         let worker_id = id.clone();
         thread::spawn(move || {
+            let _stop_token = stop_token;
             run_media_queue_job(jobs, worker_id, plans, stop_file, stop_on_error, false)
         });
         Ok(rmcp::handler::server::wrapper::Json(json!({
@@ -1079,16 +1086,8 @@ impl McpServer {
                 ErrorData::internal_error("The media run has no stop-request file.", None)
             })?
         };
-        if !path.exists() {
-            File::create(&path)
-                .and_then(|mut file| file.write_all(b"finish current file, then stop\n"))
-                .map_err(|error| {
-                    ErrorData::internal_error(
-                        format!("Could not request a safe stop: {error}"),
-                        None,
-                    )
-                })?;
-        }
+        crate::stop_control::request(&path)
+            .map_err(|error| ErrorData::internal_error(error, None))?;
         Ok(rmcp::handler::server::wrapper::Json(
             json!({"job_id": params.job_id, "stop_requested": true, "behavior": "finish_current_file"}),
         ))
@@ -1997,7 +1996,14 @@ pub(crate) fn queue_run_json_cli(args: &[String]) -> i32 {
     let stop_on_error = request.stop_on_error.unwrap_or(true);
     let acknowledge_review_paths = request.acknowledge_review_paths.unwrap_or_default();
     let id = job_id();
-    let stop_file = std::env::temp_dir().join(format!("hevc-rebuild-stop-{id}"));
+    let stop_token = match crate::stop_control::StopToken::new() {
+        Ok(token) => token,
+        Err(error) => {
+            eprintln!("{error}");
+            return 1;
+        }
+    };
+    let stop_file = stop_token.path().to_path_buf();
     let mut prepared = Vec::with_capacity(request.runs.len());
     for mut run in request.runs {
         if run.selected_files.as_ref().is_none_or(Vec::is_empty) {
@@ -2274,8 +2280,7 @@ fn execute_media_args(
 ) -> Result<i32, String> {
     let mut command = standalone_command("hevc_rebuild", args)?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
+    let mut child = crate::process_output::spawn_owned(&mut command)
         .map_err(|error| format!("Could not start the media engine: {error}"))?;
     let selected_disk_path = args
         .windows(2)
@@ -2303,6 +2308,7 @@ fn execute_media_args(
             }
         },
     );
+    let process_id = child.id();
     let Some(stderr) = child.stderr.take() else {
         resource_monitor.stop();
         return Err("Could not read engine diagnostics.".into());
@@ -2310,24 +2316,29 @@ fn execute_media_args(
     let stderr_jobs = jobs.clone();
     let stderr_id = id.to_owned();
     let stderr_thread = thread::spawn(move || {
-        for line in BufReader::new(stderr).lines().flatten() {
+        crate::process_output::read_process_lines(stderr, process_id, |line| {
             if echo_to_stderr {
                 eprintln!("{line}");
             }
             record_line(&stderr_jobs, &stderr_id, line);
-        }
+        })
     });
+    let mut output_result = Ok(());
     if let Some(stdout) = child.stdout.take() {
-        for line in BufReader::new(stdout).lines().flatten() {
+        output_result = crate::process_output::read_process_lines(stdout, process_id, |line| {
             if echo_to_stderr {
                 eprintln!("{line}");
             }
             record_line(jobs, id, line);
-        }
+        });
     }
-    let _ = stderr_thread.join();
+    let diagnostic_result = stderr_thread
+        .join()
+        .unwrap_or_else(|_| Err("Engine diagnostic reader panicked.".into()));
     let status = child.wait();
     resource_monitor.stop();
+    output_result?;
+    diagnostic_result?;
     status
         .map(|status| status.code().unwrap_or(1))
         .map_err(|error| format!("Could not wait for the media engine: {error}"))
@@ -2341,7 +2352,7 @@ fn run_media_job(
     queue_sync: Option<QueueRunSync>,
 ) {
     let outcome = execute_media_args(&jobs, &id, &args, false);
-    let stop_requested = stop_file.exists();
+    let stop_requested = crate::stop_control::requested(&stop_file);
     let _ = fs::remove_file(&stop_file);
     let exit_code = outcome.as_ref().ok().copied();
     let report_path = jobs
@@ -2412,7 +2423,7 @@ fn run_media_queue_job(
     let mut queue_sync_warning = None;
 
     for (index, plan) in plans.into_iter().enumerate() {
-        if stop_file.exists() {
+        if crate::stop_control::requested(&stop_file) {
             stop_requested = true;
             break;
         }
@@ -2453,7 +2464,7 @@ fn run_media_queue_job(
             .lock()
             .ok()
             .and_then(|registry| registry.get(&id).and_then(|job| job.report_path.clone()));
-        let source_stop_requested = stop_file.exists();
+        let source_stop_requested = crate::stop_control::requested(&stop_file);
         if let Some(sync) = plan.queue_sync {
             if let Err(error) = sync_queue_run_result(
                 sync,
@@ -2494,7 +2505,7 @@ fn run_media_queue_job(
         }
     }
 
-    let stop_requested = stop_requested || stop_file.exists();
+    let stop_requested = stop_requested || crate::stop_control::requested(&stop_file);
     let _ = fs::remove_file(&stop_file);
     if let Ok(mut registry) = jobs.lock() {
         if let Some(job) = registry.get_mut(&id) {
@@ -2677,6 +2688,35 @@ mod queue_sync_tests {
         assert_eq!(summary["entries"][0]["runStatus"], "completed");
         assert_eq!(summary["entries"][0]["runMode"], "check");
         assert_eq!(summary["entries"][0]["reportStatus"], "OK");
+
+        // A sequential job for the same source must consume its exact report,
+        // rather than inheriting the first job's success. Unselected rows in a
+        // different report cannot complete this file.
+        let next_report = report_directory.join("hevc-rebuild-next-run.csv");
+        fs::write(&next_report, format!("input,status,message\n\"{media_path}\",FAILED,Second run failed\nother.mkv,OK,Unrelated\n")).unwrap();
+        sync_queue_run_result_in(
+            &sync,
+            &report_directory,
+            Some(&next_report.to_string_lossy()),
+            Some(1),
+            false,
+        )
+        .unwrap();
+        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
+        assert_eq!(summary["entries"][0]["runStatus"], "failed");
+        assert_eq!(summary["entries"][0]["reportStatus"], "FAILED");
+        fs::write(&next_report, "input,status\nother.mkv,OK\n").unwrap();
+        sync_queue_run_result_in(
+            &sync,
+            &report_directory,
+            Some(&next_report.to_string_lossy()),
+            Some(0),
+            false,
+        )
+        .unwrap();
+        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
+        assert_eq!(summary["entries"][0]["runStatus"], "needs_review");
+        assert_eq!(summary["selectedCount"], 1);
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -2702,12 +2742,10 @@ mod queue_sync_tests {
 
         let missing = queue_state_from_report_row("metadata", None, None, Some(0), false);
         assert_eq!(missing.status, "needs_review");
-        assert!(
-            missing
-                .message
-                .unwrap()
-                .contains("completion was not assumed")
-        );
+        assert!(missing
+            .message
+            .unwrap()
+            .contains("completion was not assumed"));
     }
 }
 
@@ -2730,11 +2768,12 @@ fn run_apt_job(jobs: Jobs, id: String, packages: Vec<String>) {
         let Some(program) = operation.first().cloned() else {
             continue;
         };
-        let result = Command::new(program)
-            .args(operation.iter().skip(1))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn();
+        let result = crate::process_output::spawn_owned(
+            Command::new(program)
+                .args(operation.iter().skip(1))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped()),
+        );
         let mut child = match result {
             Ok(child) => child,
             Err(error) => {
@@ -2746,6 +2785,7 @@ fn run_apt_job(jobs: Jobs, id: String, packages: Vec<String>) {
                 return;
             }
         };
+        let process_id = child.id();
         let stderr = match child.stderr.take() {
             Some(stream) => stream,
             None => {
@@ -2756,17 +2796,25 @@ fn run_apt_job(jobs: Jobs, id: String, packages: Vec<String>) {
         let jobs_for_err = jobs.clone();
         let err_id = id.clone();
         let thread = thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().flatten() {
+            crate::process_output::read_process_lines(stderr, process_id, |line| {
                 record_line(&jobs_for_err, &err_id, line);
-            }
+            })
         });
+        let mut output_result = Ok(());
         if let Some(stdout) = child.stdout.take() {
-            for line in BufReader::new(stdout).lines().flatten() {
+            output_result = crate::process_output::read_process_lines(stdout, process_id, |line| {
                 record_line(&jobs, &id, line);
-            }
+            });
         }
-        let _ = thread.join();
+        let diagnostic_result = thread
+            .join()
+            .unwrap_or_else(|_| Err("APT diagnostic reader panicked.".into()));
+        let reader_result = output_result.and(diagnostic_result);
         match child.wait() {
+            Ok(_) if reader_result.is_err() => {
+                update_failed(&jobs, &id, reader_result.unwrap_err());
+                return;
+            }
             Ok(status) if status.success() => {}
             Ok(status) => {
                 update_failed(
@@ -2797,11 +2845,12 @@ fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<String>) {
         update_failed(&jobs, &id, "The package update command was empty.".into());
         return;
     };
-    let result = Command::new(program)
-        .args(operation.iter().skip(1))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn();
+    let result = crate::process_output::spawn_owned(
+        Command::new(program)
+            .args(operation.iter().skip(1))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped()),
+    );
     let mut child = match result {
         Ok(child) => child,
         Err(error) => {
@@ -2813,6 +2862,7 @@ fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<String>) {
             return;
         }
     };
+    let process_id = child.id();
     let Some(stderr) = child.stderr.take() else {
         update_failed(&jobs, &id, "Could not read APT updater diagnostics.".into());
         return;
@@ -2820,17 +2870,25 @@ fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<String>) {
     let jobs_for_err = jobs.clone();
     let error_id = id.clone();
     let stderr_thread = thread::spawn(move || {
-        for line in BufReader::new(stderr).lines().flatten() {
+        crate::process_output::read_process_lines(stderr, process_id, |line| {
             record_line(&jobs_for_err, &error_id, line);
-        }
+        })
     });
+    let mut output_result = Ok(());
     if let Some(stdout) = child.stdout.take() {
-        for line in BufReader::new(stdout).lines().flatten() {
+        output_result = crate::process_output::read_process_lines(stdout, process_id, |line| {
             record_line(&jobs, &id, line);
-        }
+        });
     }
-    let _ = stderr_thread.join();
+    let diagnostic_result = stderr_thread
+        .join()
+        .unwrap_or_else(|_| Err("APT diagnostic reader panicked.".into()));
+    let reader_result = output_result.and(diagnostic_result);
     match child.wait() {
+        Ok(_) if reader_result.is_err() => {
+            update_failed(&jobs, &id, reader_result.unwrap_err());
+            return;
+        }
         Ok(status) if status.success() => {
             if let Ok(mut jobs) = jobs.lock() {
                 if let Some(job) = jobs.get_mut(&id) {

@@ -487,9 +487,11 @@ fn build_plan(request: &Value) -> Result<Value, String> {
         "0.5".into(),
         "-progress".into(),
         "pipe:1".into(),
-        "-i".into(),
-        path,
     ];
+    if test_seconds.is_none() {
+        args.push("-copyts".into());
+    }
+    args.extend(["-i".into(), path]);
     if let Some(seconds) = test_seconds.filter(|seconds| *seconds != 0) {
         args.extend(["-t".into(), seconds.to_string()]);
     }
@@ -668,6 +670,9 @@ fn build_plan(request: &Value) -> Result<Value, String> {
         }
     }
     let output = string(field(options, "output")?, "options.output")?;
+    if test_seconds.is_none() {
+        args.extend(["-avoid_negative_ts".into(), "disabled".into()]);
+    }
     args.extend(["-f".into(), "matroska".into(), output]);
     Ok(json!({"args": args, "output_video_map": video_map_json}))
 }

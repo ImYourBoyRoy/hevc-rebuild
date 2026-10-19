@@ -4,44 +4,21 @@
 
   let { snapshot }: { snapshot: RuntimeResourceSnapshot | null } = $props();
 
-  function gib(value: number | null) {
-    return value === null ? "—" : `${value.toFixed(1)} GiB`;
-  }
-
-  function gibBytes(value: number | null) {
-    return value === null ? "—" : gib(value / 1024 ** 3);
-  }
-
-  function percent(value: number | null) {
-    return value === null ? "—" : `${value.toFixed(0)}%`;
-  }
-
-  function ramUsed(total: number | null, available: number | null) {
-    if (total === null || available === null || total <= 0) return "—";
-    const used = Math.max(0, Math.min(100, ((total - available) / total) * 100));
-    return `${used.toFixed(0)}% used`;
-  }
-
-  function byteRate(value: number | null) {
-    if (value === null) return "—";
-    if (value < 1024) return `${value.toFixed(0)} B/s`;
-    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KiB/s`;
-    return `${(value / 1024 / 1024).toFixed(1)} MiB/s`;
-  }
+  import { finiteNumber, gib, gibBytes, percent, ramUsed, byteRate } from "./telemetry-format.js";
 </script>
 
 {#if snapshot}
   <section class="resource-telemetry" aria-label="Live resource telemetry">
     <header>
       <div class="telemetry-title"><Activity size={16} /><strong>Live resource telemetry</strong></div>
-      <span>Rust observer · {new Date(snapshot.sampled_at_unix_ms).toLocaleTimeString()}</span>
+      <span>Rust observer · {finiteNumber(snapshot.sampled_at_unix_ms) ? new Date(snapshot.sampled_at_unix_ms).toLocaleTimeString() : "Sample time unavailable"}</span>
     </header>
     <div class="telemetry-grid">
       <div><small>AVAILABLE RAM</small><strong>{gib(snapshot.memory_available_gib)} / {gib(snapshot.memory_total_gib)}</strong></div>
       <div><small>SWAP IN USE</small><strong>{gib(snapshot.swap_used_gib)} · {percent(snapshot.swap_used_percent)}</strong><span>In {byteRate(snapshot.swap_in_bytes_per_second)} · Out {byteRate(snapshot.swap_out_bytes_per_second)}</span></div>
       <div><small>FFMPEG RSS</small><strong>{gib(snapshot.ffmpeg_process_rss_gib)}</strong><span>Process swap {gib(snapshot.ffmpeg_process_swap_gib)}</span></div>
-      <div><small>SYSTEM PRESSURE</small><strong>RAM {ramUsed(snapshot.memory_total_gib, snapshot.memory_available_gib)}</strong><span>Memory stall {percent(snapshot.memory_full_avg10)} · CPU stall {percent(snapshot.cpu_some_avg10)} · CPU {percent(snapshot.cpu_percent)} · Load {snapshot.load1?.toFixed(2) ?? "—"}</span></div>
-      <div><small>RUN VOLUME FREE / TOTAL</small><strong>{gibBytes(snapshot.disk_free_bytes)} / {gibBytes(snapshot.disk_total_bytes)}</strong><span>{percent(snapshot.disk_free_percent)} free · {gibBytes(snapshot.disk_used_bytes)} used · {snapshot.temperature_c === null ? "Temperature unavailable" : `Sensor ${snapshot.temperature_c.toFixed(0)} °C`}</span></div>
+      <div><small>SYSTEM PRESSURE</small><strong>RAM {ramUsed(snapshot.memory_total_gib, snapshot.memory_available_gib)}</strong><span>Memory stall {percent(snapshot.memory_full_avg10)} · CPU stall {percent(snapshot.cpu_some_avg10)} · CPU {percent(snapshot.cpu_percent)} · Load {finiteNumber(snapshot.load1) ? snapshot.load1.toFixed(2) : "—"}</span></div>
+      <div><small>RUN VOLUME FREE / TOTAL</small><strong>{gibBytes(snapshot.disk_free_bytes)} / {gibBytes(snapshot.disk_total_bytes)}</strong><span>{percent(snapshot.disk_free_percent)} free · {gibBytes(snapshot.disk_used_bytes)} used · {!finiteNumber(snapshot.temperature_c) ? "Temperature unavailable" : `Sensor ${snapshot.temperature_c.toFixed(0)} °C`}</span></div>
     </div>
     <p>RAM used is how full memory is. Memory stall is how long tasks waited for RAM. Swap already on disk stays on the swap card. A stall near 0% means the encode is moving, and the memory and disk safeguards still apply.</p>
   </section>

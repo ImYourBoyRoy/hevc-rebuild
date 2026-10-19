@@ -50,6 +50,12 @@ fn supervise(args: &[OsString]) -> i32 {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+
     #[cfg(target_os = "linux")]
     {
         use std::os::unix::process::CommandExt;
@@ -58,7 +64,7 @@ fn supervise(args: &[OsString]) -> i32 {
         // the child completes its spawn setup.
         unsafe {
             command.pre_exec(move || {
-                if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) != 0 {
+                if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0 {
                     return Err(io::Error::last_os_error());
                 }
                 if libc::getppid() != parent_pid as libc::pid_t {
@@ -110,7 +116,7 @@ fn supervise(args: &[OsString]) -> i32 {
     while child_status.is_none() || !progress_closed {
         if cancelled.load(Ordering::Acquire) && !cancel_sent {
             cancel_sent = true;
-            if let Err(error) = child.kill() {
+            if let Err(error) = terminate_child(&mut child) {
                 if child.try_wait().ok().flatten().is_none() {
                     forwarding_error =
                         Some(format!("Could not stop FFmpeg after cancellation: {error}"));
@@ -123,7 +129,7 @@ fn supervise(args: &[OsString]) -> i32 {
                 Ok(status) => child_status = status,
                 Err(error) => {
                     forwarding_error = Some(format!("Could not wait for FFmpeg: {error}"));
-                    let _ = child.kill();
+                    let _ = terminate_child(&mut child);
                     child_status = child.wait().ok();
                 }
             }
@@ -267,6 +273,15 @@ fn read_cancel_requests(cancelled: Arc<AtomicBool>) {
 }
 
 fn terminate_child(child: &mut Child) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        if let Ok(pid) = libc::pid_t::try_from(child.id()) {
+            // The encoder owns this group; terminate pipe-holding descendants too.
+            unsafe {
+                libc::kill(-pid, libc::SIGKILL);
+            }
+        }
+    }
     if child.try_wait()?.is_none() {
         child.kill()?;
     }
