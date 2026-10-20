@@ -73,7 +73,7 @@
   native acceptance before pushing the first approved source snapshot or
   publishing a tag.
 
-- 2026-10-19 Linux desktop identity fix and paused release attempt: enabled
+- 2026-10-19 Linux desktop identity fix and first release attempt: enabled
   Tauri `enableGTKAppId`, added a custom Linux desktop template with the
   observed X11 `StartupWMClass`, and added Debian post-install/remove hooks
   that rename the generated product-name entry to the identifier-derived
@@ -83,12 +83,19 @@
   Linux build passed; the `.deb` contains the hooks, the normalized AppImage
   contains exactly one matching root/installed desktop entry, and an isolated
   X11 launch exposed the HEVC icon pixels and `Hevc-rebuild-studio` class.
-  The release-mode signed rebuild was explicitly stopped at the user's
-  request before it completed because network access was about to be lost.
-  No GitHub push, secret update, tag, or release was performed. Next: resume
-  the signed release build, finish the release workflow edits/docs, configure
-  the existing local updater private key as the GitHub Actions secret, then
-  commit, push, monitor CI, and publish the first verified draft release.
+  The release-mode signed rebuild was stopped before completion because the
+  network window was closing. The public remote was then created and the full
+  source snapshot was committed as `37cd2d0`, pushed to `main`, and tagged
+  `v1.3.0`. GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` is configured;
+  Apple signing secrets remain intentionally unset and MSI is excluded. The
+  first release workflow run is `39347415614`: Python, Rust, and Linux native
+  compile passed, while the frontend responsive contract failed remotely on a
+  single support/Ion/360px measurement (`main=369`, `client=360`) that passed
+  locally in the same 301-case matrix. macOS Apple Silicon and Windows native
+  compile jobs were still running when the network window closed. Next: wait
+  for the workflow to close, rerun only the failed frontend job, then let the
+  release matrix build and inspect the draft `latest.json`/assets before
+  publishing the release.
 
 - 2026-10-19 Python retirement workboard: expanded
   `python-rust-convert.md` into the active file-level plan for removing the
