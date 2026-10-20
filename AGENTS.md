@@ -1,12 +1,24 @@
 # Project Agent Instructions
 
-## Current acceptance boundary — 2026-10-12
+## Current acceptance boundary — 2026-10-19
 
-Ubuntu 24.04.5/glibc 2.39 package acceptance and populated native queue walkthrough are recorded in `2026-10-11_evidence.md`. Screen-reader workflow announcements beyond startup/frame announcements, provider/account paths, and Windows/macOS runtime remain separate limitations; do not generalize Linux evidence to those surfaces.
+Ubuntu 24.04.5/glibc 2.39 package acceptance and populated native queue walkthrough are recorded in `2026-10-11_evidence.md`. Native Windows x64 and macOS Intel Tauri release builds, packaged artifact inspection, executable CLI smoke, and Windows browser contracts were verified on 2026-10-19 through the documented remote build guests. This does not establish native GUI walkthroughs, clean installer installation, real-media behavior, Apple Silicon, screen-reader workflow announcements beyond startup/frame announcements, provider/account paths, signing/notarization, GitHub release execution, or live updater installation; keep those as separate limitations.
 
 ## Project boundary
 
-This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu-first Tauri/Svelte desktop preview. The source archive is kept one directory above this project and is the untouched reference. Media libraries and files are user data; do not scan or process them during build checks.
+This extracted project contains the HEVC Rebuild Python CLI/engine and a cross-platform Tauri/Svelte desktop application. The source archive is kept one directory above this project and is the untouched reference. Media libraries and files are user data; do not scan or process them during build checks.
+
+## Cross-platform product invariant
+
+The GUI, Media Library queue, drag-and-drop, Identify & organize, reports and
+retained error artifacts, CLI, and local MCP behavior are one product contract
+on Linux, Windows, and macOS. Do not gate a user workflow on Linux-only setup
+or telemetry. Keep package managers, filesystem/profile locations, process
+control, resource observations, credential stores, and installers behind
+platform adapters. If a host capability is unavailable, report it precisely
+and preserve the workflow for setup or explicit executable selection. A source
+check or Linux build is not evidence of Windows/macOS runtime support; record
+those native acceptance results separately.
 
 ## Authoritative behavior
 
@@ -56,7 +68,7 @@ This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu
 
 ## Platform and data safety
 
-- Current supported desktop engine platforms are Ubuntu 24.04+ and Ubuntu-based Linux Mint 22+. Ubuntu `.deb` and x86-64 AppImage targets are configured. The current AppImage bundles libraries requiring glibc 2.43 (built on Ubuntu 26.04.1); rebuild on the oldest supported Ubuntu baseline before claiming compatibility there. The direct engine CLI/MCP setup has explicit APT, winget, and Homebrew dependency resolvers, with checksum-verified HDR10+ assets on Linux, Windows, and macOS; Windows/macOS desktop/runtime acceptance remains open.
+- The cross-platform desktop feature contract covers supported Ubuntu 24.04+/Ubuntu-based Linux Mint 22+, Windows, and macOS. Linux `.deb`/AppImage, Windows NSIS, and macOS `.dmg`/`.app` targets are configured; MSI is intentionally excluded. Release-only updater artifacts are created by `desktop/src-tauri/tauri.release.conf.json` and published by `.github/workflows/release.yml` after Tauri signing and Apple notarization secrets are configured. The current AppImage bundles libraries requiring glibc 2.43 (built on Ubuntu 26.04.1); rebuild on the oldest supported Ubuntu baseline before claiming compatibility there. The direct engine CLI/MCP setup has explicit APT, winget, and Homebrew dependency resolvers, with checksum-verified HDR10+ assets on Linux, Windows, and macOS. Native Windows x64 and macOS Intel build/package/CLI-smoke evidence is recorded in `MEMORY.md`; native GUI walkthroughs, clean installation, real-media, Apple Silicon, accessibility, signing/notarization, live updater, and GitHub release acceptance remain open.
 - Environment checks, settings reads, and folder analysis must remain read-only. The Rust resolver and Python bridge use non-creating settings reads for the GUI/scan path. A direct engine run may retain the CLI's existing config-creation behavior.
 - AppImage portable state belongs in the writable sibling `<AppImage filename>.data/` directory. If it is unavailable, report the fallback to the user's XDG config location. Never try to write preferences inside the mounted AppImage or beside the system-installed `/usr/bin` executable.
 - The AppImage launcher may set `PYTHONHOME` to its mounted AppDir even though media stages use host Python. Every Rust-launched Python module subprocess must remove that inherited override and use its explicit bundled-engine `PYTHONPATH`; test the packaged engine path, not only the native queue CLI.
@@ -74,7 +86,7 @@ This extracted project contains the HEVC Rebuild Python CLI/engine and an Ubuntu
 - Keep `VERSION`, `hevc_rebuild.__version__`, `desktop/package.json`, `desktop/src-tauri/Cargo.toml`, and Tauri's version aligned.
 - Frontend check commands: `pnpm check` is the TypeScript 6 compatibility lane; `pnpm check:tsgo` checks the additional TypeScript 7 compiler path. Run both when changing frontend types or Svelte checker configuration.
 - After source/document changes, regenerate `SHA256SUMS` from tracked and non-ignored project files, excluding that checksum file, generated output, dependency caches, and build targets.
-- Desktop checks: from `desktop/`, use `pnpm check`, `pnpm build`, and `pnpm tauri build`; use `cargo check` from `desktop/src-tauri/` for Rust bridge checks. Inspect both the `.deb` and AppImage outputs when a release build is reported, then copy the successful Linux bundles into the repository-root `App/` artifact drop and report their hashes. Do not call a frontend/package build evidence of native UI or cross-platform support.
+- Desktop checks: from `desktop/`, use `pnpm check`, `pnpm build`, and `pnpm tauri build`; use `cargo check` from `desktop/src-tauri/` for Rust bridge checks. Inspect the packages produced by the host-native build, then copy successful verified host bundles into the repository-root `App/` artifact drop and report their hashes. The drop may contain Linux `.deb`/AppImage, Windows NSIS `setup.exe`, or macOS `.dmg`/`.app` outputs, but Git tracks only its README. Do not call a frontend/package build evidence of native UI or cross-platform support.
 - Use the committed lockfiles for normal builds (`pnpm install --frozen-lockfile`, `cargo check --locked`).
 - Existing engine tests live under `tests/`; inspect applicable tests when changing engine behavior. Do not claim test results unless run in this task.
 - Before reporting a release build, inspect its actual package metadata and bundled resources. Distinguish frontend/Rust compilation from a packaged runtime launch.

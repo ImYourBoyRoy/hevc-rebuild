@@ -19,7 +19,7 @@ from hevc_rebuild.metadata import (
     _poster_attachment_description,
     scrub_release_group_suffix,
 )
-from hevc_rebuild.app import parse_file_metadata_overrides, parse_file_poster_overrides
+from hevc_rebuild.app import effective_file_settings, parse_file_metadata_overrides, parse_file_poster_overrides, parse_file_settings_overrides
 from hevc_rebuild.model import Toolchain
 from hevc_rebuild.util import RebuildError
 
@@ -430,6 +430,76 @@ class MetadataOverrideParserTests(unittest.TestCase):
             for raw, message in cases:
                 with self.subTest(message=message), self.assertRaisesRegex(RebuildError, message):
                     parse_file_metadata_overrides(raw, root)
+
+
+class FileSettingsOverrideParserTests(unittest.TestCase):
+    def test_current_run_settings_accept_scoped_encoder_hdr_and_stream_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            media = root / "Film.mkv"
+            media.touch()
+            parsed = parse_file_settings_overrides(
+                json.dumps({str(media): {
+                    "crf": 24,
+                    "preset": "medium",
+                    "promote_8bit_to_10bit": True,
+                    "tune": "grain",
+                    "preserve_hdr10plus": False,
+                    "dolby_vision": "hdr10-fallback",
+                    "stream_indices": [0, 2, 4],
+                }}),
+                root,
+            )
+            self.assertEqual(parsed[str(media.resolve())]["crf"], 24)
+            self.assertEqual(parsed[str(media.resolve())]["tune"], "grain")
+            self.assertEqual(parsed[str(media.resolve())]["stream_indices"], [0, 2, 4])
+
+    def test_current_run_settings_replace_saved_per_file_tune_and_stream_choices_without_mutating_args(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            media = root / "Film.mkv"
+            media.touch()
+            key = str(media.resolve())
+            args = SimpleNamespace(
+                file_settings_overrides={key: {"crf": 25, "tune": "grain", "stream_indices": [0, 3]}},
+                file_tune_overrides={key: "animation"},
+                file_stream_overrides={key: [0, 1]},
+                crf=21,
+                preset="slow",
+                promote_8bit_to_10bit=False,
+                preserve_hdr10plus=True,
+                dolby_vision_policy="safe",
+                tune="auto",
+                test=True,
+                test_crf=30,
+            )
+            effective = effective_file_settings(args, media)
+            self.assertEqual(effective.crf, 25)
+            self.assertEqual(effective.test_crf, 25)
+            self.assertEqual(effective.tune, "grain")
+            self.assertEqual(effective.file_stream_overrides[key], [0, 3])
+            self.assertNotIn(key, effective.file_tune_overrides)
+            self.assertEqual(args.crf, 21)
+            self.assertEqual(args.test_crf, 30)
+            self.assertEqual(args.file_stream_overrides[key], [0, 1])
+
+    def test_current_run_settings_reject_unknown_fields_and_external_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "library"
+            root.mkdir()
+            media = root / "Film.mkv"
+            media.touch()
+            outside = base / "Outside.mkv"
+            outside.touch()
+            cases = (
+                (json.dumps({str(media): {"unknown": True}}), "Unsupported per-file run setting"),
+                (json.dumps({str(media): {"crf": 52}}), "CRF must be"),
+                (json.dumps({str(outside): {"crf": 24}}), "inside the selected input"),
+            )
+            for raw, message in cases:
+                with self.subTest(message=message), self.assertRaisesRegex(RebuildError, message):
+                    parse_file_settings_overrides(raw, root)
 
 
 if __name__ == "__main__":

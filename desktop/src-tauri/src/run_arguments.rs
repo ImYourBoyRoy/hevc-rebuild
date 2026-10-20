@@ -254,6 +254,48 @@ pub(crate) fn stream_override_arguments(
     Ok(vec!["--file-stream-overrides-json".into(), serialized])
 }
 
+/// Validate and forward settings that are scoped to one current run. The
+/// Python compatibility engine remains the final validator for the supported
+/// field values; Rust owns the request-size, path, and input-boundary checks.
+pub(crate) fn file_settings_override_arguments(
+    root: &Path,
+    overrides: BTreeMap<String, Value>,
+) -> Result<Vec<String>, String> {
+    if overrides.is_empty() {
+        return Ok(Vec::new());
+    }
+    if overrides.len() > 512 {
+        return Err("Per-file run settings are limited to 512 media files.".into());
+    }
+    let mut canonical_overrides = BTreeMap::new();
+    for (raw_path, settings) in overrides {
+        if !Path::new(&raw_path).is_absolute() {
+            return Err("Per-file run setting paths must be absolute.".into());
+        }
+        if !settings.is_object() || settings.as_object().is_some_and(|value| value.is_empty()) {
+            return Err("Each per-file run setting must be a non-empty object.".into());
+        }
+        let selected = PathBuf::from(raw_path)
+            .canonicalize()
+            .map_err(|error| format!("Per-file run setting source is unavailable: {error}"))?;
+        if !selected.is_file()
+            || (root.is_dir() && !selected.starts_with(root))
+            || (root.is_file() && selected != root)
+        {
+            return Err(
+                "Per-file run settings must refer to media inside the selected input.".into(),
+            );
+        }
+        canonical_overrides.insert(selected.to_string_lossy().into_owned(), settings);
+    }
+    let serialized = serde_json::to_string(&canonical_overrides)
+        .map_err(|error| format!("Could not encode per-file run settings: {error}"))?;
+    if serialized.len() > 512 * 1024 {
+        return Err("Per-file run settings exceed the 512 KiB limit.".into());
+    }
+    Ok(vec!["--file-settings-overrides-json".into(), serialized])
+}
+
 pub(crate) fn poster_override_arguments(
     root: &Path,
     overrides: BTreeMap<String, String>,

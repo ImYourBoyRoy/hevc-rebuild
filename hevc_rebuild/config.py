@@ -5,11 +5,12 @@ import json
 import logging
 import math
 import os
+import platform
 import tomllib
 from pathlib import Path
 from typing import Any
 
-from .util import RebuildError, app_preferences_path, portable_data_dir
+from .util import RebuildError, app_config_directory, app_preferences_path, portable_data_dir
 
 
 DEFAULTS: dict[str, Any] = {
@@ -72,6 +73,8 @@ def user_config_path() -> Path:
     portable = portable_data_dir()
     if portable is not None:
         return portable / "engine-config.toml"
+    if os.name == "nt" or platform.system().lower() == "darwin":
+        return app_config_directory() / "engine-config.toml"
     base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
     return base / "hevc-rebuild" / "config.toml"
 

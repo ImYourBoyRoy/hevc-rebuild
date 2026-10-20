@@ -41,6 +41,10 @@ desktop/src-tauri/gen/schemas/
 logs/
 reports/
 old/
+
+# Local cross-platform artifact drop; keep only its instructions in the source tree.
+/App/*
+!/App/README.md
 *.AppImage
 *.AppImage.data/
 *.deb

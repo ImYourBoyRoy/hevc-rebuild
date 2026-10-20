@@ -1,8 +1,86 @@
 # HEVC Rebuild v1.3.0 - Review / Release Notes
 
-## Current maintenance evidence — 2026-10-12
+## Current worktree validation — 2026-10-19
 
-Historical sections below retain their original dates and counts; they are not current readiness claims. Current task state is `2026-10-11_tasklist.md` and detailed evidence is `2026-10-11_evidence.md`.
+This section is the current source/documentation status for the worktree. The
+dated sections below are historical evidence and retain their original claims.
+
+### Completed in this worktree
+
+- Media Library uses the native Tauri drag lifecycle to show a visible drop
+  target and active state, then adds dropped files or folders to the same
+  persistent queue used by the native pickers.
+- Identify & organize consumes normalized persisted queue suggestions and
+  local poster previews from the current Media Library scan. Its movie match
+  cards are compact, review states are explicit, and candidate lists remain
+  collapsed until requested.
+- The Help surface no longer grows its cards beyond a narrow viewport. Its
+  implicit grid tracks and safety-note flex text are constrained, while code
+  examples retain their intended local horizontal scrolling.
+- The project map is documented in
+  [`docs/PROJECT-STRUCTURE.md`](docs/PROJECT-STRUCTURE.md), and the root and
+  desktop README entry points link to it.
+- The cross-platform contract is now enforced in the source adapters: Windows
+  and macOS host checks, native profile/cache/log paths, installed bundled
+  engine discovery, native folder opening, host-specific HDR10+ archive
+  selection, and Linux-only APT setup are separated from shared GUI/CLI/MCP
+  workflows. The contract is documented in
+  [`docs/PLATFORM-SUPPORT.md`](docs/PLATFORM-SUPPORT.md).
+- The final source snapshot was built natively through the sibling
+  `Remote_Build` macOS guest and the documented Server_Manager Windows guest.
+  Windows produced an NSIS installer with no MSI; macOS produced a CI-safe DMG
+  and `.app`.
+
+### Checks run
+
+- `pnpm check` — passed with 0 errors and 0 warnings.
+- `pnpm check:tsgo` — passed with 0 errors and 0 warnings.
+- `pnpm test:metadata-matching` — 9/9 passed.
+- `pnpm test:home-help`, `test:library`, `test:rename`, `test:run`,
+  `test:youtube`, and `test:support` — passed.
+- `python3 -m unittest discover -s tests -q` — 204 tests passed, 33 skipped.
+- `cargo fmt --all -- --check` and `cargo metadata --offline --locked
+  --no-deps --format-version 1` — passed. Full dependency metadata was not
+  available offline because `jiff-static` was not cached.
+- Isolated Help layout probe — 30 combinations across 360, 390, 620, 800,
+  1024, and 1440px and Light, Dark, Phosphor, Ion, and Breach; document and
+  main horizontal overflow were false. Help code blocks still scroll locally
+  when their example text is wider than the viewport.
+- `git diff --check` and `sha256sum -c --quiet SHA256SUMS` — passed after the
+  last checksum regeneration.
+- Windows native browser contracts — metadata 9/9, modal, home/help, library,
+  rename, run, support, performance, workspace-state, YouTube, and responsive
+  300 viewport/theme checks plus the zoom proxy — passed. The responsive pass
+  found and verified the narrow Help note overflow fix.
+- Windows `pnpm check` — 0 errors and 0 warnings; final native `pnpm build` and
+  `pnpm tauri build` — passed. The packaged executable's `--help`, JSON
+  environment, and empty synthetic scan exited 0; the NSIS bundle was
+  5,055,715 bytes and no MSI was produced.
+- macOS `pnpm install --frozen-lockfile`, both Svelte checker lanes, `pnpm
+  build`, and final CI-mode `pnpm tauri build` — passed on macOS 26.7.1 Intel.
+  The `.app` CLI smoke and read-only mounted DMG passed; the guest had no media
+  tools installed, so full media readiness was not established.
+
+### Still not established
+
+No clean installer installation, native OS drag/drop walkthrough, real-media
+run, provider/account upload or playback test, screen-reader workflow proof,
+Apple Silicon build, signing/notarization, GitHub release, or live updater
+installation was performed in this pass. The checked-in source still uses the
+documented hybrid Rust/Python runtime; Python is not embedded away yet. Ruff
+was not available on PATH. The current AppImage artifact was built on a glibc
+2.43 host and must not be presented as Ubuntu 24.04-compatible.
+
+**Current release decision: not ready for publication.** Native Windows x64
+and macOS Intel build/package/CLI-smoke gates are now green, but clean install,
+native GUI, Apple Silicon, accessibility, real-media, signing/notarization,
+GitHub release, and live updater boundaries remain release gates.
+
+## Historical maintenance evidence — 2026-10-12
+
+The following record retains its original date and counts; it is not a current
+readiness claim. Its task state was `2026-10-11_tasklist.md` and its detailed
+evidence was `2026-10-11_evidence.md`.
 
 Safety/type/UI ownership tasks through T-065 and measured performance T-070–T-073 are implemented and verified in slices. Python has 187 passing configured-native tests before the final policy additions; Rust has 200 passing tests plus one explicit synthetic benchmark excluded from the default suite. Both TS6/TS7 lanes pass. Cross-path fixtures measure settings, profiles, reports, transactions, cancellation and recovery; Python orchestration and all documented fallbacks remain supported. Six shared-modal surfaces and feature callbacks pass isolated real-browser contracts. These are component/native-helper evidence, not a populated native walkthrough.
 

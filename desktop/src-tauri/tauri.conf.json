@@ -10,6 +10,7 @@
     "frontendDist": "../build"
   },
   "app": {
+    "enableGTKAppId": true,
     "windows": [
       {
         "title": "HEVC Rebuild Studio",
@@ -25,12 +26,27 @@
       "devCsp": "default-src 'self' asset:; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:1420 ws://localhost:1420; font-src 'self' asset: data:; img-src 'self' asset: http://asset.localhost data: https://image.tmdb.org https://static.tvmaze.com https://upload.wikimedia.org https://www.themoviedb.org; style-src 'self' 'unsafe-inline' asset:; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhCNkE3NDU1MDU2OUJCMTIKUldRU3Uya0ZWWFJxaXpRZ2oyWGhYcGxlUmg2dW9yQlBkY1J2SkJNMEIyZGliOHFsQWoxMVRQUVQK",
+      "endpoints": [
+        "https://github.com/ImYourBoyRoy/hevc-rebuild/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
-    "targets": ["deb", "appimage"],
+    "createUpdaterArtifacts": false,
+    "targets": ["deb", "appimage", "nsis", "dmg", "app"],
     "linux": {
       "deb": {
-        "depends": ["python3"]
+        "depends": ["python3"],
+        "desktopTemplate": "linux.desktop.hbs",
+        "postInstallScript": "linux-post-install.sh",
+        "postRemoveScript": "linux-post-remove.sh"
       }
     },
     "resources": {

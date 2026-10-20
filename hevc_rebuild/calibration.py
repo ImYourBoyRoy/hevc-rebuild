@@ -25,7 +25,7 @@ from .encode import (
 )
 from .model import MediaProfile, Toolchain
 from .resources import SwapSampler, memory_stats, snapshot
-from .util import DiagnosticTail, RebuildError, format_command, portable_data_dir, start_stderr_drain
+from .util import DiagnosticTail, RebuildError, app_cache_directory, format_command, start_stderr_drain
 
 GIB = 1024**3
 MIB = 1024**2
@@ -60,11 +60,7 @@ class CalibrationSelection:
 
 
 def cache_path() -> Path:
-    portable = portable_data_dir()
-    if portable is not None:
-        return portable / "cache" / "calibration.json"
-    cache_home = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    return cache_home / "hevc-rebuild" / "calibration.json"
+    return app_cache_directory() / "calibration.json"
 
 
 def is_demanding(profile: MediaProfile, source_size_bytes: int, *, large_file_gib: float) -> bool:

@@ -23,12 +23,14 @@ const TOOL_CHECKS: &[(&str, &str, &[&str], bool)] = &[
     ("mkvpropedit", "MKVToolNix editor", &["--version"], true),
     ("mkvmerge", "MKVToolNix merger", &["--version"], true),
     ("mkvextract", "MKVToolNix extractor", &["--version"], true),
-    ("fc-list", "Fontconfig", &["--version"], true),
+    ("fc-list", "Fontconfig", &["--version"], false),
     ("hdr10plus_tool", "HDR10+ helper", &["--version"], true),
-    ("apt-get", "APT package manager", &["--version"], true),
-    ("apt-cache", "APT package catalog", &["--version"], true),
-    ("dpkg", "Debian package database", &["--version"], true),
-    ("dpkg-query", "Package query tool", &["--version"], true),
+    ("brew", "Homebrew package manager", &["--version"], false),
+    ("winget", "Windows Package Manager", &["--version"], false),
+    ("apt-get", "APT package manager", &["--version"], false),
+    ("apt-cache", "APT package catalog", &["--version"], false),
+    ("dpkg", "Debian package database", &["--version"], false),
+    ("dpkg-query", "Package query tool", &["--version"], false),
     (
         "pkexec",
         "Administrator authentication",
@@ -88,7 +90,7 @@ pub(crate) fn inspect_environment(
 
     let os = os_details();
     let candidates = candidate_paths(&paths);
-    let mut checks = Vec::with_capacity(17);
+    let mut checks = Vec::with_capacity(19);
     for (key, label, args, required) in TOOL_CHECKS {
         let selected_ffmpeg_invalid = *key == "ffmpeg"
             && custom_ffmpeg
@@ -350,7 +352,7 @@ pub(crate) fn resolve_engine_toolchain(request: &Value) -> Result<Value, String>
             .as_str()
             .unwrap_or("unknown version");
         return Err(format!(
-            "HEVC Rebuild supports Ubuntu 24.04+ and Linux Mint 22+; detected {name} {version}."
+            "HEVC Rebuild supports Ubuntu 24.04+, Linux Mint 22+, Windows, and macOS; detected {name} {version}."
         ));
     }
 
@@ -579,6 +581,8 @@ fn candidate_paths(paths: &ToolPaths) -> BTreeMap<&'static str, Option<String>> 
         "mkvmerge",
         "mkvextract",
         "fc-list",
+        "brew",
+        "winget",
         "apt-get",
         "apt-cache",
         "dpkg",
@@ -629,6 +633,11 @@ fn candidate_paths(paths: &ToolPaths) -> BTreeMap<&'static str, Option<String>> 
             }
         }
     }
+    if found.get("python3").and_then(Option::as_deref).is_none() {
+        // Windows commonly exposes Python as `python`, while the engine's
+        // stable contract calls the check `python3`.
+        found.insert("python3", find_in_path("python"));
+    }
 
     found.insert(
         "hdr10plus_tool",
@@ -640,14 +649,10 @@ fn candidate_paths(paths: &ToolPaths) -> BTreeMap<&'static str, Option<String>> 
 fn executable_name(name: &str) -> String {
     #[cfg(target_os = "windows")]
     {
-        let extensions = std::env::var_os("PATHEXT")
-            .map(|value| value.to_string_lossy().into_owned())
-            .unwrap_or_else(|| ".COM;.EXE;.BAT;.CMD".into());
-        let extension = extensions
-            .split(';')
-            .find(|part| !part.is_empty())
-            .unwrap_or(".exe");
-        format!("{name}{extension}")
+        if Path::new(name).extension().is_some() {
+            return name.to_string();
+        }
+        format!("{name}.exe")
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -668,8 +673,13 @@ pub(crate) fn managed_tool_directories() -> Vec<PathBuf> {
 
 fn user_managed_bin_directory() -> PathBuf {
     #[cfg(target_os = "windows")]
-    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        return PathBuf::from(local).join("hevc-rebuild/bin");
+    {
+        let root = std::env::var_os("LOCALAPPDATA")
+            .or_else(|| std::env::var_os("APPDATA"))
+            .or_else(|| std::env::var_os("USERPROFILE"));
+        if let Some(root) = root {
+            return PathBuf::from(root).join("hevc-rebuild/bin");
+        }
     }
     #[cfg(target_os = "macos")]
     if let Some(home) = std::env::var_os("HOME") {
@@ -950,6 +960,29 @@ fn parse_x265_pixel_formats(help: &str) -> BTreeSet<String> {
 }
 
 fn os_details() -> Value {
+    match std::env::consts::OS {
+        "windows" => {
+            return json!({
+                "name": "Windows",
+                "version": host_platform_version(),
+                "supported": true,
+                "package_manager": "winget",
+                "package_manager_available": find_in_path("winget").is_some(),
+                "note": "Supported host; required media tools are resolved from PATH or selected executable paths",
+            });
+        }
+        "macos" => {
+            return json!({
+                "name": "macOS",
+                "version": host_platform_version(),
+                "supported": true,
+                "package_manager": "brew",
+                "package_manager_available": find_in_path("brew").is_some(),
+                "note": "Supported host; required media tools are resolved from PATH or selected executable paths",
+            });
+        }
+        _ => {}
+    }
     let read = fs::read_to_string("/etc/os-release");
     let info = match read {
         Ok(text) => parse_os_release(&text),
@@ -958,6 +991,8 @@ fn os_details() -> Value {
                 "name": std::env::consts::OS,
                 "version": kernel_release(),
                 "supported": false,
+                "package_manager": "apt",
+                "package_manager_available": false,
                 "note": format!("Could not read distro information: {error}"),
             });
         }
@@ -979,17 +1014,43 @@ fn os_details() -> Value {
         .map(str::to_lowercase)
         .collect::<BTreeSet<_>>();
     if ident == "ubuntu" && version_at_least(version, &[24, 4]) {
-        return json!({"name":"Ubuntu","version":version,"supported":true,"note":"Supported release"});
+        return json!({"name":"Ubuntu","version":version,"supported":true,"package_manager":"apt","package_manager_available":find_in_path("apt-get").is_some(),"note":"Supported release"});
     }
     if ident == "linuxmint" && id_like.contains("ubuntu") && version_at_least(version, &[22]) {
-        return json!({"name":"Linux Mint","version":version,"supported":true,"note":"Supported Ubuntu-based release"});
+        return json!({"name":"Linux Mint","version":version,"supported":true,"package_manager":"apt","package_manager_available":find_in_path("apt-get").is_some(),"note":"Supported Ubuntu-based release"});
     }
     json!({
         "name": info.get("PRETTY_NAME").or_else(|| info.get("ID")).cloned().unwrap_or_else(|| "Linux".into()),
         "version": version,
         "supported": false,
+        "package_manager": "apt",
+        "package_manager_available": find_in_path("apt-get").is_some(),
         "note": "The current rebuild engine targets Ubuntu 24.04+ and Linux Mint 22+",
     })
+}
+
+fn host_platform_version() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        return Command::new("cmd")
+            .args(["/C", "ver"])
+            .output()
+            .ok()
+            .map(|output| command_text(&output.stdout, &output.stderr))
+            .and_then(|text| preferred_version_line(&text))
+            .unwrap_or_else(|| "unknown".into());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return Command::new("sw_vers")
+            .arg("-productVersion")
+            .output()
+            .ok()
+            .map(|output| command_text(&output.stdout, &output.stderr))
+            .and_then(|text| preferred_version_line(&text))
+            .unwrap_or_else(|| "unknown".into());
+    }
+    "unknown".into()
 }
 
 fn parse_os_release(text: &str) -> BTreeMap<String, String> {
@@ -1183,6 +1244,9 @@ fn gpu_devices() -> Vec<String> {
 }
 
 fn missing_apt_packages(checks: &[Check], custom_ffmpeg: bool) -> Vec<String> {
+    if !cfg!(target_os = "linux") {
+        return Vec::new();
+    }
     let missing = checks
         .iter()
         .filter(|check| check.required && !check.available)

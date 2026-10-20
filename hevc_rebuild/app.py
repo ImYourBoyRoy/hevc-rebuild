@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import logging
 import os
@@ -64,6 +65,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--detect-animation", action=argparse.BooleanOptionalAction, default=None, help="Auto-detect Animation from reliable metadata when tune=auto")
     p.add_argument("--file-tune-overrides-json", default=None, help="JSON object mapping absolute media paths to per-file 'animation' or 'none' tune overrides")
     p.add_argument("--file-stream-overrides-json", default=None, help="JSON object mapping absolute media paths to selected FFprobe stream indices")
+    p.add_argument("--file-settings-overrides-json", default=None, help="JSON object mapping absolute media paths to current-run encoder and stream settings")
     p.add_argument("--file-poster-overrides-json", default=None, help="JSON object mapping absolute media paths to selected local JPEG/PNG/WebP artwork paths")
     p.add_argument("--allowed-poster-cache-root", default=None, help=argparse.SUPPRESS)
     p.add_argument("--file-metadata-overrides-json", default=None, help="JSON object mapping absolute media paths to reviewed metadata fields")
@@ -380,6 +382,101 @@ _METADATA_OVERRIDE_FIELDS = {
     "title", "show_title", "year", "airdate", "certification", "short_description",
     "plot", "genres", "rating", "season", "episode", "source_url", "comment",
 }
+
+_FILE_SETTINGS_OVERRIDE_FIELDS = {
+    "crf", "preset", "promote_8bit_to_10bit", "tune", "preserve_hdr10plus",
+    "dolby_vision", "stream_indices",
+}
+_FILE_SETTINGS_PRESETS = {
+    "ultrafast", "superfast", "veryfast", "faster", "fast", "medium",
+    "slow", "slower", "veryslow",
+}
+_FILE_SETTINGS_TUNES = {"auto", "animation", "grain", "none"}
+_FILE_SETTINGS_DOLBY = {"safe", "skip", "hdr10-fallback"}
+
+
+def parse_file_settings_overrides(raw: str, root: Path) -> dict[str, dict[str, object]]:
+    """Validate current-run per-file settings before any media process starts."""
+    if len(raw.encode("utf-8")) > 512 * 1024:
+        raise RebuildError("Per-file run settings exceed the 512 KiB limit.")
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RebuildError(f"--file-settings-overrides-json is invalid JSON: {exc}") from exc
+    if not isinstance(parsed, dict) or len(parsed) > 512:
+        raise RebuildError("Per-file run settings must be an object containing at most 512 media paths.")
+    input_root = root if root.is_dir() else root.parent
+    result: dict[str, dict[str, object]] = {}
+    for raw_media, raw_settings in parsed.items():
+        if not isinstance(raw_media, str) or len(raw_media.encode("utf-8")) > 8192:
+            raise RebuildError("Each per-file run setting must use an absolute media path no longer than 8192 bytes.")
+        media_input = Path(raw_media).expanduser()
+        if not media_input.is_absolute():
+            raise RebuildError("Per-file run setting paths must be absolute.")
+        try:
+            media = media_input.resolve(strict=True)
+        except OSError as exc:
+            raise RebuildError(f"Per-file run setting source is unavailable: {exc}") from exc
+        if not media.is_file() or not media.is_relative_to(input_root) or (root.is_file() and media != root):
+            raise RebuildError(f"Per-file run settings must refer to media inside the selected input: {media}")
+        if not isinstance(raw_settings, dict) or not raw_settings or len(raw_settings) > len(_FILE_SETTINGS_OVERRIDE_FIELDS):
+            raise RebuildError("Each per-file run setting must contain a non-empty object of supported fields.")
+        unknown = set(raw_settings) - _FILE_SETTINGS_OVERRIDE_FIELDS
+        if unknown:
+            raise RebuildError("Unsupported per-file run setting(s): " + ", ".join(sorted(unknown)))
+        settings: dict[str, object] = {}
+        for name, value in raw_settings.items():
+            if name == "crf":
+                if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 51:
+                    raise RebuildError("Per-file CRF must be a whole number from 0 to 51.")
+            elif name == "preset":
+                if not isinstance(value, str) or value not in _FILE_SETTINGS_PRESETS:
+                    raise RebuildError("Per-file preset is not a supported x265 preset.")
+            elif name in {"promote_8bit_to_10bit", "preserve_hdr10plus"}:
+                if not isinstance(value, bool):
+                    raise RebuildError(f"Per-file {name} must be true or false.")
+            elif name == "tune":
+                if not isinstance(value, str) or value not in _FILE_SETTINGS_TUNES:
+                    raise RebuildError("Per-file tune must be auto, animation, grain, or none.")
+            elif name == "dolby_vision":
+                if not isinstance(value, str) or value not in _FILE_SETTINGS_DOLBY:
+                    raise RebuildError("Per-file Dolby Vision policy is unsupported.")
+            elif name == "stream_indices":
+                if (
+                    not isinstance(value, list)
+                    or not value
+                    or len(value) > 1024
+                    or any(isinstance(index, bool) or not isinstance(index, int) or not 0 <= index <= 65535 for index in value)
+                    or len(set(value)) != len(value)
+                ):
+                    raise RebuildError("Per-file stream indices must be unique integers from 0 to 65535.")
+            settings[name] = value
+        result[str(media)] = settings
+    return result
+
+
+def effective_file_settings(args, source: Path):
+    """Return a shallow per-file argument view without mutating the run defaults."""
+    override = (getattr(args, "file_settings_overrides", {}) or {}).get(str(source.resolve()))
+    if not override:
+        return args
+    effective = copy.copy(args)
+    for name in ("crf", "preset", "promote_8bit_to_10bit", "preserve_hdr10plus", "dolby_vision"):
+        if name in override:
+            setattr(effective, name if name != "dolby_vision" else "dolby_vision_policy", override[name])
+    if "crf" in override and getattr(effective, "test", False):
+        # Short tests normally use test_crf=30; a reviewed current-run CRF is
+        # still honored when the user explicitly changes it for this file.
+        effective.test_crf = override["crf"]
+    if "tune" in override:
+        # A current-run tune replaces any saved queue tune for this file.
+        effective.tune = override["tune"]
+        effective.file_tune_overrides = dict(getattr(args, "file_tune_overrides", {}) or {})
+        effective.file_tune_overrides.pop(str(source.resolve()), None)
+    if "stream_indices" in override:
+        effective.file_stream_overrides = dict(getattr(args, "file_stream_overrides", {}) or {})
+        effective.file_stream_overrides[str(source.resolve())] = list(override["stream_indices"])
+    return effective
 
 
 def parse_file_metadata_overrides(raw: str, root: Path) -> dict[str, dict[str, object]]:
@@ -1281,6 +1378,9 @@ def _hdr10plus_helper_available(tools: Toolchain) -> bool:
 
 
 def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path, number: int, total: int) -> dict:
+    # These overrides are intentionally scoped to this invocation and never
+    # written back to the library or application defaults.
+    args = effective_file_settings(args, source)
     started = time.monotonic()
     phase = "media analysis"
     row = {
@@ -2095,6 +2195,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(raw_argv)
     args.file_tune_overrides = {}
     args.file_stream_overrides = {}
+    args.file_settings_overrides = {}
     args.file_poster_overrides = {}
     args.file_metadata_overrides = {}
     args.file_output_dirs = {}
@@ -2118,6 +2219,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         if args.file_metadata_overrides_json:
             args.file_metadata_overrides = parse_file_metadata_overrides(args.file_metadata_overrides_json, root)
+        if args.file_settings_overrides_json:
+            args.file_settings_overrides = parse_file_settings_overrides(args.file_settings_overrides_json, root)
     except (OSError, RebuildError) as exc:
         print(f"ERROR: invalid rebuild output folder: {exc}", file=sys.stderr)
         return 2
@@ -2160,6 +2263,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.file_metadata_overrides and (args.youtube_upload or args.info_only or args.setup_only):
         print("ERROR: reviewed metadata applies only to metadata-only, short-test, and full rebuild outputs.", file=sys.stderr)
+        return 2
+    if args.file_settings_overrides and (args.metadata_only or args.youtube_upload):
+        print("ERROR: current-run encoder settings apply only to check, short-test, and full rebuild outputs.", file=sys.stderr)
         return 2
     if args.metadata_only and args.file_stream_overrides:
         print("ERROR: metadata-only output always preserves every source stream; per-file stream selection is not allowed.", file=sys.stderr)
@@ -2356,6 +2462,9 @@ def main(argv: list[str] | None = None) -> int:
         unknown_stream_overrides = sorted(set(args.file_stream_overrides) - discovered_paths)
         if unknown_stream_overrides:
             raise RebuildError("Per-file stream overrides do not belong to the selected media input: " + ", ".join(unknown_stream_overrides[:5]))
+        unknown_settings_overrides = sorted(set(args.file_settings_overrides) - discovered_paths)
+        if unknown_settings_overrides:
+            raise RebuildError("Per-file run settings do not belong to the selected media input: " + ", ".join(unknown_settings_overrides[:5]))
         unknown_poster_overrides = sorted(set(args.file_poster_overrides) - discovered_paths)
         if unknown_poster_overrides:
             raise RebuildError("Per-file poster selections do not belong to the selected media input: " + ", ".join(unknown_poster_overrides[:5]))

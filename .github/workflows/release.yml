@@ -1,0 +1,157 @@
+name: Release HEVC Rebuild Studio
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "12.10.1"
+
+jobs:
+  quality:
+    name: Verify release source
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  release:
+    name: Build ${{ matrix.name }}
+    needs: quality
+    strategy:
+      fail-fast: false
+      # Each job contributes to one draft release and one latest.json. Keep
+      # release mutations ordered so updater metadata remains deterministic.
+      max-parallel: 1
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            target: ""
+            args: ""
+            tauri_script: ""
+            asset_pattern: "HEVC-Rebuild-Studio-[version]-Windows-x64[setup][ext]"
+          - name: macOS Apple Silicon
+            os: macos-latest
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+            tauri_script: ""
+            asset_pattern: "HEVC-Rebuild-Studio-[version]-macOS-Apple-Silicon[ext]"
+          - name: macOS Intel
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+            args: "--target x86_64-apple-darwin"
+            tauri_script: ""
+            asset_pattern: "HEVC-Rebuild-Studio-[version]-macOS-Intel[ext]"
+          - name: Linux x64
+            os: ubuntu-24.04
+            target: ""
+            args: ""
+            tauri_script: "../tools/tauri-linux-release.sh"
+            asset_pattern: "HEVC-Rebuild-Studio-[version]-Linux-x64[ext]"
+    runs-on: ${{ matrix.os }}
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Tauri Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
+        with:
+          toolchain: stable
+      - name: Install requested Rust target
+        if: matrix.target != ''
+        run: rustup target add ${{ matrix.target }}
+      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: desktop/src-tauri -> target
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+      - name: Verify release tag and updater signing key
+        working-directory: .
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e "const fs=require('node:fs'); const version=JSON.parse(fs.readFileSync('desktop/package.json','utf8')).version; if (process.env.RELEASE_TAG !== 'v' + version) { console.error('Release tag must match desktop/package.json: expected v' + version + ', got ' + process.env.RELEASE_TAG); process.exit(1); } if (!process.env.TAURI_SIGNING_PRIVATE_KEY?.trim()) { console.error('TAURI_SIGNING_PRIVATE_KEY is required for signed updater artifacts.'); process.exit(1); }"
+      - name: Build and upload release bundles
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: desktop
+          tauriScript: ${{ matrix.tauri_script }}
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+          tagName: v__VERSION__
+          releaseName: HEVC Rebuild Studio v__VERSION__
+          releaseBody: |
+            ## HEVC Rebuild Studio
+
+            Choose the package for your operating system:
+
+            - **Windows x64:** `HEVC-Rebuild-Studio-<version>-Windows-x64-setup.exe` (NSIS installer; MSI is intentionally not provided).
+            - **macOS Apple Silicon:** `HEVC-Rebuild-Studio-<version>-macOS-Apple-Silicon.dmg`.
+            - **macOS Intel:** `HEVC-Rebuild-Studio-<version>-macOS-Intel.dmg`.
+            - **Linux x64:** `HEVC-Rebuild-Studio-<version>-Linux-x64.AppImage` for portable use, or the `.deb` package for Debian/Ubuntu-based systems.
+
+            Files ending in `.sig` and `latest.json` support signed in-app updates and normally do not need to be downloaded manually.
+          releaseDraft: true
+          prerelease: false
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
+          releaseAssetNamePattern: ${{ matrix.asset_pattern }}
+
+  verify:
+    name: Verify draft release and updater manifest
+    needs: release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Download release manifest and metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-check
+          version=$(node -p "require('./desktop/package.json').version")
+          tag="v${version}"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" > release-check/release.json
+          gh release download "${tag}" --repo "${GITHUB_REPOSITORY}" --pattern latest.json --dir release-check
+      - name: Verify signed platform entries and reject MSI assets
+        run: node tools/verify-release-manifest.mjs release-check/latest.json release-check/release.json

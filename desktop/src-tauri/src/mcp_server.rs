@@ -1,7 +1,8 @@
 use super::{
-    append_tool_path_arguments, executable_in_path, settings_arguments, standalone_command,
-    stream_override_arguments, validate_apt_update_confirmation, validate_apt_upgrade_plan,
-    youtube_hdr10plus_loss_arguments, ToolPaths, APT_ALLOWLIST,
+    append_tool_path_arguments, executable_in_path, file_settings_override_arguments,
+    settings_arguments, standalone_command, stream_override_arguments,
+    validate_apt_update_confirmation, validate_apt_upgrade_plan, youtube_hdr10plus_loss_arguments,
+    ToolPaths, APT_ALLOWLIST,
 };
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -249,6 +250,7 @@ struct StartRunParams {
     selected_files: Option<Vec<String>>,
     file_tune_overrides: Option<BTreeMap<String, String>>,
     file_stream_overrides: Option<BTreeMap<String, Vec<u16>>>,
+    file_settings_overrides: Option<BTreeMap<String, Value>>,
     file_poster_overrides: Option<BTreeMap<String, String>>,
     file_metadata_overrides: Option<BTreeMap<String, Value>>,
     file_output_dirs: Option<BTreeMap<String, String>>,
@@ -880,7 +882,7 @@ impl McpServer {
 
     #[tool(
         name = "start_media_run",
-        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; the Python engine retains active memory/disk enforcement and pressure retries during migration. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; the selected reviewed values override local NFO values in output metadata. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. HDR10+ sources are skipped by default because this exporter does not retain dynamic metadata; pass allow_youtube_hdr10plus_loss_paths with only the analyzed files whose dynamic metadata loss you explicitly accept. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
+        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; the Python engine retains active memory/disk enforcement and pressure retries during migration. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; the selected reviewed values override local NFO values in output metadata. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. file_settings_overrides maps absolute analyzed media paths to current-run CRF, x265 preset, 8-bit promotion, content tune, HDR10+ preservation, Dolby Vision policy, and exact stream-index choices; omitted fields inherit the effective settings and these overrides are never saved as defaults. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. HDR10+ sources are skipped by default because this exporter does not retain dynamic metadata; pass allow_youtube_hdr10plus_loss_paths with only the analyzed files whose dynamic metadata loss you explicitly accept. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
     )]
     fn start_media_run(
         &self,
@@ -1196,6 +1198,20 @@ impl McpServer {
         {
             return Err(ErrorData::invalid_params(
                 "APT catalog refresh is limited to supported Ubuntu and Linux Mint releases.",
+                None,
+            ));
+        }
+        if environment
+            .pointer("/os/package_manager")
+            .and_then(Value::as_str)
+            != Some("apt")
+            || environment
+                .pointer("/os/package_manager_available")
+                .and_then(Value::as_bool)
+                != Some(true)
+        {
+            return Err(ErrorData::invalid_params(
+                "APT catalog refresh is available only when APT is installed on Linux.",
                 None,
             ));
         }
@@ -1631,6 +1647,17 @@ fn prepare_media_run(
     }
     args.extend(
         stream_override_arguments(&root, stream_overrides)
+            .map_err(|error| ErrorData::invalid_params(error, None))?,
+    );
+    let file_settings_overrides = params.file_settings_overrides.unwrap_or_default();
+    if !file_settings_overrides.is_empty() && ["metadata", "youtube"].contains(&mode) {
+        return Err(ErrorData::invalid_params(
+            "Current-run encoder settings apply only to check, short-test, and full-rebuild modes.",
+            None,
+        ));
+    }
+    args.extend(
+        file_settings_override_arguments(&root, file_settings_overrides)
             .map_err(|error| ErrorData::invalid_params(error, None))?,
     );
     let poster_overrides = params.file_poster_overrides.unwrap_or_default();
@@ -2750,6 +2777,14 @@ mod queue_sync_tests {
 }
 
 fn run_apt_job(jobs: Jobs, id: String, packages: Vec<String>) {
+    if !cfg!(target_os = "linux") {
+        update_failed(
+            &jobs,
+            &id,
+            "APT package operations are available only on Linux hosts.".into(),
+        );
+        return;
+    }
     let operations = [vec!["apt-get".to_string(), "update".to_string()], {
         let mut install = vec![
             "apt-get".into(),
@@ -2838,6 +2873,14 @@ fn run_apt_job(jobs: Jobs, id: String, packages: Vec<String>) {
 }
 
 fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<String>) {
+    if !cfg!(target_os = "linux") {
+        update_failed(
+            &jobs,
+            &id,
+            "APT package operations are available only on Linux hosts.".into(),
+        );
+        return;
+    }
     if unsafe { geteuid() } != 0 {
         operation.insert(0, "pkexec".into());
     }

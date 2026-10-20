@@ -142,11 +142,18 @@ fn user_config_path() -> Result<PathBuf, String> {
     if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
         return Ok(PathBuf::from(portable).join("engine-config.toml"));
     }
-    let config_home = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home_directory().map(|home| home.join(".config")))
-        .ok_or("Could not locate the current user's configuration folder.")?;
-    Ok(config_home.join("hevc-rebuild/config.toml"))
+    #[cfg(target_os = "linux")]
+    {
+        let config_home = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| home_directory().map(|home| home.join(".config")))
+            .ok_or("Could not locate the current user's configuration folder.")?;
+        return Ok(config_home.join("hevc-rebuild/config.toml"));
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        return Ok(crate::app_config_directory()?.join("engine-config.toml"));
+    }
 }
 
 fn resolve_settings_root(value: &str) -> PathBuf {
@@ -163,7 +170,7 @@ fn resolve_settings_root(value: &str) -> PathBuf {
 }
 
 fn home_directory() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(PathBuf::from)
+    crate::user_home_directory()
 }
 
 fn expand_home(path: PathBuf) -> PathBuf {

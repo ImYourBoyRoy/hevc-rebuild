@@ -100,6 +100,16 @@ class PlatformTests(unittest.TestCase):
         deps.validate_platform()
         self.assertEqual(deps.arch_asset_token(), "universal-macOS")
 
+    @patch.object(deps, "which", return_value=None)
+    @patch.object(deps.platform, "system", return_value="Windows")
+    def test_windows_without_winget_still_accepts_manual_tools(self, _system, _which):
+        deps.validate_platform()
+
+    @patch.object(deps, "_brew_program", return_value=None)
+    @patch.object(deps.platform, "system", return_value="Darwin")
+    def test_macos_without_homebrew_still_accepts_manual_tools(self, _system, _brew):
+        deps.validate_platform()
+
 
 class MetadataMergeTests(unittest.TestCase):
     def test_reviewed_metadata_overrides_nfo_and_episode_airdate_takes_precedence_over_series_year(self):

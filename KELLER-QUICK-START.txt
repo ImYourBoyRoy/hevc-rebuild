@@ -1,74 +1,32 @@
-HEVC Rebuild v1.3.0 - Keller Quick Start
-=========================================
+HEVC Rebuild Studio v1.3.0 - quick start
+========================================
 
-1) Extract this ZIP.
-2) Open the extracted hevc-rebuild folder in a terminal.
-3) Install/update:
+The maintained guide is README.md. The short links are:
 
-   chmod +x install.sh && ./install.sh
+   docs/USAGE.md              GUI, CLI, MCP, output, and recovery workflows
+   docs/TOOLS.md              FFmpeg, FFprobe, MediaInfo, MKVToolNix, HDR10+
+   docs/SUPPORT.md            troubleshooting, support, and licensing
+   docs/PROJECT-STRUCTURE.md  where source, tests, docs, and artifacts live
 
-4) Start Guided Mode (CLI):
+Direct engine on Linux:
 
-   hevc-rebuild
+   python3 -m hevc_rebuild --setup-only
+   hevc-rebuild "/path/to/library" --recursive --info-only
 
-5) For the first pass choose:
-   - Check only
-   - Search inside subfolders: Yes
-   - Dolby Vision handling: HDR10 fallback
-
-
-DESKTOP GUI (UBUNTU PREVIEW)
-----------------------------
-The Ubuntu-first Tauri/Svelte desktop app is in desktop/. From a terminal in
-the extracted project folder:
+Desktop preview on Linux:
 
    cd desktop
    pnpm install --frozen-lockfile
    pnpm tauri dev
 
-The desktop flow includes environment repair, folder analysis, settings,
-check-only, short tests and confirmed full rebuild. The GUI still uses the
-existing Python engine. See README.md for Ubuntu build prerequisites and the
-current platform limitations.
+The desktop app is a hybrid Rust/Python application while the migration is in
+progress. Python 3 remains a host requirement for compatibility run
+orchestration, reports, metadata, and direct engine paths. FFmpeg/FFprobe,
+MediaInfo, MKVToolNix, and the HDR10+ helper are external tools managed by the
+documented setup flow. Native pickers and drag-and-drop add files/folders to
+the same saved Media Library queue.
 
-Why this matters for the Top Gun: Maverick case:
-- FFprobe reports a Dolby Vision Profile 7 DOVI configuration record with base layer + enhancement layer.
-- MediaInfo's simple summary can still show HDR10 because Profile 7 includes an HDR10-compatible base picture.
-- This release can intentionally encode the picture as HDR10 when FFprobe verifies the Dolby Vision base layer and the selected video independently identifies as HDR10, while discarding Dolby Vision data.
-- The output is rejected unless it still validates as HDR10 and no longer reports Dolby Vision.
-- The original is not moved until validation passes; after a successful full rebuild it is kept under old/.
-
-If you want the conservative behavior instead, choose Safe mode. Unsupported Dolby Vision files will be skipped.
-
-Direct command equivalent for HDR10 fallback:
-
-   hevc-rebuild "/path/to/library" --recursive --dolby-vision-policy hdr10-fallback
-
-Recommended sequence: Check only -> Short test -> Full rebuild.
-
-
-CPU / MEMORY / STORAGE / PROGRESS
----------------------------------
-Version 1.3.0 processes exactly ONE media file at a time. In auto mode it
-uses all available logical CPU threads except one, while showing live CPU utilization.
-
-RAM protection is dynamic: by default it keeps at least 3 GiB AND 8% of
-usable RAM available (whichever is larger). Sustained memory pressure
-retries only the temporary encode with fewer x265 threads; quality does not
-change.
-
-Disk space is checked before each file and while it is encoding. The utility
-keeps an 8 GiB free-space reserve and watches projected output size so it can
-stop safely before the drive fills. Originals remain under old/ after a
-successful rebuild, so disk usage increases until you intentionally delete
-those backups.
-
-The terminal stays tidy: a queue summary, a per-file media/settings card, and
-a two-line live display that updates in place. The first line shows file/queue
-progress, speed and ETA; the second shows CPU, RAM, x265 memory, free disk
-space and temperature when available. Detailed x265/FFmpeg diagnostics stay in the log.
-
-Linux PSI pressure metrics are logged for CPU, memory, and I/O. If a process
-dies, the log ends that file with a FAILURE SUMMARY showing the phase, error,
-and current resource state. SIGKILL is called OOM only when Linux kernel logs
-actually support that conclusion.
+Use Check only first, then Short test, then a confirmed Full rebuild. Originals
+remain protected until validation passes. If a late stage fails after a
+completed encode, keep the retained `<name>.error.mkv` beside its matching
+`<name>.error.log`; the output is intentionally marked unvalidated.

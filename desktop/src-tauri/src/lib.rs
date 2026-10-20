@@ -40,8 +40,9 @@ mod run_arguments;
 mod runtime_guard;
 pub(crate) use run_arguments::{
     append_filename_filter_arguments, append_selected_file_arguments, append_tool_path_arguments,
-    metadata_override_arguments, poster_override_arguments, rebuild_output_arguments,
-    stream_override_arguments, youtube_hdr10plus_loss_arguments, ToolPaths,
+    file_settings_override_arguments, metadata_override_arguments, poster_override_arguments,
+    rebuild_output_arguments, stream_override_arguments, youtube_hdr10plus_loss_arguments,
+    ToolPaths,
 };
 mod settings;
 mod settings_arguments;
@@ -107,6 +108,9 @@ pub(crate) fn validate_apt_update_confirmation(
 }
 
 pub(crate) fn validate_apt_upgrade_plan(packages: &[String]) -> Result<(), String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     if packages.is_empty()
         || packages
             .iter()
@@ -165,6 +169,9 @@ pub(crate) fn validate_apt_upgrade_plan(packages: &[String]) -> Result<(), Strin
 }
 
 pub(crate) fn validate_apt_install_plan(packages: &[String]) -> Result<(), String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     if packages.is_empty()
         || packages
             .iter()
@@ -429,6 +436,25 @@ fn standalone_engine_root() -> Result<PathBuf, String> {
     ] {
         if candidate.join("hevc_rebuild").is_dir() {
             return Ok(candidate);
+        }
+    }
+
+    // Tauri's installed Windows and macOS layouts keep bundled resources
+    // beside the executable rather than in the Linux system directories above.
+    // Keep the standalone CLI and MCP entry points on the same bundled engine
+    // as the GUI without requiring a manually configured environment variable.
+    if let Ok(executable) = std::env::current_exe() {
+        if let Some(executable_directory) = executable.parent() {
+            for candidate in [
+                executable_directory.join("resources/engine"),
+                executable_directory.join("../Resources/engine"),
+                executable_directory.join("../resources/engine"),
+                executable_directory.join("engine"),
+            ] {
+                if candidate.join("hevc_rebuild").is_dir() {
+                    return Ok(candidate.canonicalize().unwrap_or(candidate));
+                }
+            }
         }
     }
     Err(
@@ -932,6 +958,9 @@ fn parse_apt_upgrade_cli_args(args: &[String]) -> Result<Vec<String>, String> {
 }
 
 fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     if arguments.is_empty() {
         return Err("APT command arguments are missing.".into());
     }
@@ -1435,7 +1464,16 @@ fn open_file_location(path: String) -> Result<(), String> {
     if !location.is_dir() {
         return Err("That folder is not on this computer.".into());
     }
-    Command::new("xdg-open")
+    #[cfg(target_os = "windows")]
+    let mut opener = Command::new("explorer");
+    #[cfg(target_os = "macos")]
+    let mut opener = Command::new("open");
+    #[cfg(target_os = "linux")]
+    let mut opener = Command::new("xdg-open");
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    return Err("Opening a folder is not supported on this operating system.".into());
+
+    opener
         .arg(&location)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -1953,15 +1991,7 @@ async fn list_reports(limit: u8) -> Result<Value, String> {
 }
 
 fn state_log_directory() -> Result<PathBuf, String> {
-    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable).join("logs"));
-    }
-    if let Some(state_home) = std::env::var_os("XDG_STATE_HOME") {
-        return Ok(PathBuf::from(state_home).join("hevc-rebuild/logs"));
-    }
-    let home =
-        std::env::var_os("HOME").ok_or("Could not locate the current user's home folder.")?;
-    Ok(PathBuf::from(home).join(".local/state/hevc-rebuild/logs"))
+    Ok(app_state_directory()?.join("logs"))
 }
 
 fn tool_setup_log_directory() -> Result<PathBuf, String> {
@@ -2000,14 +2030,118 @@ struct AppPreferencesPayload {
 static PREFERENCES_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 fn app_preferences_file() -> Result<PathBuf, String> {
-    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable).join("settings.json"));
+    Ok(app_config_directory()?.join("settings.json"))
+}
+
+pub(crate) fn user_home_directory() -> Option<PathBuf> {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(home) = std::env::var_os("USERPROFILE") {
+            return Some(PathBuf::from(home));
+        }
+        if let (Some(drive), Some(path)) =
+            (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
+        {
+            return Some(PathBuf::from(format!(
+                "{}{}",
+                drive.to_string_lossy(),
+                path.to_string_lossy()
+            )));
+        }
     }
-    let config_dir = std::env::var_os("XDG_CONFIG_HOME")
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
-        .ok_or("Could not locate the current user's settings folder.")?;
-    Ok(config_dir.join("hevc-rebuild-studio/settings.json"))
+}
+
+pub(crate) fn app_config_directory() -> Result<PathBuf, String> {
+    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
+        return Ok(PathBuf::from(portable));
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let root = std::env::var_os("APPDATA")
+            .or_else(|| std::env::var_os("LOCALAPPDATA"))
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join("AppData/Roaming")))
+            .ok_or("Could not locate the current user's Windows application-data folder.")?;
+        return Ok(root.join("hevc-rebuild-studio"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let home = user_home_directory()
+            .ok_or("Could not locate the current user's macOS home folder.")?;
+        return Ok(home.join("Library/Application Support/hevc-rebuild-studio"));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let root = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join(".config")))
+            .ok_or("Could not locate the current user's settings folder.")?;
+        return Ok(root.join("hevc-rebuild-studio"));
+    }
+    user_home_directory()
+        .map(|home| home.join(".hevc-rebuild-studio"))
+        .ok_or_else(|| "Could not locate the current user's application-data folder.".to_string())
+}
+
+fn app_state_directory() -> Result<PathBuf, String> {
+    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
+        return Ok(PathBuf::from(portable));
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let root = std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join("AppData/Local")))
+            .ok_or("Could not locate the current user's Windows local-data folder.")?;
+        return Ok(root.join("hevc-rebuild-studio"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let home = user_home_directory()
+            .ok_or("Could not locate the current user's macOS home folder.")?;
+        return Ok(home.join("Library/Logs/hevc-rebuild-studio"));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let root = std::env::var_os("XDG_STATE_HOME")
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join(".local/state")))
+            .ok_or("Could not locate the current user's state folder.")?;
+        return Ok(root.join("hevc-rebuild"));
+    }
+    app_config_directory()
+}
+
+pub(crate) fn app_cache_directory() -> Result<PathBuf, String> {
+    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
+        return Ok(PathBuf::from(portable).join("cache"));
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let root = std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join("AppData/Local")))
+            .ok_or("Could not locate the current user's Windows cache folder.")?;
+        return Ok(root.join("hevc-rebuild-studio/cache"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let home = user_home_directory()
+            .ok_or("Could not locate the current user's macOS home folder.")?;
+        return Ok(home.join("Library/Caches/hevc-rebuild-studio"));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let root = std::env::var_os("XDG_CACHE_HOME")
+            .map(PathBuf::from)
+            .or_else(|| user_home_directory().map(|home| home.join(".cache")))
+            .ok_or("Could not locate the current user's cache folder.")?;
+        return Ok(root.join("hevc-rebuild"));
+    }
+    app_config_directory()
 }
 
 pub(crate) fn media_queue_file() -> Result<PathBuf, String> {
@@ -2568,6 +2702,8 @@ struct RunRequest {
     #[serde(default)]
     file_stream_overrides: BTreeMap<String, Vec<u16>>,
     #[serde(default)]
+    file_settings_overrides: BTreeMap<String, Value>,
+    #[serde(default)]
     file_poster_overrides: BTreeMap<String, String>,
     #[serde(default)]
     file_metadata_overrides: BTreeMap<String, Value>,
@@ -2709,6 +2845,18 @@ fn start_run(
     args.extend(stream_override_arguments(
         &root,
         request.file_stream_overrides,
+    )?);
+    if !request.file_settings_overrides.is_empty()
+        && ["metadata", "youtube"].contains(&request.mode.as_str())
+    {
+        return Err(
+            "Current-run encoder settings apply only to check, short-test, and full-rebuild modes."
+                .into(),
+        );
+    }
+    args.extend(file_settings_override_arguments(
+        &root,
+        request.file_settings_overrides,
     )?);
     if !request.file_poster_overrides.is_empty()
         && !["metadata", "test", "full"].contains(&request.mode.as_str())
@@ -2914,21 +3062,35 @@ pub(crate) fn executable_in_path(program: &str) -> bool {
         return false;
     };
     std::env::split_paths(&path).any(|directory| {
-        let candidate = directory.join(program);
-        let Ok(metadata) = candidate.metadata() else {
-            return false;
-        };
-        if !metadata.is_file() {
-            return false;
+        let mut candidates = vec![directory.join(program)];
+        #[cfg(target_os = "windows")]
+        if Path::new(program).extension().is_none() {
+            if let Some(extensions) = std::env::var_os("PATHEXT") {
+                candidates.extend(
+                    extensions
+                        .to_string_lossy()
+                        .split(';')
+                        .filter(|extension| !extension.is_empty())
+                        .map(|extension| directory.join(format!("{program}{extension}"))),
+                );
+            }
         }
-        #[cfg(unix)]
-        {
-            metadata.permissions().mode() & 0o111 != 0
-        }
-        #[cfg(not(unix))]
-        {
-            true
-        }
+        candidates.into_iter().any(|candidate| {
+            let Ok(metadata) = candidate.metadata() else {
+                return false;
+            };
+            if !metadata.is_file() {
+                return false;
+            }
+            #[cfg(unix)]
+            {
+                metadata.permissions().mode() & 0o111 != 0
+            }
+            #[cfg(not(unix))]
+            {
+                true
+            }
+        })
     })
 }
 
@@ -2952,6 +3114,9 @@ fn start_apt_commands_job(
     state: &RunState,
     commands: Vec<Vec<String>>,
 ) -> Result<String, String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     if commands.is_empty() || commands.iter().any(Vec::is_empty) {
         return Err("The Ubuntu package operation has no valid commands.".into());
     }
@@ -3092,6 +3257,19 @@ async fn refresh_ubuntu_package_catalog(
                     .into(),
             );
         }
+        if environment
+            .pointer("/os/package_manager")
+            .and_then(Value::as_str)
+            != Some("apt")
+            || environment
+                .pointer("/os/package_manager_available")
+                .and_then(Value::as_bool)
+                != Some(true)
+        {
+            return Err(
+                "APT catalog refresh is available only when APT is installed on Linux.".into(),
+            );
+        }
         if unsafe { libc_geteuid() } != 0 && !executable_in_path("pkexec") {
             return Err("Desktop administrator authentication (pkexec) is not installed.".into());
         }
@@ -3193,6 +3371,9 @@ fn install_apt_tools(
     state: State<'_, RunState>,
     packages: Vec<String>,
 ) -> Result<String, String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     if packages.is_empty()
         || packages
             .iter()
@@ -3385,6 +3566,8 @@ async fn install_hdr10plus(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(RunState::default())
         .invoke_handler(tauri::generate_handler![
             load_app_preferences,

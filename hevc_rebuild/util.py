@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import platform
 import shlex
 import shutil
 import signal
@@ -171,20 +172,68 @@ def portable_data_dir() -> Path | None:
     return Path(value).expanduser() if value else None
 
 
-def user_log_directory() -> Path:
+def _user_home_directory() -> Path:
+    for key in ("USERPROFILE", "HOME"):
+        value = os.environ.get(key)
+        if value:
+            return Path(value).expanduser()
+    return Path.home()
+
+
+def app_config_directory() -> Path:
+    """Return the native per-user application configuration directory."""
     portable = portable_data_dir()
     if portable is not None:
-        return portable / "logs"
-    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-    return state_home / "hevc-rebuild" / "logs"
+        return portable
+    home = _user_home_directory()
+    system = platform.system().lower()
+    if os.name == "nt" or system == "windows":
+        root = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
+    elif system == "darwin":
+        root = home / "Library" / "Application Support"
+    else:
+        root = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
+    return root / "hevc-rebuild-studio"
+
+
+def app_state_directory() -> Path:
+    """Return the native per-user application state/log directory."""
+    portable = portable_data_dir()
+    if portable is not None:
+        return portable
+    home = _user_home_directory()
+    system = platform.system().lower()
+    if os.name == "nt" or system == "windows":
+        root = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
+        return root / "hevc-rebuild-studio"
+    if system == "darwin":
+        return home / "Library" / "Logs" / "hevc-rebuild-studio"
+    root = Path(os.environ.get("XDG_STATE_HOME", home / ".local" / "state"))
+    return root / "hevc-rebuild"
+
+
+def app_cache_directory() -> Path:
+    """Return the native per-user application cache directory."""
+    portable = portable_data_dir()
+    if portable is not None:
+        return portable / "cache"
+    home = _user_home_directory()
+    system = platform.system().lower()
+    if os.name == "nt" or system == "windows":
+        root = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
+        return root / "hevc-rebuild-studio" / "cache"
+    if system == "darwin":
+        return home / "Library" / "Caches" / "hevc-rebuild-studio"
+    root = Path(os.environ.get("XDG_CACHE_HOME", home / ".cache"))
+    return root / "hevc-rebuild"
+
+
+def user_log_directory() -> Path:
+    return app_state_directory() / "logs"
 
 
 def app_preferences_path() -> Path:
-    portable = portable_data_dir()
-    if portable is not None:
-        return portable / "settings.json"
-    config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return config_home / "hevc-rebuild-studio" / "settings.json"
+    return app_config_directory() / "settings.json"
 
 
 class ExternalCommandError(RebuildError):

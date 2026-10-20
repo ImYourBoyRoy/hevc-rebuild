@@ -72,6 +72,8 @@ export interface Environment {
     name: string;
     version: string;
     supported: boolean;
+    package_manager?: string | null;
+    package_manager_available?: boolean;
     note: string;
   };
   hardware: {
@@ -549,6 +551,21 @@ export interface RunRequest {
   stopOnError: boolean;
   fullRebuildConfirmed: boolean;
   fileTuneOverrides: Record<string, 'animation' | 'none'>;
+  fileSettingsOverrides: Record<string, FileRunSettingsOverride>;
+}
+
+/**
+ * Settings applied only to the current run and only to the mapped media path.
+ * An omitted field inherits the effective library/app/session value.
+ */
+export interface FileRunSettingsOverride {
+  crf?: number;
+  preset?: string;
+  promote_8bit_to_10bit?: boolean;
+  tune?: 'auto' | 'animation' | 'grain' | 'none';
+  preserve_hdr10plus?: boolean;
+  dolby_vision?: 'safe' | 'skip' | 'hdr10-fallback';
+  stream_indices?: number[];
 }
 
 export interface RunLineEvent {

@@ -785,6 +785,7 @@ fn is_owned_incomplete_temp(file_name: &str, stem: &str) -> bool {
     false
 }
 
+#[cfg(target_os = "linux")]
 fn regular_file_is_open(path: &Path) -> bool {
     let Ok(canonical) = path.canonicalize() else {
         return true;
@@ -809,6 +810,19 @@ fn regular_file_is_open(path: &Path) -> bool {
         }
     }
     false
+}
+
+#[cfg(not(target_os = "linux"))]
+fn regular_file_is_open(path: &Path) -> bool {
+    // Linux can inspect every process' descriptors through /proc. Other hosts
+    // do not expose an equivalent portable API, so preserve a file whenever
+    // an exclusive read/write reopen is not possible; the OS then remains the
+    // final authority on whether a stale temporary can be removed.
+    OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .is_err()
 }
 
 fn recovery_summary(

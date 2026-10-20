@@ -53,6 +53,8 @@ if _PORTABLE_DATA:
     APP_DATA = _PORTABLE_DATA / "share" / "hevc-rebuild"
 elif os.name == "nt":
     APP_DATA = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "hevc-rebuild"
+elif platform.system().lower() == "darwin":
+    APP_DATA = Path.home() / "Library" / "Application Support" / "hevc-rebuild"
 else:
     APP_DATA = Path.home() / ".local" / "share" / "hevc-rebuild"
 MANAGED_BIN = APP_DATA / "bin"
@@ -123,22 +125,20 @@ def validate_platform(allow_unsupported: bool = False) -> None:
     if is_windows():
         if which("winget"):
             logging.info("Supported Windows platform detected with winget.")
-            return
-        msg = "Windows builds require the Windows Package Manager (winget) for dependency repair."
-        if allow_unsupported:
-            logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
-            return
-        raise RebuildError(msg)
+        else:
+            logging.info(
+                "Supported Windows platform detected without winget; existing tools and explicit paths remain usable."
+            )
+        return
 
     if is_macos():
         if _brew_program():
             logging.info("Supported macOS platform detected with Homebrew.")
-            return
-        msg = "macOS dependency repair requires Homebrew. Install it from https://brew.sh/ and retry."
-        if allow_unsupported:
-            logging.warning("%s Continuing because --allow-unsupported-os was supplied.", msg)
-            return
-        raise RebuildError(msg)
+        else:
+            logging.info(
+                "Supported macOS platform detected without Homebrew; existing tools and explicit paths remain usable."
+            )
+        return
 
     info = os_release()
     ident = info.get("ID", "").lower()
@@ -229,6 +229,12 @@ def ensure_windows_dependencies(*, assume_yes: bool = False, required_packages: 
         missing = [command for command in commands if not which(command)]
         if not missing:
             continue
+        if not which("winget"):
+            raise RebuildError(
+                "Required Windows tools are missing ("
+                + ", ".join(missing)
+                + "); install them manually or add the Windows Package Manager (winget) for automatic setup."
+            )
         package_id = WINDOWS_WINGET_PACKAGES[package_name]
         package_present = _winget_package_present(package_id)
         if not package_present:
@@ -289,6 +295,12 @@ def ensure_macos_dependencies(
         missing = [command for command in commands if not which(command)]
         if not missing:
             continue
+        if not brew:
+            raise RebuildError(
+                "Required macOS tools are missing ("
+                + ", ".join(missing)
+                + "); install them manually or install Homebrew from https://brew.sh/ for automatic setup."
+            )
         present = _brew_package_present(formula, brew)
         action = "reinstall" if present else "install"
         if not assume_yes:

@@ -51,6 +51,8 @@
     onOpenReview: (path: string) => void;
     onOpenLocation: (path: string) => void;
     onReview: (path: string) => void;
+    canAdjustRun: boolean;
+    onAdjustRun: (paths: string[]) => void;
     onRename: () => void;
     onMetadata: () => void;
     onRebuild: () => void;
@@ -78,6 +80,8 @@
     onOpenReview,
     onOpenLocation,
     onReview,
+    canAdjustRun,
+    onAdjustRun,
     onRename,
     onMetadata,
     onRebuild,
@@ -222,6 +226,9 @@
         </label>
         {#if card.reviewLabel}
           <button class="text-button library-poster-review" type="button" onclick={() => onReview(card.path)}>{card.reviewLabel}</button>
+        {/if}
+        {#if canAdjustRun && card.kind === "media" && card.selected}
+          <button class="text-button library-poster-adjust" type="button" onclick={() => onAdjustRun(card.mediaPaths)}>Adjust this run</button>
         {/if}
 
         {#if card.kind === "media"}

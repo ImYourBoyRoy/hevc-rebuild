@@ -57,11 +57,19 @@ pub(crate) struct ArtworkSaveResult {
 }
 
 pub(crate) fn app_artwork_cache_root() -> Result<PathBuf, String> {
-    let preferences = crate::app_preferences_file()?;
-    let profile = preferences
+    let preferred = crate::app_cache_directory()?.join("artwork");
+    if preferred.exists() {
+        return Ok(preferred);
+    }
+    // Preserve artwork cached by earlier builds, which stored it below the
+    // settings profile. New writes use the native cache directory above.
+    let legacy = crate::app_preferences_file()?
         .parent()
-        .ok_or("Could not locate the application profile folder.")?;
-    Ok(profile.join(".cache/artwork"))
+        .map(|profile| profile.join(".cache/artwork"));
+    if let Some(legacy) = legacy.filter(|path| path.exists()) {
+        return Ok(legacy);
+    }
+    Ok(preferred)
 }
 
 #[derive(Clone, Debug, Serialize, schemars::JsonSchema)]

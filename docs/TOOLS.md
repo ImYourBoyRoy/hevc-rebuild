@@ -4,6 +4,10 @@ The media engine uses external tools for media inspection and Matroska work.
 The setup command installs or resolves them explicitly; it never silently
 changes a user's selected executable override.
 
+The GUI, CLI, MCP server, queue, and metadata workflows are intended to be
+available on Linux, Windows, and macOS. Host setup, app-data locations, and
+installer formats are platform adapters; see the [platform support contract](PLATFORM-SUPPORT.md).
+
 Required for a full rebuild:
 
 - FFmpeg and FFprobe with the required x264/x265 encoders.
@@ -23,8 +27,8 @@ python3 -m hevc_rebuild --setup-only
 ```
 
 The desktop setup screen performs the same package review with explicit
-administrator confirmation. The current Linux desktop package remains the
-reference packaged GUI target.
+administrator confirmation. This is the native Linux package-manager lane;
+the rest of the desktop workflow is not Linux-only.
 
 ## Windows
 
@@ -36,11 +40,12 @@ Windows release asset and the same digest verification.
 py -3 -m hevc_rebuild --setup-only --assume-yes
 ```
 
-`winget` must be installed and available on `PATH`. The direct engine's Windows
-setup lane is supported. Python 3 is still a host prerequisite for the current
-compatibility engine; the command above must be launched with `py -3` or an
-equivalent Python 3 executable. Desktop Windows packaging and native UI
-acceptance are tracked separately.
+`winget` must be installed and available on `PATH` for automatic package setup.
+The direct engine's Windows setup lane is supported. Python 3 is still a host
+prerequisite for the current compatibility engine; the command above must be
+launched with `py -3` or an equivalent Python 3 executable. The Tauri Windows
+installer targets are configured, but a release still needs a native Windows
+build and runtime acceptance pass.
 
 ## macOS
 
@@ -55,7 +60,8 @@ python3 -m hevc_rebuild --setup-only
 
 Install Homebrew first from [brew.sh](https://brew.sh/) if `brew` is not
 available. The direct engine's macOS setup path is supported; desktop macOS
-packaging and native UI acceptance remain separate release gates.
+installer targets are configured, but a release still needs a native macOS build
+and runtime acceptance pass.
 
 ## Safety and verification
 

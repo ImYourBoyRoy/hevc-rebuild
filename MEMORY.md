@@ -1,5 +1,172 @@
 # Project Memory
 
+- 2026-10-19 native cross-platform acceptance: the final source snapshot was
+  built natively through `Remote_Build` on macOS 26.7.1 x86_64 and through the
+  Server_Manager Windows guest on Windows Server 2025 x64. macOS passed frozen
+  install, both Svelte checkers, production frontend build, native Tauri
+  release build, executable CLI smoke, and CI-safe DMG creation; the DMG was
+  mounted read-only and contained the `.app`. Windows passed `pnpm check`,
+  native frontend/Tauri release build, NSIS packaging, executable `--help`,
+  `json environment`, and an empty synthetic scan; the final NSIS installer is
+  5,055,715 bytes, SHA-256
+  `209d08c1dfadf96adfcb14286db2f5051029af19bc9426d6b683dbafe709bf76`, and
+  no MSI was produced. The final macOS Intel DMG is 8,739,139 bytes, SHA-256
+  `92126f2bf4fc741725b758a4d11fc0d5387d8dc92cefea7af589461b0902c4bd`; both
+  verified packages were copied into the ignored root `App/` artifact drop.
+  Windows browser contracts passed
+  metadata 9/9, modal, home/help, library, rename, run, support, responsive
+  (300 viewport/theme checks plus zoom proxy), performance, workspace-state,
+  and YouTube. The responsive pass exposed and then verified a real narrow Help
+  note overflow fix; the Windows runner now uses Playwright `--filename` and a
+  longer browser-code timeout. The macOS guest lacks FFmpeg, MediaInfo,
+  MKVToolNix, Homebrew, and `hdr10plus_tool`, so full media readiness,
+  native GUI walkthroughs, real-media behavior, Apple Silicon, signing,
+  notarization, GitHub release execution, and live updater installation remain
+  open. No source upload, commit, tag, or release was performed.
+
+- 2026-10-19 artifact-drop clarification: `App/` remains at the repository root
+  but is now an explicit cross-platform local artifact drop. Git ignores every
+  generated package, updater file, and writable sidecar inside it while keeping
+  `App/README.md`. Tauri actually writes host-native packages under
+  `desktop/src-tauri/target/release/bundle/`; copying verified outputs into
+  `App/` is a manual convenience step. Updated the root README, project
+  structure guide, `AGENTS.md`, and the artifact-drop instructions. No build or
+  release upload was performed.
+
+- 2026-10-19 README cleanup: replaced the 746-line root README with a
+  concise 196-line landing page modeled on the project's other desktop tools.
+  It now leads with the app icon, badges, navigation, purpose, quick start,
+  core modes, safety, themes, release/update summary, focused documentation
+  links, validation commands, root `App/` placement, and license. Reduced
+  `desktop/README.md` to an 85-line scoped native-development guide. Detailed
+  behavior remains routed through `docs/USAGE.md`, `docs/TOOLS.md`,
+  `docs/PLATFORM-SUPPORT.md`, `docs/RELEASE.md`, `TECHNICAL.md`, and the
+  migration/review records. No runtime code changed.
+
+- 2026-10-19 native Tauri theme screenshot pass: captured the real Linux desktop
+  build after `SYSTEM READY` for Light, Dark, Phosphor, Ion, and Breach using
+  isolated portable profiles; existing user settings were not changed. The
+  normalized content-window captures are in `docs/screenshots/` and the root
+  README now includes the five-theme gallery. This is Linux visual evidence
+  only; it does not establish Windows/macOS UI or packaged runtime acceptance.
+
+- 2026-10-19 release/update infrastructure pass: added Tauri process/updater
+  plugins, a checked-in updater public key/endpoint, release-only
+  `createUpdaterArtifacts`, and an in-app signed-update banner. The banner
+  checks five seconds after startup and every 24 hours, shows bounded release
+  notes, remembers **Later** per version, requires explicit install consent,
+  blocks installation while a scan/run/repair/queue rename is active, and
+  relaunches after a successful signed install when the host permits it.
+  Added `.github/workflows/ci.yml` for Python/frontend/Rust checks plus native
+  Linux/Windows/macOS compile smoke, and `.github/workflows/release.yml` for
+  signed Windows NSIS (no MSI), macOS Intel/Apple Silicon, and Ubuntu 24.04
+  Linux `.deb`/AppImage draft releases with `latest.json` verification. Added
+  `docs/RELEASE.md` and `tools/verify-release-manifest.mjs`; the empty public
+  remote `ImYourBoyRoy/hevc-rebuild` now exists and is configured as local
+  `origin`, but nothing was uploaded. Validation passed: frozen pnpm install,
+  `pnpm check`, `pnpm check:tsgo`, `pnpm build`, Rust check/format, 201
+  sequential Rust library tests, native `tauri build --no-bundle`, and a
+  local signed Linux release build that emitted `.deb`/AppImage plus `.sig`
+  files. Existing Rust warnings remain; native Windows/macOS builds, package
+  launches, Apple signing secrets, GitHub release execution, and live updater
+  installation remain unverified. Exact next: configure signing secrets and
+  native acceptance before pushing the first approved source snapshot or
+  publishing a tag.
+
+- 2026-10-19 Linux desktop identity fix and paused release attempt: enabled
+  Tauri `enableGTKAppId`, added a custom Linux desktop template with the
+  observed X11 `StartupWMClass`, and added Debian post-install/remove hooks
+  that rename the generated product-name entry to the identifier-derived
+  `org.hevcrebuild.desktop.desktop` entry. Added
+  `tools/normalize-linux-appimage.sh` plus the release wrapper so AppImages
+  are normalized before updater archives are rebuilt and signed. The regular
+  Linux build passed; the `.deb` contains the hooks, the normalized AppImage
+  contains exactly one matching root/installed desktop entry, and an isolated
+  X11 launch exposed the HEVC icon pixels and `Hevc-rebuild-studio` class.
+  The release-mode signed rebuild was explicitly stopped at the user's
+  request before it completed because network access was about to be lost.
+  No GitHub push, secret update, tag, or release was performed. Next: resume
+  the signed release build, finish the release workflow edits/docs, configure
+  the existing local updater private key as the GitHub Actions secret, then
+  commit, push, monitor CI, and publish the first verified draft release.
+
+- 2026-10-19 Python retirement workboard: expanded
+  `python-rust-convert.md` into the active file-level plan for removing the
+  Python requirement from the published GUI/CLI/MCP runtime. It records the
+  current Rust/Python process-launch boundaries, keeps direct Python as an
+  optional compatibility tool, and orders the remaining work as native run
+  contract, Rust run coordinator/progress, Matroska metadata/final validation,
+  transaction/recovery convergence, YouTube batch parity, then packaging
+  deprecation. No Python module was deleted and no media/build operation was
+  run; the immediate implementation target is a typed Rust run coordinator.
+
+- 2026-10-19 current-run settings pass: added a non-persistent per-file override
+  contract across the GUI, Tauri request boundary, MCP, and Python engine. The
+  review screen can target the whole run, each source folder, or an individual
+  visible file; overrides cover CRF, x265 preset, 8-bit promotion, content tune
+  including film grain, HDR10+ preservation, verified Dolby Vision policy, and
+  exact stream indices. Saved defaults remain untouched; static HDR signaling is
+  intentionally source-aware rather than exposing an unsafe metadata-strip
+  switch. Added parser/effective-settings tests (3 pass). No frontend/Tauri
+  compilation or media operation was run; native/package acceptance remains
+  open. Next: run the approved frontend/native validation lane before release.
+
+- 2026-10-18 cross-platform feature pass: made the GUI/CLI/MCP feature contract
+  explicit for Linux, Windows, and macOS. Native Rust now treats Windows and
+  macOS as supported hosts when required tools are available, keeps APT checks
+  Linux-only, selects verified HDR10+ `.zip`/`.tar.gz` assets per host,
+  locates bundled Python resources in installed Windows/macOS layouts, opens
+  folders with `explorer`/`open`/`xdg-open`, and stores settings, queue,
+  reports, calibration, artwork cache, and managed helpers in native profile
+  locations. Python config/state/cache helpers mirror those locations; Linux
+  behavior and portable AppImage sidecars remain preserved. `pnpm check`,
+  `pnpm check:tsgo`, all six browser contracts run serially, metadata matching
+  9/9, Python unittest discovery 204 tests with 33 skips, `cargo fmt --check`,
+  `cargo metadata --offline --locked --no-deps`, and `git diff --check` passed.
+  Windows/macOS manual tool paths no longer require winget/Homebrew; those
+  managers are required only for automatic repair, and GUI/MCP APT refresh
+  paths reject non-Linux hosts before spawning a package process.
+  Full dependency metadata could not run offline because `jiff-static` was not
+  cached. No application build, native Windows/macOS build, packaged launch,
+  or media operation was run; those remain release gates. `ruff` was not
+  available on PATH. The cross-platform source changes are not yet committed.
+
+- 2026-10-18 UI/documentation completion pass: fixed the Help page's narrow
+  viewport overflow by constraining card grid tracks/list items and wrapping
+  its safety note text; isolated browser probes now report no document or main
+  overflow at 360, 390, 620, 800, 1024, or 1440px across Light, Dark,
+  Phosphor, Ion, and Breach. Added `docs/PROJECT-STRUCTURE.md`, linked it from
+  the root README, refreshed the desktop dependency-version note, added a
+  current worktree validation block to `REVIEW.md`, and replaced the stale
+  Keller quick-start text with links to the maintained docs. No production,
+  Tauri, native, or release build was run. The current AppImage remains a
+  glibc 2.43 artifact; native drag/drop and packaged visual acceptance remain
+  open.
+
+- 2026-10-18 Media Library drag-and-drop follow-up: the Tauri window already had
+  native multi-file/folder drops enabled and was adding dropped paths to the
+  persistent queue. `+page.svelte` now uses Tauri's full drag lifecycle to show
+  a Media Library drop hint and active state, while preserving path-based
+  scanning, duplicate-source handling, current filters, and the existing
+  busy-state guard. `pnpm check` and `pnpm check:tsgo` both passed with 0
+  errors and 0 warnings; `git diff --check` passed. No native or production
+  build was run, so end-to-end OS drag/drop acceptance remains open.
+
+- 2026-10-18 Identify & organize UI follow-up: `MetadataWorkbench.svelte` now
+  reads persisted queue match suggestions with normalized paths, so the
+  organizer shows the same saved title/poster state as Media Library when the
+  page is opened after scanning. Preferred local poster artwork is previewed
+  automatically without silently selecting it for output. Movie rows now use a
+  compact reviewed/suggested/empty match card, keep candidate lists collapsed,
+  and no longer create a nested scrolling movie list. `pnpm check` passed with
+  0 errors and 0 warnings; metadata matching tests passed 9/9; `git diff
+  --check` and `sha256sum -c SHA256SUMS` passed. `pnpm check:tsgo` also passed.
+  The broad responsive contract executed 300 checks but reported the existing
+  Help fixture's 360/390px horizontal overflow; this change does not touch the
+  Help surface and no baseline rerun was available in this turn. No frontend
+  production, Tauri, native, or media build was run. Native visual acceptance
+  of this organizer state remains open.
+
 - 2026-10-18 current release-preparation change: PolyForm Noncommercial 1.0.0
   is now the repository license, package metadata names the SPDX identifier,
   and concise human docs cover GUI/CLI/MCP usage, tool setup, support, and the

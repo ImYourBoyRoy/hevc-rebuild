@@ -89,6 +89,13 @@ fn current_timestamp() -> Result<f64, String> {
 pub(crate) fn apt_update_status() -> Result<Value, String> {
     let environment = super::environment::inspect_environment(super::ToolPaths::default(), None)?;
     if environment
+        .pointer("/os/package_manager")
+        .and_then(Value::as_str)
+        != Some("apt")
+    {
+        return Err("APT package checks are available only on Linux hosts using APT; use the host platform setup lane instead.".into());
+    }
+    if environment
         .pointer("/os/supported")
         .and_then(Value::as_bool)
         != Some(true)
@@ -138,26 +145,114 @@ pub(crate) fn apt_update_status() -> Result<Value, String> {
 /// The asset must be HTTPS-hosted by GitHub, publish a SHA-256 digest or sidecar, and
 /// contain exactly one regular file named hdr10plus_tool.
 pub(crate) fn install_latest_hdr10plus_tool() -> Result<String, String> {
-    #[cfg(not(target_os = "linux"))]
+    let environment = super::environment::inspect_environment(super::ToolPaths::default(), None)?;
+    if environment
+        .pointer("/os/supported")
+        .and_then(Value::as_bool)
+        != Some(true)
     {
-        return Err("Managed hdr10plus_tool installation currently supports Linux only.".into());
+        return Err(
+            "Managed hdr10plus_tool installation is limited to supported Ubuntu 24.04+, Linux Mint 22+, Windows, and macOS hosts."
+                .into(),
+        );
     }
 
+    let (token, suffix) = hdr10plus_asset_selector()?;
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("hevc-rebuild-studio/1.3.0")
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|error| format!("Could not configure the HDR10+ helper download: {error}"))?;
+
+    let release_bytes = fetch_limited(
+        &client,
+        HDR10PLUS_RELEASE_API,
+        &["api.github.com"],
+        MAX_RELEASE_JSON_BYTES,
+    )?;
+    let release: Value = serde_json::from_slice(&release_bytes).map_err(|error| {
+        format!("The official HDR10+ release response was invalid JSON: {error}")
+    })?;
+    let assets = release
+        .get("assets")
+        .and_then(Value::as_array)
+        .ok_or("The official HDR10+ release response contained no asset list.")?;
+    let asset = assets
+        .iter()
+        .find(|asset| {
+            asset
+                .get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name.contains(token) && name.ends_with(suffix))
+        })
+        .ok_or_else(|| {
+            format!("The latest hdr10plus_tool release has no {token} {suffix} asset.")
+        })?;
+    let asset_name = asset
+        .get("name")
+        .and_then(Value::as_str)
+        .ok_or("The selected HDR10+ release asset has no name.")?;
+    if Path::new(asset_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        != Some(asset_name)
+    {
+        return Err("The HDR10+ release asset name is not a plain filename.".into());
+    }
+    let download_url = asset
+        .get("browser_download_url")
+        .and_then(Value::as_str)
+        .ok_or("The selected HDR10+ release asset has no download URL.")?;
+    let expected_digest = checksum_from_release(&client, assets, asset_name, asset)?;
+
+    let temporary = TemporaryDirectory::create("hevc-rebuild-hdr10plus")?;
+    let archive_path = temporary.0.join(asset_name);
+    let actual_digest = download_to_file(&client, download_url, &archive_path)?;
+    if actual_digest != expected_digest {
+        return Err("hdr10plus_tool SHA-256 verification failed; refusing installation.".into());
+    }
+    let extracted_path = temporary.0.join("verified-hdr10plus-tool");
+    extract_single_tool(&archive_path, &extracted_path)?;
+    set_executable_permissions(&extracted_path)?;
+    let version = tool_version(&extracted_path)?;
+
+    let mut installed = Vec::new();
+    let mut failures = Vec::new();
+    for directory in super::environment::managed_tool_directories() {
+        match place_verified_tool(&extracted_path, &version, &directory) {
+            Ok(path) => installed.push(path),
+            Err(error) => failures.push(format!("{}: {error}", directory.display())),
+        }
+    }
+    let Some(path) = installed.into_iter().next() else {
+        return Err(format!(
+            "Could not install the verified HDR10+ helper. {}",
+            failures.join(" ")
+        ));
+    };
+    Ok(path.to_string_lossy().into_owned())
+}
+
+fn hdr10plus_asset_selector() -> Result<(&'static str, &'static str), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let token = match std::env::consts::ARCH {
+            "x86_64" => "x86_64-pc-windows-msvc",
+            "aarch64" => "aarch64-pc-windows-msvc",
+            architecture => {
+                return Err(format!(
+                    "No managed hdr10plus_tool binary is configured for architecture {architecture:?}."
+                ));
+            }
+        };
+        return Ok((token, ".zip"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return Ok(("universal-macOS", ".zip"));
+    }
     #[cfg(target_os = "linux")]
     {
-        let environment =
-            super::environment::inspect_environment(super::ToolPaths::default(), None)?;
-        if environment
-            .pointer("/os/supported")
-            .and_then(Value::as_bool)
-            != Some(true)
-        {
-            return Err(
-                "Managed hdr10plus_tool installation is limited to supported Ubuntu and Linux Mint releases."
-                    .into(),
-            );
-        }
-
         let token = match std::env::consts::ARCH {
             "x86_64" => "x86_64-unknown-linux-musl",
             "aarch64" => "aarch64-unknown-linux-musl",
@@ -167,80 +262,9 @@ pub(crate) fn install_latest_hdr10plus_tool() -> Result<String, String> {
                 ));
             }
         };
-        let client = reqwest::blocking::Client::builder()
-            .user_agent("hevc-rebuild-studio/1.3.0")
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|error| format!("Could not configure the HDR10+ helper download: {error}"))?;
-
-        let release_bytes = fetch_limited(
-            &client,
-            HDR10PLUS_RELEASE_API,
-            &["api.github.com"],
-            MAX_RELEASE_JSON_BYTES,
-        )?;
-        let release: Value = serde_json::from_slice(&release_bytes).map_err(|error| {
-            format!("The official HDR10+ release response was invalid JSON: {error}")
-        })?;
-        let assets = release
-            .get("assets")
-            .and_then(Value::as_array)
-            .ok_or("The official HDR10+ release response contained no asset list.")?;
-        let asset = assets
-            .iter()
-            .find(|asset| {
-                asset
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .is_some_and(|name| name.contains(token) && name.ends_with(".tar.gz"))
-            })
-            .ok_or_else(|| format!("The latest hdr10plus_tool release has no {token} tarball."))?;
-        let asset_name = asset
-            .get("name")
-            .and_then(Value::as_str)
-            .ok_or("The selected HDR10+ release asset has no name.")?;
-        if Path::new(asset_name)
-            .file_name()
-            .and_then(|name| name.to_str())
-            != Some(asset_name)
-        {
-            return Err("The HDR10+ release asset name is not a plain filename.".into());
-        }
-        let download_url = asset
-            .get("browser_download_url")
-            .and_then(Value::as_str)
-            .ok_or("The selected HDR10+ release asset has no download URL.")?;
-        let expected_digest = checksum_from_release(&client, assets, asset_name, asset)?;
-
-        let temporary = TemporaryDirectory::create("hevc-rebuild-hdr10plus")?;
-        let archive_path = temporary.0.join(asset_name);
-        let actual_digest = download_to_file(&client, download_url, &archive_path)?;
-        if actual_digest != expected_digest {
-            return Err(
-                "hdr10plus_tool SHA-256 verification failed; refusing installation.".into(),
-            );
-        }
-        let extracted_path = temporary.0.join("verified-hdr10plus-tool");
-        extract_single_tool(&archive_path, &extracted_path)?;
-        set_executable_permissions(&extracted_path)?;
-        let version = tool_version(&extracted_path)?;
-
-        let mut installed = Vec::new();
-        let mut failures = Vec::new();
-        for directory in super::environment::managed_tool_directories() {
-            match place_verified_tool(&extracted_path, &version, &directory) {
-                Ok(path) => installed.push(path),
-                Err(error) => failures.push(format!("{}: {error}", directory.display())),
-            }
-        }
-        let Some(path) = installed.into_iter().next() else {
-            return Err(format!(
-                "Could not install the verified HDR10+ helper. {}",
-                failures.join(" ")
-            ));
-        };
-        Ok(path.to_string_lossy().into_owned())
+        return Ok((token, ".tar.gz"));
     }
+    Err("No managed hdr10plus_tool asset is configured for this operating system.".into())
 }
 
 fn place_verified_tool(
@@ -250,7 +274,7 @@ fn place_verified_tool(
 ) -> Result<PathBuf, String> {
     fs::create_dir_all(directory)
         .map_err(|error| format!("Could not create the managed binary folder: {error}"))?;
-    let target = directory.join("hdr10plus_tool");
+    let target = directory.join(managed_tool_name());
     let (staged_path, mut staged_file) = create_unique_file(directory, ".hdr10plus_tool.new")?;
     let stage_result: Result<(), String> = (|| {
         let mut input = File::open(source)
@@ -490,6 +514,9 @@ fn encode_hex(bytes: &[u8]) -> String {
 }
 
 fn extract_single_tool(archive_path: &Path, destination: &Path) -> Result<(), String> {
+    if archive_path.extension().and_then(|value| value.to_str()) == Some("zip") {
+        return extract_single_tool_zip(archive_path, destination);
+    }
     let compressed = File::open(archive_path)
         .map_err(|error| format!("Could not open the verified HDR10+ archive: {error}"))?;
     let decoder = GzDecoder::new(compressed);
@@ -524,7 +551,7 @@ fn extract_single_tool(archive_path: &Path, destination: &Path) -> Result<(), St
             entry.header().entry_type().is_file()
                 && path
                     .file_name()
-                    .is_some_and(|name| name == "hdr10plus_tool")
+                    .is_some_and(|name| name == managed_tool_name())
         };
         if is_binary {
             if extracted {
@@ -561,6 +588,76 @@ fn extract_single_tool(archive_path: &Path, destination: &Path) -> Result<(), St
         );
     }
     Ok(())
+}
+
+fn extract_single_tool_zip(archive_path: &Path, destination: &Path) -> Result<(), String> {
+    let file = File::open(archive_path)
+        .map_err(|error| format!("Could not open the verified HDR10+ ZIP archive: {error}"))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|error| format!("The verified HDR10+ ZIP archive is invalid: {error}"))?;
+    let mut expanded = 0_u64;
+    let mut extracted = false;
+    for index in 0..archive.len() {
+        if index >= MAX_ARCHIVE_ENTRIES {
+            return Err("The HDR10+ archive contained too many entries.".into());
+        }
+        let mut entry = archive
+            .by_index(index)
+            .map_err(|error| format!("The verified HDR10+ ZIP archive is invalid: {error}"))?;
+        let size = entry.size();
+        expanded = expanded
+            .checked_add(size)
+            .ok_or("The HDR10+ archive expanded size overflowed.")?;
+        if expanded > MAX_ARCHIVE_EXPANDED_BYTES {
+            return Err("The HDR10+ archive exceeded the 512 MiB expanded-size limit.".into());
+        }
+        let is_binary = entry.is_file()
+            && Path::new(entry.name())
+                .file_name()
+                .is_some_and(|name| name == managed_tool_name());
+        if !is_binary {
+            continue;
+        }
+        if extracted {
+            return Err(format!(
+                "The HDR10+ archive contained more than one {} file.",
+                managed_tool_name()
+            ));
+        }
+        if size == 0 || size > MAX_BINARY_BYTES {
+            return Err("The HDR10+ executable had an invalid or excessive size.".into());
+        }
+        let mut output = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(destination)
+            .map_err(|error| format!("Could not create the extracted HDR10+ helper: {error}"))?;
+        let mut limited = (&mut entry).take(MAX_BINARY_BYTES + 1);
+        let copied = io::copy(&mut limited, &mut output)
+            .map_err(|error| format!("Could not extract the HDR10+ helper: {error}"))?;
+        if copied != size {
+            return Err("The extracted HDR10+ helper size did not match its ZIP entry.".into());
+        }
+        output
+            .sync_all()
+            .map_err(|error| format!("Could not sync the extracted HDR10+ helper: {error}"))?;
+        extracted = true;
+    }
+    if !extracted {
+        return Err(format!(
+            "The archive did not contain a regular {} executable.",
+            managed_tool_name()
+        ));
+    }
+    Ok(())
+}
+
+fn managed_tool_name() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        return "hdr10plus_tool.exe";
+    }
+    "hdr10plus_tool"
 }
 
 fn create_unique_file(directory: &Path, prefix: &str) -> Result<(PathBuf, File), String> {

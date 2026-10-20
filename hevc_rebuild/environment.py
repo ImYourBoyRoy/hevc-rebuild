@@ -144,13 +144,21 @@ def _check_command(key: str, label: str, path: str | None, args: tuple[str, ...]
 
 def _os_details() -> tuple[str, str, bool, str]:
     if is_windows():
-        supported = bool(shutil.which("winget"))
-        note = "Supported Windows build guest" if supported else "Windows Package Manager (winget) is unavailable"
-        return "Windows", platform.version() or platform.release(), supported, note
+        manager = bool(shutil.which("winget"))
+        note = (
+            "Supported Windows host; winget is available for automatic setup"
+            if manager
+            else "Supported Windows host; install required tools manually or add winget for automatic setup"
+        )
+        return "Windows", platform.version() or platform.release(), True, note
     if is_macos():
-        supported = _brew_program() is not None
-        note = "Supported macOS host with Homebrew" if supported else "Homebrew is unavailable"
-        return "macOS", platform.mac_ver()[0] or platform.release(), supported, note
+        manager = _brew_program() is not None
+        note = (
+            "Supported macOS host with Homebrew"
+            if manager
+            else "Supported macOS host; install required tools manually or add Homebrew for automatic setup"
+        )
+        return "macOS", platform.mac_ver()[0] or platform.release(), True, note
     try:
         info = os_release()
     except Exception as exc:  # platform probes should still show the rest of the report

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { invoke, isTauri } from "@tauri-apps/api/core";
-  import { listen, TauriEvent, type UnlistenFn } from "@tauri-apps/api/event";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { Menu, type MenuOptions } from "@tauri-apps/api/menu";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
@@ -26,18 +26,20 @@ import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/w
   import YouTubePreparation from "#lib/YouTubePreparation.svelte";
   import RunConsole from "#lib/RunConsole.svelte";
   import RunProgress from "#lib/RunProgress.svelte";
+  import RunSettingsEditor from "#lib/RunSettingsEditor.svelte";
+  import UpdateBanner from "#lib/UpdateBanner.svelte";
   import { finiteNumber } from "#lib/telemetry-format.js";
   import {
     Activity, AlertTriangle, ArrowRight, BookOpen, Check, CheckCircle2, ChevronRight,
     Clapperboard, Cpu, Database, FileText, Film, FolderOpen, Gauge, HardDrive,
-    History, House, Info, Layers, LoaderCircle, MemoryStick, Monitor, Moon, Play, RefreshCw,
+    History, House, Info, Layers, LoaderCircle, MemoryStick, Monitor, Moon, Play, RefreshCw, SlidersHorizontal,
     ScanSearch, Search, Settings2, ShieldCheck, Square, Sun, Terminal, TerminalSquare, Timer,
     Trash2, Video, Wrench, X, Zap,
   } from "@lucide/svelte";
           import type {
     OrganizerTemplates, LibraryCrumb, LibraryPosterCard, AptUpdateStatus, ArtworkCacheInfo, ArtworkCachePurgeResult, CommandCheck, Environment, MediaEntry, Page, ReportRow, RunFinishedEvent, RunLineEvent,
     InterruptedRecovery, MediaQueueDocument, MediaQueueLoadResult, MediaQueueRunState, MediaQueueRunStatus, MediaQueueSource, MetadataLookupStatus, OutputPreview, QueueArtworkCandidate, QueueMetadataSuggestion, QueueMovieReview, QueueSeasonReview, QueueSeriesReview, QueueTvEpisode, RunProgressEvent, RunResourceEvent, RuntimeResourceSnapshot,
-    RunMode, RunReport, ScanProgress, ScanResult, Settings, ToolPaths,
+    FileRunSettingsOverride, RunMode, RunReport, ScanProgress, ScanResult, Settings, ToolPaths,
   } from "#lib/types.js";
 
   type SettingsLoad = { settings: Settings; sources: string[]; user_config: string };
@@ -172,6 +174,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   let scanning = $state(false);
   let scanProgress = $state<ScanProgress | null>(null);
   let scanResult = $state<ScanResult | null>(null);
+  let libraryDropActive = $state(false);
 
 
 
@@ -215,6 +218,11 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   let visibleSelectAllCheckbox = $state<HTMLInputElement | null>(null);
   let fileTuneOverrides = $state<Record<string, "animation" | "none">>({});
   let fileStreamOverrides = $state<Record<string, number[]>>({});
+  // These are deliberately session-only: they are sent with the next run and
+  // never written into the persistent library queue or application defaults.
+  let fileSettingsOverrides = $state<Record<string, FileRunSettingsOverride>>({});
+  let runSettingsEditorOpen = $state(false);
+  let runSettingsEditorPaths = $state<string[]>([]);
   let queueMovieReviews = $state<Record<string, QueueMovieReview>>({});
   let queueSeriesReviews = $state<Record<string, QueueSeriesReview>>({});
 
@@ -766,6 +774,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   });
   let instrumentTheme = $derived(theme === "phosphor" || theme === "ion" || theme === "breach");
   let missingRequiredTools = $derived((environment?.checks ?? []).filter((check) => check.required && !check.available));
+  let aptHost = $derived(environment?.os.supported === true && environment?.os.package_manager === "apt" && environment?.os.package_manager_available !== false);
+  let packageManagerLabel = $derived(environment?.os.package_manager === "winget" ? "winget" : environment?.os.package_manager === "brew" ? "Homebrew" : "APT");
   let setupGapLabel = $derived.by(() => {
     if (!environment) return "SETUP NEEDED";
     if (missingRequiredTools.length === 1) return `${missingRequiredTools[0].label} missing`;
@@ -854,6 +864,14 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   function setNotice(message: string, kind: "info" | "success" | "error" = "info") {
     workspace.notice.message = message;
     workspace.notice.kind = kind;
+  }
+
+  function normalizeDroppedPaths(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return [...new Set(value
+      .filter((path): path is string => typeof path === "string")
+      .map((path) => path.trim())
+      .filter(Boolean))];
   }
 
   function setVisibleSelection(select: boolean) {
@@ -2981,6 +2999,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     workspace.queue.selectedPaths = [...new Set(workspace.queue.selectedPaths.map((path) => remapQueuePath(path, movedPaths)))];
     fileTuneOverrides = remapRecord(fileTuneOverrides);
     fileStreamOverrides = remapRecord(fileStreamOverrides);
+    fileSettingsOverrides = remapRecord(fileSettingsOverrides);
     queueMovieReviews = Object.fromEntries(Object.entries(remapRecord(queueMovieReviews)).map(([path, review]) => [
       path,
       { ...review, localPosterPath: review.localPosterPath ? remapQueuePath(review.localPosterPath, movedPaths) : "" },
@@ -3269,9 +3288,10 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         const pixelDifference = (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0);
         return pixelDifference || (b.width ?? 0) - (a.width ?? 0) || (b.height ?? 0) - (a.height ?? 0) || Number(b.default) - Number(a.default) || Number(b.bit_depth ?? 0) - Number(a.bit_depth ?? 0) || a.index - b.index;
       });
-    const selected = settings?.streams.secondary_video === "drop" ? videos.slice(0, 1) : [...videos];
+    const effectiveSettings = settingsForEntry(entry);
+    const selected = effectiveSettings?.streams.secondary_video === "drop" ? videos.slice(0, 1) : [...videos];
     selected.push(...tracks.filter((track) => ["audio", "subtitle", "attachment"].includes(track.type)));
-    if ((settings?.streams.data_streams ?? "preserve") === "preserve") {
+    if ((effectiveSettings?.streams.data_streams ?? "preserve") === "preserve") {
       selected.push(...tracks.filter((track) => track.type === "data"));
     }
     return [...new Set(selected.map((track) => track.index))].sort((a, b) => a - b);
@@ -3279,6 +3299,75 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
 
   function selectedStreamIndices(entry: MediaEntry): number[] {
     return fileStreamOverrides[entry.path] ?? defaultStreamIndices(entry);
+  }
+
+  function runEntriesForFolder(folder: string): MediaEntry[] {
+    const base = queuePathKey(folder);
+    const prefix = base.endsWith("/") ? base : `${base}/`;
+    return selectedRunEntries.filter((entry) => {
+      const path = queuePathKey(entry.path);
+      return path === base || path.startsWith(prefix);
+    });
+  }
+
+  function runOverrideSummary(entry: MediaEntry): string {
+    const override = fileSettingsOverrides[entry.path];
+    if (!override) return "Uses reviewed run settings";
+    const choices: string[] = [];
+    if (override.crf !== undefined) choices.push(`CRF ${override.crf}`);
+    if (override.preset) choices.push(override.preset);
+    if (override.tune) choices.push(override.tune === "grain" ? "film grain" : override.tune);
+    if (override.promote_8bit_to_10bit !== undefined) choices.push(override.promote_8bit_to_10bit ? "10-bit promotion" : "8-bit output");
+    if (override.preserve_hdr10plus !== undefined) choices.push(override.preserve_hdr10plus ? "HDR10+" : "no HDR10+");
+    if (override.dolby_vision) choices.push(override.dolby_vision === "hdr10-fallback" ? "HDR10 fallback" : `Dolby ${override.dolby_vision}`);
+    if (override.stream_indices) choices.push(`${override.stream_indices.length} tracks`);
+    return choices.length ? `Current run: ${choices.join(" · ")}` : "Uses reviewed run settings";
+  }
+
+  function openRunSettingsEditor(paths: string[]) {
+    if (workflowBusy) return;
+    const wanted = new Set(paths.map(queuePathKey));
+    const entries = selectedRunEntries.filter((entry) => wanted.has(queuePathKey(entry.path)));
+    if (!entries.length) {
+      setNotice("Select or scan at least one ready media file before adjusting this run.", "error");
+      return;
+    }
+    runSettingsEditorPaths = entries.map((entry) => entry.path);
+    runSettingsEditorOpen = true;
+  }
+
+  function streamIndicesForMode(entry: MediaEntry, mode: "default" | "all" | "primary" | "no-data"): number[] {
+    if (mode === "default") return defaultStreamIndices(entry);
+    const tracks = entry.profile?.tracks ?? [];
+    const selectable = tracks.filter((track) => streamIsSelectable(track.type));
+    if (mode === "all") return [...new Set(selectable.map((track) => track.index))].sort((a, b) => a - b);
+    const videos = tracks
+      .filter((track) => streamIsRealVideo(entry, track.index))
+      .sort((a, b) => (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0) || Number(b.default) - Number(a.default) || a.index - b.index);
+    const selected = videos.slice(0, 1);
+    selected.push(...tracks.filter((track) => ["audio", "subtitle", "attachment"].includes(track.type)));
+    if (mode !== "no-data") selected.push(...tracks.filter((track) => track.type === "data"));
+    return [...new Set(selected.map((track) => track.index))].sort((a, b) => a - b);
+  }
+
+  function applyRunSettingsOverride(paths: string[], override: FileRunSettingsOverride, streamMode: "keep" | "default" | "all" | "primary" | "no-data" | "exact") {
+    const next = { ...fileSettingsOverrides };
+    for (const path of paths) {
+      const current = { ...(next[path] ?? {}), ...override };
+      const entry = selectedRunEntries.find((item) => queuePathKey(item.path) === queuePathKey(path));
+      if (entry && ["default", "all", "primary", "no-data"].includes(streamMode)) current.stream_indices = streamIndicesForMode(entry, streamMode as "default" | "all" | "primary" | "no-data");
+      if (!Object.keys(current).length) delete next[path];
+      else next[path] = current;
+    }
+    fileSettingsOverrides = next;
+    setNotice(`Applied current-run choices to ${paths.length} file${paths.length === 1 ? "" : "s"}. Saved defaults were not changed.`, "success");
+  }
+
+  function clearRunSettingsOverride(paths: string[]) {
+    const next = { ...fileSettingsOverrides };
+    for (const path of paths) delete next[path];
+    fileSettingsOverrides = next;
+    setNotice(`Cleared current-run choices for ${paths.length} file${paths.length === 1 ? "" : "s"}.`, "info");
   }
 
   function streamIsSelectable(type: string): boolean {
@@ -3812,7 +3901,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       }
       if (stored.storageWarning) setNotice(stored.storageWarning, "error");
       await Promise.all([loadEnvironment(), loadSettings(root), loadReports(), refreshToolSetupLogs(), refreshTmdbCredentialStatus(), refreshTvdbCredentialStatus()]);
-      if (environment?.os.supported) await checkUbuntuPackageUpdates(true);
+      if (environment?.os.package_manager === "apt" && environment?.os.package_manager_available !== false) await checkUbuntuPackageUpdates(true);
     } catch (error) {
       environmentError = String(error);
       setNotice(`The desktop backend did not start: ${String(error)}`, "error");
@@ -4279,6 +4368,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           fullRebuildConfirmed: pendingRunFullConfirmed,
           fileTuneOverrides: runMode === "youtube" || runMode === "metadata" ? {} : fileTuneOverridesForBatch(batch.entries, batchSettings),
           fileStreamOverrides: runMode === "youtube" || runMode === "metadata" ? {} : Object.fromEntries(Object.entries(fileStreamOverrides).filter(([path]) => batch.entries.some((entry) => entry.path === path))),
+          fileSettingsOverrides: runMode === "youtube" || runMode === "metadata" ? {} : Object.fromEntries(Object.entries(fileSettingsOverrides).filter(([path]) => batch.entries.some((entry) => entry.path === path))),
           filePosterOverrides: runMode === "metadata" || runMode === "full" || runMode === "test" ? selectedPosterOverrides(batch.entries) : {},
           fileMetadataOverrides: runMode === "metadata" || runMode === "full" || runMode === "test" ? selectedMetadataOverrides(batch.entries) : {},
           allowYoutubeHdr10plusLossPaths: runMode === "youtube" ? [...youtubeHdr10plusLossPaths].filter((path) => batch.entries.some((entry) => entry.path === path)) : [],
@@ -4391,8 +4481,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
 
   async function repairApt() {
     if (workspace.run.id || workspace.run.starting || repairId || hdrInstalling || scanning) return;
-    if (!environment?.os.supported) {
-      setNotice("Automatic APT repair is available only on supported Ubuntu and Linux Mint releases.", "error");
+    if (!environment?.os.supported || !aptHost) {
+      setNotice("Automatic APT repair is available only on Linux hosts using APT. Use the platform setup documented in Help & commands.", "error");
       return;
     }
     if (!aptUpdates) {
@@ -4427,7 +4517,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   }
 
   async function checkUbuntuPackageUpdates(silent = false): Promise<AptUpdateStatus | null> {
-    if (!desktopShell || workflowBusy || aptChecking) return aptUpdates;
+    if (!desktopShell || workflowBusy || aptChecking || !aptHost) return aptUpdates;
     aptChecking = true;
     try {
       aptUpdates = await invoke<AptUpdateStatus>("check_ubuntu_package_updates");
@@ -4452,7 +4542,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   }
 
   async function refreshUbuntuPackageCatalog(continueSetup = false) {
-    if (!desktopShell || workflowBusy || aptChecking || !environment?.os.supported) return;
+    if (!desktopShell || workflowBusy || aptChecking || !aptHost) return;
     repairLines = [];
     repairLogWarning = "";
     repairSummary = "Refreshing Ubuntu package information…";
@@ -4643,6 +4733,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       };
     }
     const register = async () => {
+      const currentWindow = getCurrentWindow();
       const listeners = await Promise.all([
         listen<ScanProgress>("scan-progress", (event) => { scanProgress = event.payload; }),
         listen<RunLineEvent>("run-line", (event) => {
@@ -4695,7 +4786,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           if (environmentLoaded && affectedToolKeys.length) recordRepairToolOutcomes(checksBefore, environment?.checks ?? []);
           repairToolChecksBefore = null;
           repairAffectedToolKeys = [];
-          if (aptUpdates || completedKind === "catalog-refresh" || completedKind === "upgrade" || completedKind === "toolchain") await checkUbuntuPackageUpdates(true);
+          if (aptHost && (aptUpdates || completedKind === "catalog-refresh" || completedKind === "upgrade" || completedKind === "toolchain")) await checkUbuntuPackageUpdates(true);
           if (completedKind === "catalog-refresh" && continueToolchainSetupAfterRefresh) {
             continueToolchainSetupAfterRefresh = false;
             if (event.payload.success) await repairApt();
@@ -4715,10 +4806,14 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
               : "Package work completed. One or more required tools still need attention; check their status in Settings.";
           }
         }),
-        listen<{ paths?: unknown }>(TauriEvent.DRAG_DROP, (event) => {
-          const paths = Array.isArray(event.payload.paths)
-            ? [...new Set(event.payload.paths.filter((path): path is string => typeof path === "string" && path.trim().length > 0))]
-            : [];
+        currentWindow.onDragDropEvent((event) => {
+          if (event.payload.type === "enter" || event.payload.type === "over") {
+            libraryDropActive = page === "library" && !workflowBusy;
+            return;
+          }
+          libraryDropActive = false;
+          if (event.payload.type !== "drop") return;
+          const paths = normalizeDroppedPaths(event.payload.paths);
           if (!paths.length) return;
           if (workflowBusy) {
             setNotice("Finish the current scan or run before adding dropped files.", "error");
@@ -4729,7 +4824,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           void addQueueSources(paths);
         }),
       ]);
-      const windowResizeListener = await getCurrentWindow().onResized(() => scheduleWindowStateSave());
+      const windowResizeListener = await currentWindow.onResized(() => scheduleWindowStateSave());
       listeners.push(windowResizeListener);
       if (disposed) listeners.forEach((unlisten) => unlisten());
       else unlisteners = listeners;
@@ -4835,6 +4930,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       </div>
     {/if}
 
+    <UpdateBanner blocked={workflowBusy} />
+
     <RunProgress run={workspace.run} {encodeMeasured} {overallRunPercent} {progressElapsedLabel} batchCount={pendingRunBatches.length} batchIndex={activeRunBatchIndex} {bytes} {duration} {openProgressDetails} {stopAfterCurrent} />
 
     <div class="page-wrap" class:page-wrap-library={page === "library"} class:page-wrap-home={page === "home"}>
@@ -4866,7 +4963,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       {:else if page === "metadata"}
         <!-- The record workbench is mounted below so scans can look up matches from the queue. -->
       {:else if page === "library"}
-        <section class="library-toolbar card-surface">
+        <section class="library-toolbar card-surface" class:drag-active={libraryDropActive}>
+          <div class="library-drop-hint" aria-live="polite"><div class="library-drop-icon"><Layers size={17} /></div><div><strong>{libraryDropActive ? "Release to add media to the queue" : "Drop media files or folders anywhere in this window"}</strong><span>{libraryDropActive ? "The dropped paths will be scanned with the current library filters." : "They join the same persistent queue as files added with the buttons below."}</span></div></div>
           <div class="folder-field"><FolderOpen size={18} /><input aria-label="Path to add to queue" bind:value={root} placeholder="Paste a media file or folder path to add" disabled={workflowBusy} onblur={() => void persistPreferences({ root })} /><button class="button secondary" type="button" disabled={!desktopShell || workflowBusy || !root} onclick={analyzeFolder}>{scanning ? "Scanning" : "Add path"}</button></div>
           <div class="toolbar-options"><label class="check-label"><input type="checkbox" bind:checked={recursive} disabled={workflowBusy} onchange={() => void persistPreferences({ recursive })} /> Include subfolders on new scans</label><label class="small-field">Ignore smaller than <input type="number" min="0" max="4096" step="1" bind:value={minimumSizeMib} disabled={workflowBusy} onblur={() => void persistPreferences({ minimumSizeMib })} /> MiB</label><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}><FolderOpen size={17} /> Add folder</button><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFile}><Video size={17} /> Add files</button></div>
         </section>
@@ -4903,6 +5001,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
             onOpenReview={openLibraryPoster}
             onOpenLocation={(path: string) => void openFileLocation(path)}
             onReview={openLibraryReview}
+            canAdjustRun={mode !== "metadata" && mode !== "youtube" && !workflowBusy}
+            onAdjustRun={openRunSettingsEditor}
             onRename={() => chooseLibraryTask("organize")}
             onMetadata={() => chooseLibraryTask("metadata")}
             onRebuild={() => chooseLibraryTask("rebuild")}
@@ -4949,6 +5049,29 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           <div class="upload-destination"><span>Default folder</span><strong>{appPreferences.rebuildOutputDir ?? (mode === "metadata" ? "Beside each source as <filename>.metadata.mkv" : "In place: validated full rebuild replaces the source, with the original saved under old/")}</strong><div><button class="text-button" disabled={!desktopShell || workflowBusy} onclick={chooseRebuildOutput}>Choose folder</button><button class="text-button" disabled={!appPreferences.rebuildOutputDir || workflowBusy} onclick={() => void persistPreferences({ rebuildOutputDir: null })}>Use default location</button></div></div>
           <p class="filename-filter-help">Metadata-only output always creates a separate file. A chosen default folder mirrors the source folder structure; a per-file folder chosen in Media Library takes precedence. Existing outputs are never overwritten.</p>
         </section>
+
+        {#if runBatches.length && mode !== "metadata" && mode !== "youtube"}
+          <section class="run-review-settings card-surface" aria-labelledby="run-review-settings-title">
+            <div class="run-review-settings-heading">
+              <div>
+                <div class="eyebrow">CURRENT RUN ONLY</div>
+                <h2 id="run-review-settings-title">Review per-file choices</h2>
+                <p>Adjust encoder quality, film-grain handling, HDR metadata, or copied tracks for this run without changing saved defaults.</p>
+              </div>
+              <span class="run-review-settings-count">{Object.keys(fileSettingsOverrides).filter((path) => selectedRunEntries.some((entry) => queuePathKey(entry.path) === queuePathKey(path))).length} files customized</span>
+            </div>
+            <div class="run-review-settings-actions">
+              <button class="button primary" type="button" disabled={workflowBusy || !selectedRunEntries.length} onclick={() => openRunSettingsEditor(selectedRunEntries.map((entry) => entry.path))}><SlidersHorizontal size={16} />{selectedMediaPathsForRun.length ? "Adjust selected files" : "Adjust all files in this run"}<span>{selectedRunEntries.length}</span></button>
+              {#each runBatches as batch (batch.source.root)}
+                <button class="button secondary run-folder-button" type="button" disabled={workflowBusy || !batch.entries.length} onclick={() => openRunSettingsEditor(runEntriesForFolder(batch.source.root).map((entry) => entry.path))}><FolderOpen size={15} />Adjust {fileName(batch.source.root)}<span>{batch.entries.length}</span></button>
+              {/each}
+              {#if Object.keys(fileSettingsOverrides).some((path) => selectedRunEntries.some((entry) => queuePathKey(entry.path) === queuePathKey(path)))}
+                <button class="text-button" type="button" disabled={workflowBusy} onclick={() => clearRunSettingsOverride(selectedRunEntries.map((entry) => entry.path))}>Clear current-run choices</button>
+              {/if}
+            </div>
+            <p class="run-review-settings-note"><Info size={15} />Use a folder button for a whole source batch, the selected-files button for a mixed group, or <strong>Adjust</strong> beside one file below. Hover each setting in the editor for a short explanation of its FFmpeg effect.</p>
+          </section>
+        {/if}
 
         {#if settings}
           <section class="settings-intro" id="rebuild-parameters"><div class="section-title-row"><div><div class="eyebrow">EFFECTIVE CONFIGURATION</div><h2>Rebuild parameters</h2></div><div class="settings-intro-actions"><span class="edit-badge"><Settings2 size={14} /> {settingsChanged ? "Unsaved changes" : appPreferences.settings ? "Saved app profile" : "Library values"}</span><button class="text-button" disabled={(!settingsChanged && !appPreferences.settings) || workflowBusy} onclick={resetSettings}>Reset to library values</button><button class="text-button" disabled={!settingsChanged || workflowBusy} onclick={saveSettings}>Save as app defaults</button></div></div><p>Application, user, and library values load first. Save your edits as app defaults to keep them across launches; unsaved edits apply to the next run only.</p>{#if forecastOutdated}<div class="inline-warning"><Info size={17} /><div><strong>Resource settings changed after the folder scan.</strong><span>The per-file forecast on the library page is from that scan. Actual worker/frame counts are recomputed immediately before encoding each file.</span></div></div>{/if}</section>
@@ -5015,7 +5138,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         {/if}
 
         {#if selectionInOtherSources}<div class="inline-warning"><Info size={17} /><div><strong>This workflow will process {runBatches.length} queued sources.</strong><span>{workspace.queue.selectedPaths.length ? `${selectedRunEntries.length} selected files` : `${selectedRunEntries.length} queued files`} will run sequentially, with each source’s saved scan settings.</span></div></div>{/if}
-        {#if runBatches.length}<details class="queue-run-plan"><summary>Review {selectedRunEntries.length} files in {runBatches.length} source batch{runBatches.length === 1 ? "" : "es"}</summary>{#each runBatches as batch (batch.source.root)}{@const previewEntries = runPlanPreviewByRoot.get(batch.source.root) ?? []}<details class="queue-run-source"><summary><strong>{fileName(batch.source.root)}</strong><span>{batch.entries.length} file{batch.entries.length === 1 ? "" : "s"}</span><code title={batch.source.root}>{batch.source.root}</code></summary><ul>{#each previewEntries as entry (entry.path)}<li><strong>{entry.name}</strong><code title={entry.path}>{entry.path}</code></li>{/each}</ul></details>{/each}{#if selectedRunEntries.length > 250}<small>Showing the first 250 files across the queue plan. All {selectedRunEntries.length} files remain included.</small>{/if}</details>{/if}
+        {#if runBatches.length}<details class="queue-run-plan"><summary>Review {selectedRunEntries.length} files in {runBatches.length} source batch{runBatches.length === 1 ? "" : "es"}</summary>{#each runBatches as batch (batch.source.root)}{@const previewEntries = runPlanPreviewByRoot.get(batch.source.root) ?? []}<details class="queue-run-source"><summary><strong>{fileName(batch.source.root)}</strong><span>{batch.entries.length} file{batch.entries.length === 1 ? "" : "s"}</span><code title={batch.source.root}>{batch.source.root}</code></summary><ul>{#each previewEntries as entry (entry.path)}<li><div><strong>{entry.name}</strong><code title={entry.path}>{entry.path}</code>{#if mode !== "metadata" && mode !== "youtube"}<small class="queue-run-override-summary">{runOverrideSummary(entry)}</small>{/if}</div>{#if mode !== "metadata" && mode !== "youtube"}<button class="text-button" type="button" disabled={workflowBusy} onclick={(event) => { event.stopPropagation(); openRunSettingsEditor([entry.path]); }}>Adjust</button>{/if}</li>{/each}</ul></details>{/each}{#if selectedRunEntries.length > 250}<small>Showing the first 250 files across the queue plan. All {selectedRunEntries.length} files remain included; use the source or selected-files controls above to edit the rest.</small>{/if}</details>{/if}
         {#if unresolvedSelectedPaths > 0}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>{unresolvedSelectedPaths} selected file{unresolvedSelectedPaths === 1 ? " is" : "s are"} not available from a completed scan.</strong><span>Refresh or remove that source before starting. Ready files can be kept in the selection.</span></div><button class="text-button" onclick={() => workspace.queue.selectedPaths = workspace.queue.selectedPaths.filter((path) => selectedRunEntries.some((entry) => entry.path === path))}>Keep ready files</button></div>{/if}
         {#if staleSelectedEntries.length}<div class="inline-warning"><AlertTriangle size={17} /><div><strong>Refresh {staleRunSources.length} affected source{staleRunSources.length === 1 ? "" : "s"} before running.</strong><span>{staleSelectedEntries.length} file{staleSelectedEntries.length === 1 ? " has" : "s have"} changed or disappeared since scanning. Refresh only the source groups shown here.</span><details><summary>Sources to refresh</summary>{#each staleRunSources as batch (batch.source.root)}<button class="text-button" disabled={workflowBusy} onclick={() => refreshQueueSource(batch.source.root)}>Refresh {fileName(batch.source.root)}</button>{/each}</details></div></div>{/if}
         <section class="run-launch card-surface"><div class="launch-left"><div class="launch-icon"><TerminalSquare size={19} /></div><div><strong>{workspace.run.id ? "A workflow is running" : mode === "full" ? "Full rebuild requires confirmation" : mode === "test" ? "Short test run" : mode === "metadata" ? "Create validated MKV copies without re-encoding" : mode === "youtube" ? "Create a YouTube upload copy" : "Ready for a check-only pass"}</strong><span>{scanResult ? `${selectedRunEntries.length} file${selectedRunEntries.length === 1 ? "" : "s"}${selectedMediaPathsForRun.length ? " selected" : ""} · ${bytes(selectedRunInputBytes)} total` : "Add a file or folder to the queue"}{mode !== "metadata" && mode !== "check" && environment?.hardware.gpu_devices.length ? ` · ${environment.hardware.gpu_devices.length} GPU detected, CPU encoder selected` : ""}</span></div></div>
@@ -5182,7 +5305,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         </Modal>
       {/if}
 
-      <footer class="page-footer"><span><ShieldCheck size={14} /> Local processing · Originals protected</span><span>HEVC Rebuild Studio <i>•</i> Ubuntu-first preview</span></footer>
+      <footer class="page-footer"><span><ShieldCheck size={14} /> Local processing · Originals protected</span><span>HEVC Rebuild Studio <i>•</i> Cross-platform desktop</span></footer>
     </div>
   </main>
 
@@ -5259,6 +5382,20 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
 {/if}
 
 <RecoveryReview returnFocus={runLaunchButton} {recoveryReviewOpen} {recoveryCurrentItem} {recoveryReviewIndex} {recoveryReportStatus} {recoveryProbeEntry} {recoveryProbeError} {recoveryProbeAttempted} {desktopShell} {recoveryProbeBusy} {workflowBusy} bind:recoveryAcknowledged {recoveryCanMarkComplete} {queueRunStatusLabel} {inspectRecoveryTarget} {finishRecoveryReview} itemCount={recoveryReviewItems.length} onClose={() => recoveryReviewOpen = false} />
+
+  <RunSettingsEditor
+    open={runSettingsEditorOpen}
+    entries={selectedRunEntries.filter((entry) => runSettingsEditorPaths.some((path) => queuePathKey(path) === queuePathKey(entry.path)))}
+    overrides={fileSettingsOverrides}
+    {settings}
+    busy={workflowBusy}
+    {fileName}
+    selectedStreams={(entry: MediaEntry) => fileSettingsOverrides[entry.path]?.stream_indices ?? selectedStreamIndices(entry)}
+    {streamIndicesForMode}
+    onApply={applyRunSettingsOverride}
+    onClear={clearRunSettingsOverride}
+    onClose={() => runSettingsEditorOpen = false}
+  />
 
 <ToolRepairConfirmation {repairConfirmOpen} {environment} {aptUpdates} {workflowBusy} {confirmAptRepair} onClose={() => repairConfirmOpen = false} />
 </div>
@@ -5466,11 +5603,12 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         </div>
       </div>
       <section class="apt-update-panel">
-        <div class="section-title-row"><div><div class="eyebrow">SYSTEM TOOL SETUP</div><h3>Installed versions and updates</h3><p>Versions are checked at launch against the enabled Ubuntu APT sources. Package changes always require review and administrator authentication; repository versions may lag upstream.</p></div><div class="apt-action-buttons"><button class="button secondary" disabled={!desktopShell || workflowBusy || aptChecking || !environment.os.supported} onclick={() => checkUbuntuPackageUpdates()}>{#if aptChecking}<LoaderCircle class="spin" size={15} /> Checking…{:else}<RefreshCw size={15} /> Check versions{/if}</button><button class="button primary" disabled={!desktopShell || workflowBusy || aptChecking || !environment.os.supported} onclick={() => repairApt()}><Wrench size={15} /> Review setup & updates</button></div></div>
+        {#if aptHost}
+        <div class="section-title-row"><div><div class="eyebrow">SYSTEM TOOL SETUP</div><h3>Installed versions and updates</h3><p>Versions are checked at launch against the enabled Ubuntu APT sources. Package changes always require review and administrator authentication; repository versions may lag upstream.</p></div><div class="apt-action-buttons"><button class="button secondary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => checkUbuntuPackageUpdates()}>{#if aptChecking}<LoaderCircle class="spin" size={15} /> Checking…{:else}<RefreshCw size={15} /> Check versions{/if}</button><button class="button primary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => repairApt()}><Wrench size={15} /> Review setup & updates</button></div></div>
         {#if aptUpdates}
           <div class="apt-update-status"><span class="status-tag" class:status-warning={aptUpdates.catalog_stale} class:status-ready={!aptUpdates.catalog_stale}>{aptUpdates.catalog_stale ? "CATALOG NEEDS REFRESH" : `${aptUpdates.packages.length} UPDATE${aptUpdates.packages.length === 1 ? "" : "S"}`}</span><small>Catalog last updated: {aptUpdates.catalog_updated_at ? new Date(aptUpdates.catalog_updated_at * 1000).toLocaleString() : "unknown"} · checked {new Date(aptUpdates.checked_at * 1000).toLocaleString()}</small></div>
           {#if aptUpdates.catalog_stale}
-            <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Review setup refreshes the configured APT catalog first, then shows the package list before installing. Refreshing downloads package-index metadata; it does not install software.</span></div><button class="button secondary" disabled={!desktopShell || workflowBusy || !environment.os.supported || !environment.checks.some((check) => check.key === "pkexec" && check.available)} onclick={() => refreshUbuntuPackageCatalog()}><RefreshCw size={15} /> Refresh catalog</button></div>
+            <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Review setup refreshes the configured APT catalog first, then shows the package list before installing. Refreshing downloads package-index metadata; it does not install software.</span></div><button class="button secondary" disabled={!desktopShell || workflowBusy || !environment.checks.some((check) => check.key === "pkexec" && check.available)} onclick={() => refreshUbuntuPackageCatalog()}><RefreshCw size={15} /> Refresh catalog</button></div>
           {:else if aptUpdates.packages.length}
             <div class="apt-update-section-label"><strong>Updates available</strong><small>Installed version → enabled repository version</small></div>
             <div class="apt-update-list">{#each aptUpdates.packages as update (update.name)}<div><code>{update.name}</code><span>{update.installed_version}</span><ArrowRight size={13} /><strong>{update.candidate_version}</strong></div>{/each}</div>
@@ -5481,6 +5619,12 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           {#if environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)}<div class="repair-helper-note"><Info size={16} /><span><strong>HDR10+ helper missing.</strong> The setup action installs the checksum-verified upstream helper after APT finishes.</span></div>{/if}
         {:else}
           <p class="apt-update-empty">Checking Python, FFmpeg, MediaInfo, MKVToolNix, Fontconfig, and certificate packages against the local APT catalog…</p>
+        {/if}
+        {:else}
+          <div class="section-title-row"><div><div class="eyebrow">HOST TOOL SETUP</div><h3>Installed tools and capabilities</h3><p>{environment.os.name} uses {packageManagerLabel} for optional automatic setup. The shared GUI, CLI, MCP, queue, metadata, and output workflows are the same on every supported desktop host.</p></div></div>
+          <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>Install the required media tools for this host.</strong><span>{environment.os.note}. Use {packageManagerLabel} where it is available, or choose each installed executable with Browse above. The environment check remains read-only.</span></div></div>
+          {#if environment.os.package_manager_available === false}<p class="apt-update-empty">{packageManagerLabel} was not detected. See Help & commands for the platform setup command, or install the tools manually and select their paths.</p>{/if}
+          {#if environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)}<div class="repair-helper-note"><Info size={16} /><span><strong>HDR10+ helper missing.</strong> The platform setup command downloads and checksum-verifies the official helper, or you can install it and select its executable path.</span></div>{/if}
         {/if}
         <ToolRepairActivity showLogHistory={true} {repairSummary} {repairSummaryIsError} {repairId} {hdrInstalling} {repairToolOutcomes} {repairLogWarning} {repairLines} {toolSetupLogs} bind:selectedToolSetupLog {toolSetupLogLoading} bind:viewedToolSetupLog {toolSetupLogExporting} {toolSetupLogError} {openToolSetupLog} {exportToolSetupLog} />
       </section>

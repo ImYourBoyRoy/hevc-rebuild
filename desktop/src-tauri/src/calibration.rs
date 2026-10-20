@@ -229,16 +229,7 @@ fn calibration_eligible(request: EligibilityRequest) -> Result<Value, String> {
 }
 
 fn cache_path() -> Result<PathBuf, String> {
-    if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable).join("cache/calibration.json"));
-    }
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or("Could not resolve the user home directory for calibration cache.")?;
-    let cache_home = std::env::var_os("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".cache"));
-    Ok(cache_home.join("hevc-rebuild/calibration.json"))
+    Ok(crate::app_cache_directory()?.join("calibration.json"))
 }
 
 fn now_seconds() -> f64 {
