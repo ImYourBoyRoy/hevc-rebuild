@@ -6,6 +6,11 @@ the release-only config enables them in CI.
 
 ## Published packages
 
+`v1.3.0` is published at
+https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.3.0. Its release
+workflow completed the source, native compile, package, updater-signature, and
+manifest checks before publication.
+
 The release workflow produces:
 
 - Windows x64: NSIS `setup.exe` only. MSI is deliberately not configured or published.
@@ -41,7 +46,7 @@ future GitHub endpoint. `desktop/src-tauri/tauri.release.conf.json` enables
 `createUpdaterArtifacts` only for release builds. Never commit the private
 signing key.
 
-## GitHub configuration before the first release
+## GitHub configuration
 
 The public remote `ImYourBoyRoy/hevc-rebuild` is configured locally as `origin`.
 The release workflow requires the updater signing key before a release tag is
@@ -51,8 +56,8 @@ pushed:
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: only if the private key is
   password-protected; the current local key is intentionally unencrypted.
 
-Apple signing and notarization secrets are not required for the first release.
-They can be added later when a Developer ID distribution lane is desired.
+Apple signing and notarization secrets are not configured. They can be added
+later when a Developer ID distribution lane is desired.
 
 Generate a new updater key outside the repository with the Tauri CLI, keep the
 private file in a local credential store, and copy only the public key into the
@@ -80,10 +85,10 @@ No release tag or upload is performed by local development builds.
 
 ## Current validation boundary
 
-The 2026-10-19 native validation pass built the final source snapshot on
-Windows Server 2025 x64 and macOS 26.7.1 Intel. The Windows NSIS artifact and
-macOS DMG were inspected, and both packaged executables passed bounded CLI
-smoke checks. Windows browser contracts also passed, including the responsive
-and theme matrix. This does not replace clean installer installation, native
-GUI walkthroughs, Apple Silicon, real-media, accessibility, Apple
-signing/notarization, GitHub release, or live updater-installation evidence.
+The first public release also completed GitHub Actions package lanes for
+Windows x64, macOS Intel, macOS Apple Silicon, and Linux x64. The Windows NSIS
+artifact and macOS DMGs were produced without MSI or Apple signing inputs, and
+the signed `latest.json` manifest was verified against the uploaded assets.
+This does not replace clean installer installation, native GUI walkthroughs,
+real-media, accessibility, Apple signing/notarization, or live updater
+installation evidence.

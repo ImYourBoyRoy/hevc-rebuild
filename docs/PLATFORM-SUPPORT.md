@@ -54,15 +54,14 @@ macOS Intel, and macOS Apple Silicon, plus a signed Tauri updater manifest
 check. The first release does not require Apple signing or notarization; the
 updater signing key is the only release secret required.
 
-As of 2026-10-19, the final source snapshot has also been built natively on a
-Windows Server 2025 x64 guest and a macOS 26.7.1 Intel guest. The Windows NSIS
-bundle (with no MSI) and macOS CI-safe DMG were inspected, and their packaged
-executables passed read-only CLI smoke checks. Windows browser contracts also
-passed the responsive/theme, modal, home/help, library, rename, run, support,
-performance, workspace-state, metadata, and YouTube lanes. This is native
-compile/package and bounded smoke evidence—not a clean installer installation,
-full GUI walkthrough, real-media run, Apple Silicon proof, accessibility
-proof, signing/notarization proof, or live updater installation.
+The public `v1.3.0` release completed GitHub Actions native package lanes for
+Windows x64, macOS Intel, macOS Apple Silicon, and Linux x64. The Windows NSIS
+bundle (with no MSI), macOS DMGs/app archives, Linux AppImage/deb, signed
+updater artifacts, and `latest.json` manifest were uploaded and verified. The
+earlier native Windows/macOS guest pass also supplied bounded CLI and browser
+contract evidence. This is release package and manifest evidence—not a clean
+installer installation, full GUI walkthrough, real-media run, accessibility
+proof, Apple signing/notarization proof, or live updater installation.
 
 See [TOOLS.md](TOOLS.md) for host tool setup, [USAGE.md](USAGE.md) for the
 human workflows, and [SUPPORT.md](SUPPORT.md) for diagnostics and help.

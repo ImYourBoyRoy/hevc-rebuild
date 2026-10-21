@@ -4,7 +4,7 @@
   <a href="https://github.com/ImYourBoyRoy/hevc-rebuild/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ImYourBoyRoy/hevc-rebuild/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square" />
   <img alt="Targets" src="https://img.shields.io/badge/targets-Windows%20%7C%20macOS%20%7C%20Linux-5f6f64?style=flat-square" />
-  <img alt="Status" src="https://img.shields.io/badge/status-pre--release-b7833f?style=flat-square" />
+  <img alt="Status" src="https://img.shields.io/badge/status-first%20release-b7833f?style=flat-square" />
   <a href="LICENSE"><img alt="PolyForm Noncommercial license" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-6b6158?style=flat-square" /></a>
 </p>
 
@@ -24,7 +24,7 @@ replace the original after the output passes validation.
   <img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="HEVC Rebuild Studio Home screen in the Dark theme" width="1200" />
 </p>
 
-<p align="center"><em>Native Tauri desktop preview. Linux visual evidence plus native Windows/macOS package and CLI-smoke evidence are recorded; full GUI and release acceptance remain separate gates.</em></p>
+<p align="center"><em>Native Tauri desktop app. v1.3.0 is the first public release; clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
 
 ## What it is for
 
@@ -39,8 +39,7 @@ replace the original after the output passes validation.
 
 ### Desktop app
 
-The repository is pre-release and does not have public installers yet. Build
-the Tauri app on the host where you intend to run it:
+Download the published [v1.3.0 release](https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.3.0) for a Windows NSIS installer, macOS DMG, or Linux AppImage/deb. To build the Tauri app from source on the host where you intend to run it:
 
 ```bash
 cd desktop
@@ -131,10 +130,12 @@ Release-only Tauri updater artifacts are signed and published with
 before installing, blocks updates during active work, and restarts after a
 successful install. Linux `.deb` installations remain package-manager managed.
 
-The workflows are prepared, but the first source push, GitHub secrets, clean
-installer installation, native GUI walkthroughs, Apple Silicon, signing,
-notarization, and live updater installation are still release gates. See
-[platform evidence](docs/PLATFORM-SUPPORT.md) and [RELEASE.md](docs/RELEASE.md).
+The first public release passed its GitHub Actions source, cross-platform
+compile, package, signature, and updater-manifest gates. Clean installer
+installation, native GUI walkthroughs, real-media runs, Apple signing or
+notarization, and a live installed-app update remain separate acceptance
+checks. See [platform evidence](docs/PLATFORM-SUPPORT.md) and
+[RELEASE.md](docs/RELEASE.md).
 
 ## Documentation
 
