@@ -75,4 +75,4 @@ separate confirmation fields and should be shown to the user before execution.
 
 For installation, platform-specific tool setup, and support boundaries, see
 [TOOLS.md](TOOLS.md) and [SUPPORT.md](SUPPORT.md). The complete Python-to-Rust
-ownership ledger is [python-rust-convert.md](../python-rust-convert.md).
+ownership ledger is [python-rust-convert.md](maintainer/python-rust-convert.md).

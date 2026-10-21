@@ -18,14 +18,14 @@ dated sections below are historical evidence and retain their original claims.
   implicit grid tracks and safety-note flex text are constrained, while code
   examples retain their intended local horizontal scrolling.
 - The project map is documented in
-  [`docs/PROJECT-STRUCTURE.md`](docs/PROJECT-STRUCTURE.md), and the root and
+  [`docs/PROJECT-STRUCTURE.md`](../PROJECT-STRUCTURE.md), and the root and
   desktop README entry points link to it.
 - The cross-platform contract is now enforced in the source adapters: Windows
   and macOS host checks, native profile/cache/log paths, installed bundled
   engine discovery, native folder opening, host-specific HDR10+ archive
   selection, and Linux-only APT setup are separated from shared GUI/CLI/MCP
   workflows. The contract is documented in
-  [`docs/PLATFORM-SUPPORT.md`](docs/PLATFORM-SUPPORT.md).
+  [`docs/PLATFORM-SUPPORT.md`](../PLATFORM-SUPPORT.md).
 - The final source snapshot was built natively through the sibling
   `Remote_Build` macOS guest and the documented Server_Manager Windows guest.
   Windows produced an NSIS installer with no MSI; macOS produced a CI-safe DMG
@@ -79,8 +79,8 @@ GitHub release, and live updater boundaries remain release gates.
 ## Historical maintenance evidence — 2026-10-12
 
 The following record retains its original date and counts; it is not a current
-readiness claim. Its task state was `2026-10-11_tasklist.md` and its detailed
-evidence was `2026-10-11_evidence.md`.
+readiness claim. Its detailed task/evidence ledger remains in the local notes
+archive and is intentionally excluded from the public source tree.
 
 Safety/type/UI ownership tasks through T-065 and measured performance T-070–T-073 are implemented and verified in slices. Python has 187 passing configured-native tests before the final policy additions; Rust has 200 passing tests plus one explicit synthetic benchmark excluded from the default suite. Both TS6/TS7 lanes pass. Cross-path fixtures measure settings, profiles, reports, transactions, cancellation and recovery; Python orchestration and all documented fallbacks remain supported. Six shared-modal surfaces and feature callbacks pass isolated real-browser contracts. These are component/native-helper evidence, not a populated native walkthrough.
 

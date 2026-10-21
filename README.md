@@ -146,9 +146,9 @@ notarization, and live updater installation are still release gates. See
 | CI, installers, updater, and release secrets | [docs/RELEASE.md](docs/RELEASE.md) |
 | Repository map and protected paths | [docs/PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md) |
 | Troubleshooting and support | [docs/SUPPORT.md](docs/SUPPORT.md) |
-| Rust/Python ownership and migration | [python-rust-convert.md](python-rust-convert.md) |
-| Architecture and implementation notes | [TECHNICAL.md](TECHNICAL.md) · [RUST_MIGRATION.md](RUST_MIGRATION.md) |
-| Validation evidence and open gates | [REVIEW.md](REVIEW.md) |
+| Rust/Python ownership and migration | [python-rust-convert.md](docs/maintainer/python-rust-convert.md) |
+| Architecture and implementation notes | [TECHNICAL.md](docs/maintainer/TECHNICAL.md) · [RUST_MIGRATION.md](docs/maintainer/RUST_MIGRATION.md) |
+| Validation evidence and open gates | [REVIEW.md](docs/maintainer/REVIEW.md) |
 
 ## Development and validation
 
@@ -186,10 +186,12 @@ desktop/src-tauri/   Rust native boundary and packaging configuration
 hevc_rebuild/        Python compatibility engine and direct CLI
 tests/               Python behavior and safety tests
 docs/                human usage, platform, release, and support guides
+docs/maintainer/     architecture, validation, dependency, and migration notes
 ```
 
 See [PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md) before moving files or
-adding a new runtime path.
+adding a new runtime path. Local agent/session notes are intentionally kept
+outside the public source tree.
 
 ## License and maintainer
 

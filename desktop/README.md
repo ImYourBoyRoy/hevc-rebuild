@@ -69,7 +69,7 @@ Rust owns the Tauri commands, app settings, queue persistence, tool inspection,
 media discovery, output planning, resource guards, native process supervision,
 and validated-output commit/rollback. Python remains the compatibility and
 run-orchestration layer for stages not yet ported to Rust. The ownership ledger
-is [python-rust-convert.md](../python-rust-convert.md).
+is [python-rust-convert.md](../docs/maintainer/python-rust-convert.md).
 
 The UI must not gain a general shell-command bridge. New native behavior should
 cross through a typed Rust command and be covered by the relevant frontend,
@@ -82,4 +82,4 @@ Rust, Python, and release checks.
 - [Release and updates](../docs/RELEASE.md)
 - [UI ownership](UI_OWNERSHIP.md)
 - [CSS contract](CSS_CONTRACT.md)
-- [Technical notes](../TECHNICAL.md)
+- [Technical notes](../docs/maintainer/TECHNICAL.md)

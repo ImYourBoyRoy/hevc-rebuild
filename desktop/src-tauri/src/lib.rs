@@ -3833,7 +3833,9 @@ mod tests {
         if root_entrypoint.is_file() {
             production_sources.insert("hevc_rebuild.py".into());
         }
-        let conversion_ledger = fs::read_to_string(project_root.join("python-rust-convert.md"))
+        let conversion_ledger = fs::read_to_string(
+            project_root.join("docs/maintainer/python-rust-convert.md"),
+        )
             .expect("read the Python-to-Rust conversion ledger");
         let missing = production_sources
             .iter()

@@ -1,8 +1,8 @@
 # Project structure
 
 HEVC Rebuild Studio contains a compatibility engine, a native Rust boundary,
-and a Svelte desktop interface. The root also keeps dated acceptance records;
-those records are evidence, not runtime code.
+and a Svelte desktop interface. The repository root is reserved for product
+entry points, build metadata, and the canonical project instructions.
 
 ## Start here
 
@@ -10,12 +10,11 @@ those records are evidence, not runtime code.
 | --- | --- |
 | [`README.md`](../README.md) | Human installation, usage, build, and release guide. |
 | [`AGENTS.md`](../AGENTS.md) | Repository operating contract and safety rules. |
-| [`MEMORY.md`](../MEMORY.md) | Current project handoff and verified decisions. |
 | [`docs/USAGE.md`](USAGE.md) | GUI, CLI, MCP, output, and recovery workflows. |
 | [`docs/TOOLS.md`](TOOLS.md) | External media tools and platform setup. |
 | [`docs/PLATFORM-SUPPORT.md`](PLATFORM-SUPPORT.md) | Cross-platform feature contract and native acceptance matrix. |
 | [`docs/SUPPORT.md`](SUPPORT.md) | Troubleshooting, support boundaries, and licensing contact. |
-| [`python-rust-convert.md`](../python-rust-convert.md) | File-level Python-to-Rust ownership and retirement ledger. |
+| [`docs/maintainer/`](maintainer/) | Maintainer architecture, validation, dependency, and migration notes. |
 
 ## Runtime code
 
@@ -33,18 +32,17 @@ those records are evidence, not runtime code.
 
 | Path | Responsibility |
 | --- | --- |
-| `docs/` | Short user and maintainer documentation. |
+| `docs/` | Short user, platform, release, and maintainer documentation. |
 | `desktop/README.md` | Desktop-specific development and native boundary notes. |
 | `App/` | Local cross-platform artifact drop for verified host-built packages. It is not source code; keep it at the repository root. |
 | `VERSION`, `LICENSE`, `SHA256SUMS` | Version, license, and integrity metadata. Regenerate `SHA256SUMS` after source or documentation changes. |
-| `REVIEW.md` | Current validation ledger followed by dated historical evidence. |
-| `RUST_MIGRATION.md`, `TECHNICAL.md`, `PERFORMANCE.md`, `DEPENDENCIES.md` | Maintainer architecture, measurement, and dependency records. |
+| `docs/maintainer/` | Current validation, architecture, measurement, dependency, and Python/Rust migration records. |
 
-The dated files named `2026-10-11_*.md`, `ReWorkTasklist.md`, and older audit
-notes are retained history and planning evidence. They should not be treated
-as application entry points. New user instructions belong in `README.md` or
-`docs/`; new architectural ownership belongs in `AGENTS.md`,
-`RUST_MIGRATION.md`, or `python-rust-convert.md`.
+Local `MEMORY.md`, dated audit evidence, and personal task lists are excluded
+from Git and kept in the sibling local notes archive. They are session
+continuity material, not application documentation. New user instructions
+belong in `README.md` or `docs/`; new architectural ownership belongs in
+`AGENTS.md` or `docs/maintainer/`.
 
 ## Generated and local-only paths
 
