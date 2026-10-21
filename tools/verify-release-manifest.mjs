@@ -26,8 +26,19 @@ for (const platform of requiredPlatforms) {
     missing.push(`url:${platform}`);
     continue;
   }
-  const assetName = decodeURIComponent(new URL(entry.url).pathname.split("/").at(-1) ?? "");
-  if (!assets.has(assetName)) missing.push(`asset:${assetName}`);
+  const url = new URL(entry.url);
+  const apiAssetMatch = url.hostname === "api.github.com"
+    ? url.pathname.match(/^\/repos\/[^/]+\/[^/]+\/releases\/assets\/(\d+)$/)
+    : null;
+  if (apiAssetMatch) {
+    const assetId = apiAssetMatch[1];
+    if (!(release.assets ?? []).some((asset) => String(asset.id) === assetId)) {
+      missing.push(`asset-id:${assetId}`);
+    }
+  } else {
+    const assetName = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+    if (!assets.has(assetName)) missing.push(`asset:${assetName}`);
+  }
 }
 
 const msiAssets = [...assets].filter((asset) => asset.toLowerCase().endsWith(".msi"));

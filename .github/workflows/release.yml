@@ -147,7 +147,11 @@ jobs:
           mkdir -p release-check
           version=$(node -p "require('./desktop/package.json').version")
           tag="v${version}"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" > release-check/release.json
+          export RELEASE_TAG="$tag"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | select(.tag_name == env.RELEASE_TAG and .draft == true)' \
+            > release-check/release.json
+          node -e "const fs=require('node:fs'); const p='release-check/release.json'; const text=fs.readFileSync(p,'utf8').trim(); if (!text) { console.error('Could not find the draft release for ' + process.env.RELEASE_TAG); process.exit(1); } JSON.parse(text);"
           gh release download "${tag}" --repo "${GITHUB_REPOSITORY}" --pattern latest.json --dir release-check
       - name: Verify signed platform entries and reject MSI assets
         run: node tools/verify-release-manifest.mjs release-check/latest.json release-check/release.json
