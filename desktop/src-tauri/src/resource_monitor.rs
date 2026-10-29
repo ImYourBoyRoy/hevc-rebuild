@@ -480,6 +480,11 @@ fn is_ffmpeg_process(pid: u32) -> bool {
 }
 
 #[cfg(target_os = "linux")]
+fn unix_u64(value: impl TryInto<u64>) -> Option<u64> {
+    value.try_into().ok()
+}
+
+#[cfg(target_os = "linux")]
 fn disk_stats(path: &Path) -> Option<(u64, u64, u64)> {
     use std::os::unix::ffi::OsStrExt;
     for existing in path
@@ -497,12 +502,12 @@ fn disk_stats(path: &Path) -> Option<(u64, u64, u64)> {
         }
         // SAFETY: statvfs initialized the structure on success.
         let stats = unsafe { stats.assume_init() };
-        let block_size = stats.f_frsize as u64;
-        let total = (stats.f_blocks as u64).saturating_mul(block_size);
-        let used = (stats.f_blocks as u64)
-            .saturating_sub(stats.f_bfree as u64)
+        let block_size = unix_u64(stats.f_frsize)?;
+        let total = unix_u64(stats.f_blocks)?.saturating_mul(block_size);
+        let used = unix_u64(stats.f_blocks)?
+            .saturating_sub(unix_u64(stats.f_bfree)?)
             .saturating_mul(block_size);
-        let free = (stats.f_bavail as u64).saturating_mul(block_size);
+        let free = unix_u64(stats.f_bavail)?.saturating_mul(block_size);
         return Some((total, used, free));
     }
     None

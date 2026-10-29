@@ -1,4 +1,4 @@
-import type { MediaEntry, MediaQueueRunState, Page, ReportRow, Settings, ToolPaths, OrganizerTemplates } from './types.js';
+import type { MediaEntry, MediaQueueRunState, Page, ReportRow, Settings, ToolPaths, OrganizerTemplates, YoutubeMode, YoutubeSdrCodec, YoutubePreset, YoutubeShrink, YoutubeQualityCheck } from './types.js';
 
 export type Theme = "light" | "dark" | "phosphor" | "ion" | "breach";
 
@@ -11,7 +11,7 @@ export type TvdbCredentialStatus = { configured: boolean; subscriberPinConfigure
 export type AppPreferences = {
     theme: Theme;
     windowState: { width: number; height: number; maximized: boolean };
-    lastPage: Page;
+    lastPage: Page; // "home" is accepted from older profiles and normalized to "library"
     root: string | null;
     toolPaths: ToolPaths;
     recursive: boolean;
@@ -20,6 +20,11 @@ export type AppPreferences = {
     youtubeResolution: "source" | "1440p" | "4k";
     youtubeQualityMode: "balanced" | "recommended";
     youtubeSourceMultiplier: number;
+    youtubeMode: YoutubeMode;
+    youtubeSdrCodec: YoutubeSdrCodec;
+    youtubePreset: YoutubePreset;
+    youtubeShrink: YoutubeShrink;
+    youtubeQualityCheck: YoutubeQualityCheck;
     youtubeOutputDir: string | null;
     rebuildOutputDir: string | null;
     fileOutputDirs: Record<string, string>;

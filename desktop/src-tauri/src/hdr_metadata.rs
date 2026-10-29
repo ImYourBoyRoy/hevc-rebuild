@@ -119,6 +119,34 @@ pub(crate) fn verify_hdr10plus_output(
     verify_hdr10plus(&request)
 }
 
+/// Verify HDR10+ on one source video stream before a lossless remux.
+pub(crate) fn verify_hdr10plus_source(
+    ffmpeg: &str,
+    hdr10plus_tool: &str,
+    source: &Path,
+    stream_index: i64,
+    codec_name: &str,
+) -> Result<bool, String> {
+    let stream_index = u32::try_from(stream_index)
+        .map_err(|_| "Source video stream index is outside the supported range.".to_string())?;
+    verify_hdr10plus(&Request {
+        operation: "verify_hdr10plus".into(),
+        tools: ToolPaths {
+            ffmpeg: Some(ffmpeg.to_string()),
+            hdr10plus_tool: Some(hdr10plus_tool.to_string()),
+            x265_dolbyvision: false,
+        },
+        input_path: Some(source.to_path_buf()),
+        stream_index: Some(stream_index),
+        codec_name: Some(codec_name.to_string()),
+        path_override: None,
+        path_override_video_ordinal: None,
+        output_json: None,
+        profile: None,
+        force_deinterlace: false,
+    })
+}
+
 fn read_request() -> Result<Request, String> {
     let mut bytes = Vec::new();
     io::stdin()

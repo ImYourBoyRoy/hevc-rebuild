@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 import subprocess
+import tempfile
 import threading
 from collections import deque
 from pathlib import Path
@@ -14,7 +15,7 @@ from .hdr import verify_hdr10plus
 from .metadata import mkv_identify, read_global_simple_tags
 from .model import MediaProfile, StreamRef, Toolchain, ValidationResult
 from .probe import build_profile, ffprobe_json, stream_refs
-from .util import ExternalCommandError, RebuildError, run
+from .util import ExternalCommandError, RebuildError, native_json_action, run
 
 
 def stream_copy_hash(tools: Toolchain, path: Path, specifier: str) -> str:
@@ -512,6 +513,64 @@ def _validate_timing(
                 raise RebuildError(f"{kind} stream {n} {key} shifted by {abs(av-bv):.6f}s; refusing possible A/V/subtitle sync change.")
 
 
+def _native_verify_expected_output(
+    tools: Toolchain,
+    output: Path,
+    *,
+    expect_poster: bool,
+    expected_global_tags: dict[str, str] | None,
+) -> bool:
+    """Run the Rust verifier when configured; True means it ran and passed."""
+    with tempfile.TemporaryDirectory(prefix="hevc-verify-") as work:
+        response = native_json_action(
+            "metadata-verify",
+            {
+                "tools": {"mkvmerge": tools.mkvmerge, "mkvextract": tools.mkvextract, "mkvpropedit": tools.mkvpropedit},
+                "output": str(output.absolute()),
+                "work_dir": work,
+                "expect_poster": expect_poster,
+                "expected_global_tags": [[name, value] for name, value in (expected_global_tags or {}).items()],
+            },
+            timeout=None,
+        )
+    if response is None:
+        return False
+    if response.get("ok") is True:
+        return True
+    message = response.get("message")
+    if response.get("ok") is False and isinstance(message, str) and message:
+        raise RebuildError(message)
+    raise RebuildError("The Rust metadata-verify helper returned an invalid result.")
+
+
+def verify_expected_output(
+    tools: Toolchain,
+    output: Path,
+    *,
+    expect_poster: bool,
+    expected_global_tags: dict[str, str] | None,
+) -> None:
+    """Check the cover attachment and expected global tags written into ``output``."""
+    if (expect_poster or expected_global_tags) and _native_verify_expected_output(
+        tools, output, expect_poster=expect_poster, expected_global_tags=expected_global_tags,
+    ):
+        return
+    if expect_poster:
+        ident = mkv_identify(tools, output)
+        covers = [a for a in ident.get("attachments", []) or [] if str(a.get("file_name", "")).lower() == "cover.jpg" and str(a.get("content_type", "")).lower() == "image/jpeg"]
+        if not covers:
+            raise RebuildError("Expected cover.jpg attachment is missing from output.")
+
+    if expected_global_tags:
+        actual_tags = read_global_simple_tags(tools, output)
+        for name, value in expected_global_tags.items():
+            values = actual_tags.get(name.upper(), [])
+            if value not in values:
+                raise RebuildError(
+                    f"Expected embedded Matroska tag {name}={value!r} was not verified in the output."
+                )
+
+
 def validate_output(
     tools: Toolchain,
     source_profile: MediaProfile,
@@ -739,20 +798,7 @@ def validate_output(
                     "refusing an ambiguous result."
                 )
 
-    if expect_poster:
-        ident = mkv_identify(tools, output)
-        covers = [a for a in ident.get("attachments", []) or [] if str(a.get("file_name", "")).lower() == "cover.jpg" and str(a.get("content_type", "")).lower() == "image/jpeg"]
-        if not covers:
-            raise RebuildError("Expected cover.jpg attachment is missing from output.")
-
-    if expected_global_tags:
-        actual_tags = read_global_simple_tags(tools, output)
-        for name, value in expected_global_tags.items():
-            values = actual_tags.get(name.upper(), [])
-            if value not in values:
-                raise RebuildError(
-                    f"Expected embedded Matroska tag {name}={value!r} was not verified in the output."
-                )
+    verify_expected_output(tools, output, expect_poster=expect_poster, expected_global_tags=expected_global_tags)
 
     copied_hashes_verified = (
         native_validation["copied_hashes_verified"]

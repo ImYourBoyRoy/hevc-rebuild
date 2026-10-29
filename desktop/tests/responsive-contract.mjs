@@ -15,7 +15,18 @@ async function contract(page){
         if(fixture==='home')await page.getByRole('combobox',{name:'Fixture theme'}).selectOption(theme);
         await page.evaluate(theme=>{for(const e of [document.documentElement,document.querySelector('.app-shell')]){e.dataset.theme=theme;if(['phosphor','ion','breach'].includes(theme))e.dataset.instrument=theme;else delete e.dataset.instrument;}const m=document.querySelector('main');m.style.overflow='auto';m.style.maxHeight='100vh';},theme);
         await page.evaluate(()=>document.fonts.ready);
-        const metrics=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,main:document.querySelector('main').scrollWidth,mainClient:document.querySelector('main').clientWidth,tokens:getComputedStyle(document.querySelector('.app-shell')).getPropertyValue('--theme-text').trim(),floor:getComputedStyle(document.body).minWidth}));
+        const metrics=await page.evaluate(()=>{
+          // Page-level width checks miss text that spills out of its own box onto a neighbour.
+          const spills=[];
+          for(const el of document.querySelectorAll('main *')){
+            if(el.matches('input,select,textarea,svg,svg *,pre,code,[aria-hidden="true"]'))continue;
+            const style=getComputedStyle(el);
+            if(style.display==='inline'||style.display==='contents'||style.overflow!=='visible'||style.position==='fixed')continue;
+            if(!el.clientHeight||!el.clientWidth||el.children.length>3)continue;
+            if(el.scrollHeight>el.clientHeight+3||el.scrollWidth>el.clientWidth+3)spills.push(`${el.tagName.toLowerCase()}.${String(el.className).trim().split(/\s+/).join('.')} ${el.clientWidth}x${el.clientHeight}<${el.scrollWidth}x${el.scrollHeight}`);
+          }
+          return {viewport:innerWidth,document:document.documentElement.scrollWidth,main:document.querySelector('main').scrollWidth,mainClient:document.querySelector('main').clientWidth,tokens:getComputedStyle(document.querySelector('.app-shell')).getPropertyValue('--theme-text').trim(),floor:getComputedStyle(document.body).minWidth,spills:spills.slice(0,6)};
+        });
         results.push({fixture,width,theme,...metrics});
         await page.screenshot({path:`__EVIDENCE__/${fixture}-${theme}-${width}.png`,fullPage:true});
       }
@@ -26,8 +37,8 @@ async function contract(page){
   const zoom=await page.evaluate(()=>({main:document.querySelector('main').scrollWidth,client:document.querySelector('main').clientWidth}));
   await page.screenshot({path:'__EVIDENCE__/rename-200-percent-layout.png',fullPage:true});
   if(zoom.main>zoom.client+1)throw new Error(JSON.stringify({zoom}));
-  const failures=results.filter(result=>result.document>result.viewport+1||result.main>result.mainClient+1||!result.tokens||result.floor!=='360px');
+  const failures=results.filter(result=>result.document>result.viewport+1||result.main>result.mainClient+1||!result.tokens||result.floor!=='360px'||result.spills.length);
   if(failures.length)throw new Error(JSON.stringify({overflow:failures,checked:results.length}));
-  return {zoom:'720 CSS-pixel effective-viewport proxy for 1440px at 200%; actual browser/native zoom unverified',screenshots:results.length+1,widths,themes,overflow:false,canonicalTokens:true};
+  return {zoom:'720 CSS-pixel effective-viewport proxy for 1440px at 200%; actual browser/native zoom unverified',screenshots:results.length+1,widths,themes,overflow:false,elementSpill:false,canonicalTokens:true};
 }
 await runBrowserContract('home',contract);

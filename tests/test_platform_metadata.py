@@ -112,8 +112,9 @@ class PlatformTests(unittest.TestCase):
 
 
 class MetadataMergeTests(unittest.TestCase):
-    def test_reviewed_metadata_overrides_nfo_and_episode_airdate_takes_precedence_over_series_year(self):
-        tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
+    TOOLS = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
+
+    def test_sidecar_nfo_files_are_ignored_and_reviewed_values_drive_the_tags(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             media = root / "Episode.mkv"
@@ -123,9 +124,10 @@ class MetadataMergeTests(unittest.TestCase):
                 "<year>2010</year><aired>2010-01-01</aired><userrating>6</userrating></episodedetails>",
                 encoding="utf-8",
             )
+            (root / "tvshow.nfo").write_text("<tvshow><genre>Drama</genre></tvshow>", encoding="utf-8")
             with patch.object(metadata, "_read_existing_global_root", return_value=ET.Element("Tags")):
-                xml_path, title, _nfo, expected, _changes = metadata.build_tags(
-                    tools,
+                xml_path, title, expected, _changes = metadata.build_tags(
+                    self.TOOLS,
                     media,
                     root,
                     comment="",
@@ -143,21 +145,28 @@ class MetadataMergeTests(unittest.TestCase):
             self.assertEqual(expected["DATE_RELEASED"], "2024-05-12")
             self.assertEqual(expected["GENRE"], "Animation, Adventure")
             self.assertEqual(expected["RATING"], "4.25")
+            self.assertNotIn("Old series", expected.values())
             self.assertIn(("SHOWTITLE", "Reviewed series"), {
                 (node.findtext("Name"), node.findtext("String"))
                 for node in ET.parse(xml_path).findall("./Tag/Simple")
             })
 
-    def test_existing_global_tags_survive_and_kodi_values_win(self):
-        tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
+    def test_without_reviewed_values_the_title_is_the_filename_and_nfo_is_not_read(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            media = root / "Plain Film.mkv"
+            media.write_bytes(b"placeholder")
+            media.with_suffix(".nfo").write_text("<movie><title>Ignored</title><plot>Ignored</plot></movie>", encoding="utf-8")
+            with patch.object(metadata, "_read_existing_global_root", return_value=ET.Element("Tags")):
+                _xml_path, title, expected, _changes = metadata.build_tags(self.TOOLS, media, root, comment="")
+            self.assertEqual(title, "Plain Film")
+            self.assertEqual(expected, {"TITLE": "Plain Film"})
+
+    def test_existing_global_tags_survive_and_reviewed_values_win(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             media = root / "Movie.mkv"
             media.write_bytes(b"placeholder")
-            media.with_suffix(".nfo").write_text(
-                "<movie><title>New Title</title><plot>Plot text</plot><genre>Drama</genre><genre>Sci-Fi</genre></movie>",
-                encoding="utf-8",
-            )
             existing = ET.Element("Tags")
             tag = ET.SubElement(existing, "Tag")
             ET.SubElement(tag, "Targets")
@@ -167,70 +176,62 @@ class MetadataMergeTests(unittest.TestCase):
                 ET.SubElement(simple, "String").text = value
 
             with patch.object(metadata, "_read_existing_global_root", return_value=existing):
-                xml_path, title, nfo, expected, changes = metadata.build_tags(tools, media, root, comment="Test Comment")
+                xml_path, title, expected, changes = metadata.build_tags(
+                    self.TOOLS, media, root, comment="Test Comment",
+                    metadata_override={"title": "New Title", "plot": "Plot text", "genres": ["Drama", "Sci-Fi"]},
+                )
 
             self.assertEqual(title, "New Title")
-            self.assertEqual(nfo, media.with_suffix(".nfo"))
             self.assertEqual(expected["TITLE"], "New Title")
             self.assertEqual(expected["GENRE"], "Drama, Sci-Fi")
             self.assertEqual(changes, [])
             out = ET.parse(xml_path).getroot()
-            pairs = []
-            for simple in out.findall("./Tag/Simple"):
-                pairs.append((simple.findtext("Name"), simple.findtext("String")))
+            pairs = [(simple.findtext("Name"), simple.findtext("String")) for simple in out.findall("./Tag/Simple")]
             self.assertIn(("ORIGINAL_MEDIA_TYPE", "Blu-ray"), pairs)
             self.assertIn(("TITLE", "New Title"), pairs)
             self.assertNotIn(("TITLE", "Old Title"), pairs)
 
-    def test_app_managed_nfo_overrides_matching_fields_and_maps_rating_to_matroska_scale(self):
-        tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
+    def test_reviewed_movie_maps_rating_to_matroska_scale(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             media = root / "Film.mkv"
             media.write_bytes(b"placeholder")
-            media.with_suffix(".nfo").write_text(
-                "<movie><title>Old title</title><genre>Drama</genre></movie>",
-                encoding="utf-8",
-            )
-            managed = root / "Film.hevc-rebuild.nfo"
-            managed.write_text(
-                "<movie><title>Reviewed title</title><year>2011</year><mpaa>G</mpaa>"
-                "<tagline>Short copy</tagline><plot>Long copy</plot><genre>Animation</genre>"
-                "<userrating>7.50</userrating><source>https://www.themoviedb.org/movie/1</source></movie>",
-                encoding="utf-8",
-            )
             with patch.object(metadata, "_read_existing_global_root", return_value=ET.Element("Tags")):
-                xml_path, title, nfo, expected, _changes = metadata.build_tags(tools, media, root, comment="")
+                xml_path, title, expected, _changes = metadata.build_tags(
+                    self.TOOLS, media, root, comment="",
+                    metadata_override={
+                        "title": "Reviewed title", "year": "2011", "certification": "G",
+                        "short_description": "Short copy", "plot": "Long copy", "genres": ["Animation"],
+                        "rating": "7.50", "source_url": "https://www.themoviedb.org/movie/1",
+                    },
+                )
 
             self.assertEqual(title, "Reviewed title")
-            self.assertEqual(nfo, managed)
             self.assertEqual(expected["DATE_RELEASED"], "2011")
             self.assertEqual(expected["LAW_RATING"], "G")
+            self.assertEqual(expected["SUMMARY"], "Short copy")
             self.assertEqual(expected["GENRE"], "Animation")
             self.assertEqual(expected["RATING"], "3.75")
             self.assertEqual(expected["SOURCE"], "https://www.themoviedb.org/movie/1")
             values = {(node.findtext("Name"), node.findtext("String")) for node in ET.parse(xml_path).findall("./Tag/Simple")}
             self.assertIn(("RATING", "3.75"), values)
 
-    def test_episode_nfo_maps_series_episode_plot_and_air_date(self):
-        tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
+    def test_reviewed_episode_maps_series_episode_plot_and_air_date(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             season = root / "Season 01"
             season.mkdir()
             media = season / "S01E02.mkv"
             media.write_bytes(b"placeholder")
-            (root / "tvshow.nfo").write_text(
-                "<tvshow><genre>Animation</genre><userrating>8.00</userrating><source>https://www.tvmaze.com/shows/1</source></tvshow>",
-                encoding="utf-8",
-            )
-            media.with_name("S01E02.hevc-rebuild.nfo").write_text(
-                "<episodedetails><title>The Frog Prince</title><showtitle>Faerie Tale Theatre</showtitle>"
-                "<season>1</season><episode>2</episode><aired>1982-09-12</aired><plot>Reviewed episode plot</plot></episodedetails>",
-                encoding="utf-8",
-            )
             with patch.object(metadata, "_read_existing_global_root", return_value=ET.Element("Tags")):
-                xml_path, _title, _nfo, expected, _changes = metadata.build_tags(tools, media, root, comment="")
+                _xml_path, _title, expected, _changes = metadata.build_tags(
+                    self.TOOLS, media, root, comment="",
+                    metadata_override={
+                        "title": "The Frog Prince", "show_title": "Faerie Tale Theatre", "season": "1", "episode": "2",
+                        "airdate": "1982-09-12", "plot": "Reviewed episode plot", "genres": ["Animation"],
+                        "rating": "8.00", "source_url": "https://www.tvmaze.com/shows/1",
+                    },
+                )
             self.assertEqual(expected["TITLE"], "The Frog Prince")
             self.assertEqual(expected["SHOWTITLE"], "Faerie Tale Theatre")
             self.assertEqual(expected["SEASON"], "1")

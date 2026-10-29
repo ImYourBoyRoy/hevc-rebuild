@@ -4,7 +4,7 @@ HEVC Rebuild Studio is a cross-platform desktop application. The user-facing
 workflow is one product on Linux, Windows, and macOS:
 
 - Media Library scan, persistent queue, file/folder picker, and drag-and-drop.
-- Identify & organize, local NFO/artwork inspection, provider lookup, rename
+- Identify & organize, local artwork inspection, provider lookup, rename
   preview, poster storage, and metadata-only MKV creation.
 - Check-only, short-test, full rebuild, YouTube preparation, reports, retained
   error outputs, and safe stop/retry behavior.

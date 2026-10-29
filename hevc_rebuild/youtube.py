@@ -184,6 +184,9 @@ def _recommended_video_rate_kbps(profile: MediaProfile, resolution: str) -> int:
     tier_side = min(width, height)
     hdr = _upload_color_mode(profile) in {"hdr10", "hlg"}
     high_frame_rate = _fps(profile) > 30.0
+    if tier_side >= 4320:
+        # YouTube's 8K guidance is a range; use midpoints like the 4K rows.
+        return 225000 if hdr and high_frame_rate else 150000 if hdr else 180000 if high_frame_rate else 120000
     if tier_side >= 2160:
         return 75500 if hdr and high_frame_rate else 50000 if hdr else 60500 if high_frame_rate else 45000
     if tier_side >= 1440:
@@ -398,6 +401,8 @@ def _upload_args(
         args += ["-x265-params:v:0", ":".join(x265_params)]
     else:
         args += ["-c:v:0", "libx264", "-profile:v:0", "high", "-pix_fmt:v:0", "yuv420p", "-preset:v:0", "slow"]
+        # YouTube's recommended H.264 structure: 2 B-frames, closed GOP of half the frame rate.
+        args += ["-bf:v:0", "2", "-g:v:0", str(max(1, round(_fps(profile) / 2))), "-flags:v:0", "+cgop"]
     args += [
         "-b:v:0", f"{bitrate_kbps}k",
         "-maxrate:v:0", f"{bitrate_kbps}k", "-bufsize:v:0", f"{bitrate_kbps * 2}k",

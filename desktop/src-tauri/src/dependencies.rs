@@ -245,11 +245,11 @@ fn hdr10plus_asset_selector() -> Result<(&'static str, &'static str), String> {
                 ));
             }
         };
-        return Ok((token, ".zip"));
+        Ok((token, ".zip"))
     }
     #[cfg(target_os = "macos")]
     {
-        return Ok(("universal-macOS", ".zip"));
+        Ok(("universal-macOS", ".zip"))
     }
     #[cfg(target_os = "linux")]
     {
@@ -262,9 +262,12 @@ fn hdr10plus_asset_selector() -> Result<(&'static str, &'static str), String> {
                 ));
             }
         };
-        return Ok((token, ".tar.gz"));
+        Ok((token, ".tar.gz"))
     }
-    Err("No managed hdr10plus_tool asset is configured for this operating system.".into())
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("No managed hdr10plus_tool asset is configured for this operating system.".into())
+    }
 }
 
 fn place_verified_tool(

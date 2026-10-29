@@ -11,13 +11,6 @@ from typing import Any, Sequence
 from .model import MediaProfile, MetadataResult, Toolchain
 from .util import RebuildError, native_json_action, run, run_json_object
 
-TAG_MAP = {
-    "title": "TITLE", "showtitle": "SHOWTITLE", "season": "SEASON", "episode": "EPISODE",
-    "plot": "SYNOPSIS", "tagline": "SUMMARY", "mpaa": "LAW_RATING", "year": "DATE_RELEASED",
-    "premiered": "DATE_RELEASED", "aired": "DATE_RELEASED", "studio": "PRODUCTION_STUDIO",
-    "genre": "GENRE", "source": "SOURCE", "userrating": "RATING",
-}
-
 _RELEASE_GROUP_TAG_NAMES = {"RELEASE_GROUP", "RELEASEGROUP", "RLSGROUP"}
 _RELEASE_MARKER_RE = re.compile(
     r"(?<![a-z0-9])(?:"
@@ -276,45 +269,6 @@ def _scrub_chapter_tree(
     return changes, edits
 
 
-def _flatten_text(node: ET.Element | None) -> str | None:
-    if node is None:
-        return None
-    values: list[str] = []
-    if node.text and node.text.strip():
-        values.append(node.text.strip())
-    for child in node:
-        if child.text and child.text.strip():
-            values.append(child.text.strip())
-    value = ", ".join(dict.fromkeys(values)).strip()
-    return value or None
-
-
-def nfo_paths_for(path: Path) -> list[Path]:
-    """Return nearest series metadata, then adjacent NFOs in override order."""
-    candidates: list[Path] = []
-    parent = path.parent
-    for _ in range(24):
-        series = [parent / "tvshow.nfo", parent / "tvshow.hevc-rebuild.nfo"]
-        found = [candidate for candidate in series if candidate.is_file()]
-        if found:
-            candidates.extend(found)
-            break
-        if parent.parent == parent:
-            break
-        parent = parent.parent
-    candidates.extend([
-        path.with_suffix(".nfo"),
-        path.with_name(f"{path.stem}.hevc-rebuild.nfo"),
-    ])
-    return list(dict.fromkeys(candidate for candidate in candidates if candidate.is_file()))
-
-
-def nfo_path_for(path: Path) -> Path | None:
-    """Compatibility helper returning the conventional sidecar when present."""
-    candidates = nfo_paths_for(path)
-    return candidates[-1] if candidates else None
-
-
 def _is_global_tag(tag: ET.Element) -> bool:
     targets = tag.find("Targets")
     if targets is None:
@@ -364,35 +318,9 @@ def build_tags(
     comment: str,
     text_blacklist: Sequence[str] = (),
     metadata_override: dict[str, object] | None = None,
-) -> tuple[Path, str, Path | None, dict[str, str], list[dict[str, Any]]]:
-    nfos = nfo_paths_for(path)
-    nfo = nfos[-1] if nfos else None
+) -> tuple[Path, str, dict[str, str], list[dict[str, Any]]]:
     values: dict[str, str] = {}
     changes: list[dict[str, Any]] = []
-    for candidate_nfo in nfos:
-        try:
-            root = ET.parse(candidate_nfo).getroot()
-            for source, target in TAG_MAP.items():
-                # Kodi may repeat elements such as <genre> and <studio>. Preserve all
-                # values in source order instead of silently taking only the first.
-                found = root.findall(source)
-                parts = [v for node in found if (v := _flatten_text(node))]
-                value = ", ".join(dict.fromkeys(parts)).strip() if parts else None
-                if value:
-                    if source == "mpaa":
-                        value = re.sub(r"^Rated\s+", "", value, flags=re.I).strip()
-                    elif source == "userrating":
-                        try:
-                            rating = float(value)
-                        except ValueError as exc:
-                            raise RebuildError(f"Kodi NFO contains an invalid audience rating ({candidate_nfo}).") from exc
-                        if not 0.0 <= rating <= 10.0:
-                            raise RebuildError(f"Kodi NFO audience rating must be between 0 and 10 ({candidate_nfo}).")
-                        # Matroska RATING is a 0-5 scale; Kodi userrating is 0-10.
-                        value = f"{rating / 2:.2f}".rstrip("0").rstrip(".")
-                    values[target] = value
-        except (ET.ParseError, OSError) as exc:
-            raise RebuildError(f"Kodi NFO exists but cannot be parsed safely ({candidate_nfo}): {exc}") from exc
 
     override = metadata_override or {}
     override_tag_names = {
@@ -460,7 +388,7 @@ def build_tags(
         changes.append({"scope": "segment", "field": "title", "before": raw_title, "after": title, "rules": title_rules})
     values["TITLE"] = title
 
-    # Better than v0.107: preserve pre-existing *global* Matroska tags, while Kodi
+    # Better than v0.107: preserve pre-existing *global* Matroska tags, while reviewed
     # values intentionally win for the fields this utility manages.
     tags = _read_existing_global_root(tools, path, work_dir)
     _remove_conflicting_simple_tags(tags, set(values))
@@ -478,7 +406,7 @@ def build_tags(
     xml_path = work_dir / "merged-global-tags.xml"
     ET.ElementTree(tags).write(xml_path, encoding="utf-8", xml_declaration=True)
     expected_tags = {name: value for name, value in values.items() if value}
-    return xml_path, title, nfo, expected_tags, changes
+    return xml_path, title, expected_tags, changes
 
 
 def read_global_simple_tags(tools: Toolchain, path: Path) -> dict[str, list[str]]:
@@ -600,6 +528,32 @@ def _poster_attachment_description(poster: Path) -> str:
     return description[:2048]
 
 
+def attach_cover(tools: Toolchain, output: Path, cover: Path, description: str) -> list[int]:
+    """Replace cover/poster-like image attachments in ``output`` with ``cover``.
+
+    Returns the attachment ids that were deleted. Unrelated attachments are kept.
+    """
+    ident = mkv_identify(tools, output)
+    # Better than v0.107: remove only cover/poster-like image attachments, not unrelated image attachments.
+    delete_ids: list[int] = []
+    for att in ident.get("attachments", []) or []:
+        name = str(att.get("file_name") or "")
+        mime = str(att.get("content_type") or "")
+        if mime.startswith("image/") and re.search(r"(?i)(cover|poster|folder|front)", name):
+            try:
+                delete_ids.append(int(att["id"]))
+            except (KeyError, TypeError, ValueError):
+                pass
+    if delete_ids:
+        run([tools.mkvpropedit, str(output), *sum((["--delete-attachment", str(i)] for i in delete_ids), [])])
+    run([
+        tools.mkvpropedit, str(output), "--attachment-name", "cover.jpg",
+        "--attachment-mime-type", "image/jpeg", "--attachment-description", description,
+        "--add-attachment", str(cover),
+    ])
+    return delete_ids
+
+
 def mkv_identify(tools: Toolchain, path: Path) -> dict[str, Any]:
     value = run_json_object([tools.mkvmerge, "-J", str(path)], required_keys=("tracks",))
     for field in ("tracks", "attachments", "chapters"):
@@ -657,26 +611,82 @@ def _scrub_output_text_metadata(
     # Matroska track names live in track headers, not in the XML tag tree.
     identify = mkv_identify(tools, output)
     track_actions: list[str] = [tools.mkvpropedit, str(output)]
-    track_targets: list[tuple[int, str]] = []
+    track_targets: list[tuple[int, str, str]] = []
     for track_position, track in enumerate(identify.get("tracks", []) or [], start=1):
         properties = track.get("properties") or {}
         before = properties.get("track_name")
         if not isinstance(before, str):
             continue
-        track_targets.append((track_position, before))
+        track_targets.append((track_position, before, str(track.get("type") or "unknown")))
 
     cleaned_tracks = clean_metadata_texts([target[1] for target in track_targets], text_blacklist)
-    for (track_position, before), (after, rules) in zip(track_targets, cleaned_tracks):
+    for (track_position, before, track_type), (after, rules) in zip(track_targets, cleaned_tracks):
         if after == before:
             continue
         track_actions.extend(["--edit", f"track:{track_position}", "--set", f"name={after}"])
         changes.append({
             "scope": "track_header", "field": "title", "track_index": track_position - 1,
-            "track_type": str(track.get("type") or "unknown"), "before": before, "after": after, "rules": rules,
+            "track_type": track_type, "before": before, "after": after, "rules": rules,
         })
     if len(track_actions) > 2:
         run(track_actions)
     return changes, chapter_edits
+
+
+def _native_apply_metadata(
+    tools: Toolchain,
+    output: Path,
+    profile: MediaProfile,
+    work_dir: Path,
+    *,
+    comment: str,
+    text_blacklist: Sequence[str],
+    poster_override: Path | None,
+    metadata_override: dict[str, object] | None,
+    embed_artwork: bool,
+) -> MetadataResult | None:
+    """Run the Rust metadata-apply helper when configured; None selects the Python path."""
+    response = native_json_action(
+        "metadata-apply",
+        {
+            "media_path": str(profile.path.absolute()),
+            "output": str(output.absolute()),
+            "work_dir": str(work_dir.absolute()),
+            "ffmpeg": tools.ffmpeg,
+            "tools": {"mkvmerge": tools.mkvmerge, "mkvextract": tools.mkvextract, "mkvpropedit": tools.mkvpropedit},
+            "comment": comment,
+            "text_blacklist": list(text_blacklist),
+            "metadata_override": metadata_override,
+            "poster_override": str(poster_override.absolute()) if poster_override else None,
+            "embed_artwork": embed_artwork,
+        },
+        timeout=None,
+    )
+    if response is None:
+        return None
+    try:
+        expected = response["expected_global_tags"]
+        changes = response["scrubbed_text_values"]
+        edits = response["chapter_text_edits"]
+        warnings = response.get("warnings", [])
+        if not (
+            isinstance(response["title"], str) and isinstance(expected, dict)
+            and isinstance(changes, list) and isinstance(edits, list) and isinstance(warnings, list)
+        ):
+            raise TypeError("wrong field types")
+        for warning in warnings:
+            logging.warning("%s", warning)
+        poster = response.get("poster_path")
+        return MetadataResult(
+            xml_path=Path(response["xml_path"]),  # type: ignore[arg-type]
+            title=response["title"],
+            poster_path=Path(poster) if isinstance(poster, str) else None,
+            expected_global_tags={str(name): str(value) for name, value in expected.items()},
+            scrubbed_text_values=changes,
+            chapter_text_edits=edits,
+        )
+    except (KeyError, TypeError) as exc:
+        raise RebuildError("The Rust metadata-apply helper returned an invalid result.") from exc
 
 
 def apply_metadata(
@@ -691,7 +701,13 @@ def apply_metadata(
     metadata_override: dict[str, object] | None = None,
     embed_artwork: bool = True,
 ) -> MetadataResult:
-    xml_path, title, nfo, expected_tags, changes = build_tags(
+    native = _native_apply_metadata(
+        tools, output, profile, work_dir, comment=comment, text_blacklist=text_blacklist,
+        poster_override=poster_override, metadata_override=metadata_override, embed_artwork=embed_artwork,
+    )
+    if native is not None:
+        return native
+    xml_path, title, expected_tags, changes = build_tags(
         tools, profile.path, work_dir, comment=comment, text_blacklist=text_blacklist,
         metadata_override=metadata_override,
     )
@@ -703,30 +719,12 @@ def apply_metadata(
     run(args)
 
     if cover:
-        ident = mkv_identify(tools, output)
-        # Better than v0.107: remove only cover/poster-like image attachments, not unrelated image attachments.
-        delete_ids: list[int] = []
-        for att in ident.get("attachments", []) or []:
-            name = str(att.get("file_name") or "")
-            mime = str(att.get("content_type") or "")
-            if mime.startswith("image/") and re.search(r"(?i)(cover|poster|folder|front)", name):
-                try:
-                    delete_ids.append(int(att["id"]))
-                except (KeyError, TypeError, ValueError):
-                    pass
-        if delete_ids:
-            run([tools.mkvpropedit, str(output), *sum((["--delete-attachment", str(i)] for i in delete_ids), [])])
-        run([
-            tools.mkvpropedit, str(output), "--attachment-name", "cover.jpg",
-            "--attachment-mime-type", "image/jpeg", "--attachment-description", _poster_attachment_description(poster),
-            "--add-attachment", str(cover),
-        ])
+        attach_cover(tools, output, cover, _poster_attachment_description(poster))
     output_changes, chapter_edits = _scrub_output_text_metadata(tools, output, work_dir, text_blacklist)
     changes.extend(output_changes)
     return MetadataResult(
         xml_path=xml_path,
         title=title,
-        nfo_path=nfo,
         poster_path=poster,
         expected_global_tags=expected_tags,
         scrubbed_text_values=changes,

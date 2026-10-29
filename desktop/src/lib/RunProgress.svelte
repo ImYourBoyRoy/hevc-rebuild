@@ -5,9 +5,9 @@
     run: RunState; encodeMeasured: boolean; overallRunPercent: number | null; progressElapsedLabel: string;
     batchCount: number; batchIndex: number;
     bytes: (value: number | null | undefined) => string; duration: (seconds: number | undefined) => string;
-    openProgressDetails: () => void; stopAfterCurrent: () => unknown;
+    openProgressDetails: () => void; stopAfterCurrent: () => unknown; stopNow?: () => unknown;
   }
-  let { run, encodeMeasured, overallRunPercent, progressElapsedLabel, batchCount, batchIndex, bytes, duration, openProgressDetails, stopAfterCurrent }: Props = $props();
+  let { run, encodeMeasured, overallRunPercent, progressElapsedLabel, batchCount, batchIndex, bytes, duration, openProgressDetails, stopAfterCurrent, stopNow }: Props = $props();
 </script>
 <!-- Shared app.css owns the explicitly scoped .global-run-progress family, tokens and responsive rules. -->
     {#if run.id || run.starting}
@@ -44,7 +44,10 @@
             <small>{encodeMeasured ? `Selected queue · ${overallRunPercent?.toFixed(0) ?? 0}%` : "Preparing"}{encodeMeasured && finiteNumber(run.progress?.etaSeconds) ? ` · ${duration(run.progress.etaSeconds)} left` : ""} · {progressElapsedLabel} elapsed</small>
             <div>
               <button class="text-button" type="button" onclick={openProgressDetails}>Open progress details</button>
-              {#if run.id}<button class="text-button" type="button" disabled={run.stopAfterCurrent} onclick={stopAfterCurrent}>{run.stopAfterCurrent ? "Stopping safely…" : "Stop after this file"}</button>{/if}
+              {#if run.id}
+                <button class="text-button" type="button" disabled={run.stopAfterCurrent || run.aborting} onclick={stopAfterCurrent}>{run.stopAfterCurrent ? "Stopping after this file…" : "Stop after this file"}</button>
+                {#if stopNow}<button class="text-button" type="button" disabled={run.stopAfterCurrent || run.aborting} onclick={stopNow}>{run.aborting ? "Stopping now…" : "Stop now"}</button>{/if}
+              {/if}
             </div>
           </div>
         </div>

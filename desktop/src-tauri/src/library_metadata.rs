@@ -2070,7 +2070,7 @@ pub(crate) async fn tmdb_tv_certification_for_tvdb(
         ],
     )
     .await?;
-    Ok(tmdb_region_certificate(&value, &region))
+    Ok(tmdb_region_certificate(&value, region))
 }
 
 pub(crate) async fn load_tmdb_tv_details(
@@ -2154,7 +2154,7 @@ pub(crate) async fn load_tmdb_tv_details(
             })
         })
         .collect();
-    let certification = tmdb_region_certificate(&value, &region);
+    let certification = tmdb_region_certificate(&value, region);
 
     // Query season detail endpoints with a strict concurrency and episode-count bound.
     let semaphore = Arc::new(tokio::sync::Semaphore::new(4));

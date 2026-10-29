@@ -62,11 +62,12 @@ fn decode_sha256(value: &str) -> Option<[u8; 32]> {
     if value.len() != 64 {
         return None;
     }
+    let bytes = value.as_bytes();
     let mut decoded = [0u8; 32];
-    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
-        let high = hex_nibble(pair[0])?;
-        let low = hex_nibble(pair[1])?;
-        decoded[index] = (high << 4) | low;
+    for (index, slot) in decoded.iter_mut().enumerate() {
+        let high = hex_nibble(bytes[index * 2])?;
+        let low = hex_nibble(bytes[index * 2 + 1])?;
+        *slot = (high << 4) | low;
     }
     Some(decoded)
 }

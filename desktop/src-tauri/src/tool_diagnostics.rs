@@ -198,7 +198,7 @@ pub(crate) fn list(directory: &Path) -> Result<Vec<ToolSetupLogSummary>, String>
             truncated: metadata.len() >= MAX_LOG_BYTES,
         });
     }
-    logs.sort_by(|left, right| right.modified_unix.cmp(&left.modified_unix));
+    logs.sort_by_key(|log| std::cmp::Reverse(log.modified_unix));
     Ok(logs)
 }
 

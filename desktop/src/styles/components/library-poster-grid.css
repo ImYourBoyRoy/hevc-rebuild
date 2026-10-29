@@ -308,11 +308,42 @@
   font-size: 13px;
 }
 
+.library-queue-manager {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  min-width: 0;
+}
+
+.library-queue-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.library-queue-heading h2 {
+  margin: 0;
+}
+
+.library-queue-heading p {
+  margin: 4px 0 0;
+  color: var(--theme-muted);
+  font-size: 13px;
+}
+
+.library-queue-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .library-source-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .library-source-chip {
@@ -320,10 +351,95 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 4px 4px 4px 10px;
+  padding: 4px 4px 4px 6px;
   border: 1px solid var(--theme-line);
   border-radius: 999px;
   background: var(--theme-surface);
+}
+
+.library-source-chip.dragging,
+.library-queue-file.dragging {
+  opacity: 0.55;
+}
+
+.library-source-chip.drag-over,
+.library-queue-file.drag-over {
+  border-color: var(--theme-accent);
+}
+
+.queue-drag-handle,
+.queue-move {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  color: var(--theme-muted);
+  background: transparent;
+  cursor: grab;
+}
+
+.queue-move {
+  cursor: pointer;
+}
+
+.queue-drag-handle:disabled,
+.queue-move:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.library-queue-files {
+  min-width: 0;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--theme-line);
+  border-radius: 14px;
+  background: var(--theme-surface);
+}
+
+.library-queue-files summary {
+  cursor: pointer;
+  color: var(--theme-text);
+  font-size: 14px;
+}
+
+.library-queue-file-list {
+  display: grid;
+  gap: 6px;
+  max-height: min(40vh, 360px);
+  margin: 10px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.library-queue-file {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.library-queue-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--theme-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.library-queue-empty {
+  margin: 10px 0 0;
+  color: var(--theme-muted);
+  font-size: 13px;
 }
 
 .library-source-chip.active {

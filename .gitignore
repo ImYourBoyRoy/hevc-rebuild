@@ -76,3 +76,6 @@ Thumbs.db
 
 # Keep source archives out of the source repository; publish release bundles separately.
 /HEVC-Rebuild-*.zip
+
+# Local real-media test clips (made with tools/extract_clip.py); never committed.
+tests/fixtures/local/

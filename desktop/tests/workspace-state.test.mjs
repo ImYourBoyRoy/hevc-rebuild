@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { initialWorkspaceState, selectQueuePaths, RunEventBuffer, reportOutcome } from '../src/lib/workspace-state.ts';
+import { initialWorkspaceState, selectQueuePaths, moveQueueItem, applyQueueFilePolicy, RunEventBuffer, reportOutcome } from '../src/lib/workspace-state.ts';
 const finished = (override = {}) => ({ runId: 'run', exitCode: 0, stopRequested: false, logPath: null, reportPath: null, error: null, ...override });
+test('queue reorder and hidden-file policy keep saved order after a refresh', () => {
+  assert.deepEqual(moveQueueItem(['a', 'b', 'c'], 2, 0), ['c', 'a', 'b']);
+  assert.deepEqual(moveQueueItem(['a', 'b'], -1, 0), ['a', 'b']);
+  const refreshed = applyQueueFilePolicy(
+    [{ path: '/media/b.mkv' }, { path: '/media/a.mkv' }, { path: '/media/c.mkv' }],
+    ['/media/c.mkv'],
+    ['/media/a.mkv', '/media/b.mkv'],
+  );
+  assert.deepEqual(refreshed.map((entry) => entry.path), ['/media/a.mkv', '/media/b.mkv']);
+});
 test('independent empty workspace and stable populated selection preserve other sources', () => {
   const first = initialWorkspaceState(), second = initialWorkspaceState();
   first.queue.selectedPaths = selectQueuePaths([], ['/synthetic/a', '/synthetic/a'], true);
@@ -25,8 +35,10 @@ test('active-run early events claim exact identity and ignore stale finishes', (
   buffer.reset(); assert.deepEqual(buffer.claim('run').lines, []);
 });
 test('report evidence distinguishes successful, failed, cancelled and uncertain/recovered files', () => {
-  for (const status of ['OK', 'METADATA_OK', 'TEST_OK', 'INFO']) assert.equal(reportOutcome(status, true, finished()), 'completed');
+  for (const status of ['OK', 'METADATA_OK', 'TEST_OK', 'INFO', 'INTEGRITY_OK']) assert.equal(reportOutcome(status, true, finished()), 'completed');
   assert.equal(reportOutcome('FAILED', true, finished()), 'failed');
+  assert.equal(reportOutcome('CORRUPT', true, finished()), 'failed');
+  assert.equal(reportOutcome('UNREADABLE', true, finished()), 'failed');
   assert.equal(reportOutcome('SKIPPED', true, finished()), 'skipped');
   assert.equal(reportOutcome('INTERRUPTED', true, finished()), 'interrupted');
   assert.equal(reportOutcome(null, false, finished()), 'needs_review');

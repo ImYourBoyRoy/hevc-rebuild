@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import os
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
@@ -63,6 +64,14 @@ class ReleaseGroupSuffixTests(unittest.TestCase):
 
 
 class MatroskaTextScrubTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # These cases mock the Python implementation's tool calls; the Rust helper is
+        # covered by the real-file parity suites (tests/test_metadata_*_native.py).
+        patcher = patch.dict(os.environ)
+        patcher.start()
+        os.environ.pop("HEVC_REBUILD_NATIVE_HELPER", None)
+        self.addCleanup(patcher.stop)
+
     def test_build_tags_applies_glob_to_comment_and_filename_title(self):
         with tempfile.TemporaryDirectory() as temporary:
             media = Path(temporary) / "Example MovieReleaseGroup.mkv"
@@ -70,7 +79,7 @@ class MatroskaTextScrubTests(unittest.TestCase):
             work.mkdir()
             tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
             with patch("hevc_rebuild.metadata._read_existing_global_root", return_value=ET.Element("Tags")):
-                xml_path, title, _, expected, changes = build_tags(
+                xml_path, title, expected, changes = build_tags(
                     tools,
                     media,
                     work,
@@ -89,7 +98,7 @@ class MatroskaTextScrubTests(unittest.TestCase):
             work.mkdir()
             tools = Toolchain("ffmpeg", "ffprobe", "mediainfo", "mkvpropedit", "mkvmerge", "mkvextract", "hdr10plus_tool")
             with patch("hevc_rebuild.metadata._read_existing_global_root", return_value=ET.Element("Tags")):
-                _, _, _, expected, _ = build_tags(
+                _, _, expected, _ = build_tags(
                     tools,
                     media,
                     work,
@@ -111,7 +120,7 @@ class MatroskaTextScrubTests(unittest.TestCase):
                 </Tags>"""
             )
             with patch("hevc_rebuild.metadata._read_existing_global_root", return_value=existing):
-                xml_path, _, _, expected, _ = build_tags(
+                xml_path, _, expected, _ = build_tags(
                     tools,
                     media,
                     work,
@@ -223,7 +232,7 @@ class MatroskaTextScrubTests(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
             with (
-                patch("hevc_rebuild.metadata.build_tags", return_value=(global_tags, "Film", None, {"TITLE": "Film"}, [])),
+                patch("hevc_rebuild.metadata.build_tags", return_value=(global_tags, "Film", {"TITLE": "Film"}, [])),
                 patch("hevc_rebuild.metadata.choose_poster", return_value=None),
                 patch(
                     "hevc_rebuild.metadata.mkv_identify",
@@ -255,7 +264,7 @@ class MatroskaTextScrubTests(unittest.TestCase):
             failed = subprocess.CompletedProcess([], 2, stdout="", stderr="unable to read tags")
 
             with (
-                patch("hevc_rebuild.metadata.build_tags", return_value=(global_tags, "Film", None, {"TITLE": "Film"}, [])),
+                patch("hevc_rebuild.metadata.build_tags", return_value=(global_tags, "Film", {"TITLE": "Film"}, [])),
                 patch("hevc_rebuild.metadata.choose_poster", return_value=None),
                 patch("hevc_rebuild.metadata.run", return_value=failed),
             ):

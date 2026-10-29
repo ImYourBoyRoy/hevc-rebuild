@@ -219,12 +219,21 @@ fn source_bit_depth(profile: &Value) -> i64 {
     integer_at(profile, &["/source_bit_depth", "/video/source_bit_depth"]).unwrap_or(8)
 }
 
-fn recommended_video_rate(profile: &Value, resolution: &str) -> Result<i64, String> {
+pub(crate) fn recommended_video_rate(profile: &Value, resolution: &str) -> Result<i64, String> {
     let (width, height) = expected_dimensions(profile, resolution)?;
     let side = width.min(height);
     let hdr = matches!(upload_color_mode(profile), "hdr10" | "hlg");
     let high_fps = frame_rate(profile) > 30.0;
-    Ok(if side >= 2160 {
+    Ok(if side >= 4320 {
+        // YouTube's 8K guidance is a range (SDR 80-160/120-240 Mbps, HDR
+        // 100-200/150-300 Mbps); use the midpoint like the 4K rows do.
+        match (hdr, high_fps) {
+            (true, true) => 225_000,
+            (true, false) => 150_000,
+            (false, true) => 180_000,
+            (false, false) => 120_000,
+        }
+    } else if side >= 2160 {
         match (hdr, high_fps) {
             (true, true) => 75_500,
             (true, false) => 50_000,
@@ -331,7 +340,7 @@ pub(crate) fn estimate(
     }))
 }
 
-fn build_args(request: &Value) -> Result<Value, String> {
+pub(crate) fn build_args(request: &Value) -> Result<Value, String> {
     let profile = required(request, "profile")?;
     let tools = required(request, "tools")?;
     let ffmpeg = required_string(tools, "ffmpeg")?;
@@ -366,6 +375,21 @@ fn build_args(request: &Value) -> Result<Value, String> {
         return Err(format!(
             "The source has unsupported YouTube color mode {color_mode}."
         ));
+    }
+    let sdr_codec = sdr_codec_of(request)?;
+    let preset = preset_of(request)?;
+    let sdr_hevc = color_mode == "sdr" && sdr_codec == "hevc";
+    if sdr_hevc {
+        let formats = tools
+            .get("x265_pixel_formats")
+            .and_then(Value::as_array)
+            .ok_or("The Rust YouTube plan has no FFmpeg x265 capability list.")?;
+        if !formats
+            .iter()
+            .any(|value| value.as_str() == Some("yuv420p"))
+        {
+            return Err("This FFmpeg does not expose 8-bit libx265 (yuv420p), which the HEVC SDR export requires.".into());
+        }
     }
     if matches!(color_mode, "hdr10" | "hlg") {
         let formats = tools
@@ -435,7 +459,7 @@ fn build_args(request: &Value) -> Result<Value, String> {
             "-pix_fmt:v:0".into(),
             "yuv420p10le".into(),
             "-preset:v:0".into(),
-            "slow".into(),
+            preset.clone(),
             "-tag:v:0".into(),
             "hvc1".into(),
         ]);
@@ -470,6 +494,45 @@ fn build_args(request: &Value) -> Result<Value, String> {
             parameters.push(format!("frame-threads={frame_threads}"));
         }
         args.extend(["-x265-params:v:0".into(), parameters.join(":")]);
+    } else if sdr_hevc {
+        args.extend([
+            "-c:v:0".into(),
+            "libx265".into(),
+            "-profile:v:0".into(),
+            "main".into(),
+            "-pix_fmt:v:0".into(),
+            "yuv420p".into(),
+            "-preset:v:0".into(),
+            preset.clone(),
+            "-tag:v:0".into(),
+            "hvc1".into(),
+        ]);
+        let mut parameters = vec![
+            format!(
+                "keyint={}",
+                (frame_rate(profile) / 2.0).round_ties_even().max(1.0) as i64
+            ),
+            "open-gop=0".to_owned(),
+        ];
+        for (name, field) in [
+            ("colorprim", "color_primaries"),
+            ("transfer", "transfer"),
+            ("colormatrix", "color_matrix"),
+        ] {
+            if let Some(value) = profile_string(profile, field) {
+                parameters.push(format!("{name}={value}"));
+            }
+        }
+        if let Some(range) = string_at(profile, &["/color_range_x265"]) {
+            parameters.push(format!("range={range}"));
+        }
+        if let Some(workers) = workers.filter(|value| *value > 0) {
+            parameters.push(format!("pools={workers}"));
+        }
+        if let Some(frame_threads) = frame_threads {
+            parameters.push(format!("frame-threads={frame_threads}"));
+        }
+        args.extend(["-x265-params:v:0".into(), parameters.join(":")]);
     } else {
         args.extend([
             "-c:v:0".into(),
@@ -479,7 +542,15 @@ fn build_args(request: &Value) -> Result<Value, String> {
             "-pix_fmt:v:0".into(),
             "yuv420p".into(),
             "-preset:v:0".into(),
-            "slow".into(),
+            preset.clone(),
+            // YouTube's recommended H.264 structure: 2 consecutive B-frames and
+            // a closed GOP of half the frame rate.
+            "-bf:v:0".into(),
+            "2".into(),
+            "-g:v:0".into(),
+            ((frame_rate(profile) / 2.0).round_ties_even().max(1.0) as i64).to_string(),
+            "-flags:v:0".into(),
+            "+cgop".into(),
         ]);
     }
     args.extend([
@@ -491,24 +562,29 @@ fn build_args(request: &Value) -> Result<Value, String> {
         format!("{}k", bitrate.saturating_mul(2)),
         "-fps_mode:v:0".into(),
         "passthrough".into(),
-        "-c:a".into(),
-        "aac".into(),
-        "-profile:a".into(),
-        "aac_low".into(),
-        "-b:a".into(),
-        "384k".into(),
-        "-ar".into(),
-        "48000".into(),
         "-threads:v:0".into(),
         workers.unwrap_or(1).max(1).to_string(),
     ]);
+    match request.get("audio_plan").and_then(Value::as_array) {
+        Some(plan) => args.extend(crate::youtube_optimize::audio_args_from_json(plan)?),
+        None => args.extend([
+            "-c:a".into(),
+            "aac".into(),
+            "-profile:a".into(),
+            "aac_low".into(),
+            "-b:a".into(),
+            "384k".into(),
+            "-ar".into(),
+            "48000".into(),
+        ]),
+    }
     for (option, field) in [
         ("-color_primaries:v:0", "color_primaries"),
         ("-color_trc:v:0", "transfer"),
         ("-colorspace:v:0", "color_matrix"),
         ("-color_range:v:0", "color_range_ffmpeg"),
     ] {
-        if let Some(value) = string_at(profile, &[&format!("/{field}")]) {
+        if let Some(value) = profile_string(profile, field) {
             args.extend([option.into(), value]);
         }
     }
@@ -522,7 +598,25 @@ fn build_args(request: &Value) -> Result<Value, String> {
     Ok(json!({"args": args, "color_mode": color_mode}))
 }
 
-fn normalized_target(path: &Path) -> Result<std::path::PathBuf, String> {
+fn sdr_codec_of(request: &Value) -> Result<String, String> {
+    match request.get("sdr_codec").and_then(Value::as_str) {
+        None | Some("h264") => Ok("h264".into()),
+        Some("hevc") => Ok("hevc".into()),
+        Some(other) => Err(format!("SDR codec must be h264 or hevc, not {other:?}.")),
+    }
+}
+
+fn preset_of(request: &Value) -> Result<String, String> {
+    match request.get("preset").and_then(Value::as_str) {
+        None => Ok("slow".into()),
+        Some(value @ ("medium" | "slow" | "slower")) => Ok(value.into()),
+        Some(other) => Err(format!(
+            "Encoder preset must be medium, slow, or slower, not {other:?}."
+        )),
+    }
+}
+
+pub(crate) fn normalized_target(path: &Path) -> Result<std::path::PathBuf, String> {
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -535,7 +629,7 @@ fn normalized_target(path: &Path) -> Result<std::path::PathBuf, String> {
     Ok(parent.join(name))
 }
 
-fn validate_request(request: &Value) -> Result<Value, String> {
+pub(crate) fn validate_request(request: &Value) -> Result<Value, String> {
     let profile = required(request, "profile")?;
     let ffprobe = required_string(required(request, "tools")?, "ffprobe")?;
     let output = Path::new(required_string(request, "output")?);
@@ -549,14 +643,53 @@ fn validate_request(request: &Value) -> Result<Value, String> {
     }
     let resolution = required_string(request, "resolution")?;
     let probe = crate::media_scan::probe_output(ffprobe, output)?;
-    let (width, height) = validate_output(profile, &probe, resolution)?;
+    let expect = Expect {
+        sdr_codec: sdr_codec_of(request)?,
+        video_codec: request
+            .get("expected_codec")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        allow_copied_audio: request.get("allow_copied_audio").and_then(Value::as_bool)
+            == Some(true),
+    };
+    let (width, height) = validate_output_with(profile, &probe, resolution, &expect)?;
     Ok(json!({"width": width, "height": height}))
 }
 
+/// What an output must look like beyond the source-derived color and size rules.
+pub(crate) struct Expect {
+    /// SDR encode target when the codec is not pinned: `h264` or `hevc`.
+    pub(crate) sdr_codec: String,
+    /// Pins the video codec (a stream copy keeps the source codec).
+    pub(crate) video_codec: Option<String>,
+    /// Audio streams copied from the source may keep a YouTube-supported codec.
+    pub(crate) allow_copied_audio: bool,
+}
+
+impl Default for Expect {
+    fn default() -> Self {
+        Self {
+            sdr_codec: "h264".into(),
+            video_codec: None,
+            allow_copied_audio: false,
+        }
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn validate_output(
     source: &Value,
     probe: &Value,
     resolution: &str,
+) -> Result<(i64, i64), String> {
+    validate_output_with(source, probe, resolution, &Expect::default())
+}
+
+pub(crate) fn validate_output_with(
+    source: &Value,
+    probe: &Value,
+    resolution: &str,
+    expect: &Expect,
 ) -> Result<(i64, i64), String> {
     let color_mode = upload_color_mode(source);
     if !matches!(color_mode, "sdr" | "hdr10" | "hlg") {
@@ -579,10 +712,10 @@ pub(crate) fn validate_output(
         .into_iter()
         .next()
         .ok_or("The upload copy contains no usable video stream.")?;
-    let expected_codec = if matches!(color_mode, "hdr10" | "hlg") {
-        "hevc"
-    } else {
-        "h264"
+    let expected_codec = match (&expect.video_codec, color_mode) {
+        (Some(pinned), _) => pinned.as_str(),
+        (None, "hdr10" | "hlg") => "hevc",
+        (None, _) => expect.sdr_codec.as_str(),
     };
     let codec = video
         .get("codec_name")
@@ -643,9 +776,14 @@ pub(crate) fn validate_output(
         .collect::<Vec<_>>();
     if source_audio > 0
         && (audio.is_empty()
-            || audio
-                .iter()
-                .any(|stream| stream.get("codec_name").and_then(Value::as_str) != Some("aac")))
+            || audio.iter().any(|stream| {
+                let codec = stream.get("codec_name").and_then(Value::as_str);
+                if expect.allow_copied_audio {
+                    !codec.is_some_and(crate::youtube_optimize::is_copyable_audio)
+                } else {
+                    codec != Some("aac")
+                }
+            }))
     {
         return Err(
             "The source has audio, but the upload copy did not validate as AAC audio.".into(),
@@ -773,8 +911,35 @@ fn round_i64(value: f64) -> i64 {
         .clamp(i64::MIN as f64, i64::MAX as f64) as i64
 }
 
+/// Profile keys for one color field. Native profiles call the transfer
+/// characteristic `color_transfer`; the compatibility bridge calls it `transfer`.
+fn profile_pointers(field: &str) -> Vec<String> {
+    let mut pointers = vec![format!("/{field}")];
+    if field == "transfer" {
+        pointers.push("/color_transfer".into());
+    }
+    pointers
+}
+
+fn profile_string(profile: &Value, field: &str) -> Option<String> {
+    let pointers = profile_pointers(field);
+    let refs: Vec<&str> = pointers.iter().map(String::as_str).collect();
+    string_at(profile, &refs)
+}
+
+/// The skip message for an `unsupported-*` color mode, or `None` when supported.
+pub(crate) fn unsupported_color_message(color_mode: &str) -> Option<&'static str> {
+    match color_mode {
+        "unsupported-dolby-vision" => Some("Dolby Vision requires a dedicated RPU-aware workflow; this export does not preserve Dolby Vision metadata."),
+        "unsupported-bit-depth" => Some("HDR upload requires a 10-bit or 12-bit source video stream."),
+        "unsupported-color-tags" => Some("HDR upload requires Rec. 2020 primaries and the Rec. 2020 non-constant-luminance matrix."),
+        "unsupported-transfer" => Some("HDR upload requires PQ or HLG transfer metadata; this source's HDR transfer tag is missing or unsupported."),
+        _ => None,
+    }
+}
+
 fn required_profile_string(profile: &Value, field: &str) -> Result<String, String> {
-    string_at(profile, &[&format!("/{field}")])
+    profile_string(profile, field)
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| format!("YouTube HDR profile is missing {field}."))
 }
@@ -856,6 +1021,42 @@ mod tests {
                 .as_str()
                 .unwrap()
                 .contains("max-cll=1000,400:pools=8:frame-threads=0")));
+    }
+
+    #[test]
+    fn eight_k_uses_the_eight_k_bitrate_tier_not_the_four_k_one() {
+        let sdr = sdr_profile(7680, 4320, "30/1");
+        assert_eq!(recommended_video_rate(&sdr, "source").unwrap(), 120_000);
+        let fast = sdr_profile(7680, 4320, "60/1");
+        assert_eq!(recommended_video_rate(&fast, "source").unwrap(), 180_000);
+        let hdr = json!({
+            "video": {"width": 7680, "height": 4320, "source_bit_depth": 10},
+            "hdr": {"hdr10": true}, "color_primaries": "bt2020",
+            "transfer": "smpte2084", "color_matrix": "bt2020nc",
+            "primary_stream_index": 0,
+            "tracks": [{"index": 0, "ffprobe": {"avg_frame_rate": "24/1"}}]
+        });
+        assert_eq!(recommended_video_rate(&hdr, "source").unwrap(), 150_000);
+    }
+
+    #[test]
+    fn sdr_h264_follows_youtube_gop_guidance() {
+        let request = json!({
+            "profile": sdr_profile(2560, 1440, "60/1"),
+            "tools": {"ffmpeg": "ffmpeg"},
+            "source_path": "source.mkv", "output": "output.mp4",
+            "resolution": "source", "video_bitrate_kbps": 24_000
+        });
+        let plan = build_args(&request).unwrap();
+        let args = plan["args"].as_array().unwrap();
+        let has = |key: &str, value: &str| {
+            args.windows(2)
+                .any(|pair| pair[0] == key && pair[1] == value)
+        };
+        assert!(has("-c:v:0", "libx264"));
+        assert!(has("-bf:v:0", "2"));
+        assert!(has("-g:v:0", "30"));
+        assert!(has("-flags:v:0", "+cgop"));
     }
 
     #[test]

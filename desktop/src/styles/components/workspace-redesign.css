@@ -1,0 +1,116 @@
+/* ./desktop/src/styles/components/workspace-redesign.css
+   Library landing, compact scan options, mode-gated Run controls, and
+   Stop now confirm chrome. Tokens only; type-scale.css owns the 14px floor. */
+
+.app-shell .sidebar-nav-utility {
+  margin-top: 18px;
+}
+
+.app-shell .icon-button.active-help {
+  color: var(--theme-accent-strong);
+  background: var(--theme-accent-soft);
+  box-shadow: 0 0 0 2px var(--theme-accent);
+}
+
+.app-shell .library-toolbar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell .library-toolbar.library-toolbar-idle {
+  gap: 0;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell .library-scan-options {
+  min-width: 0;
+}
+
+.app-shell .library-scan-options summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 2px;
+  cursor: pointer;
+  color: var(--theme-muted);
+  font-size: var(--type-ui);
+  font-weight: 650;
+}
+
+.app-shell .library-scan-options summary:hover,
+.app-shell .library-scan-options[open] summary {
+  color: var(--theme-text);
+}
+
+.app-shell .library-scan-options .folder-field,
+.app-shell .library-scan-options .toolbar-options {
+  margin-top: 10px;
+}
+
+.app-shell .empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-shell .run-mode-tab-title {
+  font-size: var(--type-ui);
+}
+
+.app-shell .run-encoder-details {
+  display: grid;
+  gap: 14px;
+  margin: 8px 0 4px;
+}
+
+.app-shell .run-encoder-details > summary {
+  cursor: pointer;
+  color: var(--theme-text);
+  font-size: var(--type-section);
+  font-weight: 700;
+}
+
+.app-shell .run-encoder-details[open] > summary {
+  margin-bottom: 8px;
+}
+
+.app-shell .run-stop-pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-shell .button.danger {
+  color: #fff8f6;
+  border-color: color-mix(in srgb, var(--theme-danger-text) 72%, #4a1814);
+  background: color-mix(in srgb, var(--theme-danger-text) 88%, #2a0d0b);
+}
+
+.app-shell .button.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-danger-text) 96%, #140606);
+}
+
+.app-shell .stop-now-symbol {
+  color: var(--theme-danger-text);
+  background: var(--theme-danger-surface);
+}
+
+.app-shell .stop-now-modal p code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 800px) {
+  .app-shell .run-stop-pair,
+  .app-shell .run-launch > .run-stop-pair {
+    width: 100%;
+  }
+
+  .app-shell .run-stop-pair .button {
+    flex: 1 1 160px;
+  }
+}

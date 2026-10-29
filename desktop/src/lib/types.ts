@@ -1,4 +1,9 @@
-export type RunMode = 'check' | 'metadata' | 'test' | 'full' | 'youtube';
+export type YoutubeMode = 'upscale' | 'optimize';
+export type YoutubeSdrCodec = 'h264' | 'hevc';
+export type YoutubePreset = 'slow' | 'medium' | 'slower';
+export type YoutubeShrink = 'auto' | 'off' | 'aggressive';
+export type YoutubeQualityCheck = 'standard' | 'off' | 'relaxed' | 'strict';
+export type RunMode = 'check' | 'integrity' | 'metadata' | 'test' | 'full' | 'youtube';
 export type Page = 'home' | 'library' | 'metadata' | 'youtube' | 'run' | 'settings' | 'reports' | 'help';
 
 export interface ToolPaths {
@@ -294,6 +299,7 @@ export interface ScanResult {
   settings_sources: string[];
   warnings?: string[];
   discovery_limit_reached?: boolean;
+  interrupted?: boolean;
 }
 
 export interface MediaQueueSource {
@@ -304,6 +310,8 @@ export interface MediaQueueSource {
   updatedAtMs: number;
   changedFiles: string[];
   missingFiles: string[];
+  excludedPaths: string[];
+  entryOrder: string[];
 }
 
 export interface MediaQueueDocument {
@@ -421,8 +429,6 @@ export interface QueueMovieReview {
   artworkCandidates: QueueArtworkCandidate[];
   posterId: string;
   localPosterPath: string;
-  nfoPaths: string[];
-  nfoError: string;
 }
 
 export interface QueueTvEpisode {
@@ -462,8 +468,6 @@ export interface QueueSeriesReview {
   localPosterPath: string;
   localSeasonPosterPaths: Record<string, string>;
   seasonRecords: Record<string, QueueSeasonReview>;
-  nfoPaths: string[];
-  nfoError: string;
   episodes: QueueTvEpisode[];
   episodeAssignments: Record<string, QueueTvEpisode>;
 }
@@ -546,6 +550,11 @@ export interface RunRequest {
   youtubeResolution: 'source' | '1440p' | '4k';
   youtubeQualityMode: 'balanced' | 'recommended';
   youtubeSourceMultiplier: number;
+  youtubeMode: YoutubeMode;
+  youtubeSdrCodec: YoutubeSdrCodec;
+  youtubePreset: YoutubePreset;
+  youtubeShrink: YoutubeShrink;
+  youtubeQualityCheck: YoutubeQualityCheck;
   youtubeOutputDir: string | null;
   settings: Settings;
   stopOnError: boolean;

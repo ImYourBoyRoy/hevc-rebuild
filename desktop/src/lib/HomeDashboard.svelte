@@ -168,7 +168,7 @@
         <span>{checkSummary}</span>
         <button class="text-button" type="button" onclick={onRefreshChecks}>Refresh</button>
         {#if checks.length}<button class="text-button" type="button" onclick={() => (checksOpen = !checksOpen)}>{checksOpen ? "Hide tools" : "Show tools"}</button>{/if}
-        {#if missingRequired.length}<button class="text-button" type="button" onclick={() => onOpen("run")}>Run setup</button>{/if}
+        {#if missingRequired.length}<button class="text-button" type="button" onclick={() => onOpen("settings")}>Open Settings</button>{/if}
       </div>
     </div>
     {#if missingRequired.length}

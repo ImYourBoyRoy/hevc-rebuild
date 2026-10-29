@@ -9,7 +9,7 @@ async function contract(page){
   await page.getByRole('combobox',{name:'Minimum output tier'}).selectOption('4k');if(!(await callback.textContent()).includes('4k'))throw new Error('Resolution persistence');
   await page.getByRole('combobox',{name:'Bitrate profile'}).selectOption('recommended');if(!await page.getByRole('slider',{name:'Balanced source size target multiplier'}).isDisabled())throw new Error('Profile multiplier gate');
   await page.getByRole('button',{name:'Use default',exact:true}).click();if(!(await callback.textContent()).includes('null'))throw new Error('Output default contract');
-  await page.getByRole('checkbox',{name:'YouTube active',exact:true}).check();await page.getByRole('button',{name:'Stop after current file',exact:true}).click();if(await callback.textContent()!=='stop')throw new Error('Stop contract');
+  await page.getByRole('checkbox',{name:'YouTube active',exact:true}).check();await page.getByRole('button',{name:'Stop after this file',exact:true}).click();if(await callback.textContent()!=='stop')throw new Error('Stop contract');
   await page.getByRole('checkbox',{name:'YouTube active',exact:true}).uncheck();await page.getByRole('checkbox',{name:'YouTube busy',exact:true}).check();if(!await page.getByRole('button',{name:'Add folder',exact:true}).isDisabled())throw new Error('Busy gate');
   return {independentOpen:true,normalLiveGuidance:true,hdrPolicy:true,noSource:true,preferences:true,outputBoundary:true,failure:true,stop:true,busy:true};
 }

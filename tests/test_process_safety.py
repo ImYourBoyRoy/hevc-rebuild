@@ -80,9 +80,13 @@ class ProcessSafetyTests(unittest.TestCase):
                 util.run([sys.executable, "-c", parent_code, str(pid_file), child_code], timeout=0.25)
             pid = int(pid_file.read_text())
             proc_stat = Path(f"/proc/{pid}/stat")
-            if proc_stat.exists():
-                # An adopted zombie has terminated and cannot hold pipes/run work.
-                self.assertEqual(proc_stat.read_text().split()[2], "Z")
+            try:
+                state = proc_stat.read_text().split()[2]
+            except (FileNotFoundError, ProcessLookupError):
+                return  # Already reaped: terminated, which is the requirement.
+            # A terminated process is a zombie ("Z") or, momentarily while the
+            # kernel reaps it, dead ("X"); neither can hold pipes or run work.
+            self.assertIn(state, {"Z", "X"})
 
     def test_success_and_nonzero_status_keep_completed_process_contract(self):
         result = util.run([sys.executable, "-c", "print('ordinary output')"])

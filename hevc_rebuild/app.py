@@ -541,6 +541,12 @@ def parse_file_metadata_overrides(raw: str, root: Path) -> dict[str, dict[str, o
     return result
 
 
+def _reviewed_genres(override: dict[str, object] | None) -> list[str]:
+    """Reviewed genres for one file; they feed the automatic animation-tune decision."""
+    genres = (override or {}).get("genres")
+    return [item for item in genres if isinstance(item, str)] if isinstance(genres, list) else []
+
+
 def _gui_queue_percent(number: int, total: int, file_fraction: float) -> float:
     return ((number - 1) + max(0.0, min(1.0, file_fraction))) / max(1, total) * 100.0
 
@@ -1517,6 +1523,7 @@ def process_one(tools: Toolchain, source: Path, root: Path, args, csv_path: Path
             args.tune,
             args.detect_animation,
             per_file_tune,
+            _reviewed_genres((getattr(args, "file_metadata_overrides", {}) or {}).get(str(profile.path.resolve()))),
         )
         row["content_tune"] = content_tune or "normal"
         info_plan = None

@@ -16,7 +16,12 @@ use std::time::{Duration, Instant};
 
 const MAX_CAPTURE_BYTES: usize = 1024 * 1024;
 const TOOL_CHECKS: &[(&str, &str, &[&str], bool)] = &[
-    ("python3", "Python 3 runtime", &["--version"], true),
+    (
+        "python3",
+        "Python 3 (legacy encode engine)",
+        &["--version"],
+        true,
+    ),
     ("ffmpeg", "FFmpeg", &["-hide_banner", "-version"], true),
     ("ffprobe", "FFprobe", &["-version"], true),
     ("mediainfo", "MediaInfo", &["--Version"], true),
@@ -240,20 +245,14 @@ pub(crate) fn inspect_environment(
     };
     let supported = os.get("supported").and_then(Value::as_bool) == Some(true);
     let analysis_ready = available("ffprobe") && available("mediainfo");
+    // YouTube export runs natively in Rust; Python is not required.
     let youtube_ready = supported
-        && [
-            "python3",
-            "ffmpeg",
-            "ffprobe",
-            "mediainfo",
-            "libx264",
-            "aac",
-        ]
-        .iter()
-        .all(|key| available(key));
+        && ["ffmpeg", "ffprobe", "mediainfo", "libx264", "aac"]
+            .iter()
+            .all(|key| available(key));
+    // Metadata-only MKV runs natively in Rust; Python is not required.
     let metadata_ready = supported
         && [
-            "python3",
             "ffmpeg",
             "ffprobe",
             "mediainfo",
@@ -276,12 +275,12 @@ pub(crate) fn inspect_environment(
         "hardware": {
             "cpu_model": cpu_model(),
             "logical_cpus": logical_cpus(),
-            "memory_total_gib": memory.0,
-            "memory_available_gib": memory.1,
-            "swap_total_gib": memory.2,
-            "swap_free_gib": memory.3,
-            "swap_used_gib": memory.4,
-            "swap_used_percent": memory.5,
+            "memory_total_gib": memory.total_gib,
+            "memory_available_gib": memory.available_gib,
+            "swap_total_gib": memory.swap_total_gib,
+            "swap_free_gib": memory.swap_free_gib,
+            "swap_used_gib": memory.swap_used_gib,
+            "swap_used_percent": memory.swap_used_percent,
             "gpu_devices": gpu_devices(),
             "encoder": "CPU libx265",
         },
@@ -310,7 +309,6 @@ fn required_engine_tools(purpose: &str) -> Result<&'static [&'static str], Strin
             "libx265",
         ]),
         "metadata" => Ok(&[
-            "python3",
             "ffmpeg",
             "ffprobe",
             "mediainfo",
@@ -765,9 +763,9 @@ fn is_executable_file(path: &Path) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        return fs::metadata(path)
+        fs::metadata(path)
             .ok()
-            .is_some_and(|metadata| metadata.permissions().mode() & 0o111 != 0);
+            .is_some_and(|metadata| metadata.permissions().mode() & 0o111 != 0)
     }
     #[cfg(not(unix))]
     {
@@ -1126,14 +1124,16 @@ pub(crate) fn logical_cpus() -> usize {
         .max(1)
 }
 
-fn memory_stats() -> (
-    Option<f64>,
-    Option<f64>,
-    Option<f64>,
-    Option<f64>,
-    Option<f64>,
-    Option<f64>,
-) {
+struct MemoryStats {
+    total_gib: Option<f64>,
+    available_gib: Option<f64>,
+    swap_total_gib: Option<f64>,
+    swap_free_gib: Option<f64>,
+    swap_used_gib: Option<f64>,
+    swap_used_percent: Option<f64>,
+}
+
+fn memory_stats() -> MemoryStats {
     let values = fs::read_to_string("/proc/meminfo")
         .ok()
         .map(|text| {
@@ -1166,14 +1166,14 @@ fn memory_stats() -> (
             0.0
         }
     });
-    (
-        total,
-        available,
-        swap_total,
-        swap_free,
-        swap_used,
-        swap_percent,
-    )
+    MemoryStats {
+        total_gib: total,
+        available_gib: available,
+        swap_total_gib: swap_total,
+        swap_free_gib: swap_free,
+        swap_used_gib: swap_used,
+        swap_used_percent: swap_percent,
+    }
 }
 
 fn cgroup_memory_gib() -> Option<(f64, f64)> {

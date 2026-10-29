@@ -90,7 +90,6 @@ class MediaProfile:
 class MetadataResult:
     xml_path: Path
     title: str
-    nfo_path: Path | None
     poster_path: Path | None
     expected_global_tags: dict[str, str] = field(default_factory=dict)
     scrubbed_text_values: list[dict[str, Any]] = field(default_factory=list)

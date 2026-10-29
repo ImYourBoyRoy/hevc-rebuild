@@ -52,16 +52,16 @@ struct GuardResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct GuardDecision {
-    action: &'static str,
+pub(crate) struct GuardDecision {
+    pub(crate) action: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
-    reason: Option<&'static str>,
+    pub(crate) reason: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    available_gib: Option<f64>,
+    pub(crate) available_gib: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    free_bytes: Option<u64>,
+    pub(crate) free_bytes: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    projected_remaining_bytes: Option<u64>,
+    pub(crate) projected_remaining_bytes: Option<u64>,
 }
 
 impl GuardDecision {
@@ -242,6 +242,58 @@ fn handle_line(
     let decision = policy.evaluate(sample)?;
     serde_json::to_value(GuardResponse { decision, snapshot })
         .map_err(|error| format!("Could not serialize Rust runtime-guard decision: {error}"))
+}
+
+/// In-process guard for native coordinators: one stateful policy and one
+/// resource sampler per encode attempt (the JSON-lines helper above wraps the
+/// same two pieces for the Python compatibility engine).
+pub(crate) struct LiveGuard {
+    policy: GuardPolicy,
+    sampler: Sampler,
+}
+
+/// One progress-time observation for `LiveGuard::observe`.
+pub(crate) struct GuardObservation<'a> {
+    pub(crate) pid: u32,
+    pub(crate) disk_path: &'a std::path::Path,
+    pub(crate) memory_guard_gib: f64,
+    pub(crate) disk_guard_bytes: u64,
+    pub(crate) projection_margin_percent: f64,
+    pub(crate) progress_seconds: f64,
+    pub(crate) expected_duration: f64,
+    pub(crate) output_bytes: u64,
+}
+
+impl LiveGuard {
+    pub(crate) fn new() -> Self {
+        Self {
+            policy: GuardPolicy::default(),
+            sampler: Sampler::new(),
+        }
+    }
+
+    pub(crate) fn observe(
+        &mut self,
+        observation: GuardObservation<'_>,
+    ) -> Result<(GuardDecision, RuntimeResourceSnapshot), String> {
+        let snapshot = self
+            .sampler
+            .sample(observation.pid, Some(observation.disk_path));
+        let sample = GuardSample {
+            available_gib: snapshot.memory_available_gib,
+            memory_guard_gib: observation.memory_guard_gib,
+            swap_in_bytes_per_second: snapshot.swap_in_bytes_per_second,
+            memory_full_avg10: snapshot.memory_full_avg10,
+            disk_free_bytes: snapshot.disk_free_bytes,
+            disk_guard_bytes: observation.disk_guard_bytes,
+            projection_margin_percent: observation.projection_margin_percent,
+            progress_seconds: observation.progress_seconds,
+            expected_duration: observation.expected_duration,
+            output_bytes: observation.output_bytes,
+        };
+        let decision = self.policy.evaluate(sample)?;
+        Ok((decision, snapshot))
+    }
 }
 
 pub(crate) fn cli_mode(args: Vec<OsString>) -> i32 {

@@ -18,6 +18,7 @@ export interface RunState {
   starting: boolean;
   mode: RunMode;
   stopAfterCurrent: boolean;
+  aborting: boolean;
   lines: string[];
   progress: RunProgressEvent | null;
   startedAt: number | null;
@@ -33,7 +34,7 @@ export interface WorkspaceState { queue: QueueState; run: RunState; notice: Noti
 export function initialWorkspaceState(): WorkspaceState {
   return {
     queue: { sources: [], activeRoot: null, loaded: false, file: '', persistenceWarning: '', persistenceError: '', selectedPaths: [], runStates: {} },
-    run: { id: '', starting: false, mode: 'check', stopAfterCurrent: false, lines: [], progress: null, startedAt: null, progressSeenAt: null, resources: null, message: '' },
+    run: { id: '', starting: false, mode: 'check', stopAfterCurrent: false, aborting: false, lines: [], progress: null, startedAt: null, progressSeenAt: null, resources: null, message: '' },
     notice: { message: '', kind: 'info' },
   };
 }
@@ -42,6 +43,32 @@ export function initialWorkspaceState(): WorkspaceState {
 export function selectQueuePaths(current: string[], paths: Iterable<string>, selected: boolean): string[] {
   const changed = new Set(paths);
   return selected ? [...new Set([...current, ...changed])] : current.filter(path => !changed.has(path));
+}
+
+/** Move one queued item; out-of-range indexes leave the list unchanged. */
+export function moveQueueItem<T>(items: readonly T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) return [...items];
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+/** Hide removed files and restore a saved order after a refresh. */
+export function applyQueueFilePolicy<T extends { path: string }>(
+  entries: readonly T[],
+  excludedPaths: readonly string[],
+  entryOrder: readonly string[],
+  pathKey: (path: string) => string = (path) => path,
+): T[] {
+  const excluded = new Set(excludedPaths.map(pathKey));
+  const visible = entries.filter((entry) => !excluded.has(pathKey(entry.path)));
+  const order = new Map(entryOrder.map((path, index) => [pathKey(path), index]));
+  return [...visible].sort((left, right) => {
+    const leftIndex = order.get(pathKey(left.path)) ?? Number.MAX_SAFE_INTEGER;
+    const rightIndex = order.get(pathKey(right.path)) ?? Number.MAX_SAFE_INTEGER;
+    return leftIndex - rightIndex;
+  });
 }
 
 /** Events can arrive before start_run resolves; only the returned run ID is accepted. */
@@ -68,8 +95,8 @@ export class RunEventBuffer {
 /** A successful process exit alone cannot complete a file absent matching report evidence. */
 export function reportOutcome(status: string | null | undefined, hasRow: boolean, finished: RunFinishedEvent): MediaQueueRunState['status'] {
   const normalized = status?.trim().toUpperCase() ?? null;
-  if (['OK', 'METADATA_OK', 'TEST_OK', 'INFO'].includes(normalized ?? '')) return 'completed';
-  if (normalized === 'FAILED') return 'failed';
+  if (['OK', 'METADATA_OK', 'TEST_OK', 'INFO', 'INTEGRITY_OK'].includes(normalized ?? '')) return 'completed';
+  if (normalized === 'FAILED' || normalized === 'CORRUPT' || normalized === 'UNREADABLE') return 'failed';
   if (normalized === 'SKIPPED') return 'skipped';
   if (normalized === 'INTERRUPTED') return 'interrupted';
   if (!hasRow && finished.stopRequested) return 'queued';

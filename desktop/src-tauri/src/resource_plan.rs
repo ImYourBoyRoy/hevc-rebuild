@@ -47,16 +47,28 @@ fn setting_string<'a>(settings: &'a Value, key: &str, fallback: &'a str) -> &'a 
         .unwrap_or(fallback)
 }
 
-pub(crate) fn memory_forecast(
-    profile: &Value,
-    settings: &Value,
-    host: &Value,
-    full_memory_psi: Option<f64>,
-    target_dimensions: Option<(i64, i64)>,
-    preset_override: Option<&str>,
-    frame_threads_override: Option<i64>,
-    concurrent_video_streams: i64,
-) -> Value {
+pub(crate) struct MemoryForecastInput<'a> {
+    pub profile: &'a Value,
+    pub settings: &'a Value,
+    pub host: &'a Value,
+    pub full_memory_psi: Option<f64>,
+    pub target_dimensions: Option<(i64, i64)>,
+    pub preset_override: Option<&'a str>,
+    pub frame_threads_override: Option<i64>,
+    pub concurrent_video_streams: i64,
+}
+
+pub(crate) fn memory_forecast(input: MemoryForecastInput<'_>) -> Value {
+    let MemoryForecastInput {
+        profile,
+        settings,
+        host,
+        full_memory_psi,
+        target_dimensions,
+        preset_override,
+        frame_threads_override,
+        concurrent_video_streams,
+    } = input;
     let concurrent = concurrent_video_streams.clamp(1, 16);
     let hardware = host.get("hardware").cloned().unwrap_or_else(|| json!({}));
     let cpu = hardware
@@ -278,7 +290,7 @@ fn round3(value: f64) -> f64 {
     (value * 1000.0).round_ties_even() / 1000.0
 }
 
-fn retry_plan(
+pub(crate) fn retry_plan(
     workers: i64,
     frames: i64,
     per_frame: f64,
@@ -346,6 +358,21 @@ struct RetryPlanRequest {
     planning_budget_gib: Option<f64>,
 }
 
+/// Live host description in the shape `memory_forecast` expects.
+pub(crate) fn live_host() -> Value {
+    let live = crate::resource_monitor::sample_current_host();
+    json!({
+        "hardware": {
+            "logical_cpus": crate::environment::logical_cpus(),
+            "memory_available_gib": live.memory_available_gib,
+            "memory_total_gib": live.memory_total_gib,
+            "swap_free_gib": live.swap_free_gib,
+            "swap_used_gib": live.swap_used_gib,
+            "swap_used_percent": live.swap_used_percent
+        }
+    })
+}
+
 pub(crate) fn runtime_cli_mode(args: Vec<OsString>) -> i32 {
     if !args.is_empty() {
         eprintln!("The internal resource-plan command does not accept options.");
@@ -383,16 +410,16 @@ pub(crate) fn runtime_cli_mode(args: Vec<OsString>) -> i32 {
     } else {
         request.full_memory_psi_avg10
     };
-    let mut result = memory_forecast(
-        &request.profile,
-        &request.settings,
-        &host,
-        full_memory_psi_avg10,
-        dimensions,
-        request.preset_override.as_deref(),
-        request.frame_threads_override,
-        request.concurrent_video_streams,
-    );
+    let mut result = memory_forecast(MemoryForecastInput {
+        profile: &request.profile,
+        settings: &request.settings,
+        host: &host,
+        full_memory_psi: full_memory_psi_avg10,
+        target_dimensions: dimensions,
+        preset_override: request.preset_override.as_deref(),
+        frame_threads_override: request.frame_threads_override,
+        concurrent_video_streams: request.concurrent_video_streams,
+    });
     if let Some(fields) = result.as_object_mut() {
         fields.insert("cpu_threads".into(), json!(cpu_threads));
     }
@@ -461,7 +488,7 @@ pub(crate) fn memory_full_avg10() -> Option<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::memory_forecast;
+    use super::{memory_forecast, MemoryForecastInput};
     use serde_json::Value;
 
     fn assert_expected(actual: &Value, expected: &Value) {
@@ -522,16 +549,16 @@ mod tests {
                         .expect("target height must be an integer"),
                 )
             });
-            let forecast = memory_forecast(
-                &case["profile"],
-                &case["settings"],
-                &case["host"],
-                case["memory_psi_full_avg10"].as_f64(),
+            let forecast = memory_forecast(MemoryForecastInput {
+                profile: &case["profile"],
+                settings: &case["settings"],
+                host: &case["host"],
+                full_memory_psi: case["memory_psi_full_avg10"].as_f64(),
                 target_dimensions,
-                case["preset_override"].as_str(),
-                case["frame_threads_override"].as_i64(),
-                case["concurrent_video_streams"].as_i64().unwrap_or(1),
-            );
+                preset_override: case["preset_override"].as_str(),
+                frame_threads_override: case["frame_threads_override"].as_i64(),
+                concurrent_video_streams: case["concurrent_video_streams"].as_i64().unwrap_or(1),
+            });
             assert_expected(&forecast, &case["expected"]);
             assert_expected(&forecast["retry_plan"], &case["retry_expected"]);
             assert!(

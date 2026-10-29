@@ -13,8 +13,9 @@ pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-The current media engine also requires Python 3, FFmpeg/FFprobe, MediaInfo, and
-MKVToolNix. Host setup is documented in [TOOLS.md](../docs/TOOLS.md).
+Check only, integrity, Metadata-only MKV, and YouTube upload preparation run
+natively in Rust and need FFmpeg/FFprobe and MediaInfo (plus MKVToolNix for
+metadata-only). Short tests and full rebuilds still use the Python 3 engine. Host setup is documented in [TOOLS.md](../docs/TOOLS.md).
 
 ## Build
 

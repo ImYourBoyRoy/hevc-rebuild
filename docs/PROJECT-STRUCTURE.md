@@ -25,7 +25,7 @@ entry points, build metadata, and the canonical project instructions.
 | `desktop/src-tauri/src/` | Rust native services, typed GUI/CLI/MCP boundary, tool inspection, queue persistence, scan, run planning, and native process work. |
 | `desktop/src-tauri/` | Tauri manifest, Rust lockfile, icons, and native packaging configuration. |
 | `desktop/tests/` | Isolated browser/component contracts. These fixtures do not access native dialogs, credentials, or user media. |
-| `tests/` | Python behavior, safety, parity, and synthetic-fixture tests. |
+| `tests/` | Python behavior, safety, parity, and synthetic-fixture tests. `tests/fixtures/local/` is gitignored and holds optional real-media clips (for example `clip15.mkv` from `tools/extract_clip.py`) that native parity tests use when present. |
 | `tools/` | Explicitly invoked fixture, benchmark, and inspection utilities. |
 
 ## Human-facing and release files

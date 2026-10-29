@@ -1,7 +1,7 @@
 <!-- ./desktop/src/lib/LibraryPosterGrid.svelte
      Media library poster cards. Each queued file shows its poster, title, current name,
      and proposed name, with a matching indicator while metadata arrives. Selection,
-     the Animated mark, and Rename / Metadata-only / Rebuild sit on the cards.
+     the Animated mark, and Rename / Organize titles / Metadata-only / Rebuild sit on the cards.
      Streams, memory, and output stay behind the card. -->
 <script lang="ts">
   import { ChevronRight, Film, LoaderCircle } from "@lucide/svelte";
@@ -54,11 +54,14 @@
     canAdjustRun: boolean;
     onAdjustRun: (paths: string[]) => void;
     onRename: () => void;
+    onOrganize?: () => void;
     onMetadata: () => void;
+    onIntegrity: () => void;
     onRebuild: () => void;
     onSetOutput: (path: string) => void;
     onClearOutput: (path: string) => void;
     onSelectPage: (selected: boolean) => void;
+    onRemoveFromQueue?: (paths: string[]) => void;
   }
 
   let {
@@ -83,11 +86,14 @@
     canAdjustRun,
     onAdjustRun,
     onRename,
+    onOrganize,
     onMetadata,
+    onIntegrity,
     onRebuild,
     onSetOutput,
     onClearOutput,
     onSelectPage,
+    onRemoveFromQueue,
   }: Props = $props();
 
   let groupAnimation = $derived.by(() => {
@@ -230,6 +236,9 @@
         {#if canAdjustRun && card.kind === "media" && card.selected}
           <button class="text-button library-poster-adjust" type="button" onclick={() => onAdjustRun(card.mediaPaths)}>Adjust this run</button>
         {/if}
+        {#if onRemoveFromQueue && card.mediaPaths.length}
+          <button class="text-button" type="button" disabled={busy} aria-label={`Remove ${card.title} from queue`} onclick={() => onRemoveFromQueue(card.mediaPaths)}>Remove from queue</button>
+        {/if}
 
         {#if card.kind === "media"}
         <details class="library-poster-details">
@@ -254,10 +263,12 @@
       {#if selectedTotal}
         {selectedTotal} selected · {readyCount} ready to process
       {:else}
-        Nothing selected · {readyCount} ready file{readyCount === 1 ? "" : "s"} will be included
+        No files selected · the {readyCount} ready file{readyCount === 1 ? "" : "s"} in this view will run
       {/if}
     </p>
     <button class="button secondary" type="button" disabled={busy || !canRename} onclick={onRename}>Rename files</button>
+    {#if onOrganize}<button class="button secondary" type="button" disabled={busy} onclick={onOrganize}>Organize titles</button>{/if}
+    <button class="button secondary" type="button" disabled={busy || !canProcess} onclick={onIntegrity}>Check integrity</button>
     <button class="button secondary" type="button" disabled={busy || !canProcess} onclick={onMetadata}>Metadata-only MKV</button>
     <button class="button primary" type="button" disabled={busy || !canProcess} onclick={onRebuild}>Rebuild video</button>
   </div>

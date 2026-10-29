@@ -150,12 +150,22 @@ disk_projection_margin_percent = 15.0
 
 
 class ContentTuneTests(unittest.TestCase):
-    def test_kodi_animation_genre_enables_animation_tune(self):
+    def test_reviewed_animation_genre_enables_animation_tune_but_nfo_sidecars_do_not(self):
         with tempfile.TemporaryDirectory() as td:
             media = Path(td) / "Film.mkv"
             media.write_bytes(b"x")
             media.with_suffix(".nfo").write_text("<movie><genre>Animation</genre></movie>", encoding="utf-8")
-            self.assertEqual(resolve_tune(media, {}, "auto", True), "animation")
+            self.assertIsNone(resolve_tune(media, {}, "auto", True))
+            self.assertEqual(resolve_tune(media, {}, "auto", True, ["Family, Animation"]), "animation")
+            self.assertIsNone(resolve_tune(media, {}, "none", True, ["Animation"]))
+            self.assertIsNone(resolve_tune(media, {}, "auto", False, ["Animation"]))
+
+    def test_embedded_animation_genre_enables_animation_tune(self):
+        with tempfile.TemporaryDirectory() as td:
+            media = Path(td) / "Film.mkv"
+            media.write_bytes(b"x")
+            mediainfo = {"media": {"track": [{"@type": "General", "Genre": "Drama / Animation"}]}}
+            self.assertEqual(resolve_tune(media, mediainfo, "auto", True), "animation")
 
     def test_auto_does_not_guess_grain(self):
         with tempfile.TemporaryDirectory() as td:

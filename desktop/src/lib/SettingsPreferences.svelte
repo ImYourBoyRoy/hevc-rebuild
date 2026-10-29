@@ -112,6 +112,13 @@
             {#if settings}<button class="button primary" type="button" disabled={!settingsChanged || workflowBusy} onclick={saveSettings}>{settingsChanged ? "Save app defaults" : "Defaults saved"}</button>{/if}
           </div>
         </section>
+        <nav class="settings-jump" aria-label="Settings sections">
+          <a href="#environment-capabilities">Tools</a>
+          <a href="#metadata-provider-title">Metadata sources</a>
+          <a href="#poster-storage-title">Posters</a>
+          <a href="#filename-filter-title">Filename filters</a>
+          <a href="#title-cleanup-title">Title cleanup</a>
+        </nav>
 
         <section class="settings-card metadata-provider-settings" aria-labelledby="metadata-provider-title">
           <div class="settings-card-heading">
@@ -123,7 +130,7 @@
           </div>
 
           <label class="toggle-row metadata-auto-lookup">
-            <span><strong>Find titles after a scan</strong><small>Searches enabled public sources by default when no Kodi NFO is present. Exact title-and-year matches with no provider conflict are associated automatically; uncertain matches wait for review. NFO metadata remains a local fallback.</small></span>
+            <span><strong>Find titles after a scan</strong><small>Searches enabled public sources by default. Exact title-and-year matches with no provider conflict are associated automatically; uncertain matches wait for review.</small></span>
             <input type="checkbox" checked={appPreferences.metadataAutoLookup} onchange={(event) => void persistPreferences({ metadataAutoLookup: event.currentTarget.checked })} />
           </label>
 

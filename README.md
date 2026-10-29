@@ -47,8 +47,9 @@ pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-The desktop build needs Python 3 plus FFmpeg/FFprobe, MediaInfo, and MKVToolNix
-for the current media engine. See [tool setup](docs/TOOLS.md) and the [platform
+The desktop build needs FFmpeg/FFprobe, MediaInfo, and MKVToolNix. Check only,
+integrity, Metadata-only MKV, and YouTube upload preparation run natively in
+Rust; short tests and full rebuilds still need Python 3. See [tool setup](docs/TOOLS.md) and the [platform
 support contract](docs/PLATFORM-SUPPORT.md).
 
 ### Standalone engine
@@ -83,7 +84,7 @@ See [USAGE.md](docs/USAGE.md) for GUI, CLI, MCP, output, and recovery workflows.
 | **Metadata-only MKV** | Creates a new MKV without re-encoding video. |
 | **Short test** | Produces a bounded test encode before a full run. |
 | **Full rebuild** | Encodes selected video tracks to HEVC and validates the result. |
-| **YouTube prep** | Creates a separate upload copy and leaves the source in place. |
+| **YouTube prep** | Creates a separate upload copy and leaves the source in place. **Upscale** lifts 720p/1080p sources to 1440p or 4K so YouTube gives them its higher bitrate tier; **Optimize** keeps 1440p/4K/8K sources at their size, stream-copies healthy video with YouTube container tags (faststart, `hvc1`, BT.709 backfill), and re-encodes only oversized files when a sampled SSIM check passes. SDR codec (H.264 default or HEVC), encoder preset, shrink policy, and quality check are selectable. |
 
 ## Safety and privacy
 

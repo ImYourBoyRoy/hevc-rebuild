@@ -4,7 +4,7 @@
 //! GUI, native JSON CLI, and MCP scans share this module and therefore no longer
 //! need Python to discover files, read FFprobe data, or calculate preflight plans.
 
-use crate::resource_plan::{memory_forecast, memory_full_avg10};
+use crate::resource_plan::{memory_forecast, memory_full_avg10, MemoryForecastInput};
 use crate::{environment, settings, ToolPaths};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
@@ -35,6 +35,7 @@ pub(crate) struct ScanOptions {
     pub(crate) filename_include_patterns: Vec<String>,
     pub(crate) filename_exclude_patterns: Vec<String>,
     pub(crate) tool_paths: ToolPaths,
+    pub(crate) stop_file: Option<PathBuf>,
 }
 
 #[derive(Default)]
@@ -71,6 +72,10 @@ struct ScanTimings {
 
 fn elapsed_ms(start: Instant) -> f64 {
     start.elapsed().as_secs_f64() * 1000.0
+}
+
+fn scan_stop_requested(stop_file: Option<&Path>) -> bool {
+    stop_file.is_some_and(crate::stop_control::requested)
 }
 
 fn cache_identity(path: &Path) -> Option<Value> {
@@ -151,6 +156,7 @@ pub(crate) fn scan_media(
             options.recursive,
             minimum_bytes,
             &options.filename_exclude_patterns,
+            options.stop_file.as_deref(),
         )
     };
     let discovered_count = discovery.files.len();
@@ -201,8 +207,13 @@ pub(crate) fn scan_media(
     let total = discovery.files.len();
     let mut total_input_bytes = 0_u64;
     let mut entries = Vec::with_capacity(total);
+    let mut interrupted = false;
 
     for (offset, path) in discovery.files.iter().enumerate() {
+        if scan_stop_requested(options.stop_file.as_deref()) {
+            interrupted = true;
+            break;
+        }
         let current = offset + 1;
         let name = path.file_name().unwrap_or_default().to_string_lossy();
         let handoff_start = Instant::now();
@@ -314,16 +325,16 @@ pub(crate) fn scan_media(
             Ok((profile, media_info_error)) => {
                 let forecast_start = Instant::now();
                 let primary = profile.payload.clone();
-                let rebuild_forecast = memory_forecast(
-                    &primary,
-                    &effective_settings,
-                    &host,
+                let rebuild_forecast = memory_forecast(MemoryForecastInput {
+                    profile: &primary,
+                    settings: &effective_settings,
+                    host: &host,
                     full_memory_psi,
-                    None,
-                    None,
-                    None,
-                    1,
-                );
+                    target_dimensions: None,
+                    preset_override: None,
+                    frame_threads_override: None,
+                    concurrent_video_streams: 1,
+                });
                 let mut estimates = Map::new();
                 let mut youtube_forecasts = Map::new();
                 for resolution in ["source", "1440p", "4k"] {
@@ -337,16 +348,16 @@ pub(crate) fn scan_media(
                     );
                     youtube_forecasts.insert(
                         resolution.into(),
-                        memory_forecast(
-                            &primary,
-                            &effective_settings,
-                            &host,
+                        memory_forecast(MemoryForecastInput {
+                            profile: &primary,
+                            settings: &effective_settings,
+                            host: &host,
                             full_memory_psi,
-                            Some(dimensions),
-                            Some("slow"),
-                            Some(0),
-                            1,
-                        ),
+                            target_dimensions: Some(dimensions),
+                            preset_override: Some("slow"),
+                            frame_threads_override: Some(0),
+                            concurrent_video_streams: 1,
+                        }),
                     );
                 }
                 timings.forecast_ms += elapsed_ms(forecast_start);
@@ -382,6 +393,16 @@ pub(crate) fn scan_media(
             "Discovery stopped after {MAX_DISCOVERED_FILES} media files. Narrow the selected folder to analyze the remainder."
         ));
     }
+    if interrupted {
+        warnings.push(if entries.is_empty() {
+            "Scan stopped before files were analyzed.".into()
+        } else {
+            format!(
+                "Scan stopped after analyzing {} of {total} files. Remaining files were not read.",
+                entries.len()
+            )
+        });
+    }
     let mut payload = json!({
         "root": root.to_string_lossy(),
         "input_kind": if input_is_file { "file" } else { "folder" },
@@ -395,7 +416,8 @@ pub(crate) fn scan_media(
         "settings": effective_settings,
         "settings_sources": settings_sources,
         "warnings": warnings,
-        "discovery_limit_reached": discovery.limit_reached
+        "discovery_limit_reached": discovery.limit_reached,
+        "interrupted": interrupted
     });
     timings.total_ms = elapsed_ms(total_start);
     if std::env::var_os("HEVC_REBUILD_SCAN_TIMING").is_some_and(|value| value == "1") {
@@ -403,6 +425,69 @@ pub(crate) fn scan_media(
             serde_json::to_value(&timings).map_err(|error| error.to_string())?;
     }
     Ok(payload)
+}
+
+pub(crate) struct AnalyzedFile {
+    pub profile: Option<Value>,
+    pub forecast: Option<Value>,
+    pub warning: Option<String>,
+    pub error: Option<String>,
+    pub size_bytes: u64,
+}
+
+/// Profile one already-selected media file for native Check-only runs.
+/// This reuses the scan profiler so GUI/CLI/MCP analysis does not spawn Python.
+pub(crate) fn analyze_file(
+    path: &Path,
+    ffprobe: Option<&str>,
+    mediainfo: Option<&str>,
+    settings: &Value,
+    host: &Value,
+) -> AnalyzedFile {
+    let size_bytes = fs::metadata(path)
+        .map(|metadata| metadata.len())
+        .unwrap_or(0);
+    let Some(ffprobe) = ffprobe else {
+        return AnalyzedFile {
+            profile: None,
+            forecast: None,
+            warning: None,
+            error: Some(
+                "FFprobe is unavailable. Select an FFprobe executable or install FFmpeg/FFprobe to inspect streams."
+                    .into(),
+            ),
+            size_bytes,
+        };
+    };
+    let mut timings = ScanTimings::default();
+    match probe_media(ffprobe, mediainfo, path, settings, &mut timings) {
+        Ok((profile, media_info_error)) => {
+            let forecast = memory_forecast(MemoryForecastInput {
+                profile: &profile.payload,
+                settings,
+                host,
+                full_memory_psi: memory_full_avg10(),
+                target_dimensions: None,
+                preset_override: None,
+                frame_threads_override: None,
+                concurrent_video_streams: 1,
+            });
+            AnalyzedFile {
+                profile: Some(profile.payload),
+                forecast: Some(forecast),
+                warning: media_info_error,
+                error: None,
+                size_bytes,
+            }
+        }
+        Err(error) => AnalyzedFile {
+            profile: None,
+            forecast: None,
+            warning: None,
+            error: Some(error),
+            size_bytes,
+        },
+    }
 }
 
 pub(crate) fn validate_filename_patterns(patterns: &[String], label: &str) -> Result<(), String> {
@@ -557,7 +642,7 @@ pub(crate) fn discover_cli_mode() -> i32 {
         let discovery = if root.is_file() {
             discover_file(&root, minimum_bytes)
         } else {
-            discover_folder(&root, recursive, minimum_bytes, &excluded_names)
+            discover_folder(&root, recursive, minimum_bytes, &excluded_names, None)
         };
         let payload = json!({
             "files": discovery.files.iter().map(|path| path.to_string_lossy()).collect::<Vec<_>>(),
@@ -637,6 +722,39 @@ fn is_candidate(path: &Path, minimum_bytes: u64) -> bool {
             .unwrap_or(false)
 }
 
+/// Probe-free discovery for native mutating runs: same candidate rules and
+/// filename filters as `scan_media`, but returns canonical paths only.
+pub(crate) fn discover_media_paths(
+    root: &Path,
+    recursive: bool,
+    minimum_size_mib: u32,
+    include: &[String],
+    exclude: &[String],
+    stop_file: Option<&Path>,
+) -> Result<Vec<PathBuf>, String> {
+    if minimum_size_mib > 4096 {
+        return Err("Minimum input size must be 4096 MiB or less.".into());
+    }
+    validate_filename_patterns(include, "include")?;
+    validate_filename_patterns(exclude, "exclude")?;
+    let root = expand_home(root)
+        .canonicalize()
+        .map_err(|error| format!("Media input is unavailable: {error}"))?;
+    let minimum_bytes = u64::from(minimum_size_mib) * 1024 * 1024;
+    let mut discovery = if root.is_file() {
+        discover_file(&root, minimum_bytes)
+    } else if root.is_dir() {
+        discover_folder(&root, recursive, minimum_bytes, exclude, stop_file)
+    } else {
+        return Err("Media input must be a regular file or folder.".into());
+    };
+    discovery.files.retain(|path| {
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        filename_matches_filters(&name, include, exclude)
+    });
+    Ok(discovery.files)
+}
+
 fn discover_file(path: &Path, minimum_bytes: u64) -> Discovery {
     let mut result = Discovery::default();
     if is_candidate(path, minimum_bytes) {
@@ -700,6 +818,7 @@ fn discover_folder(
     recursive: bool,
     minimum_bytes: u64,
     excluded_names: &[String],
+    stop_file: Option<&Path>,
 ) -> Discovery {
     let mut result = Discovery::default();
     let mut seen = BTreeSet::new();
@@ -707,6 +826,12 @@ fn discover_folder(
         let mut stack = vec![root.to_path_buf()];
         let mut visited = BTreeSet::new();
         while let Some(directory) = stack.pop() {
+            if scan_stop_requested(stop_file) {
+                result
+                    .warnings
+                    .push("Folder listing stopped before every path was collected.".into());
+                break;
+            }
             let canonical = directory
                 .canonicalize()
                 .unwrap_or_else(|_| directory.clone());
@@ -747,6 +872,12 @@ fn discover_folder(
     } else {
         let mut seasons = Vec::new();
         for path in read_directory(root, &mut result) {
+            if scan_stop_requested(stop_file) {
+                result
+                    .warnings
+                    .push("Folder listing stopped before every path was collected.".into());
+                break;
+            }
             if path.is_dir() {
                 let link = fs::symlink_metadata(&path)
                     .map(|metadata| metadata.file_type().is_symlink())
@@ -793,6 +924,18 @@ fn discover_folder(
         seasons.sort_by_key(|path| path.to_string_lossy().to_lowercase());
         seasons.dedup();
         for season in seasons {
+            if scan_stop_requested(stop_file) {
+                if !result
+                    .warnings
+                    .iter()
+                    .any(|warning| warning.contains("Folder listing stopped"))
+                {
+                    result
+                        .warnings
+                        .push("Folder listing stopped before every path was collected.".into());
+                }
+                break;
+            }
             for path in read_directory(&season, &mut result) {
                 if !path.is_dir() {
                     add_candidate(&path, minimum_bytes, &mut seen, &mut result);
@@ -862,22 +1005,22 @@ fn probe_media(
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct EngineProfileRequest {
-    path: String,
-    ffprobe: String,
-    mediainfo: String,
-    promote_8bit_to_10bit: bool,
+pub(crate) struct EngineProfileRequest {
+    pub(crate) path: String,
+    pub(crate) ffprobe: String,
+    pub(crate) mediainfo: String,
+    pub(crate) promote_8bit_to_10bit: bool,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct EngineTrackProfilesRequest {
-    path: String,
-    ffprobe: String,
-    promote_8bit_to_10bit: bool,
-    video_stream_indices: Vec<i64>,
-    probe: Value,
-    mediainfo: Value,
+pub(crate) struct EngineTrackProfilesRequest {
+    pub(crate) path: String,
+    pub(crate) ffprobe: String,
+    pub(crate) promote_8bit_to_10bit: bool,
+    pub(crate) video_stream_indices: Vec<i64>,
+    pub(crate) probe: Value,
+    pub(crate) mediainfo: Value,
 }
 
 /// Profile the source once in Rust for app-launched engine jobs. The response
@@ -895,6 +1038,37 @@ pub(crate) fn engine_profile_cli_mode() -> i32 {
         }
         let request: EngineProfileRequest = serde_json::from_slice(&input)
             .map_err(|error| format!("Invalid native profile request: {error}"))?;
+        let payload = engine_profile(request)?;
+        let encoded = serde_json::to_vec(&payload)
+            .map_err(|error| format!("Could not serialize the native source profile: {error}"))?;
+        if encoded.len() > MAX_ENGINE_PROFILE_RESPONSE_BYTES {
+            return Err("Native source profile exceeds the 64 MiB response limit.".into());
+        }
+        Ok(encoded)
+    })();
+    match result {
+        Ok(encoded) => {
+            let mut stdout = std::io::stdout().lock();
+            if let Err(error) = std::io::Write::write_all(&mut stdout, &encoded)
+                .and_then(|()| std::io::Write::write_all(&mut stdout, b"\n"))
+            {
+                eprintln!("Could not write native source profile: {error}");
+                1
+            } else {
+                0
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+/// Profile one source in-process: raw FFprobe/MediaInfo JSON plus the primary
+/// video profile. Shared by the compatibility-engine helper and native runs.
+pub(crate) fn engine_profile(request: EngineProfileRequest) -> Result<Value, String> {
+    {
         if request.path.is_empty() || request.path.len() > 8192 {
             return Err("Profile request path must be between 1 and 8192 bytes.".into());
         }
@@ -964,35 +1138,12 @@ pub(crate) fn engine_profile_cli_mode() -> i32 {
             &effective_settings,
             &request.ffprobe,
         )?;
-        let payload = json!({
+        Ok(json!({
             "path": path.to_string_lossy(),
             "probe": probe,
             "mediainfo": media_info,
             "profile": primary.payload
-        });
-        let encoded = serde_json::to_vec(&payload)
-            .map_err(|error| format!("Could not serialize the native source profile: {error}"))?;
-        if encoded.len() > MAX_ENGINE_PROFILE_RESPONSE_BYTES {
-            return Err("Native source profile exceeds the 64 MiB response limit.".into());
-        }
-        Ok(encoded)
-    })();
-    match result {
-        Ok(encoded) => {
-            let mut stdout = std::io::stdout().lock();
-            if let Err(error) = std::io::Write::write_all(&mut stdout, &encoded)
-                .and_then(|()| std::io::Write::write_all(&mut stdout, b"\n"))
-            {
-                eprintln!("Could not write native source profile: {error}");
-                1
-            } else {
-                0
-            }
-        }
-        Err(error) => {
-            eprintln!("{error}");
-            1
-        }
+        }))
     }
 }
 
@@ -1013,6 +1164,36 @@ pub(crate) fn engine_track_profiles_cli_mode() -> i32 {
         }
         let request: EngineTrackProfilesRequest = serde_json::from_slice(&input)
             .map_err(|error| format!("Invalid native selected-track profile request: {error}"))?;
+        engine_track_profiles(request)
+    })();
+    match result {
+        Ok(payload) => match serde_json::to_vec(&payload) {
+            Ok(encoded) => {
+                let mut stdout = std::io::stdout().lock();
+                if let Err(error) = std::io::Write::write_all(&mut stdout, &encoded)
+                    .and_then(|()| std::io::Write::write_all(&mut stdout, b"\n"))
+                {
+                    eprintln!("Could not write selected-track profiles: {error}");
+                    1
+                } else {
+                    0
+                }
+            }
+            Err(error) => {
+                eprintln!("Could not serialize selected-track profiles: {error}");
+                1
+            }
+        },
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+/// Compact per-video-track profiles for the selected stream indices.
+pub(crate) fn engine_track_profiles(request: EngineTrackProfilesRequest) -> Result<Value, String> {
+    {
         if request.path.is_empty() || request.path.len() > 8192 {
             return Err("Selected-track profile path must be between 1 and 8192 bytes.".into());
         }
@@ -1147,29 +1328,6 @@ pub(crate) fn engine_track_profiles_cli_mode() -> i32 {
             ));
         }
         Ok(json!({ "video_profiles": profiles }))
-    })();
-    match result {
-        Ok(payload) => match serde_json::to_vec(&payload) {
-            Ok(encoded) => {
-                let mut stdout = std::io::stdout().lock();
-                if let Err(error) = std::io::Write::write_all(&mut stdout, &encoded)
-                    .and_then(|()| std::io::Write::write_all(&mut stdout, b"\n"))
-                {
-                    eprintln!("Could not write selected-track profiles: {error}");
-                    1
-                } else {
-                    0
-                }
-            }
-            Err(error) => {
-                eprintln!("Could not serialize selected-track profiles: {error}");
-                1
-            }
-        },
-        Err(error) => {
-            eprintln!("{error}");
-            1
-        }
     }
 }
 
@@ -1696,7 +1854,7 @@ fn build_profile_for_video(
             }
         }
     }
-    let content_profile = crate::content::profile_content(path, mediainfo, settings);
+    let content_profile = crate::content::profile_content(mediainfo, settings);
     let primary_stream_index = primary_index;
     let payload = json!({
         "video": {
@@ -1853,7 +2011,7 @@ fn parse_media_intish(value: &Value) -> Option<i64> {
         .as_str()
         .map(str::to_owned)
         .unwrap_or_else(|| value.to_string());
-    let compact = text.trim().replace(' ', "").replace(',', "");
+    let compact = text.trim().replace([' ', ','], "");
     parse_first_signed_integer(&compact)
 }
 
@@ -2368,7 +2526,12 @@ fn parse_first_integer(value: &str) -> Option<i64> {
         .ok()
 }
 
-fn disk_free_bytes(path: &Path) -> Option<u64> {
+#[cfg(unix)]
+fn unix_u64(value: impl TryInto<u64>) -> Option<u64> {
+    value.try_into().ok()
+}
+
+pub(crate) fn disk_free_bytes(path: &Path) -> Option<u64> {
     #[cfg(unix)]
     {
         use std::os::unix::ffi::OsStrExt;
@@ -2381,7 +2544,7 @@ fn disk_free_bytes(path: &Path) -> Option<u64> {
         }
         // SAFETY: statvfs initialized the structure on success.
         let stats = unsafe { stats.assume_init() };
-        Some((stats.f_bavail as u64).saturating_mul(stats.f_frsize as u64))
+        Some(unix_u64(stats.f_bavail)?.saturating_mul(unix_u64(stats.f_frsize)?))
     }
     #[cfg(not(unix))]
     {
@@ -2481,6 +2644,7 @@ mod tests {
             filename_include_patterns: vec![],
             filename_exclude_patterns: vec![],
             tool_paths: ToolPaths::default(),
+            stop_file: None,
         };
         let cold = scan_media(options.clone(), |_, _, _| {}).unwrap();
         let warm = scan_media(options.clone(), |_, _, _| {}).unwrap();
@@ -2611,7 +2775,7 @@ mod tests {
         fs::write(root.join("backup.hevc-rebuild.tmp.mkv"), b"temp").unwrap();
         fs::write(season.join("Show.S01E01.mkv"), b"episode").unwrap();
         fs::write(root.join("Show").join("outside.mp4"), b"not in season").unwrap();
-        let found = discover_folder(&root, false, 0, &[]).files;
+        let found = discover_folder(&root, false, 0, &[], None).files;
         let names = found
             .iter()
             .map(|path| path.file_name().unwrap().to_string_lossy().to_string())
@@ -2631,7 +2795,7 @@ mod tests {
         fs::write(root.join(".hidden").join("private.mkv"), b"x").unwrap();
         fs::write(root.join("old").join("backup.mkv"), b"x").unwrap();
         fs::write(root.join("Season 01").join("episode.mkv"), b"e").unwrap();
-        let found = discover_folder(&root, true, 0, &["old".into()]).files;
+        let found = discover_folder(&root, true, 0, &["old".into()], None).files;
         let relative = found
             .iter()
             .map(|path| {
@@ -2650,11 +2814,11 @@ mod tests {
                 "zeta.mkv"
             ]
         );
-        let without_user_exclusions = discover_folder(&root, true, 0, &[]).files;
+        let without_user_exclusions = discover_folder(&root, true, 0, &[], None).files;
         assert!(without_user_exclusions
             .iter()
             .any(|path| path.ends_with(".hidden/private.mkv")));
-        let hidden_excluded = discover_folder(&root, true, 0, &[".*".into()]).files;
+        let hidden_excluded = discover_folder(&root, true, 0, &[".*".into()], None).files;
         assert!(!hidden_excluded
             .iter()
             .any(|path| path.ends_with(".hidden/private.mkv")));
@@ -2852,13 +3016,31 @@ mod tests {
             "primary_stream_index": 0, "hdr": {},
             "tracks": [{"index": 0, "ffprobe": {"avg_frame_rate": "24/1"}}]
         });
-        let forecast = memory_forecast(&profile, &settings, &host, Some(0.0), None, None, None, 1);
+        let forecast = memory_forecast(MemoryForecastInput {
+            profile: &profile,
+            settings: &settings,
+            host: &host,
+            full_memory_psi: Some(0.0),
+            target_dimensions: None,
+            preset_override: None,
+            frame_threads_override: None,
+            concurrent_video_streams: 1,
+        });
         assert_eq!(forecast["level"], "constrained");
         assert_eq!(forecast["swap_free_gib"], 8.0);
         assert_eq!(forecast["preset_factor"], 1.0);
         assert!(forecast["planning_budget_gib"].as_f64().unwrap() < 12.0);
         assert!(forecast["planned_workers"].as_i64().unwrap() < 15);
-        let pressured = memory_forecast(&profile, &settings, &host, Some(1.2), None, None, None, 1);
+        let pressured = memory_forecast(MemoryForecastInput {
+            profile: &profile,
+            settings: &settings,
+            host: &host,
+            full_memory_psi: Some(1.2),
+            target_dimensions: None,
+            preset_override: None,
+            frame_threads_override: None,
+            concurrent_video_streams: 1,
+        });
         assert!(
             pressured["planning_budget_gib"].as_f64().unwrap()
                 < forecast["planning_budget_gib"].as_f64().unwrap()
@@ -2873,8 +3055,53 @@ mod tests {
             "swap_free_gib": 16.0, "swap_used_gib": 0.0, "swap_used_percent": 0.0
         }});
         let profile = json!({"video":{"width":3840,"height":2160,"source_bit_depth":10,"source_chroma":"4:2:0","target_pixel_format":"yuv420p10le"}});
-        let forecast = memory_forecast(&profile, &settings, &host, Some(0.0), None, None, None, 1);
+        let forecast = memory_forecast(MemoryForecastInput {
+            profile: &profile,
+            settings: &settings,
+            host: &host,
+            full_memory_psi: Some(0.0),
+            target_dimensions: None,
+            preset_override: None,
+            frame_threads_override: None,
+            concurrent_video_streams: 1,
+        });
         assert_eq!(forecast["level"], "blocked");
         assert!(forecast["planned_workers"].is_null());
+    }
+
+    #[test]
+    fn scan_stops_after_the_current_file_when_requested() {
+        let root = temp_dir("scan-stop");
+        fs::write(root.join("a.mkv"), b"not-media").unwrap();
+        fs::write(root.join("b.mkv"), b"not-media").unwrap();
+        let token = crate::stop_control::StopToken::new().unwrap();
+        let stop_path = token.path().to_path_buf();
+        let payload = scan_media(
+            ScanOptions {
+                root: root.to_string_lossy().into(),
+                recursive: false,
+                minimum_size_mib: 0,
+                filename_include_patterns: vec![],
+                filename_exclude_patterns: vec![],
+                tool_paths: ToolPaths::default(),
+                stop_file: Some(stop_path.clone()),
+            },
+            |current, _, _| {
+                if current == 1 {
+                    crate::stop_control::request(&stop_path).unwrap();
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(payload["interrupted"], true);
+        assert_eq!(payload["entries"].as_array().unwrap().len(), 1);
+        assert!(payload["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning
+                .as_str()
+                .is_some_and(|text| text.contains("Scan stopped"))));
+        fs::remove_dir_all(root).unwrap();
     }
 }

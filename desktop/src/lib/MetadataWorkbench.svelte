@@ -54,14 +54,8 @@
   };
   type OrganizerEpisodeGap = { season: number; missingCount: number; examples: number[] };
   type LocalArtworkFile = { path: string; name: string; role: string };
-  type LocalNfoMetadata = {
-    found: boolean; paths: string[]; title: string | null; showTitle: string | null;
-    year: string | null; certification: string | null; shortDescription: string | null;
-    plot: string | null; genres: string[]; rating: number | null; source: string | null;
-    season: number | null; episode: number | null; airdate: string | null; error: string | null;
-  };
-  type LocalMediaAssets = { path: string; artwork: LocalArtworkFile[]; metadata: LocalNfoMetadata };
-  type LocalDirectoryAssets = { path: string; artwork: LocalArtworkFile[]; metadata: LocalNfoMetadata };
+  type LocalMediaAssets = { path: string; artwork: LocalArtworkFile[] };
+  type LocalDirectoryAssets = { path: string; artwork: LocalArtworkFile[] };
   type LocalAssetsScan = { root: string; files: LocalMediaAssets[]; directories: LocalDirectoryAssets[] };
   type PublicSearchResponse = { results: Result[]; warnings: string[]; successfulProviders: Provider[] };
   type MovieAssignment = QueueMovieReview;
@@ -119,18 +113,6 @@
     items: { sourcePath: string; targetPath: string; targetName: string; isDirectory: boolean; unchanged: boolean }[];
     conflicts: { sourcePath: string | null; targetPath: string; reason: string }[];
   };
-  type MetadataDocument = {
-    sourcePath: string; kind: "movie" | "tv_show" | "tv_episode"; title: string; year: string | null;
-    certification: string | null; shortDescription: string | null; plot: string | null; genres: string[];
-    rating: number | null; sourceUrl: string; showTitle: string | null; season: number | null;
-    episode: number | null; airdate: string | null;
-  };
-  type MetadataWriteRequest = { root: string; documents: MetadataDocument[] };
-  type MetadataWritePreview = {
-    previewId: string; root: string; canApply: boolean;
-    items: { sourcePath: string; targetPath: string; kind: string; replacesAppSidecar: boolean }[];
-  };
-  type MetadataWriteResult = { filesWritten: number; filesReplaced: number; items: MetadataWritePreview["items"]; message: string };
 
   let {
     scanResult = null,
@@ -210,11 +192,6 @@
   let renameMessage = $state("");
   let renameBusy = $state(false);
   let confirmRename = $state(false);
-  let metadataWriteRequest = $state<MetadataWriteRequest | null>(null);
-  let metadataWritePreview = $state<MetadataWritePreview | null>(null);
-  let metadataWriteError = $state("");
-  let metadataWriteMessage = $state("");
-  let metadataWriteBusy = $state(false);
   let pendingArtworkSave = $state<PendingArtworkSave | null>(null);
   let artworkBusy = $state(false);
   let artworkError = $state("");
@@ -411,15 +388,15 @@
       lastFocusedLookupPath = targetPath;
       queueMicrotask(() => {
         if (workbenchActive && focusMediaPath === targetPath && !lookupBusy) {
-          void findSeriesMatches([group], false, analyzedLibraryRoot(currentScan));
+          void findSeriesMatches([group], analyzedLibraryRoot(currentScan));
         }
       });
     } else {
-      if (movieAssignments[targetPath] || localNfoForFile(targetPath)?.found || movieSuggestions[targetPath]) return;
+      if (movieAssignments[targetPath] || movieSuggestions[targetPath]) return;
       lastFocusedLookupPath = targetPath;
       queueMicrotask(() => {
         if (workbenchActive && focusMediaPath === targetPath && !lookupBusy) {
-          void findMovieMatches([file], false, analyzedLibraryRoot(currentScan));
+          void findMovieMatches([file], analyzedLibraryRoot(currentScan));
         }
       });
     }
@@ -708,114 +685,6 @@
     return localAssets?.directories.find((entry) => normalizedPath(entry.path) === normalizedPath(path));
   }
 
-  function localNfoForFile(path: string): LocalNfoMetadata | undefined {
-    return localFileAssets(path)?.metadata;
-  }
-
-  function normalizedSeriesTitle(value: string): string {
-    return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
-  }
-
-  function localSeriesNfo(root: string): LocalNfoMetadata | undefined {
-    const showMetadata = localDirectoryAssets(root)?.metadata;
-    const files = organizerScan && normalizedPath(organizerScan.root) === normalizedPath(root)
-      ? organizerScan.files
-      : analysisSeriesGroups.find((group) => normalizedPath(group.root) === normalizedPath(root))?.files ?? [];
-    const fileMetadata = files.map((file) => ({ file, metadata: localNfoForFile(file.path) }));
-    const episodeNfos = fileMetadata.filter((item) => item.metadata?.found && Boolean(item.metadata.showTitle));
-    const unreadableEpisodeNfos = fileMetadata.filter((item) => item.metadata?.found && item.metadata.error);
-    if (showMetadata?.found) {
-      if (!showMetadata.error && unreadableEpisodeNfos.length) {
-        const examples = unreadableEpisodeNfos.slice(0, 3).map((item) => item.file.name);
-        return {
-          ...showMetadata,
-          error: `The show NFO is readable, but episode NFOs could not be checked: ${examples.join(", ")}${unreadableEpisodeNfos.length > examples.length ? ` and ${unreadableEpisodeNfos.length - examples.length} more` : ""}. Review those files before applying local episode metadata.`,
-        };
-      }
-      const authoritativeTitle = showMetadata.title ?? showMetadata.showTitle;
-      const conflicts = authoritativeTitle
-        ? episodeNfos.filter((item) => normalizedSeriesTitle(item.metadata?.showTitle ?? "") !== normalizedSeriesTitle(authoritativeTitle))
-        : [];
-      if (!showMetadata.error && conflicts.length) {
-        const examples = conflicts.slice(0, 3).map((item) => `${item.file.name} (${item.metadata?.showTitle})`);
-        return {
-          ...showMetadata,
-          error: `The show NFO identifies “${authoritativeTitle}”, but episode NFOs disagree: ${examples.join("; ")}${conflicts.length > examples.length ? `; and ${conflicts.length - examples.length} more` : ""}. No episode NFO metadata was applied. Review these files or compare a public source.`,
-        };
-      }
-      return showMetadata;
-    }
-    if (unreadableEpisodeNfos.length) {
-      const unreadable = unreadableEpisodeNfos[0].metadata!;
-      const examples = unreadableEpisodeNfos.slice(0, 3).map((item) => item.file.name);
-      return {
-        ...unreadable,
-        title: null,
-        showTitle: null,
-        year: null,
-        shortDescription: null,
-        plot: null,
-        genres: [],
-        rating: null,
-        source: null,
-        error: `Episode NFO metadata could not be read for ${examples.join(", ")}${unreadableEpisodeNfos.length > examples.length ? ` and ${unreadableEpisodeNfos.length - examples.length} more` : ""}. No local series association was chosen. Review the NFO files or compare a public source.`,
-      };
-    }
-    const episodeMetadata = episodeNfos[0]?.metadata;
-    if (episodeMetadata) {
-      const titles = new Map<string, { title: string; files: string[] }>();
-      for (const item of episodeNfos) {
-        const title = item.metadata?.showTitle?.trim();
-        if (!title) continue;
-        const key = normalizedSeriesTitle(title);
-        const existing = titles.get(key) ?? { title, files: [] };
-        existing.files.push(item.file.name);
-        titles.set(key, existing);
-      }
-      if (titles.size > 1) {
-        const examples = [...titles.values()].slice(0, 3).map((entry) => `${entry.title} (${entry.files.slice(0, 2).join(", ")})`);
-        return {
-          ...episodeMetadata,
-          title: null,
-          showTitle: null,
-          year: null,
-          shortDescription: null,
-          plot: null,
-          genres: [],
-          rating: null,
-          source: null,
-          error: `Episode NFOs identify more than one series: ${examples.join("; ")}. No local series association was chosen. Review the NFO files or compare a public source.`,
-        };
-      }
-      return {
-        ...episodeMetadata,
-        title: episodeMetadata.showTitle,
-        showTitle: null,
-        year: null,
-        shortDescription: null,
-        plot: null,
-        genres: [],
-        rating: null,
-        source: null,
-      };
-    }
-    const existingEpisodeNfo = fileMetadata.find((item) => item.metadata?.found)?.metadata;
-    if (!existingEpisodeNfo) return undefined;
-    return {
-      ...existingEpisodeNfo,
-      title: null,
-      showTitle: null,
-      year: null,
-      shortDescription: null,
-      plot: null,
-      genres: [],
-      rating: null,
-      source: null,
-      error: existingEpisodeNfo.error
-        ?? "An episode NFO exists but does not identify its show. Public matching is paused; use Search public alternative to compare public records.",
-    };
-  }
-
   function previewLocalArtwork(images: LocalArtworkFile[]): Attachment<HTMLElement> {
     return () => {
       void loadLocalArtworkPreviews(images);
@@ -928,7 +797,7 @@
       artwork: review.artworkCandidates,
       seasons: seasonNumbers.map((number) => ({ number, title: `Season ${number}`, yearStart: null, yearEnd: null, artwork: [] })),
       episodes,
-      attribution: provider === "local" ? "Saved local NFO review" : `Saved review from ${provider.toUpperCase()}`,
+      attribution: `Saved review from ${provider === "local" ? "an earlier session" : provider.toUpperCase()}`,
     };
     selectedArtwork = { series: review.posterId };
     episodeAssignments = Object.fromEntries(Object.entries(review.episodeAssignments).map(([path, episode]) => [
@@ -959,7 +828,6 @@
       const episode = episodeForKey(key);
       if (episode && !assignedEpisodes[path]) assignedEpisodes[path] = episodeFromDetail(episode);
     }
-    const local = provider === "local" ? localSeriesNfo(root) : undefined;
     const catalog = detail.episodes.length ? detail.episodes.map(episodeFromDetail) : previous?.episodes ?? [];
     for (const [path, episode] of Object.entries(assignedEpisodes)) {
       if (episode.airdate?.trim()) continue;
@@ -986,8 +854,6 @@
       localPosterPath: previous?.localPosterPath ?? "",
       localSeasonPosterPaths: previous?.localSeasonPosterPaths ?? {},
       seasonRecords: previous?.seasonRecords ?? {},
-      nfoPaths: local?.paths ?? previous?.nfoPaths ?? [],
-      nfoError: local?.error ?? previous?.nfoError ?? "",
       episodes: catalog.slice(0, 10_000),
       episodeAssignments: assignedEpisodes,
     };
@@ -1010,7 +876,6 @@
     const selectedPath = seriesAssignments[root]?.localPosterPath === path ? "" : path;
     selectedArtwork = { ...selectedArtwork, series: "" };
     updateCurrentSeriesArtwork((review) => ({ ...review, posterId: "", localPosterPath: selectedPath }));
-    invalidateMetadataPreview();
   }
 
   function chooseSeriesLocalSeasonPoster(season: number, path: string) {
@@ -1030,7 +895,6 @@
     updateCurrentSeriesArtwork((review) => ({ ...review, posterId: id, localPosterPath: "" }));
     pendingArtworkSave = null;
     artworkMessage = "";
-    invalidateMetadataPreview();
   }
 
   function chooseSeriesProviderSeasonPoster(season: number, id: string) {
@@ -1053,7 +917,6 @@
       [mediaPath]: { ...review, posterId: "", localPosterPath: selectedPath },
     };
     pendingBatchLocalPoster = null;
-    invalidateMetadataPreview();
   }
 
   function batchLocalPosterTargets(): string[] {
@@ -1090,7 +953,6 @@
       }])),
     };
     pendingBatchLocalPoster = null;
-    invalidateMetadataPreview();
   }
 
   function suggestionForPath(path: string): QueueMetadataSuggestion | undefined {
@@ -1148,8 +1010,7 @@
 
   function movieNeedsSearch(file: OrganizerFile): boolean {
     const suggestion = suggestionForPath(file.path);
-    return !localNfoForFile(file.path)?.found
-      && !movieAssignments[file.path]?.recordId
+    return !movieAssignments[file.path]?.recordId
       && suggestion?.status !== "ready";
   }
 
@@ -1157,9 +1018,8 @@
     return files.filter(movieNeedsSearch).length;
   }
 
-  function movieLookupLabel(file: OrganizerFile, localFound: boolean, matchSet: MatchSuggestion | null): string {
+  function movieLookupLabel(file: OrganizerFile, matchSet: MatchSuggestion | null): string {
     if (matchSet?.status === "searching") return "Searching…";
-    if (localFound) return "Compare sources";
     if (suggestionForPath(file.path)?.status === "ready") return "Review suggestion";
     return "Find matches";
   }
@@ -1225,7 +1085,6 @@
       ...movieAssignments,
       [mediaPath]: { ...review, artworkCandidates, posterId, localPosterPath: "" },
     };
-    invalidateMetadataPreview();
   }
 
   function chooseMovieProviderPoster(mediaPath: string) {
@@ -1235,7 +1094,6 @@
       ...movieAssignments,
       [mediaPath]: { ...review, localPosterPath: "" },
     };
-    invalidateMetadataPreview();
   }
 
   function chooseAnalyzedSeries(root: string) {
@@ -1246,8 +1104,6 @@
     error = "";
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
@@ -1280,8 +1136,6 @@
         localPosterPath: "",
         localSeasonPosterPaths: {},
         seasonRecords: {},
-        nfoPaths: [],
-        nfoError: "",
         episodes: [],
         episodeAssignments: {},
       },
@@ -1376,9 +1230,9 @@
       onAutoLookupConsumed();
       queueMicrotask(async () => {
         if (!metadataAutoLookup || scanResult !== currentScan) return;
-        await findMovieMatches(analysisOrganizerScan(currentScan, "movie")?.files ?? [], false, analyzedLibraryRoot(currentScan));
+        await findMovieMatches(analysisOrganizerScan(currentScan, "movie")?.files ?? [], analyzedLibraryRoot(currentScan));
         if (metadataAutoLookup && scanResult === currentScan && !lastLookupStopped) {
-          await findSeriesMatches(buildAnalysisSeriesGroups(currentScan), false, analyzedLibraryRoot(currentScan));
+          await findSeriesMatches(buildAnalysisSeriesGroups(currentScan), analyzedLibraryRoot(currentScan));
         }
       });
     }
@@ -1410,32 +1264,26 @@
         : null;
       if (!assets) {
         if (localAssetScanError) {
-          lookupMessage = `Could not inspect local NFO and artwork files: ${localAssetScanError}`;
+          lookupMessage = `Could not inspect local artwork files: ${localAssetScanError}`;
           lookupMessageScope = "analyzed films";
         }
         return;
       }
       const clues = await invoke<FilenameClue[]>("metadata_filename_clues", {
-        filenames: files.map((file) => {
-          const local = assets.files.find((entry) => normalizedPath(entry.path) === normalizedPath(file.path))?.metadata;
-          return local?.title ?? file.name;
-        }),
+        filenames: files.map((file) => file.name),
         patterns: textBlacklistPatterns,
       });
       const next = { ...movieAssignments };
       for (const [index, file] of files.entries()) {
         if (next[file.path] || !clues[index]) continue;
         const clue = clues[index];
-        const local = assets.files.find((entry) => normalizedPath(entry.path) === normalizedPath(file.path))?.metadata;
-        const rating = local?.rating;
         next[file.path] = {
-          title: clue.title, year: local?.year ?? clue.year ?? "",
-          certification: local?.certification ?? clue.certification ?? "", recordId: local?.found ? "local-nfo" : "",
-          shortDescription: local?.shortDescription ?? "", plot: local?.plot ?? "",
-          genresText: local?.genres.join(", ") ?? "", ratingText: rating === null || rating === undefined ? "" : String(rating),
-          sourceUrl: safeHttpsUrl(local?.source) ?? "", artworkCandidates: [], posterId: "",
+          title: clue.title, year: clue.year ?? "",
+          certification: clue.certification ?? "", recordId: "",
+          shortDescription: "", plot: "",
+          genresText: "", ratingText: "",
+          sourceUrl: "", artworkCandidates: [], posterId: "",
           localPosterPath: "",
-          nfoPaths: local?.paths ?? [], nfoError: local?.error ?? "",
         };
       }
       movieAssignments = next;
@@ -1551,7 +1399,7 @@
   }
 
   function providerLabel(value: Provider): string {
-    return ({ tmdb: "TMDB", wikidata: "Wikidata", tvmaze: "TVmaze", tvdb: "TheTVDB", local: "Local NFO" })[value];
+    return ({ tmdb: "TMDB", wikidata: "Wikidata", tvmaze: "TVmaze", tvdb: "TheTVDB", local: "Earlier review" })[value];
   }
 
   function candidateEvidence(result: Result, clue: FilenameClue): { text: string; conflict: boolean } {
@@ -1635,8 +1483,6 @@
         artworkCandidates: artwork,
         posterId: previous?.posterId || artwork[0]?.id || "",
         localPosterPath: previous?.localPosterPath ?? "",
-        nfoPaths: previous?.nfoPaths ?? [],
-        nfoError: previous?.nfoError ?? "",
       },
     };
     return true;
@@ -1666,8 +1512,6 @@
         localPosterPath: previous?.localPosterPath ?? "",
         localSeasonPosterPaths: previous?.localSeasonPosterPaths ?? {},
         seasonRecords: previous?.seasonRecords ?? {},
-        nfoPaths: previous?.nfoPaths ?? [],
-        nfoError: previous?.nfoError ?? "",
         episodes: previous?.episodes ?? [],
         episodeAssignments: previous?.episodeAssignments ?? {},
       },
@@ -1695,8 +1539,6 @@
     error = "";
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
@@ -1724,7 +1566,7 @@
       files: current.files,
       seasonDirectories: current.seasonDirectories,
       ambiguous: false,
-    }, localSeriesNfo(current.root)?.title);
+    });
   }
 
   function closeTitleSearch() {
@@ -1755,8 +1597,6 @@
     detail = null;
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
@@ -1775,7 +1615,7 @@
     }
   }
 
-  async function findMovieMatches(files: OrganizerFile[], includeExistingNfo = false, analysisRoot?: string) {
+  async function findMovieMatches(files: OrganizerFile[], analysisRoot?: string) {
     if (!desktop || lookupBusy || !files.length) return;
     const root = analysisRoot ?? (scanResult && organizerSource === "analysis" ? analyzedLibraryRoot(scanResult) : organizerScan?.root);
     if (!root) return;
@@ -1783,25 +1623,23 @@
     lastLookupStopped = false;
     lookupBusy = true;
     lookupProgress = { done: 0, total: files.length, label: "analyzed films" };
-    onLookupStatus({ status: "searching", ...lookupProgress, label: "films", message: "Checking local NFO files and poster art before public searches.", sourceRoot: root });
+    onLookupStatus({ status: "searching", ...lookupProgress, label: "films", message: "Checking nearby poster art before public searches.", sourceRoot: root });
     const assets = await ensureLocalAssets(root, files, [root]);
     if (!assets) {
       lookupBusy = false;
       lookupProgress = null;
-      lookupMessage = `Could not check local NFO files: ${localAssetScanError || "local asset scan failed"}`;
+      lookupMessage = `Could not check nearby artwork: ${localAssetScanError || "local asset scan failed"}`;
       lookupMessageScope = "analyzed films";
       onLookupStatus({ status: "error", done: 0, total: files.length, label: "films", message: lookupMessage, sourceRoot: root });
       return;
     }
     const targets = files.filter((file) => {
       if (!file.path || !file.name) return false;
-      if (includeExistingNfo) return true;
-      const alreadyReviewed = Boolean(localNfoForFile(file.path)?.found);
       const reviewedAssignment = Boolean(movieAssignments[file.path]?.recordId);
       const savedSuggestion = suggestionForPath(file.path);
       const savedQueueResult = analysisRoot
         && (savedSuggestion?.status === "ready" || reviewedAssignment);
-      return !alreadyReviewed && !savedQueueResult;
+      return !savedQueueResult;
     });
     if (!targets.length) {
       lookupBusy = false;
@@ -1809,11 +1647,9 @@
       const savedResultsCoverFiles = analysisRoot && files.every((file) =>
         suggestionForPath(file.path)?.status === "ready" || Boolean(movieAssignments[file.path]?.recordId),
       );
-      lookupMessage = includeExistingNfo
-        ? "No movie files were available for a public search."
-        : savedResultsCoverFiles
-          ? "Saved title suggestions or reviewed details are already available. Open a file to compare other sources."
-          : "Every selected movie already has local NFO metadata. Open a file to search for a public alternative.";
+      lookupMessage = savedResultsCoverFiles
+        ? "Saved title suggestions or reviewed details are already available. Open a file to compare other sources."
+        : "No movie files were available for a public search.";
       lookupMessageScope = "analyzed films";
       onLookupStatus({ status: "ready", done: files.length, total: files.length, label: "films", message: lookupMessage, sourceRoot: root });
       return;
@@ -1828,13 +1664,7 @@
     for (const file of targets) {
       if (cancelLookupRequested) break;
       try {
-        const local = localNfoForFile(file.path);
-        const clue = await filenameClue(local?.title ?? file.name);
-        if (local?.year) {
-          const years = local.year.match(/(?:19|20)\d{2}/g) ?? [];
-          clue.year = years[0] ?? clue.year;
-          clue.yearEnd = years.at(-1) ?? clue.yearEnd;
-        }
+        const clue = await filenameClue(file.name);
         movieSuggestions = {
           ...movieSuggestions,
           [file.path]: { clue, results: [], warnings: [], status: "searching", error: "" },
@@ -2021,8 +1851,6 @@
         localPosterPath: "",
         localSeasonPosterPaths: {},
         seasonRecords: {},
-        nfoPaths: [],
-        nfoError: "",
         episodes: [],
         episodeAssignments: {},
       };
@@ -2072,7 +1900,7 @@
     }
   }
 
-  async function findSeriesMatches(groups: AnalysisSeriesGroup[], includeExistingNfo = false, analysisRoot?: string) {
+  async function findSeriesMatches(groups: AnalysisSeriesGroup[], analysisRoot?: string) {
     if (!desktop || lookupBusy || !groups.length) return;
     const assetRoot = analysisRoot ?? (scanResult && organizerSource === "analysis" ? analyzedLibraryRoot(scanResult) : organizerScan?.root ?? groups[0]?.root);
     const allFiles = groups.flatMap((group) => group.files);
@@ -2082,19 +1910,17 @@
     lastLookupStopped = false;
     lookupBusy = true;
     lookupProgress = { done: 0, total: groups.length, label: "series folders" };
-    onLookupStatus({ status: "searching", ...lookupProgress, label: "series", message: "Checking local show and episode NFO files and nearby poster art.", sourceRoot: assetRoot });
+    onLookupStatus({ status: "searching", ...lookupProgress, label: "series", message: "Checking nearby poster art before public searches.", sourceRoot: assetRoot });
     if (!assetRoot || !await ensureLocalAssets(assetRoot, allFiles, allDirectories)) {
       lookupBusy = false;
       lookupProgress = null;
-      lookupMessage = `Could not check local series NFO files: ${localAssetScanError || "local asset scan failed"}`;
+      lookupMessage = `Could not check nearby artwork: ${localAssetScanError || "local asset scan failed"}`;
       lookupMessageScope = "series folders";
       onLookupStatus({ status: "error", done: 0, total: groups.length, label: "series", message: lookupMessage, sourceRoot: assetRoot ?? undefined });
       return;
     }
     const targets = groups.filter((group) => {
       if (group.ambiguous || !group.files.length) return false;
-      if (includeExistingNfo) return true;
-      const alreadyReviewed = Boolean(localSeriesNfo(group.root)?.found);
       const recordId = seriesAssignments[group.root]?.recordId ?? "";
       const savedProvider = Boolean(recordId) && !recordId.startsWith("local");
       const hasProviderArt = (seriesAssignments[group.root]?.artworkCandidates ?? []).some((image) => image.imageUrl.startsWith("https://") || image.thumbnailUrl.startsWith("https://"));
@@ -2105,7 +1931,7 @@
         : Object.values(seasonPaths).some((path) => path.startsWith("https://"));
       const hasCertificate = Boolean((seriesAssignments[group.root]?.certification ?? "").trim());
       const savedQueueResult = analysisRoot && savedProvider && hasProviderArt && hasSeasonArt && hasCertificate;
-      return !alreadyReviewed && !savedQueueResult;
+      return !savedQueueResult;
     });
     if (!targets.length) {
       lookupBusy = false;
@@ -2114,11 +1940,9 @@
         Boolean(seriesAssignments[group.root]?.recordId)
         || group.files.every((file) => suggestionForPath(file.path)?.status === "ready"),
       );
-      lookupMessage = includeExistingNfo
-        ? "No show-specific series folders were recognized in this analysis."
-        : savedResultsCoverGroups
-          ? "Saved title suggestions or reviewed show details are already available. Open a series to compare other sources."
-          : "Every recognized series has local NFO data. Review it or use the public-alternative action to compare provider records.";
+      lookupMessage = savedResultsCoverGroups
+        ? "Saved title suggestions or reviewed show details are already available. Open a series to compare other sources."
+        : "No show-specific series folders were recognized in this analysis.";
       lookupMessageScope = "series folders";
       onLookupStatus({ status: "ready", done: groups.length, total: groups.length, label: "series", message: lookupMessage, sourceRoot: assetRoot });
       return;
@@ -2134,13 +1958,7 @@
       if (cancelLookupRequested) break;
       const root = group.root;
       try {
-        const local = localSeriesNfo(root);
-        const clue = await filenameClue(local?.title ?? seriesFilenameTitle(group));
-        if (local?.year) {
-          const years = local.year.match(/(?:19|20)\d{2}/g) ?? [];
-          clue.year = years[0] ?? clue.year;
-          clue.yearEnd = years.at(-1) ?? clue.yearEnd;
-        }
+        const clue = await filenameClue(seriesFilenameTitle(group));
         seriesSuggestions = {
           ...seriesSuggestions,
           [root]: { clue, results: [], warnings: [], status: "searching", error: "" },
@@ -2233,45 +2051,6 @@
     else await reviewSeriesCandidate(target.root, row);
   }
 
-  async function useLocalSeriesMetadata(root: string) {
-    const local = localSeriesNfo(root);
-    if (!local?.found || local.error) return;
-    if (organizerSource === "analysis" && selectedAnalysisSeriesRoot !== root) chooseAnalyzedSeries(root);
-    const title = (await filenameClue(local.title ?? local.showTitle ?? basename(root))).title;
-    const source = safeHttpsUrl(local.source) ?? "";
-    const current = organizerScan;
-    const seasons: Season[] = (current?.seasonDirectories ?? []).map((season) => ({
-      number: season.season, title: season.name, yearStart: null, yearEnd: null, artwork: [],
-    }));
-    const episodeByKey = new Map<string, Episode>();
-    for (const file of current?.files ?? []) {
-      const metadata = localNfoForFile(file.path);
-      if (metadata?.season === null || metadata?.season === undefined || metadata.episode === null || metadata.episode === undefined || !metadata.title) continue;
-      const episode: Episode = {
-        season: metadata.season, episode: metadata.episode, title: metadata.title,
-        airdate: metadata.airdate, summary: metadata.plot, sourceUrl: safeHttpUrl(metadata.source) ?? "", artwork: [],
-      };
-      episodeByKey.set(`${episode.season}/${episode.episode}`, episode);
-    }
-    provider = "local";
-    selected = {
-      id: `local-nfo:${root}`, provider: "local", kind: "tv", title,
-      year: local.year, description: local.plot, rating: local.rating, sourceUrl: source, confidence: 1, artwork: [],
-    };
-    detail = {
-      title, originalTitle: null, year: local.year,
-      sourceUrl: source, shortDescription: local.shortDescription ?? "", longDescription: local.plot ?? "",
-      certification: local.certification, runtime: null, genres: local.genres, rating: local.rating,
-      artwork: [], seasons, episodes: [...episodeByKey.values()].sort((left, right) => left.season - right.season || left.episode - right.episode),
-      attribution: `Local NFO metadata${local.paths.length ? ` · ${local.paths.map(basename).join(", ")}` : ""}`,
-    };
-    episodeAssignments = {};
-    if (current) syncEpisodeAssignments(current.files);
-    selectedArtwork = {};
-    renamePreview = null;
-    invalidateMetadataPreview();
-  }
-
   function safeHttpUrl(value: string | null | undefined): string | null {
     if (!value) return null;
     try {
@@ -2282,11 +2061,6 @@
     }
   }
 
-  function safeHttpsUrl(value: string | null | undefined): string | null {
-    const parsed = safeHttpUrl(value);
-    return parsed?.startsWith("https://") ? parsed : null;
-  }
-
   async function openMatch(row: Result) {
     provider = row.provider;
     mediaKind = row.kind;
@@ -2295,12 +2069,9 @@
     seriesYearConflictConfirmed = false;
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
-    metadataWriteMessage = "";
     loadingDetail = true;
     error = "";
     try {
@@ -2400,8 +2171,6 @@
     renameBusy = true;
     renameError = "";
     renamePreview = null;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
@@ -2440,8 +2209,6 @@
     renameError = "";
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     try {
       organizerScan = await invoke<OrganizerScan>("scan_organizer_folder", { root: path });
       organizerSource = "folder";
@@ -2484,8 +2251,6 @@
     pendingArtworkSave = null;
     artworkError = "";
     artworkMessage = "";
-    invalidateMetadataPreview();
-    metadataWriteMessage = "";
     if (scanResult) useAnalyzedLibrary(kind);
   }
 
@@ -2511,7 +2276,6 @@
       : selectedMediaPaths.filter((path) => !eligible.has(path));
     renamePreview = null;
     confirmRename = false;
-    invalidateMetadataPreview();
   }
 
   function selectedPathsInOrganizer(): string[] {
@@ -2550,7 +2314,6 @@
       artworkCandidates: detail.artwork.map((image) => ({ ...image })),
       posterId: selectedArtwork.movie ?? "",
       localPosterPath: "",
-      nfoPaths: [], nfoError: "",
     };
     movieAssignments = {
       ...movieAssignments,
@@ -2558,7 +2321,6 @@
     };
     renamePreview = null;
     renameError = "";
-    invalidateMetadataPreview();
   }
 
   function toggleMedia(path: string, selectedNow: boolean) {
@@ -2566,19 +2328,12 @@
       ? [...new Set([...selectedMediaPaths, path])]
       : selectedMediaPaths.filter((item) => item !== path);
     renamePreview = null;
-    invalidateMetadataPreview();
   }
 
   function episodeForKey(key: string | undefined): Episode | undefined {
     if (!key || !detail) return undefined;
     const [season, episode] = key.split("/").map(Number);
     return detail.episodes.find((item) => item.season === season && item.episode === episode);
-  }
-
-  function invalidateMetadataPreview() {
-    metadataWriteRequest = null;
-    metadataWritePreview = null;
-    metadataWriteError = "";
   }
 
   function updateEpisode(episode: Episode, field: "title" | "airdate" | "summary", value: string) {
@@ -2589,106 +2344,10 @@
       episodes: detail.episodes.map((item) => sameEpisode(item) ? { ...item, [field]: value || null } : item),
     };
     renamePreview = null;
-    invalidateMetadataPreview();
-  }
-
-  function nullableText(value: string | null | undefined): string | null {
-    const normalized = value?.trim() ?? "";
-    return normalized ? normalized : null;
   }
 
   function assignedMoviePoster(assignment: MovieAssignment): Artwork | undefined {
     return assignment.artworkCandidates.find((image) => image.id === assignment.posterId);
-  }
-
-  function metadataWriteInput(): MetadataWriteRequest {
-    if (!organizerScan) throw new Error("Choose a media folder and select a reviewed title first.");
-    const documents: MetadataDocument[] = [];
-    const selectedForOrganizer = selectedPathsInOrganizer();
-    if (mediaKind === "movie") {
-      if (!selectedForOrganizer.length) throw new Error("Select one or more movie files to receive this metadata.");
-      for (const path of selectedForOrganizer) {
-        const assignment = movieAssignments[path];
-        if (!assignment) {
-          throw new Error(`Assign a reviewed film to ${organizerScan.files.find((file) => file.path === path)?.name ?? path} before writing metadata.`);
-        }
-        const ratingText = assignment.ratingText.trim();
-        const rating = ratingText ? Number(ratingText) : null;
-        if (rating !== null && (!Number.isFinite(rating) || rating < 0 || rating > 10)) {
-          throw new Error(`Rating for ${organizerScan.files.find((file) => file.path === path)?.name ?? path} must be between 0 and 10.`);
-        }
-        documents.push({
-          sourcePath: path, kind: "movie", title: assignment.title, year: nullableText(assignment.year),
-          certification: nullableText(assignment.certification),
-          shortDescription: nullableText(assignment.shortDescription), plot: nullableText(assignment.plot),
-          genres: assignment.genresText.split(/[;,]/).map((genre) => genre.trim()).filter(Boolean),
-          rating, sourceUrl: assignment.sourceUrl,
-          showTitle: null, season: null, episode: null, airdate: null,
-        });
-      }
-    } else {
-      if (!detail || !selected) throw new Error("Search for and select a reviewed TV series before writing metadata.");
-      const common = {
-        shortDescription: nullableText(detail.shortDescription), plot: nullableText(detail.longDescription),
-        genres: detail.genres, rating: detail.rating, sourceUrl: detail.sourceUrl,
-      };
-      documents.push({
-        sourcePath: organizerScan.root, kind: "tv_show", title: detail.title, year: nullableText(detail.year),
-        certification: nullableText(detail.certification), ...common,
-        showTitle: null, season: null, episode: null, airdate: null,
-      });
-      for (const path of selectedForOrganizer) {
-        const file = organizerScan.files.find((item) => item.path === path);
-        const match = episodeForKey(episodeAssignments[path]);
-        if (!file || file.multipleEpisodes || !match || match.season === null || match.episode === null) {
-          throw new Error(`Choose a reviewed episode for ${file?.name ?? path} before writing TV metadata.`);
-        }
-        documents.push({
-          sourcePath: path, kind: "tv_episode", title: match.title, year: null, certification: null,
-          shortDescription: null, plot: nullableText(match.summary), genres: [], rating: null,
-          sourceUrl: match.sourceUrl, showTitle: detail.title, season: match.season, episode: match.episode,
-          airdate: nullableText(match.airdate),
-        });
-      }
-    }
-    return { root: organizerScan.root, documents };
-  }
-
-  async function previewMetadataWrite() {
-    if (!desktop) { metadataWriteError = "Metadata writes are available in the installed desktop app."; return; }
-    metadataWriteBusy = true;
-    metadataWriteError = "";
-    metadataWriteMessage = "";
-    try {
-      const request = metadataWriteInput();
-      metadataWriteRequest = request;
-      metadataWritePreview = await invoke<MetadataWritePreview>("preview_library_metadata_write", { request });
-    } catch (cause) {
-      metadataWriteRequest = null;
-      metadataWritePreview = null;
-      metadataWriteError = String(cause);
-    } finally {
-      metadataWriteBusy = false;
-    }
-  }
-
-  async function applyMetadataWrite() {
-    if (!desktop || !metadataWriteRequest || !metadataWritePreview?.canApply) return;
-    metadataWriteBusy = true;
-    metadataWriteError = "";
-    metadataWriteMessage = "";
-    try {
-      const result = await invoke<MetadataWriteResult>("apply_library_metadata_write", {
-        request: metadataWriteRequest, previewId: metadataWritePreview.previewId, confirmed: true,
-      });
-      metadataWriteMessage = `${result.message} Wrote ${result.filesWritten} file${result.filesWritten === 1 ? "" : "s"}${result.filesReplaced ? `; replaced ${result.filesReplaced} app-managed sidecar${result.filesReplaced === 1 ? "" : "s"}` : ""}.`;
-      metadataWriteRequest = null;
-      metadataWritePreview = null;
-    } catch (cause) {
-      metadataWriteError = String(cause);
-    } finally {
-      metadataWriteBusy = false;
-    }
   }
 
   function showYears() {
@@ -2784,7 +2443,6 @@
       }
       movieAssignments = nextMovieAssignments;
       seriesAssignments = nextSeriesAssignments;
-      invalidateMetadataPreview();
       artworkMessage = `${result.message} Saved ${result.files.length} image${result.files.length === 1 ? "" : "s"}.${assignedPosterCount ? ` ${assignedPosterCount} reviewed poster selection${assignedPosterCount === 1 ? " is" : "s are"} ready for the next MKV output.` : " The saved image was not attached to this review because its selected match changed while the download was in progress. Choose it as a local poster before creating an MKV."}`;
       pendingArtworkSave = null;
     } catch (cause) {
@@ -2905,7 +2563,6 @@
       }
     }
     movieAssignments = next;
-    invalidateMetadataPreview();
   }
 
   function stageCurrentFilmPoster() {
@@ -3060,7 +2717,6 @@
       }
       organizerScan = await invoke<OrganizerScan>("scan_organizer_folder", { root: nextRoot });
       if (mediaKind === "tv") syncEpisodeAssignments(organizerScan.files);
-      invalidateMetadataPreview();
       renamePreview = null;
       confirmRename = false;
       renameMessage = `Renamed ${changedPaths.length} path${changedPaths.length === 1 ? "" : "s"}. Media contents were not changed.`;
@@ -3082,7 +2738,7 @@
   {#if !compactItemMode}<div class="page-heading">
     <div>
       <div class="eyebrow">LIBRARY ORGANIZATION</div>
-      <h1>Metadata workbench</h1>
+      <h1>Identify & organize</h1>
       <p>Review titles, artwork and episode details alongside the movie or series they belong to.</p>
     </div>
     <div class="metadata-workbench-preferences"><span>{metadataAutoLookup ? "Suggestions run after a scan" : "Automatic suggestions are off"} · {metadataLanguage}</span><button class="link-button" onclick={() => onOpenSettings()}>Metadata settings <ArrowRight size={14} /></button></div>
@@ -3098,22 +2754,18 @@
       <div><div class="eyebrow">CURRENT MEDIA ANALYSIS</div><strong>{compactItemMode ? "1 selected media file" : `${scanResult.entries.length} scanned file${scanResult.entries.length === 1 ? "" : "s"}`}</strong><small>{scanResult.root}</small></div>
       {#if mediaKind === "tv"}
         <div class="metadata-analysis-series">
-          <div class="metadata-analysis-movies-heading"><div><div class="eyebrow">DETECTED SERIES</div><strong>{visibleAnalysisSeriesGroups.length} series folder{visibleAnalysisSeriesGroups.length === 1 ? "" : "s"}</strong></div><div class="metadata-movie-lookup-actions"><small>Names and year clues come from folders and episode filenames</small><button class="button primary" disabled={!desktop || lookupBusy || !visibleAnalysisSeriesGroups.some((group) => !group.ambiguous && !localSeriesNfo(group.root)?.found)} onclick={() => findSeriesMatches(visibleAnalysisSeriesGroups)}>{lookupBusy && lookupProgress?.label === "series folders" ? "Searching sources…" : `Search ${visibleAnalysisSeriesGroups.filter((group) => !group.ambiguous && !localSeriesNfo(group.root)?.found).length} series without NFO`}</button>{#if lookupBusy}<button class="link-button" onclick={stopFilenameLookup}>Stop after current lookup</button>{/if}</div></div>
+          <div class="metadata-analysis-movies-heading"><div><div class="eyebrow">DETECTED SERIES</div><strong>{visibleAnalysisSeriesGroups.length} series folder{visibleAnalysisSeriesGroups.length === 1 ? "" : "s"}</strong></div><div class="metadata-movie-lookup-actions"><small>Names and year clues come from folders and episode filenames</small><button class="button primary" disabled={!desktop || lookupBusy || !visibleAnalysisSeriesGroups.some((group) => !group.ambiguous)} onclick={() => findSeriesMatches(visibleAnalysisSeriesGroups)}>{lookupBusy && lookupProgress?.label === "series folders" ? "Searching sources…" : `Search ${visibleAnalysisSeriesGroups.filter((group) => !group.ambiguous).length} series`}</button>{#if lookupBusy}<button class="link-button" onclick={stopFilenameLookup}>Stop after current lookup</button>{/if}</div></div>
           {#if lookupProgress?.label === "series folders"}<div class="metadata-lookup-progress" role="status">Searching {lookupProgress.done} of {lookupProgress.total} series folders. Duplicate title queries are reused.</div>{/if}
           {#if lookupMessage && lookupMessageScope === "series folders"}<div class="metadata-lookup-progress" role="status">{lookupMessage}</div>{/if}
           {#if visibleAnalysisSeriesGroups.length}
             <div class="metadata-analysis-series-list">
               {#each visibleAnalysisSeriesGroups as group (group.root)}
                 {@const localSeries = localDirectoryAssets(group.root)}
-                {@const localMetadata = localSeriesNfo(group.root)}
                 {@const savedSeriesSuggestion = group.files.map((file) => suggestionForPath(file.path)).find((item) => item?.kind === "tv")}
                 {@const savedSeriesResult = suggestionResult(savedSeriesSuggestion, "tv")}
                 {@const seriesMatchSet = seriesSuggestions[group.root] ?? savedSeriesMatchSet(group)}
                 <article class="metadata-analysis-series-row">
-                  <div class="metadata-analysis-series-main"><div><strong>{basename(group.root)}</strong><small>{group.files.length} scanned episode file{group.files.length === 1 ? "" : "s"} · {group.seasonDirectories.length} season folder{group.seasonDirectories.length === 1 ? "" : "s"}</small></div><div class="metadata-record-actions"><button class="button secondary" disabled={!desktop || lookupBusy || group.ambiguous} onclick={() => savedSeriesResult && savedSeriesSuggestion?.status === "ready" && !localMetadata?.found ? reviewSeriesCandidate(group.root, savedSeriesResult) : findSeriesMatches([group], Boolean(localMetadata?.found))}>{seriesMatchSet?.status === "searching" ? "Searching…" : localMetadata?.found ? "Compare sources" : savedSeriesSuggestion?.status === "ready" ? "Review suggestion" : "Find matches"}</button><button class="link-button" disabled={!desktop || group.ambiguous} onclick={() => searchSeriesRecord(group, localMetadata?.title ?? localMetadata?.showTitle)}><Search size={14} /> Search another title</button></div></div>
-                  {#if localMetadata?.found}
-                    <div class="metadata-local-source"><strong>Local NFO found</strong><span>{localMetadata.title ?? localMetadata.showTitle ?? basename(group.root)}{#if localMetadata.year} · {localMetadata.year}{/if}{#if localMetadata.genres.length} · {localMetadata.genres.join(" · ")}{/if}</span>{#if localMetadata.error}<small class="metadata-error-text">{localMetadata.error}</small>{:else}<small>Local metadata stays on this device and takes priority. Use public search only if you want to compare or replace it.</small><button class="link-button" onclick={() => useLocalSeriesMetadata(group.root)}>Review and edit local show metadata</button>{/if}</div>
-                  {/if}
+                  <div class="metadata-analysis-series-main"><div><strong>{basename(group.root)}</strong><small>{group.files.length} scanned episode file{group.files.length === 1 ? "" : "s"} · {group.seasonDirectories.length} season folder{group.seasonDirectories.length === 1 ? "" : "s"}</small></div><div class="metadata-record-actions"><button class="button secondary" disabled={!desktop || lookupBusy || group.ambiguous} onclick={() => savedSeriesResult && savedSeriesSuggestion?.status === "ready" ? reviewSeriesCandidate(group.root, savedSeriesResult) : findSeriesMatches([group])}>{seriesMatchSet?.status === "searching" ? "Searching…" : savedSeriesSuggestion?.status === "ready" ? "Review suggestion" : "Find matches"}</button><button class="link-button" disabled={!desktop || group.ambiguous} onclick={() => searchSeriesRecord(group)}><Search size={14} /> Search another title</button></div></div>
                   {#if localSeries?.artwork.length}
                     <details class="metadata-local-artwork" ontoggle={(event) => event.currentTarget.open && loadLocalArtworkPreviews(localSeries.artwork)}><summary>Local show artwork · {localSeries.artwork.length} image{localSeries.artwork.length === 1 ? "" : "s"}</summary><div class="metadata-local-artwork-grid">{#each localSeries.artwork.slice(0, 4) as image (image.path)}<figure>{#if localArtworkPreviews[image.path]}<img src={localArtworkPreviews[image.path]} alt={`${image.role}: ${image.name}`} />{:else if localArtworkPreviewBusy[image.path]}<span>Loading preview…</span>{:else}<button class="link-button" onclick={() => loadLocalArtworkPreviews([image])}>Load preview</button>{/if}<figcaption>{image.role} · {image.name}</figcaption></figure>{/each}</div></details>
                   {/if}
@@ -3153,7 +2805,6 @@
   {#if mediaKind === "movie" && organizerSource === "analysis" && organizerScan && compactItemMode}
     {#each visibleOrganizerFiles as file (file.path)}
       {@const localFile = localFileAssets(file.path)}
-      {@const localMetadata = localNfoForFile(file.path)}
       {@const draft = movieAssignments[file.path]}
       {@const matchSet = movieSuggestions[file.path] ?? savedMovieMatchSet(file)}
       {@const posterChoices = reviewPosterOptions(file.path, draft, matchSet?.results ?? [])}
@@ -3225,7 +2876,7 @@
           <p class="review-status">Preparing this film…</p>
         {/if}
         <div class="review-poster-actions">
-          <button class="button secondary" type="button" disabled={!desktop || lookupBusy} onclick={() => findMovieMatches([file], Boolean(localMetadata?.found))}>{matchSet?.status === "searching" ? "Searching…" : "Find posters"}</button>
+          <button class="button secondary" type="button" disabled={!desktop || lookupBusy} onclick={() => findMovieMatches([file])}>{matchSet?.status === "searching" ? "Searching…" : "Find posters"}</button>
           <button class="button secondary" type="button" disabled={!desktop} onclick={() => searchMovieRecord(file, draft?.title)}><Search size={15} /> Search another title</button>
           <button class="button secondary" type="button" disabled={!desktop} onclick={() => chooseLocalPoster(file)}><ImagePlus size={15} /> Use your own image</button>
         </div>
@@ -3253,13 +2904,12 @@
             {@const discoveredLocalPosterPreview = discoveredLocalPosterPath ? localArtworkPreviews[discoveredLocalPosterPath] : ""}
             {@const matchImage = selectedLocalPosterPreview || reviewedPoster?.thumbnailUrl || reviewedPoster?.imageUrl || savedSuggestion?.artwork?.thumbnailUrl || savedSuggestion?.artwork?.imageUrl || discoveredLocalPosterPreview || ""}
             <article class="metadata-analysis-movie-row" data-media-path={file.path}>
-              <div class="metadata-analysis-movie-main"><label><input type="checkbox" checked={selectedMediaPaths.includes(file.path)} onchange={(event) => toggleMedia(file.path, event.currentTarget.checked)} /><span><strong>{file.name}</strong><small>{file.parentPath}{#if localFile?.metadata.found} · local NFO takes priority{/if}</small></span></label><div class="metadata-record-actions"><button class="button secondary" disabled={!desktop || lookupBusy} onclick={() => savedResult && savedSuggestion?.status === "ready" && !localFile?.metadata.found ? reviewMovieCandidate(file.path, savedResult, true) : findMovieMatches([file], Boolean(localFile?.metadata.found))}>{movieLookupLabel(file, Boolean(localFile?.metadata.found), matchSet)}</button><button class="link-button" disabled={!desktop} onclick={() => searchMovieRecord(file, localFile?.metadata.title)}><Search size={14} /> Search another title</button></div></div>
+              <div class="metadata-analysis-movie-main"><label><input type="checkbox" checked={selectedMediaPaths.includes(file.path)} onchange={(event) => toggleMedia(file.path, event.currentTarget.checked)} /><span><strong>{file.name}</strong><small>{file.parentPath}</small></span></label><div class="metadata-record-actions"><button class="button secondary" disabled={!desktop || lookupBusy} onclick={() => savedResult && savedSuggestion?.status === "ready" ? reviewMovieCandidate(file.path, savedResult, true) : findMovieMatches([file])}>{movieLookupLabel(file, matchSet)}</button><button class="link-button" disabled={!desktop} onclick={() => searchMovieRecord(file)}><Search size={14} /> Search another title</button></div></div>
               <div class="metadata-movie-match-card" class:metadata-movie-match-reviewed={Boolean(movieAssignments[file.path])} class:metadata-movie-match-suggested={Boolean(!movieAssignments[file.path] && savedSuggestion?.status === "ready")} class:metadata-movie-match-empty={!movieAssignments[file.path] && savedSuggestion?.status !== "ready"}>
                 <div class="metadata-movie-match-poster">{#if matchImage}<img src={matchImage} alt="" loading="lazy" referrerpolicy="no-referrer" />{:else}<span><Film size={20} /></span>{/if}</div>
-                <div class="metadata-movie-match-copy"><small>{movieAssignments[file.path] ? (movieAssignments[file.path].recordId.startsWith("local") ? "LOCAL NFO" : "REVIEWED MATCH") : savedSuggestion?.status === "ready" ? "SAVED SUGGESTION" : localFile?.artwork.length ? "LOCAL ARTWORK FOUND" : matchSet?.status === "searching" ? "SEARCHING" : "NO MATCH YET"}</small><strong>{movieAssignments[file.path]?.title || savedSuggestion?.title || localFile?.metadata.title || "Needs a title match"}{movieAssignments[file.path]?.year ? ` (${movieAssignments[file.path].year})` : savedSuggestion?.year ? ` (${savedSuggestion.year})` : ""}</strong><span>{movieAssignments[file.path] ? (selectedLocalPosterPreview ? "Local poster selected" : reviewedPoster ? `${reviewedPoster.provider} artwork selected` : discoveredLocalPosterPreview ? "Local artwork found below · choose it to use it" : "Review details and choose a poster below") : savedSuggestion?.status === "ready" ? `${savedSuggestion.provider?.toUpperCase() ?? "Public source"} · review before assigning` : localFile?.artwork.length ? "Artwork was found beside this file · open it below to preview" : matchSet?.status === "searching" ? "Checking public film records…" : "Search this film or use Search another title"}</span></div>
+                <div class="metadata-movie-match-copy"><small>{movieAssignments[file.path] ? "REVIEWED MATCH" : savedSuggestion?.status === "ready" ? "SAVED SUGGESTION" : localFile?.artwork.length ? "LOCAL ARTWORK FOUND" : matchSet?.status === "searching" ? "SEARCHING" : "NO MATCH YET"}</small><strong>{movieAssignments[file.path]?.title || savedSuggestion?.title || "Needs a title match"}{movieAssignments[file.path]?.year ? ` (${movieAssignments[file.path].year})` : savedSuggestion?.year ? ` (${savedSuggestion.year})` : ""}</strong><span>{movieAssignments[file.path] ? (selectedLocalPosterPreview ? "Local poster selected" : reviewedPoster ? `${reviewedPoster.provider} artwork selected` : discoveredLocalPosterPreview ? "Local artwork found below · choose it to use it" : "Review details and choose a poster below") : savedSuggestion?.status === "ready" ? `${savedSuggestion.provider?.toUpperCase() ?? "Public source"} · review before assigning` : localFile?.artwork.length ? "Artwork was found beside this file · open it below to preview" : matchSet?.status === "searching" ? "Checking public film records…" : "Search this film or use Search another title"}</span></div>
                 <div class="metadata-movie-match-actions">{#if movieAssignments[file.path]}<button class="link-button" type="button" onclick={() => movieEditorOpen = { ...movieEditorOpen, [file.path]: true }}><Pencil size={14} /> Edit</button>{:else if savedResult}<button class="button secondary" type="button" disabled={loadingDetail} onclick={() => reviewMovieCandidate(file.path, savedResult, true)}>Review & assign</button>{/if}</div>
               </div>
-              {#if localFile?.metadata.found}<div class="metadata-local-source"><strong>Local NFO</strong><span>{localFile.metadata.title ?? "Title not set"}{#if localFile.metadata.year} · {localFile.metadata.year}{/if}</span>{#if localFile.metadata.error}<small class="metadata-error-text">{localFile.metadata.error}</small>{:else}<small>{localFile.metadata.paths.map(basename).join(" · ")} · local details stay first unless you compare sources</small>{/if}</div>{/if}
               {#if localFile?.artwork.length}
                 <details class="metadata-local-artwork" ontoggle={(event) => event.currentTarget.open && loadLocalArtworkPreviews(localFile.artwork)}>
                   <summary>Local artwork · {localFile.artwork.length} image{localFile.artwork.length === 1 ? "" : "s"}</summary>
@@ -3314,13 +2964,13 @@
                 {@const draft = movieAssignments[file.path]}
                 <details class="metadata-inline-draft" bind:open={movieEditorOpen[file.path]}>
                   <summary>Edit this film’s metadata</summary>
-                  <label>Title<input bind:value={movieAssignments[file.path].title} oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label>
-                  <div class="metadata-inline-draft-row"><label>Year<input bind:value={movieAssignments[file.path].year} inputmode="numeric" oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label><label>Certification<input bind:value={movieAssignments[file.path].certification} oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label></div>
-                  <label>Short description<input bind:value={movieAssignments[file.path].shortDescription} oninput={invalidateMetadataPreview} /></label>
-                  <label>Plot<textarea rows="3" bind:value={movieAssignments[file.path].plot} oninput={invalidateMetadataPreview}></textarea></label>
-                  <div class="metadata-inline-draft-row"><label>Genres<input bind:value={movieAssignments[file.path].genresText} oninput={invalidateMetadataPreview} /><small>Separate with commas or semicolons.</small></label><label>Rating · 0 to 10<input type="number" min="0" max="10" step="0.1" bind:value={movieAssignments[file.path].ratingText} oninput={invalidateMetadataPreview} /></label></div>
-                  <label>Source URL · optional<input type="url" placeholder="https://…" bind:value={movieAssignments[file.path].sourceUrl} oninput={invalidateMetadataPreview} /></label>
-                  {#if draft.artworkCandidates.length}<label>Poster<select disabled={artworkBusy} bind:value={movieAssignments[file.path].posterId} onchange={() => { chooseMovieProviderPoster(file.path); invalidateMetadataPreview(); }}><option value="">No poster selected</option>{#each draft.artworkCandidates as image (image.id)}<option value={image.id}>{image.provider} · {image.title}{image.license ? ` · ${image.license}` : ""}</option>{/each}</select></label>{/if}
+                  <label>Title<input bind:value={movieAssignments[file.path].title} oninput={() => { renamePreview = null; }} /></label>
+                  <div class="metadata-inline-draft-row"><label>Year<input bind:value={movieAssignments[file.path].year} inputmode="numeric" oninput={() => { renamePreview = null; }} /></label><label>Certification<input bind:value={movieAssignments[file.path].certification} oninput={() => { renamePreview = null; }} /></label></div>
+                  <label>Short description<input bind:value={movieAssignments[file.path].shortDescription} /></label>
+                  <label>Plot<textarea rows="3" bind:value={movieAssignments[file.path].plot}></textarea></label>
+                  <div class="metadata-inline-draft-row"><label>Genres<input bind:value={movieAssignments[file.path].genresText} /><small>Separate with commas or semicolons.</small></label><label>Rating · 0 to 10<input type="number" min="0" max="10" step="0.1" bind:value={movieAssignments[file.path].ratingText} /></label></div>
+                  <label>Source URL · optional<input type="url" placeholder="https://…" bind:value={movieAssignments[file.path].sourceUrl} /></label>
+                  {#if draft.artworkCandidates.length}<label>Poster<select disabled={artworkBusy} bind:value={movieAssignments[file.path].posterId} onchange={() => { chooseMovieProviderPoster(file.path); }}><option value="">No poster selected</option>{#each draft.artworkCandidates as image (image.id)}<option value={image.id}>{image.provider} · {image.title}{image.license ? ` · ${image.license}` : ""}</option>{/each}</select></label>{/if}
                   <div class="metadata-local-poster-actions"><button class="link-button" type="button" disabled={localPosterBusy} onclick={() => chooseLocalPoster(file)}>Choose your own poster image</button><small>JPEG, PNG, or WebP · copied beside this video · existing files are never overwritten</small></div>
                   {#if pendingLocalPoster?.target.directory === movieArtworkTarget(file).directory && pendingLocalPoster?.target.basename === movieArtworkTarget(file).basename}
                     <div class="metadata-local-poster-review"><strong>{pendingLocalPoster.saveBesideMedia ? "Copy this poster beside the film?" : "Save this poster to the app artwork cache?"}</strong><small>Image: {pendingLocalPoster.sourcePath}</small><code>{pendingLocalPoster.targetPath}</code><div><button class="link-button" disabled={localPosterBusy} onclick={() => pendingLocalPoster = null}>Cancel</button><button class="button secondary" disabled={localPosterBusy} onclick={saveLocalPoster}>{localPosterBusy ? "Saving poster…" : "Save poster"}</button></div></div>
@@ -3338,8 +2988,8 @@
     </section>
   {/if}
 
-  {#if !compactItemMode}<p class="metadata-lookup-privacy">Search results stay attached to the film or series that started the search. Enabled providers receive only the cleaned title; filenames, paths, year clues, NFO contents, local artwork and video bytes stay on this device. Existing NFO details remain available for review. Matches are suggestions until you assign and confirm them.</p>{/if}
-  {#if localAssetScanError}<div class="metadata-error" role="status"><TriangleAlert size={17} /><span>Local NFO and artwork inspection could not finish: {localAssetScanError}. Public lookup is paused until the local check succeeds.</span></div>{/if}
+  {#if !compactItemMode}<p class="metadata-lookup-privacy">Search results stay attached to the film or series that started the search. Enabled providers receive only the cleaned title; filenames, paths, year clues, local artwork and video bytes stay on this device. Matches are suggestions until you assign and confirm them.</p>{/if}
+  {#if localAssetScanError}<div class="metadata-error" role="status"><TriangleAlert size={17} /><span>Local artwork inspection could not finish: {localAssetScanError}. Public lookup is paused until the local check succeeds.</span></div>{/if}
 
   <div class="metadata-grid" class:metadata-focused-grid={compactItemMode}>
     <section class="metadata-search card-surface" class:metadata-search-active={Boolean(searchTarget)}>
@@ -3389,7 +3039,7 @@
       {#if loadingDetail}
         <div class="metadata-empty"><LoaderCircle size={24} class="spin" /><strong>Loading {mediaKind === "movie" ? "film" : "series"} details</strong><span>{mediaKind === "movie" ? "Getting title information, certification and artwork." : "Getting show details, seasons, episodes and series artwork."}</span></div>
       {:else if detail}
-        <div class="metadata-detail-heading"><div><div class="eyebrow">{detail.attribution.startsWith("Local NFO metadata") ? "LOCAL NFO RECORD" : "REVIEWED SOURCE RECORD"}</div><h2>{detail.title}{#if detail.year} <span>({detail.year})</span>{/if}</h2><p>{detail.originalTitle && detail.originalTitle !== detail.title ? `Original title: ${detail.originalTitle} · ` : ""}{detail.genres.join(" · ") || detail.attribution}</p><small class="metadata-provider-attribution">{detail.attribution}</small>{#if detail.episodeOrderLabel}<div class="metadata-episode-order-note"><strong>Episode numbering:</strong> {detail.episodeOrderLabel}. Check it against the source files before assigning episodes.</div>{/if}</div>{#if safeHttpUrl(detail.sourceUrl)}<a class="button secondary" href={safeHttpUrl(detail.sourceUrl) ?? undefined} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Open source</a>{/if}</div>
+        <div class="metadata-detail-heading"><div><div class="eyebrow">REVIEWED SOURCE RECORD</div><h2>{detail.title}{#if detail.year} <span>({detail.year})</span>{/if}</h2><p>{detail.originalTitle && detail.originalTitle !== detail.title ? `Original title: ${detail.originalTitle} · ` : ""}{detail.genres.join(" · ") || detail.attribution}</p><small class="metadata-provider-attribution">{detail.attribution}</small>{#if detail.episodeOrderLabel}<div class="metadata-episode-order-note"><strong>Episode numbering:</strong> {detail.episodeOrderLabel}. Check it against the source files before assigning episodes.</div>{/if}</div>{#if safeHttpUrl(detail.sourceUrl)}<a class="button secondary" href={safeHttpUrl(detail.sourceUrl) ?? undefined} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Open source</a>{/if}</div>
         {#if currentSeriesYearMismatch()}
           {@const mismatch = currentSeriesYearMismatch()}
           <div class="metadata-episode-order-note metadata-series-year-warning" role="alert">
@@ -3421,12 +3071,12 @@
         {/if}
         <div class="metadata-edit-fields">
           <label>Short description
-            <input bind:value={detail.shortDescription} oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} placeholder="Short summary, tagline, or subtitle" />
+            <input bind:value={detail.shortDescription} oninput={() => { renamePreview = null; }} placeholder="Short summary, tagline, or subtitle" />
           </label>
           <label>Long description
-            <textarea bind:value={detail.longDescription} rows="5" oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} placeholder="Long synopsis or plot"></textarea>
+            <textarea bind:value={detail.longDescription} rows="5" oninput={() => { renamePreview = null; }} placeholder="Long synopsis or plot"></textarea>
           </label>
-          <small>{mediaKind === "movie" ? "These values are copied when you assign this film to selected files. You can then edit each film's text, rating, and poster separately." : "Review and edit the series text saved in a Kodi-compatible sidecar. Episode descriptions are edited on their individual file assignments below."} A later confirmed rebuild embeds supported fields into the new Matroska file.</small>
+          <small>{mediaKind === "movie" ? "These values are copied when you assign this film to selected files. You can then edit each film's text, rating, and poster separately." : "Review and edit the series text used for tagging. Episode descriptions are edited on their individual file assignments below."} A later confirmed rebuild embeds supported fields into the new Matroska file.</small>
         </div>
         {#if detail.artwork.length}
           <div class="metadata-artwork-heading"><h3>{mediaKind === "movie" ? "Poster options" : "Series poster options"}</h3><small>Select a preferred poster after checking its source and reuse terms.</small></div>
@@ -3555,7 +3205,7 @@
                   {#if mediaKind === "movie"}<button class="link-button" disabled={!desktop} onclick={() => searchMovieRecord(file, movieAssignments[file.path]?.title)}><Search size={14} /> Search this film title</button>{/if}
                   {#if mediaKind === "tv"}
                     {#if file.multipleEpisodes}<span class="metadata-warning">Multi-episode file needs manual split handling</span>{:else}
-                      <select aria-label={`Match episode for ${file.name}`} value={episodeAssignments[file.path] ?? ""} onchange={(event) => { episodeAssignments = { ...episodeAssignments, [file.path]: event.currentTarget.value }; renamePreview = null; invalidateMetadataPreview(); }}>
+                      <select aria-label={`Match episode for ${file.name}`} value={episodeAssignments[file.path] ?? ""} onchange={(event) => { episodeAssignments = { ...episodeAssignments, [file.path]: event.currentTarget.value }; renamePreview = null; }}>
                         <option value="">Choose episode…</option>{#each detail.episodes as episode (String(episode.season) + "/" + episode.episode)}
                           {#if episode.season !== null && episode.episode !== null}<option value={`${episode.season}/${episode.episode}`}>S{String(episode.season).padStart(2, "0")}E{String(episode.episode).padStart(2, "0")} · {episode.title}</option>{/if}
                         {/each}
@@ -3575,14 +3225,14 @@
                       {@const poster = assignedMoviePoster(assignment)}
                       <div class="metadata-movie-assignment">
                         <strong>Assigned: {assignment.title}{assignment.year ? ` (${assignment.year})` : ""}</strong>
-                        <label>Title<input bind:value={movieAssignments[file.path].title} oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label>
-                        <div><label>Year<input bind:value={movieAssignments[file.path].year} inputmode="numeric" oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label><label>Certification<input bind:value={movieAssignments[file.path].certification} oninput={() => { renamePreview = null; invalidateMetadataPreview(); }} /></label></div>
+                        <label>Title<input bind:value={movieAssignments[file.path].title} oninput={() => { renamePreview = null; }} /></label>
+                        <div><label>Year<input bind:value={movieAssignments[file.path].year} inputmode="numeric" oninput={() => { renamePreview = null; }} /></label><label>Certification<input bind:value={movieAssignments[file.path].certification} oninput={() => { renamePreview = null; }} /></label></div>
                         <details class="metadata-movie-extra"><summary>Edit descriptions, genres, rating and poster</summary>
-                          <label>Short description<input bind:value={movieAssignments[file.path].shortDescription} oninput={invalidateMetadataPreview} /></label>
-                          <label>Long description<textarea rows="4" bind:value={movieAssignments[file.path].plot} oninput={invalidateMetadataPreview}></textarea></label>
-                          <div><label>Genres<input bind:value={movieAssignments[file.path].genresText} oninput={invalidateMetadataPreview} /><small>Separate genres with commas or semicolons.</small></label><label>Rating (0–10)<input type="number" min="0" max="10" step="0.1" bind:value={movieAssignments[file.path].ratingText} oninput={invalidateMetadataPreview} /></label></div>
+                          <label>Short description<input bind:value={movieAssignments[file.path].shortDescription} /></label>
+                          <label>Long description<textarea rows="4" bind:value={movieAssignments[file.path].plot}></textarea></label>
+                          <div><label>Genres<input bind:value={movieAssignments[file.path].genresText} /><small>Separate genres with commas or semicolons.</small></label><label>Rating (0–10)<input type="number" min="0" max="10" step="0.1" bind:value={movieAssignments[file.path].ratingText} /></label></div>
                           <label>Poster option
-                            <select aria-label={`Poster for ${file.name}`} disabled={artworkBusy} bind:value={movieAssignments[file.path].posterId} onchange={() => { chooseMovieProviderPoster(file.path); invalidateMetadataPreview(); }}>
+                            <select aria-label={`Poster for ${file.name}`} disabled={artworkBusy} bind:value={movieAssignments[file.path].posterId} onchange={() => { chooseMovieProviderPoster(file.path); }}>
                               <option value="">No poster selected</option>
                               {#each assignment.artworkCandidates as image (image.id)}<option value={image.id}>{image.provider} · {image.title}{image.license ? ` · ${image.license}` : ""}</option>{/each}
                             </select>
@@ -3599,21 +3249,6 @@
                 </article>
               {/each}
             </div>
-            <div class="metadata-rename-actions metadata-write-actions">
-              <button class="button secondary" disabled={metadataWriteBusy || !selectedPathsInOrganizer().length && mediaKind === "movie"} onclick={previewMetadataWrite}>
-                {#if metadataWriteBusy}<LoaderCircle size={16} class="spin" /> Preparing preview{:else}Preview Kodi NFO sidecars{/if}
-              </button>
-              <small>NFO files are optional sidecars for library managers. This does not write tags into the video.</small>
-            </div>
-            {#if metadataWriteError}<div class="metadata-error"><TriangleAlert size={17} /><span>{metadataWriteError}</span></div>{/if}
-            {#if metadataWriteMessage}<div class="metadata-success"><strong>Metadata sidecars saved</strong><span>{metadataWriteMessage}</span></div>{/if}
-            {#if metadataWritePreview && metadataWriteRequest}
-              <section class="metadata-artwork-save-review metadata-nfo-preview">
-                <div><strong>Review Kodi NFO sidecars</strong><span>Existing standard NFO files stay untouched. Existing HEVC Rebuild sidecars will be replaced only after confirmation. To write reviewed tags into a new video file, use the metadata-only MKV action.</span></div>
-                <div class="metadata-artwork-save-paths">{#each metadataWritePreview.items as item (item.targetPath)}<code>{item.sourcePath} → {item.targetPath}{#if item.replacesAppSidecar} · replace app sidecar{/if}</code>{/each}</div>
-                <div class="metadata-rename-actions"><button class="button secondary" disabled={metadataWriteBusy} onclick={() => invalidateMetadataPreview()}>Cancel</button><button class="button primary" disabled={metadataWriteBusy || !metadataWritePreview.canApply} onclick={applyMetadataWrite}>{#if metadataWriteBusy}<LoaderCircle size={16} class="spin" /> Saving metadata{:else}Confirm and save metadata{/if}</button></div>
-              </section>
-            {/if}
             {#if !compactItemMode}
               <section class="metadata-mkv-action" aria-label="Create a metadata-only MKV copy">
                 <div>
@@ -3622,7 +3257,7 @@
                   <p>Use the reviewed title, metadata and selected poster in a new MKV. Source streams are copied and checked; the original stays in place. Apply the filename changes above first if you want the new copy to use those names.</p>
                   <small>{selectedPathsInOrganizer().length} file{selectedPathsInOrganizer().length === 1 ? "" : "s"} selected in this organizer · destination and collisions are reviewed before the copy starts</small>
                 </div>
-                <button class="button primary" type="button" disabled={!desktop || metadataWriteBusy || renameBusy || !selectedPathsInOrganizer().length} onclick={createMetadataOnlyCopies}>
+                <button class="button primary" type="button" disabled={!desktop || renameBusy || !selectedPathsInOrganizer().length} onclick={createMetadataOnlyCopies}>
                   <FileText size={16} /> Review MKV output plan <ArrowRight size={15} />
                 </button>
               </section>
@@ -3643,16 +3278,12 @@
               </div>
             {/if}
             {#if confirmRename && renamePreview?.canApply}
-              <div class="metadata-rename-confirm"><strong>Apply this rename batch?</strong><span>The utility will recheck the preview and collisions before changing names. Media contents remain untouched; matching NFOs, recognized local artwork and attribution, plus same-base subtitle and external audio files follow their video. An operation error triggers rollback.</span>
+              <div class="metadata-rename-confirm"><strong>Apply this rename batch?</strong><span>The utility will recheck the preview and collisions before changing names. Media contents remain untouched; recognized local artwork and attribution, plus same-base subtitle and external audio files follow their video. An operation error triggers rollback.</span>
                 <div><button class="button secondary" disabled={renameBusy} onclick={() => confirmRename = false}>Review again</button><button class="button danger" disabled={renameBusy} onclick={applyNames}>{renameBusy ? "Applying…" : "Confirm rename"}</button></div>
               </div>
             {/if}
           {/if}
         </section>
-      {:else if organizerScan && mediaKind === "tv" && localSeriesNfo(organizerScan.root)?.found}
-        {@const seriesScan = organizerScan!}
-        {@const local = localSeriesNfo(seriesScan.root)}
-        <div class="metadata-empty metadata-local-record"><Database size={25} /><strong>Local NFO data takes priority</strong><span>{local?.title ?? local?.showTitle ?? basename(seriesScan.root)}{#if local?.year} · {local.year}{/if}{#if local?.genres.length} · {local.genres.join(" · ")}{/if}</span>{#if local?.error}<small class="metadata-error-text">{local.error}</small><button class="button secondary" onclick={() => findSeriesMatches([{ root: seriesScan.root, files: seriesScan.files, seasonDirectories: seriesScan.seasonDirectories, ambiguous: false }], true)}>Search public alternative</button>{:else}<small>Review and edit the local NFO record, then save a managed sidecar if you want to preserve the original.</small><button class="button secondary" onclick={() => useLocalSeriesMetadata(seriesScan.root)}>Review local show metadata</button>{/if}{#if localDirectoryAssets(seriesScan.root)?.artwork.length}<div class="metadata-local-artwork-grid">{#each localDirectoryAssets(seriesScan.root)?.artwork.slice(0, 4) ?? [] as image (image.path)}<figure>{#if localArtworkPreviews[image.path]}<img src={localArtworkPreviews[image.path]} alt={`${image.role}: ${image.name}`} />{:else}<button class="link-button" onclick={() => loadLocalArtworkPreviews([image])}>Load preview</button>{/if}<figcaption>{image.role} · {image.name}</figcaption></figure>{/each}</div>{/if}</div>
       {:else}
         <div class="metadata-empty"><Database size={25} /><strong>Source details appear here</strong><span>Search a title and select a likely match. Nothing is applied to files automatically.</span></div>
       {/if}
@@ -3681,5 +3312,5 @@
       {/if}
     </section>
   {/if}
-          <p class="metadata-boundary">Review matches and edit the fields you want to use. Renaming, poster saving, optional Kodi NFO sidecars, and MKV creation have separate previews and confirmations. A metadata-only MKV embeds supported fields and selected poster art in a new file, then validates it while keeping the source in place.</p>
+          <p class="metadata-boundary">Review matches and edit the fields you want to use. Renaming, poster saving, and MKV creation have separate previews and confirmations. A metadata-only MKV embeds supported fields and selected poster art in a new file, then validates it while keeping the source in place.</p>
 </section>

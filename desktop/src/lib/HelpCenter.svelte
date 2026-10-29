@@ -39,16 +39,17 @@
       <div class="eyebrow">START HERE</div>
       <h2>Build your media queue</h2>
       <ol>
-        <li>Start on <strong>Home</strong> for the current queue, toolchain checks, and recent runs. Add files or folders there, or open <strong>Media library</strong>. You can also drop several files or folders onto the app; each source is scanned into the same queue.</li>
-        <li>Scanning starts as each source is added. The app reads tracks, tags, HDR data, and resource estimates; it does not change the media.</li>
+        <li>Start on <strong>Library</strong>. Drop files or folders, or use Add folder / Add files. Each source is scanned into the same queue. Toolchain status lives in the top bar and in Settings.</li>
+        <li>Scanning starts as each source is added. The app reads tracks, tags, HDR data, and resource estimates; it does not change the media. <strong>Stop scan</strong> finishes the file currently being read, then returns. Files already analyzed stay in the queue.</li>
+        <li>Use the <strong>Queue</strong> manager to add or remove folders and files. Drag a handle, or use the arrow buttons, to change source and file order. Removing a file hides it on refresh until you restore hidden items.</li>
         <li>If FFprobe is installed but MediaInfo is missing, scans can still run with partial track details. Rebuild and YouTube jobs stay blocked until their required tools are ready.</li>
         <li>Search narrows the active source. Large results are shown in pages of 50, 100, or 200 rows; the header checkbox selects the current page, while <strong>Select all matches</strong> includes every filtered result. Your selection remains shared across the queue.</li>
         <li>Use the checkboxes to select files from different folders. The selection follows you between the media list and metadata workbench. Jobs use selected files, or new and queued files for the chosen task when nothing is selected. Completed, failed, skipped, interrupted, or needs-review files stay out of that task’s default run until you select them.</li>
         <li>Open a file’s track details to choose video, audio, subtitle, and attachment streams.</li>
         <li>The queue status strip counts files that are ready, queued, scanning, renaming, copying streams, rebuilding, validating, complete, skipped, failed, or waiting for review.</li>
         <li>The file row keeps its memory-risk level and planned worker count visible. Open <strong>Memory and retry details</strong> for the budget, swap pressure, and lower-thread retry plan.</li>
-        <li>After scanning, choose <strong>Rename files</strong>, <strong>Metadata-only MKV</strong>, or <strong>Rebuild video</strong> from the Media Library. Rename files names one selected file or the whole selection from a pattern, and shows the original name beside the new name before anything moves. The organizer still renames series and season folders. Processing keeps the shared selection across queued folders.</li>
-        <li>Check only and short tests are in <strong>Run & settings</strong>. Before metadata-only output, a short test, or a full rebuild, review the planned destinations for all selected folders and files. Existing outputs or duplicate destinations block the run; the engine checks each source again before writing.</li>
+        <li>After scanning, choose <strong>Rename files</strong>, <strong>Organize titles</strong>, <strong>Metadata-only MKV</strong>, or <strong>Rebuild video</strong> from Library. Rename files names one selected file or the whole selection from a pattern, and shows the original name beside the new name before anything moves. The organizer still renames series and season folders. Processing keeps the shared selection across queued folders.</li>
+        <li>Check only and integrity checks run in the native pipeline and write no media. Short tests and rebuilds are on <strong>Run</strong>. Before metadata-only output, a short test, or a full rebuild, review destinations, collisions, and disk space in one dialog. Existing outputs or duplicate destinations block the run.</li>
         <li>After a restart, the app settles files that were still active. A saved successful result is marked complete. An unfinished file whose original is still in place returns to the normal queue, and only an unopened temporary encode from this app is removed. A partial encode is not resumed, and an existing output is not overwritten. A file that is missing, or whose saved success has no output, stays for review. Select failed or skipped items to prepare a retry; mark queued or failed items skipped to keep them out of the default run.</li>
       </ol>
       <p class="help-note"><ShieldCheck size={15} /><span>A full rebuild keeps the source until its replacement passes validation. If compression finishes but a later check fails, the completed file is retained as an unvalidated <code>.error.mkv</code> review artifact beside a matching <code>.error.log</code>; an in-place rebuild never overwrites the source early. Stop safely finishes the current file and then stops the full multi-folder queue.</span></p>
@@ -59,12 +60,13 @@
       <div class="eyebrow">WHERE THINGS LIVE</div>
       <h2>Find the right screen</h2>
       <dl class="help-map">
-        <div><dt>Home</dt><dd>See the current queue, toolchain checks, and recent runs. An empty queue opens here. A queue that already has media reopens on the last tab you used.</dd></div>
-        <div><dt>Media library</dt><dd>Add one or more folders or files to the persistent queue, inspect tracks and likely matches, compare current and proposed filenames, and choose renaming, metadata-only copies, or a full rebuild.</dd></div>
-        <div><dt>Identify & organize</dt><dd>Review title matches, edit film or series details, choose artwork, and preview names or sidecars.</dd></div>
-        <div><dt>YouTube prep</dt><dd>Choose a YouTube profile and separate output folder; review HDR and size warnings.</dd></div>
-        <div><dt>Run & settings</dt><dd>Choose a job, set resource limits, check tool paths, and manage filename and metadata filters.</dd></div>
-        <div><dt>Reports & errors</dt><dd>See per-file outcomes and open the run log.</dd></div>
+        <div><dt>Library</dt><dd>The start screen. Add folders or files to the persistent queue, inspect posters and tracks, and start rename, metadata-only, integrity, or rebuild work. An empty queue opens here.</dd></div>
+        <div><dt>Organize titles</dt><dd>A library view for batch title matches, film or series details, artwork, and filename previews. Open it from Organize titles on the poster bar.</dd></div>
+        <div><dt>YouTube</dt><dd>Choose a YouTube profile and separate output folder; review HDR and size warnings.</dd></div>
+        <div><dt>Run</dt><dd>Choose a job, including native Check only and integrity checks. Encoder settings appear only for short tests and full rebuilds. Review destinations before anything is written.</dd></div>
+        <div><dt>Settings</dt><dd>Tool paths, metadata sources, filename filters, and title cleanup.</dd></div>
+        <div><dt>Reports & errors</dt><dd>See each file’s success or failure, with the matching log.</dd></div>
+        <div><dt>Help & commands</dt><dd>Opened from the question mark in the top bar. Same safety rules as the GUI, plus CLI and <code>--mcp</code>.</dd></div>
       </dl>
     </article>
 
@@ -73,7 +75,7 @@
       <div class="eyebrow">RENAME WITHOUT REBUILDING</div>
       <h2>Preview names, then apply them</h2>
       <ol>
-        <li>In <strong>Media library</strong>, review the proposed filename under each matched movie or episode. Public title suggestions stay marked as candidates until you review them.</li>
+        <li>In <strong>Library</strong>, review the proposed filename under each matched movie or episode. Public title suggestions stay marked as candidates until you review them.</li>
         <li>Open <strong>Title and poster</strong> on the file row to review that exact film or its associated TV series. The review dialog keeps the match and poster attached to the queue item.</li>
         <li>For a single file, use <strong>Preview filename change</strong> in that dialog. Check the exact path and confirm the rename; a focused TV review can rename only the selected episode.</li>
         <li>For batch rename, choose <strong>Open full organizer</strong>. It reads names and nearby metadata; it does not encode video. A complete folder scan is needed before renaming a whole series.</li>
@@ -89,11 +91,11 @@
       <div class="eyebrow">MOVIES, SHOWS, AND ARTWORK</div>
       <h2>Edit details on the scanned item</h2>
       <ol>
-        <li>In <strong>Media library</strong>, open <strong>Title and poster</strong> on the film or an episode from the show. This opens the focused review for that record.</li>
-        <li>The app checks nearby NFO files and artwork first. With automatic suggestions enabled, it searches publicly only when a local NFO is absent, sending only the cleaned title phrase; the year is used locally to rank results.</li>
+        <li>In <strong>Library</strong>, open the title and poster review on the film or an episode from the show. This opens the focused review for that record.</li>
+        <li>The app checks nearby poster artwork first. With automatic suggestions enabled, it searches the enabled public sources, sending only the cleaned title phrase; the year is used locally to rank results. Existing NFO files are ignored.</li>
         <li>Edit the title, year, certification, descriptions, genres, rating, and poster choice for the specific film or show.</li>
-        <li>Reviewed movie and series details, provider poster choices, and episode-to-file matches stay with the saved queue. The dialog's <strong>Open full organizer</strong> button opens batch naming and sidecar tools.</li>
-        <li>Preview metadata sidecars or rename targets. Confirm each write only after checking the paths and values.</li>
+        <li>Reviewed movie and series details, provider poster choices, and episode-to-file matches stay with the saved queue. The dialog's <strong>Open full organizer</strong> button opens batch naming tools.</li>
+        <li>Preview rename targets. Confirm each write only after checking the paths and values.</li>
       </ol>
       <p>Open <strong>Local artwork</strong> on a film or show to preview images already beside it. This is a metadata preview, not media playback. Choose a poster for an individual film or series, or for a TV season; the selected path is saved with the queue and shown on library cards. In a movie folder, one existing local image can also be applied to the selected, already-assigned films after reviewing the affected filenames. That only changes the saved poster choices; it does not copy or replace image files. Metadata-only, short-test, and full-rebuild outputs use the reviewed image for the output cover. The image must remain inside the scanned library. A provider poster must first be saved locally; check its source and reuse terms before choosing it.</p>
     </article>
@@ -103,13 +105,13 @@
       <div class="eyebrow">NO VIDEO RE-ENCODING</div>
       <h2>Update tags and artwork in a new MKV</h2>
       <ol>
-        <li>Review the title, tags, and poster on each movie or show from its <strong>Title and poster</strong> action in Media library.</li>
-        <li>Open <strong>Identify & organize</strong>, select the intended files, and apply any confirmed rename first. Rename changes paths only; it does not alter media contents.</li>
-        <li>Choose <strong>Review MKV output plan</strong> in the organizer. This carries only the selected organizer files into Run setup with Metadata-only MKV selected. You can also start this mode from the Media Library task chooser.</li>
+        <li>Review the title, tags, and poster on each movie or show from its card in Library.</li>
+        <li>Open <strong>Organize titles</strong> from Library, select the intended files, and apply any confirmed rename first. Rename changes paths only; it does not alter media contents.</li>
+        <li>Choose <strong>Review MKV output plan</strong> in Organize titles. This carries only the selected organizer files into Run with Metadata-only MKV selected. You can also start this mode from the Library task bar.</li>
         <li>Review the queue-wide destination and collision list. Choose an output folder if needed; otherwise, the app creates a sibling file ending in <code>.metadata.mkv</code>.</li>
         <li>Start the task. The app remuxes every source track, updates the reviewed tags and selected cover, checks the output, and leaves the original untouched.</li>
       </ol>
-      <p>The operation does not run a video encoder. Existing output files are never replaced. Unsupported streams or failed validation stop that file and leave its source in place. Optional Kodi NFO sidecars are a separate action; the tagged MKV copy embeds supported fields in the output itself.</p>
+      <p>The operation does not run a video encoder. Existing output files are never replaced. Unsupported streams or failed validation stop that file and leave its source in place. The tagged MKV copy embeds the reviewed fields in the output itself; no NFO sidecars are read or written.</p>
     </article>
 
     <article class="help-card help-card-wide">
@@ -125,7 +127,7 @@
       <div class="eyebrow">LIVE RUN STATUS</div>
       <h2>Follow each file while it runs</h2>
       <p>The queue status strip and each file row show the current operation stage: scanning, renaming, copying streams, rebuilding, or validating. Run activity reports the current file, percent complete, encoding speed, and estimated time remaining. It also shows source size, bytes written so far, and a live output-size estimate once enough frames have been processed. That estimate can move as the video changes; the finished report records the actual output size.</p>
-      <p>Resource telemetry updates separately with memory, swap, CPU, and disk readings. Use <strong>Stop safely</strong> to finish the current file and stop before the next one.</p>
+      <p>Resource telemetry updates separately with memory, swap, CPU, and disk readings. Use <strong>Stop after this file</strong> to finish the current encode, then stop before the next one. That is the same as <strong>Stop safely</strong>: the current file completes. <strong>Stop now</strong> kills the engine immediately, keeps the source, and does not resume that encode.</p>
     </article>
 
     <article class="help-card help-card-wide">
@@ -133,8 +135,8 @@
       <div class="eyebrow">OUTPUT DESTINATIONS</div>
       <h2>Choose where rebuilt files go</h2>
       <ol>
-        <li>Set a default destination in <strong>Run & settings → Rebuild output folders</strong>. The app mirrors the input folder structure there.</li>
-        <li>To send one file somewhere else, open <strong>Media library</strong> and choose <strong>Set output folder</strong> on its row. That choice overrides the default for that file.</li>
+        <li>Set a default destination in <strong>Run → Output folders</strong>. The app mirrors the input folder structure there.</li>
+        <li>To send one file somewhere else, open <strong>Library</strong> and choose <strong>Set output folder</strong> on its card. That choice overrides the default for that file.</li>
         <li>Before starting a metadata copy, short test, or full rebuild, review the queue-wide destination list. The app checks selected files across every queued source for existing files and duplicate targets.</li>
       </ol>
       <p>If no separate folder is set, a full rebuild replaces the source only after validation and moves the original into <code>old/</code>. With a separate folder, the source stays where it is. Existing destination files are never overwritten.</p>
@@ -147,13 +149,17 @@
       <p>Open <strong>Settings → Environment & capabilities</strong> to see detected paths, tool versions, and capability status. The GUI, queue, drag-and-drop, metadata, reports, CLI, and MCP workflows are shared across Linux, Windows, and macOS. Use the host package manager for setup, or use each executable’s <strong>Browse</strong> button when a tool is installed in a nonstandard location. Custom binary overrides are never replaced by setup.</p>
       <pre><code>sudo apt update
 sudo apt install ffmpeg mediainfo mkvtoolnix</code><button type="button" class="help-copy" aria-label="Copy Linux install command" onclick={() => copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Linux command")}><Copy size={15} /> Copy</button></pre>
-      <p class="help-note"><span><strong>Windows:</strong> use the standalone setup command with Python 3 and <code>winget</code>, or install the fixed FFmpeg, MediaInfo, and MKVToolNix package IDs documented in <a href="../../docs/TOOLS.md">TOOLS.md</a>. <strong>macOS:</strong> use Homebrew for Python, FFmpeg, MediaInfo, MKVToolNix, and Fontconfig. The HDR10+ helper is downloaded from its official release and checksum-verified on all three desktop hosts.</span></p>
+      <pre><code>winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
+winget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements
+winget install --exact --id MoritzBunkus.MKVToolNix --accept-source-agreements --accept-package-agreements</code><button type="button" class="help-copy" aria-label="Copy Windows install command" onclick={() => copyText("winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MoritzBunkus.MKVToolNix --accept-source-agreements --accept-package-agreements", "Windows command")}><Copy size={15} /> Copy</button></pre>
+      <pre><code>brew install ffmpeg mediainfo mkvtoolnix fontconfig</code><button type="button" class="help-copy" aria-label="Copy macOS install command" onclick={() => copyText("brew install ffmpeg mediainfo mkvtoolnix fontconfig", "macOS command")}><Copy size={15} /> Copy</button></pre>
+      <p class="help-note"><span>Integrity checks, scans, and the desktop app itself are native Rust. A full rebuild, metadata-only MKV, short test, or YouTube copy still uses the bundled compatibility engine until that coordinator is fully native. The HDR10+ helper is downloaded from its official release and checksum-verified on all three desktop hosts.</span></p>
       <div class="help-links">
         <a href="https://www.ffmpeg.org/download.html" target="_blank" rel="noreferrer">FFmpeg downloads <ExternalLink size={13} /></a>
-        <a href="https://mediaarea.net/en/MediaInfo/Download/Ubuntu" target="_blank" rel="noreferrer">MediaInfo for Ubuntu <ExternalLink size={13} /></a>
+        <a href="https://mediaarea.net/en/MediaInfo/Download" target="_blank" rel="noreferrer">MediaInfo downloads <ExternalLink size={13} /></a>
         <a href="https://mediaarea.net/en/Repos" target="_blank" rel="noreferrer">MediaArea package repository <ExternalLink size={13} /></a>
         <a href="https://mkvtoolnix.download/downloads.html" target="_blank" rel="noreferrer">MKVToolNix downloads <ExternalLink size={13} /></a>
-        <a href="https://codecguide.com/features_mega.htm" target="_blank" rel="noreferrer">K-Lite Mega contents <ExternalLink size={13} /></a>
+        <a href="https://github.com/quietvoid/hdr10plus_tool/releases/latest" target="_blank" rel="noreferrer">HDR10+ helper <ExternalLink size={13} /></a>
       </div>
       <p class="help-note">The Linux command uses enabled repositories, which can lag upstream releases. FFprobe normally comes with FFmpeg; this app needs MediaInfo’s command-line tool plus MKVToolNix for remux and metadata work. The app checks the installed version and required encoder/features before a run.</p>
     </article>
@@ -164,10 +170,11 @@ sudo apt install ffmpeg mediainfo mkvtoolnix</code><button type="button" class="
       <h2>Use it from a terminal</h2>
       <p>Run a read-only tool check or inspect a media input. A confirmed run can be limited to absolute paths from that analysis.</p>
       <pre><code>hevc-rebuild-studio json environment
+hevc-rebuild-studio json integrity --file "/path/to/Film.mkv" --level quick
 hevc-rebuild-studio json scan --root "/path/to/Media" --recursive
 hevc-rebuild-studio cli "/path/to/Media" --recursive --info-only
 hevc-rebuild-studio cli "/path/to/Media" --selected-file "/path/to/Media/Film.mkv" --info-only
-hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebuilt"</code><button type="button" class="help-copy" aria-label="Copy CLI examples" onclick={() => copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-studio cli \"/path/to/Media\" --recursive --info-only\nhevc-rebuild-studio cli \"/path/to/Media\" --selected-file \"/path/to/Media/Film.mkv\" --info-only\nhevc-rebuild-studio cli \"/path/to/Media\" --recursive --output-dir \"/path/to/Rebuilt\"", "CLI examples")}><Copy size={15} /> Copy</button></pre>
+hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebuilt"</code><button type="button" class="help-copy" aria-label="Copy CLI examples" onclick={() => copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json integrity --file \"/path/to/Film.mkv\" --level quick\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-studio cli \"/path/to/Media\" --recursive --info-only\nhevc-rebuild-studio cli \"/path/to/Media\" --selected-file \"/path/to/Media/Film.mkv\" --info-only\nhevc-rebuild-studio cli \"/path/to/Media\" --recursive --output-dir \"/path/to/Rebuilt\"", "CLI examples")}><Copy size={15} /> Copy</button></pre>
       <p>The JSON commands are suitable for scripts. Start with environment inspection and a scan; use a confirmed run command only when you intend to create outputs. <code>json queue</code> returns a compact page of the saved library, and <code>json queue-select --request selection.json</code> saves a selection containing paths already in that queue.</p>
       <p>For a multi-folder output check, create a JSON request file and run <code>hevc-rebuild-studio json output-plan --request plan.json</code>. The same read-only planner is available to MCP clients as <code>preview_media_outputs</code>.</p>
     </article>
@@ -183,7 +190,7 @@ hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebu
         <li>Poll the returned job with <code>get_job</code>. Start with the default check mode; output-producing runs require their explicit confirmation fields.</li>
       </ol>
       <pre><code>{mcpConfig}</code><button type="button" class="help-copy" aria-label="Copy MCP configuration" onclick={() => copyText(mcpConfig, "MCP configuration")}><Copy size={15} /> Copy</button></pre>
-      <p>Available MCP tools include environment/settings inspection, folder analysis, metadata and artwork lookup, <code>inspect_media_queue</code> for paged saved-library state, <code>set_media_selection</code> for the shared global selection, <code>inspect_local_library_assets</code> for read-only NFO/artwork details, <code>preview_media_outputs</code> for queue-wide destination/collision review, safe rename/NFO previews, job status, stop-after-current, and reports. Pass analyzed absolute paths in <code>selected_files</code> to limit a run; omit it to include every eligible file. For test or full rebuilds, <code>output_dir</code> sets the default destination and <code>file_output_dirs</code> overrides it for individual files. <code>file_poster_overrides</code> maps media paths to selected local image paths within the same library. The server runs as a local process over stdio.</p>
+      <p>Available MCP tools include environment/settings inspection, folder analysis, <code>start_integrity_check</code> for native Quick/Full corruption checks, metadata and artwork lookup, <code>inspect_media_queue</code> for paged saved-library state, <code>set_media_selection</code> for the shared global selection, <code>inspect_local_library_assets</code> for read-only artwork details, <code>preview_media_outputs</code> for queue-wide destination/collision review, safe rename previews, job status, stop-after-current, and reports. Pass analyzed absolute paths in <code>selected_files</code> to limit a run; omit it to include every eligible file. For test or full rebuilds, <code>output_dir</code> sets the default destination and <code>file_output_dirs</code> overrides it for individual files. <code>file_poster_overrides</code> maps media paths to selected local image paths within the same library. The server runs as a local process over stdio.</p>
       <a class="help-doc-link" href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noreferrer">MCP server and stdio overview <ExternalLink size={13} /></a>
     </article>
 
@@ -191,7 +198,7 @@ hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebu
       <div class="help-card-icon"><Play size={18} /></div>
       <div class="eyebrow">SUPPORTED DESKTOPS</div>
       <h2>One workflow across Linux, Windows, and macOS</h2>
-      <p>The product contract is cross-platform: the GUI, drag-and-drop queue, Identify & organize, reports, CLI, and local MCP server use the same behavior on all three desktop hosts. Package managers, app-data paths, process telemetry, and installers are host adapters. Platform builds and native runtime acceptance must still be performed on each operating system before a release is called verified.</p>
+      <p>The product contract is cross-platform: the GUI, drag-and-drop queue, Library organize view, reports, CLI, and local MCP server use the same behavior on all three desktop hosts. Package managers, app-data paths, process telemetry, and installers are host adapters. Platform builds and native runtime acceptance must still be performed on each operating system before a release is called verified.</p>
     </article>
   </section>
 </section>

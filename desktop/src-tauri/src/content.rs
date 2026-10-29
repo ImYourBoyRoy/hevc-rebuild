@@ -5,11 +5,9 @@
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::ffi::OsString;
-use std::fs;
 use std::io::{self, Read};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-const MAX_NFO_BYTES: u64 = 1024 * 1024;
 const MAX_RUN_TUNE_REQUEST_BYTES: u64 = 256 * 1024;
 
 #[derive(Debug, Deserialize)]
@@ -21,6 +19,9 @@ struct RunTuneRequest {
     detect_animation: bool,
     #[serde(default)]
     file_override: Option<String>,
+    /// Genres from the user's reviewed metadata for this file (GUI/CLI/MCP override).
+    #[serde(default)]
+    reviewed_genres: Vec<String>,
 }
 
 pub(crate) fn cli_mode(_args: Vec<OsString>) -> i32 {
@@ -72,7 +73,8 @@ fn run_tune_request(request: RunTuneRequest) -> Result<Value, String> {
             "detect_animation": detect_animation,
         }
     });
-    let decision = profile_content(&request.path, &request.mediainfo, &settings);
+    let decision =
+        profile_content_with_reviewed(&request.mediainfo, &request.reviewed_genres, &settings);
     Ok(json!({
         "tune": decision.get("resolved_tune").cloned().unwrap_or(Value::Null),
         "genres": decision.get("genres").cloned().unwrap_or_else(|| json!([])),
@@ -82,26 +84,19 @@ fn run_tune_request(request: RunTuneRequest) -> Result<Value, String> {
     }))
 }
 
-pub(crate) fn profile_content(path: &Path, mediainfo: &Value, settings: &Value) -> Value {
+pub(crate) fn profile_content(mediainfo: &Value, settings: &Value) -> Value {
+    profile_content_with_reviewed(mediainfo, &[], settings)
+}
+
+/// Genres come from the container's own metadata (MediaInfo) and, for
+/// app-launched runs, the user's reviewed genres. Sidecar files are not read.
+fn profile_content_with_reviewed(
+    mediainfo: &Value,
+    reviewed_genres: &[String],
+    settings: &Value,
+) -> Value {
     let mut genres = Vec::<String>::new();
     let mut sources = Vec::<String>::new();
-
-    for nfo in nfo_paths_for(path) {
-        let Ok(metadata) = fs::metadata(&nfo) else {
-            continue;
-        };
-        if !metadata.is_file() || metadata.len() > MAX_NFO_BYTES {
-            continue;
-        }
-        let Ok(xml) = fs::read_to_string(&nfo) else {
-            continue;
-        };
-        let found = genres_from_nfo(&xml);
-        if !found.is_empty() {
-            append_unique(&mut genres, found);
-            push_unique(&mut sources, nfo_source_name(path, &nfo));
-        }
-    }
 
     if let Some(general) = mediainfo
         .pointer("/media/track")
@@ -124,6 +119,18 @@ pub(crate) fn profile_content(path: &Path, mediainfo: &Value, settings: &Value) 
         if genres.len() > before {
             push_unique(&mut sources, "MediaInfo".to_string());
         }
+    }
+
+    let before = genres.len();
+    append_unique(
+        &mut genres,
+        reviewed_genres
+            .iter()
+            .flat_map(|genre| split_genres(genre))
+            .collect(),
+    );
+    if genres.len() > before {
+        push_unique(&mut sources, "Reviewed metadata".to_string());
     }
 
     let animation_detected = genres.iter().any(|genre| genre == "animation");
@@ -173,255 +180,6 @@ fn resolve_tune(
     }
 }
 
-fn nfo_paths_for(path: &Path) -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
-    let mut parent = path.parent().unwrap_or(path);
-    for _ in 0..24 {
-        let series = [
-            parent.join("tvshow.nfo"),
-            parent.join("tvshow.hevc-rebuild.nfo"),
-        ];
-        let found = series
-            .iter()
-            .filter(|candidate| candidate.is_file())
-            .cloned()
-            .collect::<Vec<_>>();
-        if !found.is_empty() {
-            candidates.extend(found);
-            break;
-        }
-        let Some(next) = parent.parent() else {
-            break;
-        };
-        if next == parent {
-            break;
-        }
-        parent = next;
-    }
-
-    candidates.push(path.with_extension("nfo"));
-    if let Some(stem) = path.file_stem() {
-        let mut managed = stem.to_os_string();
-        managed.push(".hevc-rebuild.nfo");
-        candidates.push(path.with_file_name(managed));
-    }
-
-    let mut unique = Vec::new();
-    for candidate in candidates {
-        if candidate.is_file() && !unique.contains(&candidate) {
-            unique.push(candidate);
-        }
-    }
-    unique
-}
-
-fn nfo_source_name(media_path: &Path, nfo_path: &Path) -> String {
-    if nfo_path.file_name().is_some_and(|name| {
-        name.eq_ignore_ascii_case("tvshow.nfo")
-            || name.eq_ignore_ascii_case("tvshow.hevc-rebuild.nfo")
-    }) {
-        return "TV-show NFO".to_string();
-    }
-    if nfo_path == media_path.with_extension("nfo") {
-        "Adjacent NFO".to_string()
-    } else {
-        "Managed adjacent NFO".to_string()
-    }
-}
-
-fn genres_from_nfo(xml: &str) -> Vec<String> {
-    let bytes = xml.as_bytes();
-    let mut genres = Vec::new();
-    let mut stack: Vec<String> = Vec::new();
-    let mut cursor = 0;
-
-    while cursor < bytes.len() {
-        let Some(relative) = bytes[cursor..].iter().position(|byte| *byte == b'<') else {
-            break;
-        };
-        let start = cursor + relative;
-        if bytes[start..].starts_with(b"<!--") {
-            cursor = after_marker(bytes, start + 4, b"-->").unwrap_or(bytes.len());
-            continue;
-        }
-        if bytes[start..].starts_with(b"<![CDATA[") {
-            cursor = after_marker(bytes, start + 9, b"]]>").unwrap_or(bytes.len());
-            continue;
-        }
-        if bytes[start..].starts_with(b"<?") {
-            cursor = after_marker(bytes, start + 2, b">").unwrap_or(bytes.len());
-            continue;
-        }
-        if bytes[start..].starts_with(b"<!") {
-            cursor = after_markup_declaration(bytes, start + 2).unwrap_or(bytes.len());
-            continue;
-        }
-        let Some(end_relative) = bytes[start..].iter().position(|byte| *byte == b'>') else {
-            break;
-        };
-        let end = start + end_relative;
-        let tag = String::from_utf8_lossy(&bytes[start + 1..end]);
-        let trimmed = tag.trim();
-        let closing = trimmed.starts_with('/');
-        let self_closing = trimmed.ends_with('/');
-        let name = trimmed
-            .trim_start_matches('/')
-            .trim_end_matches('/')
-            .split(|character: char| character.is_ascii_whitespace())
-            .next()
-            .unwrap_or_default();
-
-        if closing {
-            if stack.last().is_some_and(|open| open == name) {
-                stack.pop();
-            }
-        } else if !name.is_empty() {
-            // Python's ElementTree `findall("genre")` looks only at direct
-            // children of the NFO document root.
-            if stack.len() == 1 && name == "genre" && !self_closing {
-                if let Some((text, after)) = element_text(bytes, end + 1, "genre") {
-                    for genre in split_genres(&text) {
-                        push_unique(&mut genres, genre);
-                    }
-                    cursor = after;
-                    continue;
-                }
-            }
-            if !self_closing {
-                stack.push(name.to_string());
-            }
-        }
-        cursor = end + 1;
-    }
-    genres
-}
-
-fn element_text(bytes: &[u8], mut cursor: usize, name: &str) -> Option<(String, usize)> {
-    let mut depth = 1usize;
-    let mut text = String::new();
-    while cursor < bytes.len() {
-        let Some(relative) = bytes[cursor..].iter().position(|byte| *byte == b'<') else {
-            return None;
-        };
-        let start = cursor + relative;
-        text.push_str(&String::from_utf8_lossy(&bytes[cursor..start]));
-        if bytes[start..].starts_with(b"<!--") {
-            cursor = after_marker(bytes, start + 4, b"-->")?;
-            continue;
-        }
-        if bytes[start..].starts_with(b"<![CDATA[") {
-            let content = start + 9;
-            let end = find_bytes(bytes, content, b"]]>")?;
-            text.push_str(&String::from_utf8_lossy(&bytes[content..end]));
-            cursor = end + 3;
-            continue;
-        }
-        if bytes[start..].starts_with(b"<?") {
-            cursor = after_marker(bytes, start + 2, b">")?;
-            continue;
-        }
-        if bytes[start..].starts_with(b"<!") {
-            cursor = after_markup_declaration(bytes, start + 2)?;
-            continue;
-        }
-        let end = start + bytes[start..].iter().position(|byte| *byte == b'>')?;
-        let tag = String::from_utf8_lossy(&bytes[start + 1..end]);
-        let trimmed = tag.trim();
-        let closing = trimmed.starts_with('/');
-        let self_closing = trimmed.ends_with('/');
-        let child_name = trimmed
-            .trim_start_matches('/')
-            .trim_end_matches('/')
-            .split(|character: char| character.is_ascii_whitespace())
-            .next()
-            .unwrap_or_default();
-        if child_name == name {
-            if closing {
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    return Some((decode_xml_entities(&text), end + 1));
-                }
-            } else if !self_closing {
-                depth += 1;
-            }
-        }
-        cursor = end + 1;
-    }
-    None
-}
-
-fn after_marker(bytes: &[u8], start: usize, marker: &[u8]) -> Option<usize> {
-    find_bytes(bytes, start, marker).map(|end| end + marker.len())
-}
-
-fn after_markup_declaration(bytes: &[u8], start: usize) -> Option<usize> {
-    let mut quote = None;
-    let mut subset_depth = 0usize;
-    for (offset, byte) in bytes.get(start..)?.iter().enumerate() {
-        if let Some(delimiter) = quote {
-            if *byte == delimiter {
-                quote = None;
-            }
-            continue;
-        }
-        match byte {
-            b'\'' | b'"' => quote = Some(*byte),
-            b'[' => subset_depth += 1,
-            b']' => subset_depth = subset_depth.saturating_sub(1),
-            b'>' if subset_depth == 0 => return Some(start + offset + 1),
-            _ => {}
-        }
-    }
-    None
-}
-
-fn find_bytes(bytes: &[u8], start: usize, needle: &[u8]) -> Option<usize> {
-    bytes
-        .get(start..)?
-        .windows(needle.len())
-        .position(|window| window == needle)
-        .map(|relative| start + relative)
-}
-
-fn decode_xml_entities(value: &str) -> String {
-    let mut result = String::with_capacity(value.len());
-    let mut cursor = 0;
-    while let Some(relative) = value[cursor..].find('&') {
-        let ampersand = cursor + relative;
-        result.push_str(&value[cursor..ampersand]);
-        let Some(relative_end) = value[ampersand..].find(';') else {
-            result.push_str(&value[ampersand..]);
-            return result;
-        };
-        let end = ampersand + relative_end;
-        let entity = &value[ampersand + 1..end];
-        let decoded = match entity {
-            "amp" => Some('&'),
-            "lt" => Some('<'),
-            "gt" => Some('>'),
-            "quot" => Some('"'),
-            "apos" => Some('\''),
-            _ if entity.starts_with("#x") || entity.starts_with("#X") => {
-                u32::from_str_radix(&entity[2..], 16)
-                    .ok()
-                    .and_then(char::from_u32)
-            }
-            _ if entity.starts_with('#') => {
-                entity[1..].parse::<u32>().ok().and_then(char::from_u32)
-            }
-            _ => None,
-        };
-        if let Some(character) = decoded {
-            result.push(character);
-        } else {
-            result.push_str(&value[ampersand..=end]);
-        }
-        cursor = end + 1;
-    }
-    result.push_str(&value[cursor..]);
-    result
-}
-
 fn genre_values(value: &Value) -> Vec<String> {
     match value {
         Value::String(text) => split_genres(text),
@@ -457,19 +215,10 @@ fn push_unique(target: &mut Vec<String>, value: String) {
 
 #[cfg(test)]
 mod tests {
-    use super::{genres_from_nfo, resolve_tune, run_tune_request, RunTuneRequest};
+    use super::{resolve_tune, run_tune_request, RunTuneRequest};
     use serde_json::{json, Value};
     use std::fs;
     use std::path::Path;
-
-    #[test]
-    fn reads_direct_nfo_genres_and_decodes_xml_text() {
-        let xml = r#"<!DOCTYPE movie [ <!ENTITY fake "<genre>Ignore</genre>"> ]><movie><!-- <genre>Ignore</genre> --><genre>Animation / Family &amp; Adventure</genre><details><genre>Drama</genre></details><genre>Animation</genre></movie>"#;
-        assert_eq!(
-            genres_from_nfo(xml),
-            vec!["animation", "family & adventure"]
-        );
-    }
 
     #[test]
     fn global_tune_and_automatic_animation_match_python_policy() {
@@ -494,17 +243,13 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let media = root.join("sample.mkv");
         fs::write(&media, b"fixture").unwrap();
-        fs::write(
-            root.join("sample.nfo"),
-            "<movie><genre>Animation</genre></movie>",
-        )
-        .unwrap();
         let base = RunTuneRequest {
             path: media,
-            mediainfo: json!({"media":{"track":[{"@type":"General","Genre":"Drama"}]}}),
+            mediainfo: json!({"media":{"track":[{"@type":"General","Genre":"Drama / Animation"}]}}),
             requested_tune: "auto".into(),
             detect_animation: true,
             file_override: None,
+            reviewed_genres: Vec::new(),
         };
         assert_eq!(run_tune_request(base).unwrap()["tune"], "animation");
 
@@ -514,6 +259,30 @@ mod tests {
         assert_eq!(run_tune_request(suppress).unwrap()["tune"], "animation");
         let global_grain = sample_run_tune_request(&root, "grain", None);
         assert_eq!(run_tune_request(global_grain).unwrap()["tune"], "grain");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn reviewed_animation_genre_enables_auto_tune_without_overriding_global_choices() {
+        let root = std::env::temp_dir().join(format!(
+            "hevc-rebuild-reviewed-tune-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("sample.mkv"), b"fixture").unwrap();
+        let mut request = sample_run_tune_request(&root, "auto", None);
+        request.reviewed_genres = vec!["Family, Animation".into()];
+        let decision = run_tune_request(request).unwrap();
+        assert_eq!(decision["tune"], "animation");
+        assert_eq!(decision["sources"], json!(["Reviewed metadata"]));
+
+        let mut off = sample_run_tune_request(&root, "none", None);
+        off.reviewed_genres = vec!["Animation".into()];
+        assert_eq!(run_tune_request(off).unwrap()["tune"], Value::Null);
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -528,6 +297,7 @@ mod tests {
             requested_tune: requested_tune.into(),
             detect_animation: true,
             file_override: file_override.map(str::to_string),
+            reviewed_genres: Vec::new(),
         }
     }
 }

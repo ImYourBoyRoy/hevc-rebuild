@@ -111,6 +111,16 @@ pub(crate) fn cli_mode(args: Vec<OsString>) -> i32 {
     }
 }
 
+pub(crate) fn append_native_row(
+    path: impl AsRef<Path>,
+    row: Map<String, Value>,
+) -> Result<(), String> {
+    append_report(&AppendReportRequest {
+        path: path.as_ref().to_string_lossy().into_owned(),
+        row,
+    })
+}
+
 fn append_report(request: &AppendReportRequest) -> Result<(), String> {
     let requested = PathBuf::from(&request.path);
     if !requested.is_absolute() {

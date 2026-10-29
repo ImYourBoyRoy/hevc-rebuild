@@ -16,18 +16,25 @@ mod calibration;
 mod content;
 mod dependencies;
 mod encode_plan;
+mod encode_run;
 mod encode_supervisor;
 mod environment;
 mod hdr_metadata;
+mod integrity;
 mod library_artwork;
 mod library_assets;
 mod library_metadata;
-mod library_nfo;
 mod library_organizer;
+mod matroska_apply;
+mod matroska_poster;
+mod matroska_scrub;
+mod matroska_tags;
+mod matroska_verify;
 mod mcp_server;
 mod media_queue;
 mod media_scan;
 mod metadata_credentials;
+mod metadata_run;
 mod metadata_text;
 mod output_targets;
 mod packet_verify;
@@ -37,6 +44,7 @@ mod reports;
 mod resource_monitor;
 mod resource_plan;
 mod run_arguments;
+mod run_coordinator;
 mod runtime_guard;
 pub(crate) use run_arguments::{
     append_filename_filter_arguments, append_selected_file_arguments, append_tool_path_arguments,
@@ -54,6 +62,12 @@ mod tool_diagnostics;
 mod transactions;
 mod validation;
 mod youtube;
+mod youtube_optimize;
+
+/// Integration tests repoint the process-wide state directory, so they all take turns here.
+#[cfg(test)]
+pub(crate) static TEST_STATE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+mod youtube_run;
 
 pub(crate) const APT_ALLOWLIST: &[&str] = &[
     "python3",
@@ -288,6 +302,47 @@ struct RunState(Arc<Mutex<Option<ActiveJob>>>);
 struct ActiveJob {
     id: String,
     stop_file: Option<PathBuf>,
+    child_pid: Arc<Mutex<Option<u32>>>,
+}
+
+fn new_active_job(id: String, stop_file: Option<PathBuf>) -> ActiveJob {
+    ActiveJob {
+        id,
+        stop_file,
+        child_pid: Arc::new(Mutex::new(None)),
+    }
+}
+
+fn remember_job_child(state: &RunState, run_id: &str, process_id: u32) {
+    let child_pid = {
+        let Ok(current) = state.0.lock() else {
+            return;
+        };
+        let Some(job) = current.as_ref() else {
+            return;
+        };
+        if job.id != run_id {
+            return;
+        }
+        Arc::clone(&job.child_pid)
+    };
+    let Ok(mut child) = child_pid.lock() else {
+        return;
+    };
+    *child = Some(process_id);
+}
+
+fn forget_job_child(state: &RunState, run_id: &str) {
+    let Ok(current) = state.0.lock() else {
+        return;
+    };
+    let Some(job) = current.as_ref().filter(|job| job.id == run_id) else {
+        return;
+    };
+    let child_pid = Arc::clone(&job.child_pid);
+    drop(current);
+    let cleared = child_pid.lock().map(|mut child| *child = None);
+    drop(cleared);
 }
 
 #[derive(Clone, Serialize)]
@@ -482,7 +537,7 @@ fn standalone_command(module: &str, args: &[String]) -> Result<Command, String> 
 
 fn run_json_cli(args: &[String]) -> i32 {
     if args.is_empty() {
-        eprintln!("Choose a JSON action: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus.");
+        eprintln!("Choose a JSON action: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, integrity, check.");
         return 2;
     }
     if args[0] == "output-plan" {
@@ -490,6 +545,12 @@ fn run_json_cli(args: &[String]) -> i32 {
     }
     if args[0] == "scan" {
         return run_json_scan_cli(args);
+    }
+    if args[0] == "integrity" {
+        return integrity::cli_mode(&args[1..]);
+    }
+    if args[0] == "check" {
+        return run_coordinator::cli_mode(&args[1..]);
     }
     if args[0] == "environment" {
         return run_environment_json_cli(args);
@@ -599,7 +660,7 @@ fn run_json_cli(args: &[String]) -> i32 {
         };
     }
     eprintln!(
-        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, artwork-cache.",
+        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, artwork-cache, integrity.",
         args[0]
     );
     2
@@ -768,6 +829,7 @@ fn run_json_scan_cli(args: &[String]) -> i32 {
     let mut tool_paths = ToolPaths::default();
     let mut filename_include_patterns = Vec::new();
     let mut filename_exclude_patterns = Vec::new();
+    let mut stop_file = None;
     let mut index = 1;
     while index < args.len() {
         let name = args[index].as_str();
@@ -823,6 +885,17 @@ fn run_json_scan_cli(args: &[String]) -> i32 {
                 }
                 index += 2;
             }
+            "--stop-request-file" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("Scan option --stop-request-file requires a path.");
+                    return 2;
+                };
+                if stop_file.replace(PathBuf::from(value)).is_some() {
+                    eprintln!("Scan option --stop-request-file can be specified only once.");
+                    return 2;
+                }
+                index += 2;
+            }
             "--ffmpeg-path" | "--ffprobe-path" | "--mediainfo-path" | "--mkvpropedit-path"
             | "--mkvmerge-path" | "--mkvextract-path" => {
                 let Some(value) = args.get(index + 1) else {
@@ -861,6 +934,7 @@ fn run_json_scan_cli(args: &[String]) -> i32 {
             filename_include_patterns,
             filename_exclude_patterns,
             tool_paths,
+            stop_file,
         },
         |current, total, file| eprintln!("scan\t{current}\t{total}\t{file}"),
     ) {
@@ -1193,6 +1267,11 @@ pub fn internal_cli_mode(args: Vec<std::ffi::OsString>) -> i32 {
         "calibration" => calibration::cli_mode(args.collect()),
         "content-tune" => content::cli_mode(args.collect()),
         "metadata-text" => metadata_text::cli_mode(args.collect()),
+        "metadata-tags" => matroska_tags::cli_mode(args.collect()),
+        "metadata-scrub" => matroska_scrub::cli_mode(args.collect()),
+        "metadata-apply" => matroska_apply::cli_mode(args.collect()),
+        "metadata-poster" => matroska_poster::cli_mode(args.collect()),
+        "metadata-verify" => matroska_verify::cli_mode(args.collect()),
         "report-append" => reports::cli_mode(args.collect()),
         "resource-plan" => resource_plan::runtime_cli_mode(args.collect()),
         "resource-retry" => resource_plan::retry_cli_mode(args.collect()),
@@ -1227,16 +1306,10 @@ pub fn metadata_cli_mode(args: Vec<std::ffi::OsString>) -> i32 {
         .into_iter()
         .map(|value| value.to_string_lossy().into_owned())
         .collect();
-    if args
-        .first()
-        .is_some_and(|command| command == "write-preview" || command == "write-apply")
-    {
-        return library_nfo::metadata_cli_mode(&args);
-    }
     if args.first().is_some_and(|command| command == "assets") {
         return library_assets::cli_mode(&args);
     }
-    let usage = "Usage: hevc-rebuild-studio metadata movie search TITLE | movie details WIKIDATA_ID | tv search TITLE | tv details TVMAZE_ID | artwork save REQUEST.json | assets inspect REQUEST.json | write-preview REQUEST.json | write-apply REQUEST.json --preview-id ID --confirm";
+    let usage = "Usage: hevc-rebuild-studio metadata movie search TITLE | movie details WIKIDATA_ID | tv search TITLE | tv details TVMAZE_ID | artwork save REQUEST.json | assets inspect REQUEST.json";
     if args.len() < 3 {
         eprintln!("{usage}");
         return 2;
@@ -1741,13 +1814,7 @@ async fn purge_unused_app_artwork_cache(
     confirmed: bool,
 ) -> Result<library_artwork::ArtworkCachePurgeResult, String> {
     let id = new_job_id();
-    claim_job(
-        state.inner(),
-        ActiveJob {
-            id: id.clone(),
-            stop_file: None,
-        },
-    )?;
+    claim_job(state.inner(), new_active_job(id.clone(), None))?;
     let result = library_artwork::purge_unused_app_artwork_cache(&preview_id, confirmed).await;
     release_job(state.inner(), &id);
     result
@@ -1765,33 +1832,6 @@ fn read_local_library_artwork_preview(
     request: library_assets::ArtworkPreviewRequest,
 ) -> Result<library_assets::ArtworkPreview, String> {
     library_assets::read_artwork_preview(request)
-}
-
-#[tauri::command]
-fn preview_library_metadata_write(
-    request: library_nfo::MetadataWriteRequest,
-) -> Result<library_nfo::MetadataWritePreview, String> {
-    library_nfo::preview_metadata_write(request)
-}
-
-#[tauri::command]
-fn apply_library_metadata_write(
-    state: State<'_, RunState>,
-    request: library_nfo::MetadataWriteRequest,
-    preview_id: String,
-    confirmed: bool,
-) -> Result<library_nfo::MetadataWriteResult, String> {
-    let id = new_job_id();
-    claim_job(
-        state.inner(),
-        ActiveJob {
-            id: id.clone(),
-            stop_file: None,
-        },
-    )?;
-    let result = library_nfo::apply_metadata_write(request, preview_id, confirmed);
-    release_job(state.inner(), &id);
-    result
 }
 
 #[tauri::command]
@@ -1843,25 +1883,38 @@ fn default_media_root() -> Result<String, String> {
         .into_owned())
 }
 
-#[tauri::command]
-async fn scan_folder(
-    app: AppHandle,
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ScanFolderOptions {
     root: String,
     recursive: bool,
     minimum_size_mib: u32,
     filename_include_patterns: Vec<String>,
     filename_exclude_patterns: Vec<String>,
     tool_paths: Option<ToolPaths>,
+}
+
+#[tauri::command]
+async fn scan_folder(
+    app: AppHandle,
+    state: State<'_, RunState>,
+    options: ScanFolderOptions,
 ) -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    let id = new_job_id();
+    let stop_token = stop_control::StopToken::new()?;
+    let stop_file = stop_token.path().to_path_buf();
+    claim_job(&state, new_active_job(id.clone(), Some(stop_file.clone())))?;
+    let run_state = (*state).clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
         media_scan::scan_media(
             media_scan::ScanOptions {
-                root,
-                recursive,
-                minimum_size_mib,
-                filename_include_patterns,
-                filename_exclude_patterns,
-                tool_paths: tool_paths.unwrap_or_default(),
+                root: options.root,
+                recursive: options.recursive,
+                minimum_size_mib: options.minimum_size_mib,
+                filename_include_patterns: options.filename_include_patterns,
+                filename_exclude_patterns: options.filename_exclude_patterns,
+                tool_paths: options.tool_paths.unwrap_or_default(),
+                stop_file: Some(stop_file),
             },
             |current, total, file| {
                 let _ = app.emit(
@@ -1872,7 +1925,25 @@ async fn scan_folder(
         )
     })
     .await
-    .map_err(|error| format!("Folder scan task failed: {error}"))?
+    .map_err(|error| format!("Folder scan task failed: {error}"));
+    release_job(&run_state, &id);
+    drop(stop_token);
+    result?
+}
+
+#[tauri::command]
+fn cancel_scan(state: State<'_, RunState>) -> Result<(), String> {
+    let path = {
+        let current = state
+            .0
+            .lock()
+            .map_err(|_| "Could not lock the desktop job state.")?;
+        let job = current.as_ref().ok_or("There is no active scan.")?;
+        job.stop_file
+            .clone()
+            .ok_or("This job cannot be cancelled from the scan controls.")?
+    };
+    stop_control::request(&path)
 }
 
 #[tauri::command]
@@ -2065,13 +2136,13 @@ pub(crate) fn app_config_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join("AppData/Roaming")))
             .ok_or("Could not locate the current user's Windows application-data folder.")?;
-        return Ok(root.join("hevc-rebuild-studio"));
+        Ok(root.join("hevc-rebuild-studio"))
     }
     #[cfg(target_os = "macos")]
     {
         let home = user_home_directory()
             .ok_or("Could not locate the current user's macOS home folder.")?;
-        return Ok(home.join("Library/Application Support/hevc-rebuild-studio"));
+        Ok(home.join("Library/Application Support/hevc-rebuild-studio"))
     }
     #[cfg(target_os = "linux")]
     {
@@ -2079,11 +2150,16 @@ pub(crate) fn app_config_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join(".config")))
             .ok_or("Could not locate the current user's settings folder.")?;
-        return Ok(root.join("hevc-rebuild-studio"));
+        Ok(root.join("hevc-rebuild-studio"))
     }
-    user_home_directory()
-        .map(|home| home.join(".hevc-rebuild-studio"))
-        .ok_or_else(|| "Could not locate the current user's application-data folder.".to_string())
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        user_home_directory()
+            .map(|home| home.join(".hevc-rebuild-studio"))
+            .ok_or_else(|| {
+                "Could not locate the current user's application-data folder.".to_string()
+            })
+    }
 }
 
 fn app_state_directory() -> Result<PathBuf, String> {
@@ -2096,13 +2172,13 @@ fn app_state_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join("AppData/Local")))
             .ok_or("Could not locate the current user's Windows local-data folder.")?;
-        return Ok(root.join("hevc-rebuild-studio"));
+        Ok(root.join("hevc-rebuild-studio"))
     }
     #[cfg(target_os = "macos")]
     {
         let home = user_home_directory()
             .ok_or("Could not locate the current user's macOS home folder.")?;
-        return Ok(home.join("Library/Logs/hevc-rebuild-studio"));
+        Ok(home.join("Library/Logs/hevc-rebuild-studio"))
     }
     #[cfg(target_os = "linux")]
     {
@@ -2110,9 +2186,12 @@ fn app_state_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join(".local/state")))
             .ok_or("Could not locate the current user's state folder.")?;
-        return Ok(root.join("hevc-rebuild"));
+        Ok(root.join("hevc-rebuild"))
     }
-    app_config_directory()
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        app_config_directory()
+    }
 }
 
 pub(crate) fn app_cache_directory() -> Result<PathBuf, String> {
@@ -2125,13 +2204,13 @@ pub(crate) fn app_cache_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join("AppData/Local")))
             .ok_or("Could not locate the current user's Windows cache folder.")?;
-        return Ok(root.join("hevc-rebuild-studio/cache"));
+        Ok(root.join("hevc-rebuild-studio/cache"))
     }
     #[cfg(target_os = "macos")]
     {
         let home = user_home_directory()
             .ok_or("Could not locate the current user's macOS home folder.")?;
-        return Ok(home.join("Library/Caches/hevc-rebuild-studio"));
+        Ok(home.join("Library/Caches/hevc-rebuild-studio"))
     }
     #[cfg(target_os = "linux")]
     {
@@ -2139,9 +2218,12 @@ pub(crate) fn app_cache_directory() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| user_home_directory().map(|home| home.join(".cache")))
             .ok_or("Could not locate the current user's cache folder.")?;
-        return Ok(root.join("hevc-rebuild"));
+        Ok(root.join("hevc-rebuild"))
     }
-    app_config_directory()
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        app_config_directory()
+    }
 }
 
 pub(crate) fn media_queue_file() -> Result<PathBuf, String> {
@@ -2204,6 +2286,11 @@ fn default_app_preferences() -> Value {
         "youtubeResolution": "1440p",
         "youtubeQualityMode": "balanced",
         "youtubeSourceMultiplier": 2.0,
+        "youtubeMode": "upscale",
+        "youtubeSdrCodec": "h264",
+        "youtubePreset": "slow",
+        "youtubeShrink": "auto",
+        "youtubeQualityCheck": "standard",
         "youtubeOutputDir": null,
         "rebuildOutputDir": null,
         "fileOutputDirs": {},
@@ -2291,13 +2378,11 @@ fn normalize_app_preferences(value: Value) -> Result<Value, String> {
             json!({"width": width, "height": height, "maximized": maximized}),
         );
     }
-    for key in ["root"] {
-        if let Some(value) = object.get(key) {
-            if !value.is_null() && !value.as_str().is_some_and(|text| text.len() <= 8192) {
-                return Err(format!("{key} must be a path or null."));
-            }
-            result.insert(key.into(), value.clone());
+    if let Some(value) = object.get("root") {
+        if !value.is_null() && !value.as_str().is_some_and(|text| text.len() <= 8192) {
+            return Err("root must be a path or null.".into());
         }
+        result.insert("root".into(), value.clone());
     }
     if let Some(output_dir) = object.get("rebuildOutputDir") {
         if !output_dir.is_null()
@@ -2497,6 +2582,15 @@ fn normalize_app_preferences(value: Value) -> Result<Value, String> {
         }
         result.insert("youtubeSourceMultiplier".into(), json!(multiplier));
     }
+    for (key, label, allowed) in YOUTUBE_CHOICE_PREFERENCES {
+        if let Some(value) = object.get(*key) {
+            let text = value
+                .as_str()
+                .filter(|text| allowed.contains(text))
+                .ok_or_else(|| format!("{label} must be one of: {}.", allowed.join(", ")))?;
+            result.insert((*key).into(), json!(text));
+        }
+    }
     if let Some(output_dir) = object.get("youtubeOutputDir") {
         if !output_dir.is_null() && !output_dir.as_str().is_some_and(|text| text.len() <= 8192) {
             return Err("YouTube output folder must be a path or null.".into());
@@ -2659,7 +2753,7 @@ fn claim_job(state: &RunState, job: ActiveJob) -> Result<(), String> {
         .lock()
         .map_err(|_| "Could not lock the desktop job state.")?;
     if current.is_some() {
-        return Err("Another run or repair is already active.".into());
+        return Err("Another run, scan, or repair is already active.".into());
     }
     *current = Some(job);
     Ok(())
@@ -2671,6 +2765,55 @@ fn release_job(state: &RunState, id: &str) {
             *current = None;
         }
     }
+}
+
+/// Saved-preference keys for the YouTube mode and its tuning choices, with the
+/// accepted values. The first value of each list is the default.
+pub(crate) const YOUTUBE_CHOICE_PREFERENCES: &[(&str, &str, &[&str])] = &[
+    ("youtubeMode", "YouTube mode", &["upscale", "optimize"]),
+    ("youtubeSdrCodec", "YouTube SDR codec", &["h264", "hevc"]),
+    (
+        "youtubePreset",
+        "YouTube encoder preset",
+        &["slow", "medium", "slower"],
+    ),
+    (
+        "youtubeShrink",
+        "YouTube shrink mode",
+        &["auto", "off", "aggressive"],
+    ),
+    (
+        "youtubeQualityCheck",
+        "YouTube quality check",
+        &["standard", "off", "relaxed", "strict"],
+    ),
+];
+
+/// Engine arguments for the YouTube mode and tuning choices shared by the GUI and MCP.
+/// `None` keeps the engine default.
+pub(crate) fn youtube_mode_arguments(
+    mode: Option<&str>,
+    sdr_codec: Option<&str>,
+    preset: Option<&str>,
+    shrink: Option<&str>,
+    quality_check: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let mut args = Vec::new();
+    for ((_, label, allowed), (flag, value)) in YOUTUBE_CHOICE_PREFERENCES.iter().zip([
+        ("--youtube-mode", mode),
+        ("--youtube-sdr-codec", sdr_codec),
+        ("--youtube-preset", preset),
+        ("--youtube-shrink", shrink),
+        ("--youtube-quality-check", quality_check),
+    ]) {
+        if let Some(value) = value {
+            if !allowed.contains(&value) {
+                return Err(format!("{label} must be one of: {}.", allowed.join(", ")));
+            }
+            args.extend([flag.to_string(), value.to_string()]);
+        }
+    }
+    Ok(args)
 }
 
 #[derive(serde::Deserialize)]
@@ -2686,6 +2829,11 @@ struct RunRequest {
     youtube_resolution: Option<String>,
     youtube_quality_mode: Option<String>,
     youtube_source_multiplier: Option<f64>,
+    youtube_mode: Option<String>,
+    youtube_sdr_codec: Option<String>,
+    youtube_preset: Option<String>,
+    youtube_shrink: Option<String>,
+    youtube_quality_check: Option<String>,
     youtube_output_dir: Option<String>,
     rebuild_output_dir: Option<String>,
     settings: Value,
@@ -2711,6 +2859,527 @@ struct RunRequest {
     file_output_dirs: BTreeMap<String, String>,
     #[serde(default)]
     allow_youtube_hdr10plus_loss_paths: Vec<String>,
+    #[serde(default)]
+    integrity_level: Option<String>,
+}
+
+fn start_integrity_run(
+    app: AppHandle,
+    state: State<'_, RunState>,
+    request: RunRequest,
+    root: PathBuf,
+) -> Result<String, String> {
+    let level =
+        integrity::IntegrityLevel::parse(request.integrity_level.as_deref().unwrap_or("quick"))?;
+    if request.selected_files.is_empty() {
+        return Err("Select at least one media file to check.".into());
+    }
+    let mut selected = Vec::new();
+    append_selected_file_arguments(&mut selected, &root, &request.selected_files)?;
+    let files = selected
+        .chunks(2)
+        .filter_map(|pair| pair.get(1).map(PathBuf::from))
+        .collect::<Vec<_>>();
+    let mut tool_paths = request.tool_paths.unwrap_or_default();
+    if tool_paths.ffmpeg.is_none() {
+        tool_paths.ffmpeg = request.ffmpeg_path;
+    }
+    let disk_path = if root.is_file() {
+        root.parent().unwrap_or(Path::new(".")).to_path_buf()
+    } else {
+        root.clone()
+    };
+    let id = new_job_id();
+    let stop_token = stop_control::StopToken::new()?;
+    let stop_file = stop_token.path().to_path_buf();
+    claim_job(
+        state.inner(),
+        new_active_job(id.clone(), Some(stop_file.clone())),
+    )?;
+    let app_handle = app.clone();
+    let run_state = state.inner().clone();
+    let worker_id = id.clone();
+    thread::spawn(move || {
+        let _stop_token = stop_token;
+        let resource_monitor = resource_monitor::monitor_process(
+            std::process::id(),
+            Some(disk_path),
+            std::time::Duration::from_secs(1),
+            {
+                let app = app_handle.clone();
+                let run_id = worker_id.clone();
+                move |snapshot| {
+                    let _ = app.emit(
+                        "run-resources",
+                        RunResourceEvent {
+                            run_id: run_id.clone(),
+                            snapshot,
+                        },
+                    );
+                }
+            },
+        );
+        let mut log_path = None;
+        let mut report_path = None;
+        let mut error = None;
+        let mut exit_code = Some(0);
+        match integrity::check_paths(
+            &files,
+            level,
+            tool_paths,
+            Some(&stop_file),
+            |progress| {
+                let _ = app_handle.emit(
+                    "run-progress",
+                    RunProgress {
+                        run_id: worker_id.clone(),
+                        file_name: progress.file_name,
+                        file_path: Some(progress.file_path),
+                        phase: progress.phase.into(),
+                        batch_number: progress.current as u32,
+                        batch_total: progress.total as u32,
+                        file_percent: progress.file_percent,
+                        queue_percent: progress.queue_percent,
+                        speed: None,
+                        eta_seconds: None,
+                        elapsed_seconds: None,
+                        input_bytes: None,
+                        output_bytes: None,
+                        estimated_output_bytes: None,
+                    },
+                );
+            },
+            |line| {
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line,
+                    },
+                );
+            },
+        ) {
+            Ok(job) => {
+                log_path = Some(job.log_path.to_string_lossy().into_owned());
+                report_path = Some(job.report_path.to_string_lossy().into_owned());
+                let summary = if job.stop_requested {
+                    format!(
+                        "Integrity check stopped after {} file{}.",
+                        job.files.len(),
+                        if job.files.len() == 1 { "" } else { "s" }
+                    )
+                } else if job.failed == 0 {
+                    format!(
+                        "Integrity check passed for {} file{}.",
+                        job.files.len(),
+                        if job.files.len() == 1 { "" } else { "s" }
+                    )
+                } else {
+                    format!(
+                        "Integrity check found {} damaged or unreadable file{}.",
+                        job.failed,
+                        if job.failed == 1 { "" } else { "s" }
+                    )
+                };
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: format!("Log: {}", job.log_path.display()),
+                    },
+                );
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: format!("Run report: {}", job.report_path.display()),
+                    },
+                );
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: summary,
+                    },
+                );
+                if job.failed > 0 {
+                    exit_code = Some(1);
+                }
+            }
+            Err(start_error) => {
+                error = Some(start_error);
+                exit_code = Some(1);
+            }
+        }
+        resource_monitor.stop();
+        let stop_requested = stop_control::requested(&stop_file);
+        let _ = fs::remove_file(&stop_file);
+        let _ = app_handle.emit(
+            "run-finished",
+            RunFinished {
+                run_id: worker_id.clone(),
+                exit_code,
+                stop_requested,
+                log_path,
+                report_path,
+                error,
+            },
+        );
+        release_job(&run_state, &worker_id);
+    });
+    Ok(id)
+}
+
+fn start_check_run(
+    app: AppHandle,
+    state: State<'_, RunState>,
+    request: RunRequest,
+    root: PathBuf,
+) -> Result<String, String> {
+    let mut tool_paths = request.tool_paths.unwrap_or_default();
+    if tool_paths.ffmpeg.is_none() {
+        tool_paths.ffmpeg = request.ffmpeg_path;
+    }
+    let files = if request.selected_files.is_empty() {
+        run_coordinator::discover_check_files(
+            &root,
+            request.recursive,
+            request.minimum_size_mib,
+            &request.filename_include_patterns,
+            &request.filename_exclude_patterns,
+            tool_paths.clone(),
+        )?
+    } else {
+        let mut selected = Vec::new();
+        append_selected_file_arguments(&mut selected, &root, &request.selected_files)?;
+        selected
+            .chunks(2)
+            .filter_map(|pair| pair.get(1).map(PathBuf::from))
+            .collect::<Vec<_>>()
+    };
+    let disk_path = if root.is_file() {
+        root.parent().unwrap_or(Path::new(".")).to_path_buf()
+    } else {
+        root.clone()
+    };
+    let id = new_job_id();
+    let stop_token = stop_control::StopToken::new()?;
+    let stop_file = stop_token.path().to_path_buf();
+    claim_job(
+        state.inner(),
+        new_active_job(id.clone(), Some(stop_file.clone())),
+    )?;
+    let app_handle = app.clone();
+    let run_state = state.inner().clone();
+    let worker_id = id.clone();
+    thread::spawn(move || {
+        let _stop_token = stop_token;
+        let resource_monitor = resource_monitor::monitor_process(
+            std::process::id(),
+            Some(disk_path),
+            std::time::Duration::from_secs(1),
+            {
+                let app = app_handle.clone();
+                let run_id = worker_id.clone();
+                move |snapshot| {
+                    let _ = app.emit(
+                        "run-resources",
+                        RunResourceEvent {
+                            run_id: run_id.clone(),
+                            snapshot,
+                        },
+                    );
+                }
+            },
+        );
+        let mut log_path = None;
+        let mut report_path = None;
+        let mut error = None;
+        let mut exit_code = Some(0);
+        match run_coordinator::analyze_paths(
+            &files,
+            tool_paths,
+            Some(&stop_file),
+            |progress| {
+                let _ = app_handle.emit(
+                    "run-progress",
+                    RunProgress {
+                        run_id: worker_id.clone(),
+                        file_name: progress.file_name,
+                        file_path: Some(progress.file_path),
+                        phase: progress.phase.into(),
+                        batch_number: progress.current as u32,
+                        batch_total: progress.total as u32,
+                        file_percent: progress.file_percent,
+                        queue_percent: progress.queue_percent,
+                        speed: None,
+                        eta_seconds: None,
+                        elapsed_seconds: None,
+                        input_bytes: None,
+                        output_bytes: None,
+                        estimated_output_bytes: None,
+                    },
+                );
+            },
+            |line| {
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line,
+                    },
+                );
+            },
+        ) {
+            Ok(job) => {
+                log_path = Some(job.log_path.to_string_lossy().into_owned());
+                report_path = Some(job.report_path.to_string_lossy().into_owned());
+                let summary = if job.stop_requested {
+                    format!(
+                        "Check stopped after {} file{}.",
+                        job.files.len(),
+                        if job.files.len() == 1 { "" } else { "s" }
+                    )
+                } else if job.failed == 0 {
+                    format!(
+                        "Check finished for {} file{}. Nothing was written.",
+                        job.files.len(),
+                        if job.files.len() == 1 { "" } else { "s" }
+                    )
+                } else {
+                    format!(
+                        "Check finished with {} unreadable file{}.",
+                        job.failed,
+                        if job.failed == 1 { "" } else { "s" }
+                    )
+                };
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: format!("Log: {}", job.log_path.display()),
+                    },
+                );
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: format!("Run report: {}", job.report_path.display()),
+                    },
+                );
+                let _ = app_handle.emit(
+                    "run-line",
+                    RunLine {
+                        run_id: worker_id.clone(),
+                        line: summary,
+                    },
+                );
+                if job.failed > 0 {
+                    exit_code = Some(1);
+                }
+            }
+            Err(start_error) => {
+                error = Some(start_error);
+                exit_code = Some(1);
+            }
+        }
+        resource_monitor.stop();
+        let stop_requested = stop_control::requested(&stop_file);
+        let _ = fs::remove_file(&stop_file);
+        let _ = app_handle.emit(
+            "run-finished",
+            RunFinished {
+                run_id: worker_id.clone(),
+                exit_code,
+                stop_requested,
+                log_path,
+                report_path,
+                error,
+            },
+        );
+        release_job(&run_state, &worker_id);
+    });
+    Ok(id)
+}
+
+/// Final facts every native (non-Python) run reports back to the shell.
+struct NativeOutcome {
+    log_path: PathBuf,
+    report_path: PathBuf,
+    failed: usize,
+}
+
+/// Shared shell for runs that execute fully in Rust: resource monitoring,
+/// line forwarding, and the `run-finished` event.
+fn run_native_job(
+    app: &AppHandle,
+    state: &RunState,
+    run_id: &str,
+    disk_path: PathBuf,
+    stop_file: &Path,
+    work: impl FnOnce(&dyn Fn(String)) -> Result<NativeOutcome, String>,
+) {
+    let resource_monitor = resource_monitor::monitor_process(
+        std::process::id(),
+        Some(disk_path),
+        std::time::Duration::from_secs(1),
+        {
+            let app = app.clone();
+            let run_id = run_id.to_string();
+            move |snapshot| {
+                let _ = app.emit(
+                    "run-resources",
+                    RunResourceEvent {
+                        run_id: run_id.clone(),
+                        snapshot,
+                    },
+                );
+            }
+        },
+    );
+    let emit_line = |line: String| {
+        let _ = app.emit(
+            "run-line",
+            RunLine {
+                run_id: run_id.to_string(),
+                line,
+            },
+        );
+    };
+    let mut log_path = None;
+    let mut report_path = None;
+    let mut error = None;
+    let mut exit_code = Some(0);
+    match work(&emit_line) {
+        Ok(outcome) => {
+            log_path = Some(outcome.log_path.to_string_lossy().into_owned());
+            report_path = Some(outcome.report_path.to_string_lossy().into_owned());
+            if outcome.failed > 0 {
+                exit_code = Some(1);
+            }
+        }
+        Err(start_error) => {
+            error = Some(start_error);
+            exit_code = Some(1);
+        }
+    }
+    resource_monitor.stop();
+    let stop_requested = stop_control::requested(stop_file);
+    let _ = fs::remove_file(stop_file);
+    let _ = app.emit(
+        "run-finished",
+        RunFinished {
+            run_id: run_id.to_string(),
+            exit_code,
+            stop_requested,
+            log_path,
+            report_path,
+            error,
+        },
+    );
+    release_job(state, run_id);
+}
+
+fn child_tracker<'a>(state: &'a RunState, run_id: &'a str) -> impl FnMut(Option<u32>) + 'a {
+    move |process_id| match process_id {
+        Some(process_id) => remember_job_child(state, run_id, process_id),
+        None => forget_job_child(state, run_id),
+    }
+}
+
+/// Metadata-only MKV runs execute fully in Rust: no Python engine process.
+fn run_native_metadata_job(
+    app: &AppHandle,
+    state: &RunState,
+    run_id: &str,
+    options: metadata_run::MetadataRunOptions,
+    disk_path: PathBuf,
+    stop_file: &Path,
+) {
+    run_native_job(app, state, run_id, disk_path, stop_file, |emit_line| {
+        let job = metadata_run::run_metadata_only(
+            &options,
+            |progress| {
+                let _ = app.emit(
+                    "run-progress",
+                    RunProgress {
+                        run_id: run_id.to_string(),
+                        file_name: progress.file_name,
+                        file_path: Some(progress.file_path),
+                        phase: progress.phase,
+                        batch_number: progress.current as u32,
+                        batch_total: progress.total as u32,
+                        file_percent: progress.file_percent,
+                        queue_percent: Some(progress.queue_percent),
+                        speed: None,
+                        eta_seconds: None,
+                        elapsed_seconds: Some(progress.elapsed_seconds),
+                        input_bytes: progress.input_bytes,
+                        output_bytes: progress.output_bytes,
+                        estimated_output_bytes: None,
+                    },
+                );
+            },
+            emit_line,
+            child_tracker(state, run_id),
+        )?;
+        for line in metadata_run::closing_lines(&job) {
+            emit_line(line);
+        }
+        Ok(NativeOutcome {
+            log_path: job.log_path,
+            report_path: job.report_path,
+            failed: job.failed,
+        })
+    });
+}
+
+/// YouTube exports execute fully in Rust: FFmpeg is spawned and supervised
+/// in-process, with no Python engine.
+fn run_native_youtube_job(
+    app: &AppHandle,
+    state: &RunState,
+    run_id: &str,
+    options: youtube_run::YoutubeRunOptions,
+    disk_path: PathBuf,
+    stop_file: &Path,
+) {
+    run_native_job(app, state, run_id, disk_path, stop_file, |emit_line| {
+        let job = youtube_run::run_youtube_export(
+            &options,
+            |progress| {
+                let _ = app.emit(
+                    "run-progress",
+                    RunProgress {
+                        run_id: run_id.to_string(),
+                        file_name: progress.file_name,
+                        file_path: Some(progress.file_path),
+                        phase: progress.phase,
+                        batch_number: progress.current as u32,
+                        batch_total: progress.total as u32,
+                        file_percent: progress.file_percent,
+                        queue_percent: Some(progress.queue_percent),
+                        speed: progress.speed,
+                        eta_seconds: progress.eta_seconds,
+                        elapsed_seconds: Some(progress.elapsed_seconds),
+                        input_bytes: progress.input_bytes,
+                        output_bytes: progress.output_bytes,
+                        estimated_output_bytes: progress.estimated_output_bytes,
+                    },
+                );
+            },
+            emit_line,
+            child_tracker(state, run_id),
+        )?;
+        for line in youtube_run::closing_lines(&job) {
+            emit_line(line);
+        }
+        Ok(NativeOutcome {
+            log_path: job.log_path,
+            report_path: job.report_path,
+            failed: job.failed,
+        })
+    });
 }
 
 #[tauri::command]
@@ -2728,8 +3397,10 @@ fn start_run(
     if !root.is_dir() && !root.is_file() {
         return Err("The selected media path is not a file or folder.".into());
     }
-    if !["check", "metadata", "test", "full", "youtube"].contains(&request.mode.as_str()) {
-        return Err("Choose Check only, Metadata-only MKV, Short test, Full rebuild, or YouTube upload prep.".into());
+    if !["check", "metadata", "test", "full", "youtube", "integrity"]
+        .contains(&request.mode.as_str())
+    {
+        return Err("Choose Check only, Integrity check, Metadata-only MKV, Short test, Full rebuild, or YouTube upload prep.".into());
     }
     if request.mode == "full" && !request.full_rebuild_confirmed {
         return Err("Confirm the full rebuild before starting it.".into());
@@ -2744,6 +3415,12 @@ fn start_run(
             "Output folders apply only to metadata-only output, short tests, and full rebuilds."
                 .into(),
         );
+    }
+    if request.mode == "integrity" {
+        return start_integrity_run(app, state, request, root);
+    }
+    if request.mode == "check" {
+        return start_check_run(app, state, request, root);
     }
     let (rebuild_output_args, rebuild_resource_path) =
         if ["metadata", "test", "full"].contains(&request.mode.as_str()) {
@@ -2810,6 +3487,13 @@ fn start_run(
             "--upload-source-multiplier".into(),
             source_multiplier.to_string(),
         ]);
+        args.extend(youtube_mode_arguments(
+            request.youtube_mode.as_deref(),
+            request.youtube_sdr_codec.as_deref(),
+            request.youtube_preset.as_deref(),
+            request.youtube_shrink.as_deref(),
+            request.youtube_quality_check.as_deref(),
+        )?);
         if let Some(output_dir) = request
             .youtube_output_dir
             .filter(|value| !value.trim().is_empty())
@@ -2930,17 +3614,49 @@ fn start_run(
         "--stop-request-file".into(),
         stop_file.to_string_lossy().into_owned(),
     ]);
-    let active = ActiveJob {
-        id: id.clone(),
-        stop_file: Some(stop_file.clone()),
+    // Parse before claiming the job so unsupported arguments fail immediately.
+    let native_metadata = if request.mode == "metadata" {
+        Some(metadata_run::MetadataRunOptions::from_engine_args(&args)?)
+    } else {
+        None
     };
-    claim_job(state.inner(), active)?;
+    let native_youtube = if request.mode == "youtube" {
+        Some(youtube_run::YoutubeRunOptions::from_engine_args(&args)?)
+    } else {
+        None
+    };
+    claim_job(
+        state.inner(),
+        new_active_job(id.clone(), Some(stop_file.clone())),
+    )?;
 
     let app_handle = app.clone();
     let run_state = state.inner().clone();
     let worker_id = id.clone();
     thread::spawn(move || {
         let _stop_token = stop_token;
+        if let Some(options) = native_youtube {
+            run_native_youtube_job(
+                &app_handle,
+                &run_state,
+                &worker_id,
+                options,
+                resource_disk_path,
+                &stop_file,
+            );
+            return;
+        }
+        if let Some(options) = native_metadata {
+            run_native_metadata_job(
+                &app_handle,
+                &run_state,
+                &worker_id,
+                options,
+                resource_disk_path,
+                &stop_file,
+            );
+            return;
+        }
         let mut log_path = None;
         let mut report_path = None;
         let mut error = None;
@@ -2951,6 +3667,7 @@ fn start_run(
                 .map_err(|error| format!("Could not start the rebuild engine: {error}"))
         }) {
             Ok(mut child) => {
+                remember_job_child(&run_state, &worker_id, child.id());
                 let resource_app = app_handle.clone();
                 let resource_run_id = worker_id.clone();
                 let resource_monitor = resource_monitor::monitor_process(
@@ -3057,24 +3774,61 @@ fn request_stop(state: State<'_, RunState>, run_id: String) -> Result<(), String
     stop_control::request(&path)
 }
 
+#[tauri::command]
+fn request_abort(state: State<'_, RunState>, run_id: String) -> Result<(), String> {
+    let (stop_file, child_pid) = {
+        let current = state
+            .0
+            .lock()
+            .map_err(|_| "Could not lock the desktop job state.")?;
+        let job = current.as_ref().ok_or("There is no active run.")?;
+        if job.id != run_id {
+            return Err("That run is no longer active.".into());
+        }
+        let child_pid = *job
+            .child_pid
+            .lock()
+            .map_err(|_| "Could not lock the engine process id.")?;
+        (job.stop_file.clone(), child_pid)
+    };
+    if let Some(path) = stop_file.as_ref() {
+        stop_control::request(path)?;
+    }
+    if let Some(process_id) = child_pid {
+        crate::process_output::kill_owned_group(process_id)?;
+    } else if stop_file.is_none() {
+        return Err("This job cannot be stopped from the run controls.".into());
+    }
+    Ok(())
+}
+
 pub(crate) fn executable_in_path(program: &str) -> bool {
     let Some(path) = std::env::var_os("PATH") else {
         return false;
     };
     std::env::split_paths(&path).any(|directory| {
-        let mut candidates = vec![directory.join(program)];
-        #[cfg(target_os = "windows")]
-        if Path::new(program).extension().is_none() {
-            if let Some(extensions) = std::env::var_os("PATHEXT") {
-                candidates.extend(
-                    extensions
-                        .to_string_lossy()
-                        .split(';')
-                        .filter(|extension| !extension.is_empty())
-                        .map(|extension| directory.join(format!("{program}{extension}"))),
-                );
+        let candidates = {
+            #[cfg(target_os = "windows")]
+            {
+                let mut candidates = vec![directory.join(program)];
+                if Path::new(program).extension().is_none() {
+                    if let Some(extensions) = std::env::var_os("PATHEXT") {
+                        candidates.extend(
+                            extensions
+                                .to_string_lossy()
+                                .split(';')
+                                .filter(|extension| !extension.is_empty())
+                                .map(|extension| directory.join(format!("{program}{extension}"))),
+                        );
+                    }
+                }
+                candidates
             }
-        }
+            #[cfg(not(target_os = "windows"))]
+            {
+                vec![directory.join(program)]
+            }
+        };
         candidates.into_iter().any(|candidate| {
             let Ok(metadata) = candidate.metadata() else {
                 return false;
@@ -3121,13 +3875,7 @@ fn start_apt_commands_job(
         return Err("The Ubuntu package operation has no valid commands.".into());
     }
     let id = new_job_id();
-    claim_job(
-        state,
-        ActiveJob {
-            id: id.clone(),
-            stop_file: None,
-        },
-    )?;
+    claim_job(state, new_active_job(id.clone(), None))?;
     let run_state = state.clone();
     let worker_id = id.clone();
     thread::spawn(move || {
@@ -3382,13 +4130,7 @@ fn install_apt_tools(
         return Err("APT repair accepts only the application’s fixed Ubuntu package list.".into());
     }
     let id = new_job_id();
-    claim_job(
-        state.inner(),
-        ActiveJob {
-            id: id.clone(),
-            stop_file: None,
-        },
-    )?;
+    claim_job(state.inner(), new_active_job(id.clone(), None))?;
     let run_state = state.inner().clone();
     let worker_id = id.clone();
     thread::spawn(move || {
@@ -3521,13 +4263,7 @@ async fn install_hdr10plus(
     tool_diagnostics::validate_job_id(&job_id)?;
     let log_directory = tool_setup_log_directory();
     let id = new_job_id();
-    claim_job(
-        state.inner(),
-        ActiveJob {
-            id: id.clone(),
-            stop_file: None,
-        },
-    )?;
+    claim_job(state.inner(), new_active_job(id.clone(), None))?;
     let run_state = state.inner().clone();
     let logger = Arc::new(match log_directory {
         Ok(directory) => tool_diagnostics::ToolSetupLogger::create(
@@ -3566,6 +4302,7 @@ async fn install_hdr10plus(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(RunState::default())
@@ -3603,8 +4340,6 @@ pub fn run() {
             purge_unused_app_artwork_cache,
             scan_local_library_assets,
             read_local_library_artwork_preview,
-            preview_library_metadata_write,
-            apply_library_metadata_write,
             scan_organizer_folder,
             preview_library_rename,
             apply_library_rename,
@@ -3627,6 +4362,8 @@ pub fn run() {
             read_log,
             start_run,
             request_stop,
+            request_abort,
+            cancel_scan,
             check_ubuntu_package_updates,
             refresh_ubuntu_package_catalog,
             upgrade_ubuntu_packages,

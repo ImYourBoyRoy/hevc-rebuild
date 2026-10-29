@@ -10,7 +10,6 @@ from pathlib import Path
 
 from .deps import (
     APT_PACKAGES,
-    MANAGED_BIN,
     TOOL_OVERRIDE_KEYS,
     _brew_program,
     companion_ffprobe,

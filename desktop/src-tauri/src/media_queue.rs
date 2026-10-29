@@ -65,6 +65,10 @@ pub(crate) struct QueueSource {
     pub(crate) changed_files: Vec<String>,
     #[serde(default, skip_deserializing)]
     pub(crate) missing_files: Vec<String>,
+    #[serde(default)]
+    pub(crate) excluded_paths: Vec<String>,
+    #[serde(default)]
+    pub(crate) entry_order: Vec<String>,
 }
 
 /// Last known per-file run state. An interrupted encode is not resumed; startup
@@ -142,8 +146,6 @@ pub(crate) struct QueueMovieReview {
     pub(crate) poster_id: String,
     #[serde(default)]
     pub(crate) local_poster_path: String,
-    pub(crate) nfo_paths: Vec<String>,
-    pub(crate) nfo_error: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -196,8 +198,6 @@ pub(crate) struct QueueSeriesReview {
     pub(crate) local_season_poster_paths: BTreeMap<String, String>,
     #[serde(default)]
     pub(crate) season_records: BTreeMap<String, QueueSeasonReview>,
-    pub(crate) nfo_paths: Vec<String>,
-    pub(crate) nfo_error: String,
     pub(crate) episodes: Vec<QueueTvEpisode>,
     pub(crate) episode_assignments: BTreeMap<String, QueueTvEpisode>,
 }
@@ -278,8 +278,7 @@ pub(crate) fn load(path: &Path) -> Result<QueueLoadResult, String> {
             })?;
             let parsed = serde_json::from_slice::<QueueDocument>(&bytes);
             let checked = parsed.and_then(|mut document| {
-                validate(&document)
-                    .map_err(|error| <serde_json::Error as serde::de::Error>::custom(error))?;
+                validate(&document).map_err(<serde_json::Error as serde::de::Error>::custom)?;
                 document.sources.iter_mut().for_each(|source| {
                     if matches!(source.status, QueueSourceStatus::Scanning) {
                         source.status = QueueSourceStatus::Interrupted;
@@ -1031,6 +1030,22 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
         if !roots.insert(source.root.as_str()) {
             return Err("The media queue contains a duplicate source path.".into());
         }
+        if source.excluded_paths.len() > MAX_QUEUE_ENTRIES
+            || source.entry_order.len() > MAX_QUEUE_ENTRIES
+        {
+            return Err(format!(
+                "A queue source can retain at most {MAX_QUEUE_ENTRIES} ordered or hidden file paths."
+            ));
+        }
+        for path in source
+            .excluded_paths
+            .iter()
+            .chain(source.entry_order.iter())
+        {
+            if path.is_empty() || path.len() > 8192 {
+                return Err("A queue file path is empty or too long.".into());
+            }
+        }
         if let Some(result) = &source.scan_result {
             let entries = result
                 .get("entries")
@@ -1109,7 +1124,16 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
             return Err("A saved per-file run state has an unsupported status.".into());
         }
         if state.mode.as_deref().is_some_and(|mode| {
-            !["check", "metadata", "test", "full", "youtube", "organize"].contains(&mode)
+            ![
+                "check",
+                "metadata",
+                "test",
+                "full",
+                "youtube",
+                "organize",
+                "integrity",
+            ]
+            .contains(&mode)
         }) {
             return Err("A saved per-file run mode is unsupported.".into());
         }
@@ -1160,7 +1184,6 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
             ("comment", review.comment.as_str(), 500),
             ("poster selection", review.poster_id.as_str(), 1024),
             ("local poster path", review.local_poster_path.as_str(), 8192),
-            ("NFO error", review.nfo_error.as_str(), 4096),
         ] {
             if value.len() > maximum {
                 return Err(format!("A saved movie review {label} is too long."));
@@ -1173,14 +1196,6 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
             && !saved_poster_reference(&review.local_poster_path)
         {
             return Err("A saved local movie poster must use an absolute path.".into());
-        }
-        if review.nfo_paths.len() > 32
-            || review
-                .nfo_paths
-                .iter()
-                .any(|candidate| candidate.len() > 8192 || !Path::new(candidate).is_absolute())
-        {
-            return Err("Saved movie NFO paths must be absolute and limited to 32 files.".into());
         }
         if review.artwork_candidates.len() > MAX_ARTWORK_CANDIDATES {
             return Err(format!(
@@ -1259,7 +1274,6 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
             ("comment", review.comment.as_str(), 500),
             ("poster selection", review.poster_id.as_str(), 1024),
             ("local poster path", review.local_poster_path.as_str(), 8192),
-            ("NFO error", review.nfo_error.as_str(), 4096),
         ] {
             if value.len() > maximum {
                 return Err(format!("A saved series review {label} is too long."));
@@ -1312,14 +1326,6 @@ fn validate(queue: &QueueDocument) -> Result<(), String> {
                     return Err(format!("A saved season {label} is too long."));
                 }
             }
-        }
-        if review.nfo_paths.len() > 32
-            || review
-                .nfo_paths
-                .iter()
-                .any(|candidate| candidate.len() > 8192 || !Path::new(candidate).is_absolute())
-        {
-            return Err("Saved series NFO paths must be absolute and limited to 32 files.".into());
         }
         validate_artwork_candidates(&review.artwork_candidates, &review.poster_id, "series")?;
         if review.episodes.len() > MAX_TV_EPISODES
@@ -1617,6 +1623,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         save(path, queue).expect("save synthetic queue fixture");
     }
@@ -1662,7 +1670,7 @@ mod tests {
         let media_path = directory.join("sample.mkv");
         fs::write(&media_path, []).expect("create synthetic path");
         let queue_path = directory.join("library-queue.json");
-        save_synthetic_scan(&queue_path, &directory, &[media_path.clone()]);
+        save_synthetic_scan(&queue_path, &directory, std::slice::from_ref(&media_path));
         let mut queue = load(&queue_path).expect("load fixture").queue;
         queue.file_tune_overrides.insert(
             media_path.to_string_lossy().into_owned(),
@@ -1708,7 +1716,7 @@ mod tests {
         fs::write(&media_path, []).expect("create synthetic media path");
         let media_path_string = media_path.to_string_lossy().into_owned();
         let queue_path = directory.join("library-queue.json");
-        save_synthetic_scan(&queue_path, &directory, &[media_path.clone()]);
+        save_synthetic_scan(&queue_path, &directory, std::slice::from_ref(&media_path));
         save_selected_paths(&queue_path, vec![media_path_string.clone()])
             .expect("save global queue selection");
 
@@ -1781,6 +1789,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         let mut unsupported = unknown;
         unsupported.provider = Some("untrusted-provider".into());
@@ -1819,8 +1829,6 @@ mod tests {
             }],
             poster_id: "tmdb:poster-1".into(),
             local_poster_path: "/media/Gnomeo & Juliet-poster.jpg".into(),
-            nfo_paths: vec!["/media/Gnomeo & Juliet.nfo".into()],
-            nfo_error: String::new(),
         }
     }
 
@@ -1844,8 +1852,6 @@ mod tests {
                 "/media/Example Series/Season 01/poster.jpg".into(),
             )]),
             season_records: BTreeMap::new(),
-            nfo_paths: vec!["/media/Example Series/tvshow.nfo".into()],
-            nfo_error: String::new(),
             episodes: vec![QueueTvEpisode {
                 season: 1,
                 episode: 2,
@@ -1920,6 +1926,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         queue.run_states.insert(
             active.clone(),
@@ -2000,6 +2008,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         queue.run_states.insert(
             source.to_string_lossy().into_owned(),
@@ -2210,6 +2220,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         queue.active_root = Some("/media/library".into());
         save(&queue_path, queue).expect("save source queue");
@@ -2291,6 +2303,8 @@ mod tests {
             updated_at_ms: now_ms(),
             changed_files: Vec::new(),
             missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
         });
         queue
             .movie_reviews
@@ -2331,5 +2345,63 @@ mod tests {
             .series_reviews
             .insert("/media/Example Series".into(), review);
         assert!(validate(&queue).is_err());
+    }
+
+    #[test]
+    fn queue_preserves_source_order_entry_order_and_hidden_files() {
+        let directory = std::env::temp_dir().join(format!(
+            "hevc-rebuild-queue-order-test-{}-{}",
+            std::process::id(),
+            now_ms()
+        ));
+        fs::create_dir(&directory).expect("create isolated queue test directory");
+        let first = directory.join("first.mkv");
+        let second = directory.join("second.mkv");
+        fs::write(&first, []).expect("create first fixture");
+        fs::write(&second, []).expect("create second fixture");
+        let queue_path = directory.join("library-queue.json");
+        let mut queue = QueueDocument::default();
+        queue.sources.push(QueueSource {
+            root: "/media/later".into(),
+            status: QueueSourceStatus::Ready,
+            scan_result: Some(json!({"entries": [{"path": first}]})),
+            error: None,
+            updated_at_ms: now_ms(),
+            changed_files: Vec::new(),
+            missing_files: Vec::new(),
+            excluded_paths: vec![second.to_string_lossy().into_owned()],
+            entry_order: vec![first.to_string_lossy().into_owned()],
+        });
+        queue.sources.push(QueueSource {
+            root: "/media/earlier".into(),
+            status: QueueSourceStatus::Ready,
+            scan_result: Some(json!({"entries": [{"path": second}]})),
+            error: None,
+            updated_at_ms: now_ms(),
+            changed_files: Vec::new(),
+            missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: vec![second.to_string_lossy().into_owned()],
+        });
+        queue.sources.swap(0, 1);
+        save(&queue_path, queue).expect("save reordered queue");
+        let restored = load(&queue_path).expect("reload ordered queue").queue;
+        assert_eq!(
+            restored
+                .sources
+                .iter()
+                .map(|source| source.root.as_str())
+                .collect::<Vec<_>>(),
+            vec!["/media/earlier", "/media/later"]
+        );
+        assert_eq!(
+            restored.sources[1].excluded_paths,
+            vec![second.to_string_lossy()]
+        );
+        assert_eq!(
+            restored.sources[1].entry_order,
+            vec![first.to_string_lossy()]
+        );
+        fs::remove_dir_all(directory).expect("remove isolated queue test directory");
     }
 }

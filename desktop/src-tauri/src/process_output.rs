@@ -12,6 +12,42 @@ pub(crate) fn spawn_owned(command: &mut Command) -> std::io::Result<Child> {
     command.spawn()
 }
 
+/// Kill a process group created by `spawn_owned`. The caller still reaps the child.
+pub(crate) fn kill_owned_group(process_id: u32) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        let pid = libc::pid_t::try_from(process_id)
+            .map_err(|_| "Engine process id is invalid.".to_string())?;
+        let group_result = unsafe { libc::kill(-pid, libc::SIGKILL) };
+        if group_result == 0 {
+            return Ok(());
+        }
+        let group_error = std::io::Error::last_os_error();
+        if group_error.raw_os_error() == Some(libc::ESRCH) {
+            return Ok(());
+        }
+        let process_result = unsafe { libc::kill(pid, libc::SIGKILL) };
+        if process_result == 0
+            || std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+        {
+            return Ok(());
+        }
+        Err(format!("Could not stop the engine process: {group_error}"))
+    }
+    #[cfg(windows)]
+    {
+        let status = Command::new("taskkill")
+            .args(["/PID", &process_id.to_string(), "/T", "/F"])
+            .status()
+            .map_err(|error| format!("Could not stop the engine process: {error}"))?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Could not stop the engine process tree.".into())
+        }
+    }
+}
+
 pub(crate) fn read_lines(reader: impl BufRead, mut emit: impl FnMut(String)) -> Result<(), String> {
     for line in reader.lines() {
         emit(line.map_err(|error| format!("Process output read failed: {error}"))?);
@@ -49,6 +85,22 @@ mod tests {
     use super::*;
     use std::io::{self, Cursor};
     use std::sync::atomic::{AtomicUsize, Ordering};
+    #[test]
+    #[cfg(unix)]
+    fn kill_owned_group_stops_spawned_child() {
+        use std::process::Stdio;
+        let mut child = spawn_owned(
+            Command::new("python3")
+                .args(["-c", "import time; time.sleep(30)"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null()),
+        )
+        .unwrap();
+        let start = std::time::Instant::now();
+        kill_owned_group(child.id()).unwrap();
+        assert!(!child.wait().unwrap().success());
+        assert!(start.elapsed() < std::time::Duration::from_secs(5));
+    }
     #[test]
     #[cfg(unix)]
     fn pipe_error_kills_resistant_child_and_pipe_holding_descendant() {

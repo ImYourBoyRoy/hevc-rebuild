@@ -194,6 +194,15 @@ struct ScanParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
+struct IntegrityParams {
+    files: Vec<String>,
+    level: Option<String>,
+    ffmpeg_path: Option<String>,
+    tool_paths: Option<ToolPaths>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 struct JobParams {
     job_id: String,
     offset: Option<usize>,
@@ -234,6 +243,17 @@ struct StartRunParams {
     youtube_resolution: Option<String>,
     youtube_quality_mode: Option<String>,
     youtube_source_multiplier: Option<f64>,
+    /// `upscale` (default) resizes to 1440p/4K; `optimize` keeps resolution and only retags,
+    /// copies, or shrinks 1440p+ sources.
+    youtube_mode: Option<String>,
+    /// SDR codec: `h264` (default) or `hevc`. HDR always uses HEVC.
+    youtube_sdr_codec: Option<String>,
+    /// Encoder preset: `slow` (default), `medium`, or `slower`.
+    youtube_preset: Option<String>,
+    /// Optimize re-encode policy: `auto` (default), `off`, or `aggressive`.
+    youtube_shrink: Option<String>,
+    /// Optimize SSIM gate: `standard` (default), `off`, `relaxed`, or `strict`.
+    youtube_quality_check: Option<String>,
     upload_output_dir: Option<String>,
     output_dir: Option<String>,
     recursive: Option<bool>,
@@ -348,14 +368,6 @@ struct RenameApplyParams {
     text_blacklist_patterns: Option<Vec<String>>,
     preview_id: String,
     confirm_rename: bool,
-}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct MetadataWriteApplyParams {
-    request: crate::library_nfo::MetadataWriteRequest,
-    preview_id: String,
-    confirm_write: bool,
 }
 
 fn canonical_folder(value: &str) -> Result<PathBuf, String> {
@@ -584,63 +596,13 @@ impl McpServer {
 
     #[tool(
         name = "inspect_local_library_assets",
-        description = "Inspect local NFO metadata and recognized poster/artwork sidecars for media paths and folders under one selected library root. This read-only operation does not contact public metadata providers or alter files. NFOs are preferred local sources; use public search tools only when local metadata is absent or a user explicitly wants another candidate. Artwork bytes stay on the device and only paths are returned."
+        description = "Inspect recognized poster/artwork sidecars for media paths and folders under one selected library root. This read-only operation does not contact public metadata providers or alter files. Sidecar NFO files are not read; use the public search tools for titles and descriptions. Artwork bytes stay on the device and only paths are returned."
     )]
     fn inspect_local_library_assets(
         &self,
         Parameters(request): Parameters<crate::library_assets::LocalAssetsRequest>,
     ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
         serialized_result(crate::library_assets::scan_local_assets(request))
-    }
-
-    #[tool(
-        name = "preview_library_metadata_write",
-        description = "Preview exact Kodi-compatible movie/show/episode NFO destinations for reviewed metadata. This reads only file metadata, preserves existing user-owned NFO files, and performs no write. Apply requires the returned previewId and a separate explicit confirmation."
-    )]
-    fn preview_library_metadata_write(
-        &self,
-        Parameters(request): Parameters<crate::library_nfo::MetadataWriteRequest>,
-    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        serialized_result(crate::library_nfo::preview_metadata_write(request))
-    }
-
-    #[tool(
-        name = "apply_library_metadata_write",
-        description = "Write reviewed Kodi-compatible metadata sidecars after preview. Provide the same request, exact previewId, and confirmWrite=true. Existing standard NFO files are preserved; only HEVC Rebuild managed sidecars can be replaced. A later rebuild embeds supported tags in a new Matroska output; this operation does not alter media bytes."
-    )]
-    fn apply_library_metadata_write(
-        &self,
-        Parameters(params): Parameters<MetadataWriteApplyParams>,
-    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        let id = job_id();
-        let mut job = Job::new(id.clone(), "metadata_write");
-        job.status = "running".into();
-        self.insert_job(job)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        let result = crate::library_nfo::apply_metadata_write(
-            params.request,
-            params.preview_id,
-            params.confirm_write,
-        )
-        .and_then(|value| {
-            serde_json::to_value(value)
-                .map_err(|error| format!("Metadata write result could not be serialized: {error}"))
-        });
-        if let Ok(mut jobs) = self.jobs.lock() {
-            if let Some(job) = jobs.get_mut(&id) {
-                match &result {
-                    Ok(value) => {
-                        job.status = "completed".into();
-                        job.result = Some(value.clone());
-                    }
-                    Err(error) => {
-                        job.status = "failed".into();
-                        job.error = Some(error.clone());
-                    }
-                }
-            }
-        }
-        json_result(result)
     }
 
     #[tool(
@@ -788,7 +750,7 @@ impl McpServer {
 
     #[tool(
         name = "start_folder_analysis",
-        description = "Analyze one local media file or a folder without encoding or writing to the media input. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. Returns a job ID for progress, paginated per-file errors and stream metadata, current available/total memory context, profile-aware rebuild forecasts, and YouTube size/memory estimates for source, 1440p, and 4K targets. Forecasts are heuristics, not exact peak-RAM or output-size guarantees. Only process content you own or are authorized to use."
+        description = "Analyze one local media file or a folder without encoding or writing to the media input. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. Returns a job ID for progress, paginated per-file errors and stream metadata, current available/total memory context, profile-aware rebuild forecasts, and YouTube size/memory estimates for source, 1440p, and 4K targets. Forecasts are heuristics, not exact peak-RAM or output-size guarantees. Use request_safe_stop on the job ID to finish the current file and skip the rest. Only process content you own or are authorized to use."
     )]
     fn start_folder_analysis(
         &self,
@@ -807,6 +769,9 @@ impl McpServer {
         if tool_paths.ffmpeg.is_none() {
             tool_paths.ffmpeg = params.ffmpeg_path;
         }
+        let stop_token = crate::stop_control::StopToken::new()
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let stop_file = stop_token.path().to_path_buf();
         let options = crate::media_scan::ScanOptions {
             root: root.to_string_lossy().into_owned(),
             recursive: params.recursive.unwrap_or(true),
@@ -814,17 +779,75 @@ impl McpServer {
             filename_include_patterns: params.filename_include_patterns.unwrap_or_default(),
             filename_exclude_patterns: params.filename_exclude_patterns.unwrap_or_default(),
             tool_paths,
+            stop_file: Some(stop_file.clone()),
         };
         let id = job_id();
         let mut job = Job::new(id.clone(), "folder_analysis");
         job.status = "running".into();
+        job.stop_file = Some(stop_file);
         self.insert_job(job)
             .map_err(|error| ErrorData::internal_error(error, None))?;
         let jobs = self.jobs.clone();
         let worker_id = id.clone();
-        thread::spawn(move || run_scan_job(jobs, worker_id, options));
+        thread::spawn(move || {
+            let _stop_token = stop_token;
+            run_scan_job(jobs, worker_id, options);
+        });
         Ok(rmcp::handler::server::wrapper::Json(
             json!({"job_id": id, "status": "running", "poll_with": "get_job"}),
+        ))
+    }
+
+    #[tool(
+        name = "start_integrity_check",
+        description = "Check one or more local media files for container or bitstream damage without writing output. level=quick inspects structure and decodes a short sample; level=full decodes every stream to FFmpeg's null muxer. Returns a job ID; poll with get_job. This native check does not require Python. Only process content you own or are authorized to use."
+    )]
+    fn start_integrity_check(
+        &self,
+        Parameters(params): Parameters<IntegrityParams>,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        if params.files.is_empty() || params.files.len() > 10_000 {
+            return Err(ErrorData::invalid_params(
+                "Integrity checks require 1 to 10,000 absolute media files.",
+                None,
+            ));
+        }
+        let level =
+            crate::integrity::IntegrityLevel::parse(params.level.as_deref().unwrap_or("quick"))
+                .map_err(|error| ErrorData::invalid_params(error, None))?;
+        let mut files = Vec::new();
+        for raw in &params.files {
+            let path = canonical_media_input(raw)
+                .map_err(|error| ErrorData::invalid_params(error, None))?;
+            if !path.is_file() {
+                return Err(ErrorData::invalid_params(
+                    format!("{} is not a file.", path.display()),
+                    None,
+                ));
+            }
+            files.push(path);
+        }
+        let mut tool_paths = params.tool_paths.unwrap_or_default();
+        if tool_paths.ffmpeg.is_none() {
+            tool_paths.ffmpeg = params.ffmpeg_path;
+        }
+        let id = job_id();
+        let stop_token = crate::stop_control::StopToken::new()
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let stop_file = stop_token.path().to_path_buf();
+        let mut job = Job::new(id.clone(), "integrity_check");
+        job.status = "running".into();
+        job.stop_file = Some(stop_file.clone());
+        self.insert_job(job)
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let jobs = self.jobs.clone();
+        let worker_id = id.clone();
+        thread::spawn(move || {
+            let _stop_token = stop_token;
+            run_integrity_job(jobs, worker_id, files, level, tool_paths, stop_file);
+        });
+        Ok(rmcp::handler::server::wrapper::Json(
+            json!({"job_id": id, "status": "running", "poll_with": "get_job", "level": params.level.unwrap_or_else(|| "quick".into())}),
         ))
     }
 
@@ -882,7 +905,7 @@ impl McpServer {
 
     #[tool(
         name = "start_media_run",
-        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; the Python engine retains active memory/disk enforcement and pressure retries during migration. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; the selected reviewed values override local NFO values in output metadata. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. file_settings_overrides maps absolute analyzed media paths to current-run CRF, x265 preset, 8-bit promotion, content tune, HDR10+ preservation, Dolby Vision policy, and exact stream-index choices; omitted fields inherit the effective settings and these overrides are never saved as defaults. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. HDR10+ sources are skipped by default because this exporter does not retain dynamic metadata; pass allow_youtube_hdr10plus_loss_paths with only the analyzed files whose dynamic metadata loss you explicitly accept. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
+        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; metadata-only and YouTube runs execute natively in Rust with in-process memory/disk guards and pressure retries, while test and full rebuilds still use the Python engine during migration. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; these reviewed values are the only source of output title and description tags (sidecar NFO files are not read), and animation genres there select the animation tune. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. file_settings_overrides maps absolute analyzed media paths to current-run CRF, x265 preset, 8-bit promotion, content tune, HDR10+ preservation, Dolby Vision policy, and exact stream-index choices; omitted fields inherit the effective settings and these overrides are never saved as defaults. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_mode=optimize instead keeps the source resolution (1440p or larger only), stream-copies healthy video with YouTube container tags and faststart, and re-encodes only oversized sources when youtube_shrink allows it and the youtube_quality_check SSIM gate passes; youtube_sdr_codec (h264 default, hevc) and youtube_preset (slow default, medium, slower) tune encodes; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. HDR10+ sources are skipped by default because this exporter does not retain dynamic metadata; pass allow_youtube_hdr10plus_loss_paths with only the analyzed files whose dynamic metadata loss you explicitly accept. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
     )]
     fn start_media_run(
         &self,
@@ -896,7 +919,7 @@ impl McpServer {
         let root = prepared.root.clone();
         let mode = prepared.mode.clone();
         let selected_files = prepared.selected_files.clone();
-        let args = prepared.args;
+        let args = prepared.args.clone();
         let mut job = Job::new(id.clone(), "media_run");
         job.status = "running".into();
         job.stop_file = Some(stop_file.clone());
@@ -937,7 +960,11 @@ impl McpServer {
         let worker_id = id.clone();
         thread::spawn(move || {
             let _stop_token = stop_token;
-            run_media_job(jobs, worker_id, args, stop_file, queue_sync)
+            if prepared.mode == "check" {
+                run_check_job(jobs, worker_id, prepared, stop_file, queue_sync);
+            } else {
+                run_media_job(jobs, worker_id, args, stop_file, queue_sync);
+            }
         });
         Ok(rmcp::handler::server::wrapper::Json(
             json!({"job_id": id, "status": "running", "poll_with": "get_job", "queue_items_tracked": queue_items_tracked, "queue_sync_warning": queue_sync_warning}),
@@ -1063,7 +1090,7 @@ impl McpServer {
 
     #[tool(
         name = "request_safe_stop",
-        description = "Request a running media job to finish its current file and stop before starting another. This does not kill FFmpeg mid-file."
+        description = "Request a running media, integrity, or folder-analysis job to finish its current file and stop before starting another. This does not kill FFmpeg mid-file."
     )]
     fn request_safe_stop(
         &self,
@@ -1076,11 +1103,13 @@ impl McpServer {
             let job = jobs
                 .get(&params.job_id)
                 .ok_or_else(|| ErrorData::invalid_params("Unknown job ID.", None))?;
-            if !matches!(job.kind.as_str(), "media_run" | "media_queue_run")
-                || job.status != "running"
+            if !matches!(
+                job.kind.as_str(),
+                "media_run" | "media_queue_run" | "integrity_check" | "folder_analysis"
+            ) || job.status != "running"
             {
                 return Err(ErrorData::invalid_params(
-                    "Only an active media run can be safely stopped.",
+                    "Only an active media, integrity, or folder-analysis job can be safely stopped.",
                     None,
                 ));
             }
@@ -1107,7 +1136,7 @@ impl McpServer {
         let directory =
             super::state_log_directory().map_err(|error| ErrorData::internal_error(error, None))?;
         Ok(rmcp::handler::server::wrapper::Json(
-            super::reports::list_reports(&directory, limit as usize),
+            super::reports::list_reports(&directory, limit),
         ))
     }
 
@@ -1388,6 +1417,11 @@ struct PreparedMediaRun {
     args: Vec<String>,
     output_dir: Option<String>,
     file_output_dirs: BTreeMap<String, String>,
+    tool_paths: ToolPaths,
+    recursive: bool,
+    minimum_size_mib: u32,
+    filename_include_patterns: Vec<String>,
+    filename_exclude_patterns: Vec<String>,
 }
 
 struct QueueRunPlan {
@@ -1597,6 +1631,13 @@ fn prepare_media_run(
             .cloned()
             .ok_or_else(|| ErrorData::internal_error("Could not load effective settings.", None))?
     };
+    let recursive = params.recursive.unwrap_or(true);
+    let filename_include_patterns = params.filename_include_patterns.clone().unwrap_or_default();
+    let filename_exclude_patterns = params.filename_exclude_patterns.clone().unwrap_or_default();
+    let mut native_tool_paths = params.tool_paths.clone().unwrap_or_default();
+    if native_tool_paths.ffmpeg.is_none() {
+        native_tool_paths.ffmpeg = params.ffmpeg_path.clone();
+    }
     let mut args = vec![
         root.to_string_lossy().into_owned(),
         "--min-size-mib".into(),
@@ -1604,13 +1645,13 @@ fn prepare_media_run(
         "--no-dependency-repair".into(),
         "--skip-update-check".into(),
     ];
-    if params.recursive.unwrap_or(true) {
+    if recursive {
         args.push("--recursive".into());
     }
     crate::append_filename_filter_arguments(
         &mut args,
-        &params.filename_include_patterns.unwrap_or_default(),
-        &params.filename_exclude_patterns.unwrap_or_default(),
+        &filename_include_patterns,
+        &filename_exclude_patterns,
     )
     .map_err(|error| ErrorData::invalid_params(error, None))?;
     let selected_files = params.selected_files.unwrap_or_default();
@@ -1708,6 +1749,16 @@ fn prepare_media_run(
             "--upload-source-multiplier".into(),
             youtube_source_multiplier.to_string(),
         ]);
+        args.extend(
+            crate::youtube_mode_arguments(
+                params.youtube_mode.as_deref(),
+                params.youtube_sdr_codec.as_deref(),
+                params.youtube_preset.as_deref(),
+                params.youtube_shrink.as_deref(),
+                params.youtube_quality_check.as_deref(),
+            )
+            .map_err(|error| ErrorData::invalid_params(error, None))?,
+        );
         if let Some(output_dir) = params
             .upload_output_dir
             .filter(|value| !value.trim().is_empty())
@@ -1807,7 +1858,68 @@ fn prepare_media_run(
         args,
         output_dir: preflight_output_dir,
         file_output_dirs: preflight_file_output_dirs,
+        tool_paths: native_tool_paths,
+        recursive,
+        minimum_size_mib: minimum,
+        filename_include_patterns,
+        filename_exclude_patterns,
     })
+}
+
+fn run_integrity_job(
+    jobs: Jobs,
+    id: String,
+    files: Vec<PathBuf>,
+    level: crate::integrity::IntegrityLevel,
+    tool_paths: ToolPaths,
+    stop_file: PathBuf,
+) {
+    let result = crate::integrity::check_paths(
+        &files,
+        level,
+        tool_paths,
+        Some(&stop_file),
+        |progress| {
+            if let Ok(mut jobs) = jobs.lock() {
+                if let Some(job) = jobs.get_mut(&id) {
+                    job.current = progress.current;
+                    job.total = progress.total;
+                    job.last_file = Some(progress.file_path);
+                }
+            }
+        },
+        |line| record_line(&jobs, &id, line),
+    );
+    let _ = fs::remove_file(&stop_file);
+    if let Ok(mut jobs) = jobs.lock() {
+        if let Some(job) = jobs.get_mut(&id) {
+            match result {
+                Ok(payload) => {
+                    job.status = if payload.stop_requested {
+                        "stopped".into()
+                    } else if payload.failed > 0 {
+                        "failed".into()
+                    } else {
+                        "completed".into()
+                    };
+                    job.log_path = Some(payload.log_path.to_string_lossy().into_owned());
+                    job.report_path = Some(payload.report_path.to_string_lossy().into_owned());
+                    job.exit_code = Some(if payload.failed > 0 { 1 } else { 0 });
+                    job.current = payload.files.len();
+                    job.total = files.len();
+                    job.result = serde_json::to_value(&payload.files).ok();
+                    if payload.stop_requested {
+                        job.error =
+                            Some("The integrity check stopped before every file finished.".into());
+                    }
+                }
+                Err(error) => {
+                    job.status = "failed".into();
+                    job.error = Some(error);
+                }
+            }
+        }
+    }
 }
 
 fn run_scan_job(jobs: Jobs, id: String, options: crate::media_scan::ScanOptions) {
@@ -1824,7 +1936,15 @@ fn run_scan_job(jobs: Jobs, id: String, options: crate::media_scan::ScanOptions)
         if let Some(job) = jobs.get_mut(&id) {
             match result {
                 Ok(payload) => {
-                    job.status = "completed".into();
+                    let interrupted = payload
+                        .get("interrupted")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    job.status = if interrupted {
+                        "interrupted".into()
+                    } else {
+                        "completed".into()
+                    };
                     job.result = Some(payload);
                     if job.total == 0 {
                         job.total = job
@@ -2206,8 +2326,8 @@ fn queue_state_from_report_row(
         .filter(|value| !value.is_empty())
         .map(str::to_uppercase);
     let status = match report_status.as_deref() {
-        Some("OK" | "METADATA_OK" | "TEST_OK" | "INFO") => "completed",
-        Some("FAILED") => "failed",
+        Some("OK" | "METADATA_OK" | "TEST_OK" | "INFO" | "INTEGRITY_OK") => "completed",
+        Some("FAILED" | "CORRUPT" | "UNREADABLE") => "failed",
         Some("SKIPPED") => "skipped",
         Some("INTERRUPTED") => "interrupted",
         _ => "needs_review",
@@ -2299,12 +2419,196 @@ fn sync_queue_run_result_in(
     crate::media_queue::save_run_states(&sync.queue_path, updated)
 }
 
+fn execute_native_check(
+    jobs: &Jobs,
+    id: &str,
+    prepared: &PreparedMediaRun,
+    stop_file: &Path,
+) -> Result<i32, String> {
+    let files = if prepared.selected_files.is_empty() {
+        crate::run_coordinator::discover_check_files(
+            &prepared.root,
+            prepared.recursive,
+            prepared.minimum_size_mib,
+            &prepared.filename_include_patterns,
+            &prepared.filename_exclude_patterns,
+            prepared.tool_paths.clone(),
+        )?
+    } else {
+        prepared
+            .selected_files
+            .iter()
+            .map(PathBuf::from)
+            .collect::<Vec<_>>()
+    };
+    let result = crate::run_coordinator::analyze_paths(
+        &files,
+        prepared.tool_paths.clone(),
+        Some(stop_file),
+        |progress| {
+            if let Ok(mut jobs) = jobs.lock() {
+                if let Some(job) = jobs.get_mut(id) {
+                    job.current = progress.current;
+                    job.total = progress.total;
+                    job.last_file = Some(progress.file_path);
+                }
+            }
+        },
+        |line| record_line(jobs, id, line),
+    )?;
+    if let Ok(mut jobs) = jobs.lock() {
+        if let Some(job) = jobs.get_mut(id) {
+            job.log_path = Some(result.log_path.to_string_lossy().into_owned());
+            job.report_path = Some(result.report_path.to_string_lossy().into_owned());
+            job.result = serde_json::to_value(&result.files).ok();
+        }
+    }
+    Ok(if result.failed > 0 { 1 } else { 0 })
+}
+
+/// Metadata-only MKV runs execute natively in Rust and report through the same
+/// job lines the Python engine emitted (`Log:` / `Run report:`).
+fn execute_native_metadata_args(
+    jobs: &Jobs,
+    id: &str,
+    args: &[String],
+    echo_to_stderr: bool,
+) -> Result<i32, String> {
+    let options = crate::metadata_run::MetadataRunOptions::from_engine_args(args)?;
+    let disk_path = if options.root.is_file() {
+        options.root.parent().map(PathBuf::from)
+    } else {
+        Some(options.root.clone())
+    };
+    let resource_jobs = jobs.clone();
+    let resource_id = id.to_owned();
+    let resource_monitor = super::resource_monitor::monitor_process(
+        std::process::id(),
+        disk_path,
+        Duration::from_secs(1),
+        move |snapshot| {
+            if let Ok(mut registry) = resource_jobs.lock() {
+                if let Some(job) = registry.get_mut(&resource_id) {
+                    job.resource_snapshot = Some(snapshot);
+                }
+            }
+        },
+    );
+    let result = crate::metadata_run::run_metadata_only(
+        &options,
+        |progress| {
+            if let Ok(mut registry) = jobs.lock() {
+                if let Some(job) = registry.get_mut(id) {
+                    job.current = progress.current;
+                    job.total = progress.total;
+                    job.last_file = Some(progress.file_path);
+                }
+            }
+        },
+        |line| {
+            if echo_to_stderr {
+                eprintln!("{line}");
+            }
+            record_line(jobs, id, line);
+        },
+        |_| {},
+    );
+    resource_monitor.stop();
+    let result = result?;
+    for line in crate::metadata_run::closing_lines(&result) {
+        if echo_to_stderr {
+            eprintln!("{line}");
+        }
+        record_line(jobs, id, line);
+    }
+    if let Ok(mut registry) = jobs.lock() {
+        if let Some(job) = registry.get_mut(id) {
+            job.log_path = Some(result.log_path.to_string_lossy().into_owned());
+            job.report_path = Some(result.report_path.to_string_lossy().into_owned());
+            job.result = serde_json::to_value(&result.files).ok();
+        }
+    }
+    Ok(i32::from(result.failed > 0))
+}
+
+/// YouTube exports execute natively in Rust (in-process FFmpeg supervision).
+fn execute_native_youtube_args(
+    jobs: &Jobs,
+    id: &str,
+    args: &[String],
+    echo_to_stderr: bool,
+) -> Result<i32, String> {
+    let options = crate::youtube_run::YoutubeRunOptions::from_engine_args(args)?;
+    let disk_path = options.output_dir.clone().or_else(|| {
+        if options.root.is_file() {
+            options.root.parent().map(PathBuf::from)
+        } else {
+            Some(options.root.clone())
+        }
+    });
+    let resource_jobs = jobs.clone();
+    let resource_id = id.to_owned();
+    let resource_monitor = super::resource_monitor::monitor_process(
+        std::process::id(),
+        disk_path,
+        Duration::from_secs(1),
+        move |snapshot| {
+            if let Ok(mut registry) = resource_jobs.lock() {
+                if let Some(job) = registry.get_mut(&resource_id) {
+                    job.resource_snapshot = Some(snapshot);
+                }
+            }
+        },
+    );
+    let result = crate::youtube_run::run_youtube_export(
+        &options,
+        |progress| {
+            if let Ok(mut registry) = jobs.lock() {
+                if let Some(job) = registry.get_mut(id) {
+                    job.current = progress.current;
+                    job.total = progress.total;
+                    job.last_file = Some(progress.file_path);
+                }
+            }
+        },
+        |line| {
+            if echo_to_stderr {
+                eprintln!("{line}");
+            }
+            record_line(jobs, id, line);
+        },
+        |_| {},
+    );
+    resource_monitor.stop();
+    let result = result?;
+    for line in crate::youtube_run::closing_lines(&result) {
+        if echo_to_stderr {
+            eprintln!("{line}");
+        }
+        record_line(jobs, id, line);
+    }
+    if let Ok(mut registry) = jobs.lock() {
+        if let Some(job) = registry.get_mut(id) {
+            job.log_path = Some(result.log_path.to_string_lossy().into_owned());
+            job.report_path = Some(result.report_path.to_string_lossy().into_owned());
+            job.result = serde_json::to_value(&result.files).ok();
+        }
+    }
+    Ok(i32::from(result.failed > 0))
+}
+
 fn execute_media_args(
     jobs: &Jobs,
     id: &str,
     args: &[String],
     echo_to_stderr: bool,
 ) -> Result<i32, String> {
+    if args.iter().any(|argument| argument == "--youtube-upload") {
+        return execute_native_youtube_args(jobs, id, args, echo_to_stderr);
+    }
+    if args.iter().any(|argument| argument == "--metadata-only") {
+        return execute_native_metadata_args(jobs, id, args, echo_to_stderr);
+    }
     let mut command = standalone_command("hevc_rebuild", args)?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = crate::process_output::spawn_owned(&mut command)
@@ -2371,6 +2675,17 @@ fn execute_media_args(
         .map_err(|error| format!("Could not wait for the media engine: {error}"))
 }
 
+fn run_check_job(
+    jobs: Jobs,
+    id: String,
+    prepared: PreparedMediaRun,
+    stop_file: PathBuf,
+    queue_sync: Option<QueueRunSync>,
+) {
+    let outcome = execute_native_check(&jobs, &id, &prepared, &stop_file);
+    finish_media_job(jobs, id, stop_file, queue_sync, outcome);
+}
+
 fn run_media_job(
     jobs: Jobs,
     id: String,
@@ -2379,6 +2694,16 @@ fn run_media_job(
     queue_sync: Option<QueueRunSync>,
 ) {
     let outcome = execute_media_args(&jobs, &id, &args, false);
+    finish_media_job(jobs, id, stop_file, queue_sync, outcome);
+}
+
+fn finish_media_job(
+    jobs: Jobs,
+    id: String,
+    stop_file: PathBuf,
+    queue_sync: Option<QueueRunSync>,
+    outcome: Result<i32, String>,
+) {
     let stop_requested = crate::stop_control::requested(&stop_file);
     let _ = fs::remove_file(&stop_file);
     let exit_code = outcome.as_ref().ok().copied();
@@ -2485,7 +2810,11 @@ fn run_media_queue_job(
             }
         }
 
-        let outcome = execute_media_args(&jobs, &id, &plan.run.args, echo_to_stderr);
+        let outcome = if plan.run.mode == "check" {
+            execute_native_check(&jobs, &id, &plan.run, &stop_file)
+        } else {
+            execute_media_args(&jobs, &id, &plan.run.args, echo_to_stderr)
+        };
         let exit_code = outcome.as_ref().ok().copied();
         let report_path = jobs
             .lock()
@@ -2554,225 +2883,6 @@ fn run_media_queue_job(
                 job.exit_code = Some(0);
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod queue_sync_tests {
-    use super::*;
-    use crate::media_queue::{QueueDocument, QueueSource, QueueSourceStatus};
-
-    fn temporary_root(label: &str) -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos();
-        std::env::temp_dir().join(format!(
-            "hevc-mcp-queue-{label}-{}-{nonce}",
-            std::process::id()
-        ))
-    }
-
-    fn prepared_run(root: &Path, media: &Path, mode: &str) -> PreparedMediaRun {
-        PreparedMediaRun {
-            root: root.canonicalize().unwrap(),
-            mode: mode.to_owned(),
-            selected_files: vec![media.canonicalize().unwrap().to_string_lossy().into_owned()],
-            args: Vec::new(),
-            output_dir: None,
-            file_output_dirs: BTreeMap::new(),
-        }
-    }
-
-    #[test]
-    fn queue_batch_rejects_duplicate_canonical_files_across_overlapping_roots() {
-        let root = temporary_root("overlap");
-        let nested = root.join("Nested");
-        fs::create_dir_all(&nested).unwrap();
-        let media = nested.join("Sample.mkv");
-        fs::write(&media, b"synthetic media placeholder").unwrap();
-        let runs = vec![
-            prepared_run(&root, &media, "check"),
-            prepared_run(&nested, &media, "check"),
-        ];
-        assert!(validate_prepared_queue_runs(&runs).is_err());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn queue_batch_preflights_duplicate_output_names_before_start() {
-        let root = temporary_root("output-collision");
-        let first = root.join("first");
-        let second = root.join("second");
-        let output = root.join("output");
-        fs::create_dir_all(&first).unwrap();
-        fs::create_dir_all(&second).unwrap();
-        fs::create_dir_all(&output).unwrap();
-        let first_media = first.join("SameName.mkv");
-        let second_media = second.join("SameName.mkv");
-        fs::write(&first_media, b"first synthetic media").unwrap();
-        fs::write(&second_media, b"second synthetic media").unwrap();
-        let mut runs = vec![
-            prepared_run(&first, &first_media, "full"),
-            prepared_run(&second, &second_media, "full"),
-        ];
-        for run in &mut runs {
-            run.output_dir = Some(output.to_string_lossy().into_owned());
-        }
-        assert!(validate_prepared_queue_runs(&runs).is_err());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn queue_batch_accepts_distinct_sources_and_shared_output_plan() {
-        let root = temporary_root("valid-batch");
-        let first = root.join("first");
-        let second = root.join("second");
-        let output = root.join("output");
-        fs::create_dir_all(&first).unwrap();
-        fs::create_dir_all(&second).unwrap();
-        fs::create_dir_all(&output).unwrap();
-        let first_media = first.join("First.mkv");
-        let second_media = second.join("Second.mkv");
-        fs::write(&first_media, b"first synthetic media").unwrap();
-        fs::write(&second_media, b"second synthetic media").unwrap();
-        let mut runs = vec![
-            prepared_run(&first, &first_media, "metadata"),
-            prepared_run(&second, &second_media, "metadata"),
-        ];
-        for run in &mut runs {
-            run.output_dir = Some(output.to_string_lossy().into_owned());
-        }
-        assert!(validate_prepared_queue_runs(&runs).is_ok());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn explicit_queue_run_paths_record_running_state_without_losing_selection() {
-        let root = temporary_root("sync");
-        fs::create_dir_all(&root).unwrap();
-        let media = root.join("Sample.mkv");
-        fs::write(&media, b"synthetic media placeholder").unwrap();
-        let queue_path = root.join("library-queue.json");
-        let media_path = media.to_string_lossy().into_owned();
-        let root_path = root.to_string_lossy().into_owned();
-        let mut queue = QueueDocument::default();
-        queue.sources.push(QueueSource {
-            root: root_path.clone(),
-            status: QueueSourceStatus::Ready,
-            scan_result: Some(json!({"entries": [{"path": media_path, "size_bytes": 28}]})),
-            error: None,
-            updated_at_ms: 1,
-            changed_files: Vec::new(),
-            missing_files: Vec::new(),
-        });
-        queue.selected_media_paths.push(media_path.clone());
-        queue.active_root = Some(root_path);
-        crate::media_queue::save(&queue_path, queue).unwrap();
-
-        let sync = queue_run_sync_at(
-            &queue_path,
-            &root,
-            std::slice::from_ref(&media_path),
-            "check",
-        )
-        .unwrap()
-        .unwrap();
-        assert_eq!(sync.media_paths, vec![media_path.clone()]);
-        crate::media_queue::save_run_states(
-            &sync.queue_path,
-            queue_run_states(
-                &sync.media_paths,
-                "check",
-                "running",
-                Some("Started through MCP."),
-            ),
-        )
-        .unwrap();
-
-        let report_directory = root.join("logs");
-        fs::create_dir_all(&report_directory).unwrap();
-        let report_path = report_directory.join("hevc-rebuild-queue-sync.csv");
-        fs::write(
-            &report_path,
-            format!(
-                "input,output,status,message\n\"{media_path}\",\"{}\",OK,Validated\n",
-                root.join("Sample.metadata.mkv").display()
-            ),
-        )
-        .unwrap();
-        sync_queue_run_result_in(
-            &sync,
-            &report_directory,
-            Some(&report_path.to_string_lossy()),
-            Some(0),
-            false,
-        )
-        .unwrap();
-
-        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
-        assert_eq!(summary["selectedCount"], 1);
-        assert_eq!(summary["entries"][0]["runStatus"], "completed");
-        assert_eq!(summary["entries"][0]["runMode"], "check");
-        assert_eq!(summary["entries"][0]["reportStatus"], "OK");
-
-        // A sequential job for the same source must consume its exact report,
-        // rather than inheriting the first job's success. Unselected rows in a
-        // different report cannot complete this file.
-        let next_report = report_directory.join("hevc-rebuild-next-run.csv");
-        fs::write(&next_report, format!("input,status,message\n\"{media_path}\",FAILED,Second run failed\nother.mkv,OK,Unrelated\n")).unwrap();
-        sync_queue_run_result_in(
-            &sync,
-            &report_directory,
-            Some(&next_report.to_string_lossy()),
-            Some(1),
-            false,
-        )
-        .unwrap();
-        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
-        assert_eq!(summary["entries"][0]["runStatus"], "failed");
-        assert_eq!(summary["entries"][0]["reportStatus"], "FAILED");
-        fs::write(&next_report, "input,status\nother.mkv,OK\n").unwrap();
-        sync_queue_run_result_in(
-            &sync,
-            &report_directory,
-            Some(&next_report.to_string_lossy()),
-            Some(0),
-            false,
-        )
-        .unwrap();
-        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
-        assert_eq!(summary["entries"][0]["runStatus"], "needs_review");
-        assert_eq!(summary["selectedCount"], 1);
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn queue_completion_requires_a_matching_report_status() {
-        let successful = json!({
-            "status": "METADATA_OK",
-            "output": "/tmp/Sample.metadata.mkv",
-            "message": "Validated metadata copy",
-        });
-        let completed = queue_state_from_report_row(
-            "metadata",
-            Some("/tmp/hevc-rebuild-job.csv"),
-            Some(&successful),
-            Some(0),
-            false,
-        );
-        assert_eq!(completed.status, "completed");
-        assert_eq!(
-            completed.output_path.as_deref(),
-            Some("/tmp/Sample.metadata.mkv")
-        );
-
-        let missing = queue_state_from_report_row("metadata", None, None, Some(0), false);
-        assert_eq!(missing.status, "needs_review");
-        assert!(missing
-            .message
-            .unwrap()
-            .contains("completion was not assumed"));
     }
 }
 
@@ -2930,7 +3040,6 @@ fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<String>) {
     match child.wait() {
         Ok(_) if reader_result.is_err() => {
             update_failed(&jobs, &id, reader_result.unwrap_err());
-            return;
         }
         Ok(status) if status.success() => {
             if let Ok(mut jobs) = jobs.lock() {
@@ -3003,4 +3112,230 @@ pub fn run() -> i32 {
             }
         }
     })
+}
+
+#[cfg(test)]
+mod queue_sync_tests {
+    use super::*;
+    use crate::media_queue::{QueueDocument, QueueSource, QueueSourceStatus};
+
+    fn temporary_root(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "hevc-mcp-queue-{label}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    fn prepared_run(root: &Path, media: &Path, mode: &str) -> PreparedMediaRun {
+        PreparedMediaRun {
+            root: root.canonicalize().unwrap(),
+            mode: mode.to_owned(),
+            selected_files: vec![media.canonicalize().unwrap().to_string_lossy().into_owned()],
+            args: Vec::new(),
+            output_dir: None,
+            file_output_dirs: BTreeMap::new(),
+            tool_paths: ToolPaths::default(),
+            recursive: true,
+            minimum_size_mib: 5,
+            filename_include_patterns: Vec::new(),
+            filename_exclude_patterns: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn queue_batch_rejects_duplicate_canonical_files_across_overlapping_roots() {
+        let root = temporary_root("overlap");
+        let nested = root.join("Nested");
+        fs::create_dir_all(&nested).unwrap();
+        let media = nested.join("Sample.mkv");
+        fs::write(&media, b"synthetic media placeholder").unwrap();
+        let runs = vec![
+            prepared_run(&root, &media, "check"),
+            prepared_run(&nested, &media, "check"),
+        ];
+        assert!(validate_prepared_queue_runs(&runs).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn queue_batch_preflights_duplicate_output_names_before_start() {
+        let root = temporary_root("output-collision");
+        let first = root.join("first");
+        let second = root.join("second");
+        let output = root.join("output");
+        fs::create_dir_all(&first).unwrap();
+        fs::create_dir_all(&second).unwrap();
+        fs::create_dir_all(&output).unwrap();
+        let first_media = first.join("SameName.mkv");
+        let second_media = second.join("SameName.mkv");
+        fs::write(&first_media, b"first synthetic media").unwrap();
+        fs::write(&second_media, b"second synthetic media").unwrap();
+        let mut runs = vec![
+            prepared_run(&first, &first_media, "full"),
+            prepared_run(&second, &second_media, "full"),
+        ];
+        for run in &mut runs {
+            run.output_dir = Some(output.to_string_lossy().into_owned());
+        }
+        assert!(validate_prepared_queue_runs(&runs).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn queue_batch_accepts_distinct_sources_and_shared_output_plan() {
+        let root = temporary_root("valid-batch");
+        let first = root.join("first");
+        let second = root.join("second");
+        let output = root.join("output");
+        fs::create_dir_all(&first).unwrap();
+        fs::create_dir_all(&second).unwrap();
+        fs::create_dir_all(&output).unwrap();
+        let first_media = first.join("First.mkv");
+        let second_media = second.join("Second.mkv");
+        fs::write(&first_media, b"first synthetic media").unwrap();
+        fs::write(&second_media, b"second synthetic media").unwrap();
+        let mut runs = vec![
+            prepared_run(&first, &first_media, "metadata"),
+            prepared_run(&second, &second_media, "metadata"),
+        ];
+        for run in &mut runs {
+            run.output_dir = Some(output.to_string_lossy().into_owned());
+        }
+        assert!(validate_prepared_queue_runs(&runs).is_ok());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn explicit_queue_run_paths_record_running_state_without_losing_selection() {
+        let root = temporary_root("sync");
+        fs::create_dir_all(&root).unwrap();
+        let media = root.join("Sample.mkv");
+        fs::write(&media, b"synthetic media placeholder").unwrap();
+        let queue_path = root.join("library-queue.json");
+        let media_path = media.to_string_lossy().into_owned();
+        let root_path = root.to_string_lossy().into_owned();
+        let mut queue = QueueDocument::default();
+        queue.sources.push(QueueSource {
+            root: root_path.clone(),
+            status: QueueSourceStatus::Ready,
+            scan_result: Some(json!({"entries": [{"path": media_path, "size_bytes": 28}]})),
+            error: None,
+            updated_at_ms: 1,
+            changed_files: Vec::new(),
+            missing_files: Vec::new(),
+            excluded_paths: Vec::new(),
+            entry_order: Vec::new(),
+        });
+        queue.selected_media_paths.push(media_path.clone());
+        queue.active_root = Some(root_path);
+        crate::media_queue::save(&queue_path, queue).unwrap();
+
+        let sync = queue_run_sync_at(
+            &queue_path,
+            &root,
+            std::slice::from_ref(&media_path),
+            "check",
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(sync.media_paths, vec![media_path.clone()]);
+        crate::media_queue::save_run_states(
+            &sync.queue_path,
+            queue_run_states(
+                &sync.media_paths,
+                "check",
+                "running",
+                Some("Started through MCP."),
+            ),
+        )
+        .unwrap();
+
+        let report_directory = root.join("logs");
+        fs::create_dir_all(&report_directory).unwrap();
+        let report_path = report_directory.join("hevc-rebuild-queue-sync.csv");
+        fs::write(
+            &report_path,
+            format!(
+                "input,output,status,message\n\"{media_path}\",\"{}\",OK,Validated\n",
+                root.join("Sample.metadata.mkv").display()
+            ),
+        )
+        .unwrap();
+        sync_queue_run_result_in(
+            &sync,
+            &report_directory,
+            Some(&report_path.to_string_lossy()),
+            Some(0),
+            false,
+        )
+        .unwrap();
+
+        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
+        assert_eq!(summary["selectedCount"], 1);
+        assert_eq!(summary["entries"][0]["runStatus"], "completed");
+        assert_eq!(summary["entries"][0]["runMode"], "check");
+        assert_eq!(summary["entries"][0]["reportStatus"], "OK");
+
+        // A sequential job for the same source must consume its exact report,
+        // rather than inheriting the first job's success. Unselected rows in a
+        // different report cannot complete this file.
+        let next_report = report_directory.join("hevc-rebuild-next-run.csv");
+        fs::write(&next_report, format!("input,status,message\n\"{media_path}\",FAILED,Second run failed\nother.mkv,OK,Unrelated\n")).unwrap();
+        sync_queue_run_result_in(
+            &sync,
+            &report_directory,
+            Some(&next_report.to_string_lossy()),
+            Some(1),
+            false,
+        )
+        .unwrap();
+        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
+        assert_eq!(summary["entries"][0]["runStatus"], "failed");
+        assert_eq!(summary["entries"][0]["reportStatus"], "FAILED");
+        fs::write(&next_report, "input,status\nother.mkv,OK\n").unwrap();
+        sync_queue_run_result_in(
+            &sync,
+            &report_directory,
+            Some(&next_report.to_string_lossy()),
+            Some(0),
+            false,
+        )
+        .unwrap();
+        let summary = crate::media_queue::summarize(&queue_path, 0, 10).unwrap();
+        assert_eq!(summary["entries"][0]["runStatus"], "needs_review");
+        assert_eq!(summary["selectedCount"], 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn queue_completion_requires_a_matching_report_status() {
+        let successful = json!({
+            "status": "METADATA_OK",
+            "output": "/tmp/Sample.metadata.mkv",
+            "message": "Validated metadata copy",
+        });
+        let completed = queue_state_from_report_row(
+            "metadata",
+            Some("/tmp/hevc-rebuild-job.csv"),
+            Some(&successful),
+            Some(0),
+            false,
+        );
+        assert_eq!(completed.status, "completed");
+        assert_eq!(
+            completed.output_path.as_deref(),
+            Some("/tmp/Sample.metadata.mkv")
+        );
+
+        let missing = queue_state_from_report_row("metadata", None, None, Some(0), false);
+        assert_eq!(missing.status, "needs_review");
+        assert!(missing
+            .message
+            .unwrap()
+            .contains("completion was not assumed"));
+    }
 }

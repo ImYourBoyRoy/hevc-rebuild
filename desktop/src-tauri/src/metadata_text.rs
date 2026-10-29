@@ -85,7 +85,7 @@ fn clean_request(request: CleanRequest) -> Result<CleanResponse, String> {
         return Err("Metadata text cleanup values exceed the 1 MiB combined limit.".into());
     }
     for pattern in &request.patterns {
-        validate_pattern(&pattern)?;
+        validate_pattern(pattern)?;
     }
     let results = request
         .texts
@@ -277,7 +277,7 @@ fn release_marker_regex() -> &'static Regex {
 }
 
 fn trim_release_group_delimiters(value: &str) -> &str {
-    value.trim_end_matches(|character| matches!(character, ' ' | '.' | '_' | '-' | '–' | '—'))
+    value.trim_end_matches([' ', '.', '_', '-', '–', '—'])
 }
 
 fn validate_pattern(pattern: &str) -> Result<(), String> {
@@ -297,6 +297,28 @@ fn validate_pattern(pattern: &str) -> Result<(), String> {
         return Err("Metadata blacklist patterns must include text besides '*'.".into());
     }
     Ok(())
+}
+
+/// Clean many text values with the same limits and rule order as the
+/// `metadata-text` helper, returning the cleaned text and matched rule names.
+pub(crate) fn clean_batch(
+    texts: Vec<String>,
+    patterns: &[String],
+) -> Result<Vec<(String, Vec<String>)>, String> {
+    let response = clean_request(CleanRequest {
+        texts,
+        patterns: patterns.to_vec(),
+    })?;
+    Ok(response
+        .results
+        .into_iter()
+        .map(|result| (result.text, result.matched))
+        .collect())
+}
+
+/// Python-compatible whitespace test shared by native metadata ports.
+pub(crate) fn is_python_whitespace(character: char) -> bool {
+    character.is_whitespace() || matches!(character, '\u{001c}'..='\u{001f}')
 }
 
 /// Apply the user's editable cleanup rules to a single title or other text
@@ -461,10 +483,6 @@ fn remove_span(text: &mut Vec<char>, start: usize, end: usize) {
     } else {
         text.drain(start..end);
     }
-}
-
-fn is_python_whitespace(character: char) -> bool {
-    character.is_whitespace() || matches!(character, '\u{001c}'..='\u{001f}')
 }
 
 fn fold_case(character: char) -> char {

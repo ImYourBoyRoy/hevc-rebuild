@@ -311,7 +311,7 @@ fn test_path(output: &Path) -> PathBuf {
     output.with_file_name(format!("Test_{stem}.mkv"))
 }
 
-fn canonicalize_allow_missing(path: &Path) -> Result<PathBuf, String> {
+pub(crate) fn canonicalize_allow_missing(path: &Path) -> Result<PathBuf, String> {
     if !path.is_absolute() {
         return Err("Planned output path is not absolute.".into());
     }

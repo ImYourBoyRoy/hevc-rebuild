@@ -96,7 +96,8 @@ html[data-instrument] .app-shell .hero-copy h2,
   .tool-path-heading p,
   .queue-task-heading p,
   .report-heading p,
-  .confirm-modal > p
+  .confirm-modal > p,
+  .run-mode-copy p
 ) {
   font-size: var(--type-body);
   line-height: 1.5;
@@ -191,7 +192,9 @@ html[data-instrument] .app-shell .hero-copy h2,
   .metadata-language-setting > input,
   tbody td,
   .file-cell-title,
-  .profile-primary
+  .profile-primary,
+  .library-scan-options summary,
+  .run-mode-tab-title
 ) {
   font-size: var(--type-ui);
 }
@@ -344,6 +347,39 @@ html[data-instrument] .app-shell .hero-copy h2,
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Rows follow the scaled text; fixed tracks let descriptions spill under the tag. */
+.app-shell .mode-card {
+  grid-template-rows: minmax(33px, auto) 1fr auto;
+  row-gap: 0;
+}
+
+.app-shell .mode-card .mode-icon { grid-row: 1; }
+.app-shell .mode-card .mode-title { grid-row: 1; padding-right: 18px; }
+.app-shell .mode-card .mode-description { grid-row: 2; }
+.app-shell .mode-card .mode-tag { grid-row: 3; margin-top: 12px; }
+
+.app-shell .output-folder-settings .upload-destination {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--theme-line);
+  border-radius: 12px;
+  background: var(--theme-raised);
+}
+
+.app-shell .output-folder-settings .upload-destination > span {
+  color: var(--theme-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-shell .output-folder-settings .upload-destination > strong {
+  overflow-wrap: anywhere;
+  color: var(--theme-text);
+  font-size: 14px;
+}
+
 .app-shell .resource-groups {
   display: grid;
   gap: 18px;
@@ -395,3 +431,68 @@ html[data-instrument] .app-shell .hero-copy h2,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 620px) {
+  .app-shell .run-mode-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-shell .scan-progress {
+    grid-template-columns: 23px minmax(0, 1fr);
+  }
+  .app-shell .scan-progress .progress-track,
+  .app-shell .scan-progress .scan-cancel {
+    grid-column: 1 / -1;
+  }
+  .app-shell .library-queue-file {
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+  }
+  .app-shell .library-queue-file .text-button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+/* Two pattern columns only fit once each add-row has room for its input and button. */
+.app-shell .filename-filter-columns,
+.app-shell .filename-filter-list,
+.app-shell .filename-filter-list .blacklist-add-row,
+.app-shell .filename-filter-list .blacklist-add-row input { min-width: 0; }
+.app-shell .filename-filter-list .blacklist-add-row { flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .app-shell .filename-filter-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+.app-shell .metadata-provider-card-top { flex-wrap: wrap; }
+.app-shell .metadata-provider-choice strong { min-width: 0; overflow-wrap: anywhere; }
+
+.app-shell .integrity-level {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.app-shell .integrity-level p {
+  flex: 1 1 240px;
+  margin: 0;
+  color: var(--theme-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.app-shell .settings-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.app-shell .settings-jump a {
+  padding: 7px 10px;
+  border: 1px solid var(--theme-line);
+  border-radius: 8px;
+  color: var(--theme-accent-strong);
+  text-decoration: none;
+  font-size: 13px;
+}
+.app-shell .settings-jump a:hover { border-color: var(--theme-accent); }
+.app-shell .report-count .good-count { color: var(--theme-accent-strong); }

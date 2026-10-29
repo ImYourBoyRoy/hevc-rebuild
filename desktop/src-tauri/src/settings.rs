@@ -148,11 +148,11 @@ fn user_config_path() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|| home_directory().map(|home| home.join(".config")))
             .ok_or("Could not locate the current user's configuration folder.")?;
-        return Ok(config_home.join("hevc-rebuild/config.toml"));
+        Ok(config_home.join("hevc-rebuild/config.toml"))
     }
     #[cfg(not(target_os = "linux"))]
     {
-        return Ok(crate::app_config_directory()?.join("engine-config.toml"));
+        Ok(crate::app_config_directory()?.join("engine-config.toml"))
     }
 }
 

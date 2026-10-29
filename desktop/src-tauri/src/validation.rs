@@ -122,6 +122,13 @@ fn read_request() -> Result<Request, String> {
         .map_err(|error| format!("Rust stream-validation request JSON is invalid: {error}"))
 }
 
+/// In-process entry for native runs: same checks as `internal validate-streams`.
+pub(crate) fn validate_streams_value(request: Value) -> Result<Value, String> {
+    let request: Request = serde_json::from_value(request)
+        .map_err(|error| format!("Rust stream-validation request JSON is invalid: {error}"))?;
+    validate_request(request)
+}
+
 fn validate_request(request: Request) -> Result<Value, String> {
     validate_paths(&request)?;
     if !request.source_duration.is_finite() || request.source_duration < 0.0 {
@@ -525,7 +532,7 @@ fn validate_hdr_video_profiles(
         let profile = profiles.get(&output_ordinal).ok_or_else(|| {
             format!("Output HDR profile for video ordinal {output_ordinal} is missing.")
         })?;
-        validate_hdr_video_profile(request, source_index, output_ordinal, expected, &profile)?;
+        validate_hdr_video_profile(request, source_index, output_ordinal, expected, profile)?;
     }
     Ok(())
 }

@@ -108,7 +108,7 @@ promote_8bit_to_10bit = false
 # none      = normal x265 tuning
 tune = "auto"
 
-# When tune="auto", use Kodi/embedded genre metadata to identify animation.
+# When tune="auto", use embedded or reviewed genre metadata to identify animation.
 detect_animation = true
 
 [hdr]

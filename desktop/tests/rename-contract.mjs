@@ -21,7 +21,7 @@ async function contract(page) {
   if(!await page.getByRole('button',{name:'Renaming…',exact:true}).isDisabled())throw new Error('Busy gate lost');
   await page.keyboard.press('Escape');
   for(const shape of ['movie','episode']) {await page.getByRole('combobox',{name:'Rename shape'}).selectOption(shape);await opener.click();if(await page.getByRole('textbox',{name:shape==='movie'?'Episode filename pattern':'Film filename pattern'}).count())throw new Error('Wrong shape fields');await page.keyboard.press('Escape');}
-  await page.getByRole('heading',{name:'Metadata workbench',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Identify & organize',exact:true}).waitFor();
   if(!(await page.locator('main').textContent()).includes('separate previews and confirmations'))throw new Error('Metadata safety guidance lost');
   await page.getByRole('button',{name:'TV series',exact:true}).click();
   if(!await page.getByRole('button',{name:'TV series',exact:true}).getAttribute('aria-pressed'))throw new Error('TV mode lost');
