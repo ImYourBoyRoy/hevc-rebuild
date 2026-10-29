@@ -13,6 +13,8 @@
     "ui:build": "pnpm --dir desktop build",
     "ui:check": "pnpm --dir desktop check",
     "ui:check:tsgo": "pnpm --dir desktop check:tsgo",
-    "ui:tauri": "pnpm --dir desktop tauri"
+    "ui:tauri": "pnpm --dir desktop tauri",
+    "architecture": "node tools/architecture-map.mjs",
+    "architecture:check": "node tools/architecture-map.mjs --check"
   }
 }

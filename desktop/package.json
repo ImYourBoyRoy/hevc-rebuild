@@ -21,6 +21,8 @@
     "tauri": "tauri",
     "test:modal": "node tests/modal-contract.mjs",
     "test:browser:fixtures": "node tests/browser-server.mjs",
+    "test:queue-paths": "node --experimental-strip-types --test tests/queue-paths.test.mjs",
+    "test:report-view": "node --experimental-strip-types --test tests/report-view.test.mjs",
     "test:workspace-state": "node --experimental-strip-types --test tests/workspace-state.test.mjs",
     "test:home-help": "node tests/home-help-contract.mjs",
     "test:library": "node tests/library-contract.mjs",

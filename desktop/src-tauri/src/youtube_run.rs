@@ -2155,6 +2155,36 @@ mod tests {
         );
         let shrunk = find("Huge");
         assert!(shrunk.message.contains("re-encoded"), "{}", shrunk.message);
+        // The saved CSV must carry the Optimize decision for each file.
+        let saved = crate::reports::read_report(
+            &crate::state_log_directory().unwrap(),
+            Path::new(&result.report_path),
+        )
+        .unwrap();
+        let saved_rows = saved["rows"].as_array().unwrap();
+        let saved_row = |needle: &str| {
+            saved_rows
+                .iter()
+                .find(|row| row["input"].as_str().is_some_and(|path| path.contains(needle)))
+                .unwrap_or_else(|| panic!("no report row for {needle}: {saved_rows:?}"))
+        };
+        let healthy_row = saved_row("Healthy");
+        assert_eq!(healthy_row["upload_mode"], "optimize");
+        assert_eq!(healthy_row["optimize_action"], "copy");
+        // Booleans keep the report schema's established "True"/"False" spelling.
+        assert_eq!(healthy_row["video_payload_identical"], "True");
+        assert!(
+            !healthy_row["optimize_reason"].as_str().unwrap_or("").is_empty(),
+            "copy rows must say why the stream was kept: {healthy_row:?}"
+        );
+        let huge_row = saved_row("Huge");
+        assert_eq!(huge_row["optimize_action"], "encode");
+        let ssim: f64 = huge_row["quality_ssim_min"]
+            .as_str()
+            .unwrap_or_else(|| panic!("encode rows must record the SSIM value: {huge_row:?}"))
+            .parse()
+            .unwrap();
+        assert!((0.0..=1.0).contains(&ssim), "SSIM out of range: {ssim}");
         let huge_out = PathBuf::from(shrunk.output.clone().unwrap());
         assert!(huge_out.is_file());
         assert!(

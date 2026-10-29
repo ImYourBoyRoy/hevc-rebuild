@@ -2,6 +2,7 @@ import {runBrowserContract} from './browser-contract-runner.mjs';
 async function contract(page){
   const callback=page.getByRole('status',{name:'Support callback'}),view=page.getByRole('combobox',{name:'Support view'}),opener=page.getByRole('button',{name:'Open support review'});
   await page.getByRole('button',{name:'Refresh history',exact:true}).click();if(await callback.textContent()!=='refresh-reports')throw new Error('Reports refresh');
+  for(const text of ['Video copied untouched · Packets verified identical','Re-encoded smaller · Sampled SSIM 0.9912','healthy 1440p HEVC'])if(!await page.getByText(text,{exact:true}).first().isVisible())throw new Error('Optimize report summary: '+text);
   await page.getByRole('button',{name:'Open diagnostics',exact:true}).click();if(await callback.textContent()!=='/synthetic/report.log')throw new Error('Exact log identity');
   await page.getByRole('button',{name:'Copy excerpt',exact:true}).click();if(await callback.textContent()!=='copy-log')throw new Error('Log copy');
   await page.getByRole('button',{name:'Delete history',exact:true}).click();await page.getByRole('button',{name:'Cancel',exact:true}).click();if(await callback.textContent()==='delete-reports')throw new Error('Delete cancellation');

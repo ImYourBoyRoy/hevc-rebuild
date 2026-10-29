@@ -57,6 +57,16 @@ const REPORT_FIELDS: &[&str] = &[
     "metadata_text_scrub_count",
     "metadata_text_scrub_details",
     "elapsed_seconds",
+    // YouTube mode reporting (Upscale and Optimize). Appended after the
+    // original columns so existing report readers keep their column order.
+    "upload_mode",
+    "upload_color_mode",
+    "source_video_bitrate_kbps",
+    "optimize_action",
+    "optimize_reason",
+    "optimize_note",
+    "quality_ssim_min",
+    "video_payload_identical",
 ];
 const MAX_READ_REPORT_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -573,6 +583,41 @@ mod tests {
         assert_eq!(report["counts"]["OK"], 2);
         assert_eq!(report["counts"]["FAILED"], 1);
         assert_eq!(report["log_path"], Value::Null);
+    }
+
+    /// `append_report` silently drops keys that are not report columns, so a row
+    /// builder that gains a key without a column loses that value from every
+    /// saved report. Scan each native row builder for the keys it inserts.
+    #[test]
+    fn every_native_row_key_is_a_report_column() {
+        let sources = [
+            ("youtube_run.rs", include_str!("youtube_run.rs")),
+            ("metadata_run.rs", include_str!("metadata_run.rs")),
+            ("run_coordinator.rs", include_str!("run_coordinator.rs")),
+            ("encode_run.rs", include_str!("encode_run.rs")),
+        ];
+        let mut missing = Vec::new();
+        for (file, source) in sources {
+            // Test modules build fixture rows; only production code matters here.
+            let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+            let mut rest = production;
+            while let Some(position) = rest.find("row.insert(") {
+                rest = &rest[position + "row.insert(".len()..];
+                let candidate = rest.trim_start();
+                if let Some(quoted) = candidate.strip_prefix('"') {
+                    if let Some(end) = quoted.find('"') {
+                        let key = &quoted[..end];
+                        if !REPORT_FIELDS.contains(&key) {
+                            missing.push(format!("{file}: {key}"));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "row keys without a report column: {missing:#?}"
+        );
     }
 
     #[test]

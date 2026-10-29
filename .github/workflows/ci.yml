@@ -64,7 +64,12 @@ jobs:
           pnpm test:responsive
           pnpm test:performance
           pnpm test:workspace-state
+          pnpm test:report-view
+          pnpm test:queue-paths
           pnpm test:youtube
+      - name: Check the architecture map is current
+        working-directory: .
+        run: node tools/architecture-map.mjs --check
 
   rust:
     name: Rust checks

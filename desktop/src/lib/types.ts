@@ -531,6 +531,14 @@ export interface ReportRow {
   release_group_scrub_details?: string;
   content_tune?: string;
   elapsed_seconds?: string;
+  upload_mode?: string;
+  upload_color_mode?: string;
+  source_video_bitrate_kbps?: string;
+  optimize_action?: string;
+  optimize_reason?: string;
+  optimize_note?: string;
+  quality_ssim_min?: string;
+  video_payload_identical?: string;
 }
 
 export interface RunReport {
