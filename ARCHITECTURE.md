@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 295 |
-| Text lines | 95,090 |
-| Size on disk | 7275.7 KiB |
+| Files | 296 |
+| Text lines | 95,105 |
+| Size on disk | 7277.2 KiB |
 | Python files still present (retirement target) | 60 files / 19,016 lines |
 | Files flagged retiring | 61 |
 | Files over their advisory line budget | 16 |
@@ -43,14 +43,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-13 files · 864 lines · 73.7 KiB
+14 files · 878 lines · 75.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitattributes` | 4 | 59 B | Git attributes (line endings and binary handling). |
-| `.gitignore` | 81 | 1.2 KiB | Ignore rules: build output, dependencies, local notes (MEMORY.md, todos.md), artifact drop, credentials. |
+| `.gitignore` | 80 | 1.2 KiB | Ignore rules: build output, dependencies, local notes (MEMORY.md, todos.md), artifact drop, credentials. |
 | `.nvmrc` | 1 | 8 B | Recommended Node LTS for builds. |
-| `AGENTS.md` | 132 | 49.3 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
+| `AGENTS.md` | 132 | 49.6 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
 | `CLAUDE.md` | 11 | 785 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `hevc_rebuild.py` | 5 | 119 B | **retiring** — Python launcher shim (retiring). |
 | `install.sh` | 103 | 3.1 KiB | Linux installer for the direct engine/CLI. |
@@ -58,6 +58,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `package.json` | 20 | 694 B | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 201 | 9.1 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
+| `todos.md` | 15 | 1.1 KiB | Tracked backlog of unscheduled feature ideas (interactive tutorial guide). |
 | `uninstall.sh` | 5 | 296 B | Linux uninstaller for the direct engine/CLI. |
 | `VERSION` | 1 | 6 B | Single-line product version; keep aligned with package.json, Cargo.toml and tauri.conf.json. |
 
@@ -429,11 +430,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-7 files · 587 lines · 34.1 KiB
+7 files · 588 lines · 34.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `architecture-descriptions.json` | 157 | 13.7 KiB | Descriptions, retirement list and line budgets that drive ARCHITECTURE.md. |
+| `architecture-descriptions.json` | 158 | 13.8 KiB | Descriptions, retirement list and line budgets that drive ARCHITECTURE.md. |
 | `PLATFORM-SUPPORT.md` | 67 | 3.9 KiB | Platform support contract |
 | `PROJECT-STRUCTURE.md` | 64 | 3.7 KiB | Project structure |
 | `RELEASE.md` | 94 | 4.5 KiB | Release and update workflow |

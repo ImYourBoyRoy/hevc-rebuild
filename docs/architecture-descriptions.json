@@ -152,6 +152,7 @@
     "tools/verify-release-manifest.mjs": "Verifies release manifest hashes and artifact names.",
     "desktop/src/lib/queue-paths.ts": "Pure queue path helpers (normalize, containment, remap, display name) extracted from the route; tested by test:queue-paths.",
     "desktop/tests/queue-paths.test.mjs": "Node characterization tests for queue-paths.ts (POSIX, Windows drive and UNC paths).",
-    "tools/tasklist-check.mjs": "Validates dated tasklists (newest wins), lists open items, flags missing Files/Open questions/Supersedes."
+    "tools/tasklist-check.mjs": "Validates dated tasklists (newest wins), lists open items, flags missing Files/Open questions/Supersedes.",
+    "todos.md": "Tracked backlog of unscheduled feature ideas (interactive tutorial guide)."
   }
 }

@@ -46,7 +46,6 @@ old/
 /MEMORY.md
 /2026-*.md
 /ReWorkTasklist.md
-/todos.md
 
 # Local cross-platform artifact drop; keep only its instructions in the source tree.
 /App/*

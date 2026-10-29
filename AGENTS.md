@@ -7,7 +7,7 @@
 **Python is being retired entirely (2026-10-29 directive).** The product is the Rust GUI, MCP server and CLI; a user must need nothing else. Do **not** add Python parity, Python tests, or Python-side behaviour. Any paragraph below that calls Python the "parity reference", "compatibility engine" or a required runtime describes the current transitional state only and is **superseded** by this rule; rewrite or delete such paragraphs in the same change that removes the Python code they describe. Capability must be preserved in Rust, verified by Rust or frontend tests.
 
 **Tasklists (`tasklist/MM-DD-YYYY_tasklist.md`)**
-- Every tasklist in `tasklist/` is tracked work, not scratch. The directory sits beside this checkout (`../tasklist/`) unless the owner moves it; see the newest list's Open questions for that decision.
+- Every tasklist in `tasklist/` is tracked work, not scratch. The directory sits beside this checkout (`../tasklist/`) by owner decision: it stays outside the repo and is never committed, copied into the repo, or published.
 - The **newest dated list has priority**; it must state what it `Supersedes`. Older lists stay as history and their still-open items remain in force unless the newer list supersedes them. Never delete a list or an item; mark it done with evidence or superseded.
 - Item format: `### T<n>.<m> title`, a `**Files:**` line naming real paths, `- [ ]`/`- [x]` checkboxes, an `**Acceptance:**` line. `[x]` requires verification evidence (command and result) in the list or its handoff.
 - Run `node tools/tasklist-check.mjs` before finishing; the newest list must validate. Be explicit about the files and UI elements actually found (path, symbol, line) — never write findings from memory.
@@ -17,7 +17,7 @@
 
 **Segregation rule.** Tests first: write the characterization test, see it fail or pin existing behaviour, move code verbatim, re-run. Routes coordinate; pure logic lives in `desktop/src/lib/*.ts`, state in `*.svelte.ts`, markup in components, styles in `desktop/src/styles/`.
 
-**Real-app verification.** The browser harness is a component contract, not proof of the Tauri app. Native behaviour (windows, dialogs, drag/drop, stop-now) needs the real Tauri window, driven with keyboard/automation hooks rather than a mouse. The chosen hook path is tracked in the newest tasklist (T10.10); until it exists, say plainly that native behaviour is unverified.
+**Real-app verification.** The browser harness is a component contract, not proof of the Tauri app. Native behaviour (windows, dialogs, drag/drop, stop-now) needs the real Tauri window, driven with keyboard/automation hooks rather than a mouse. Owner decision: the product/tutorial control path must be embedded in the app (nothing for users to install, Windows/macOS/Linux); a system WebDriver (`tauri-driver` + `webkitgtk-webdriver`) is allowed for maintainer use only and must never be a runtime requirement. Progress is tracked in the newest tasklist (T10.10); until it exists, say plainly that native behaviour is unverified.
 
 **Version control.** Commit locally when asked; never push or publish unless the owner asks. Warnings are never hidden.
 
