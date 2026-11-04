@@ -6,11 +6,12 @@
   `v1.4.0` tag remains immutable. CSS fixes now set shrinkable recovery
   children/actions and allow the `SettingsPreferences` page heading to wrap;
   recovery uses a shrinkable grid column. The first `v1.4.1` hosted run exposed
-  that the initial Settings selector targeted the wrong heading. The corrected
-  local responsive contract passed all 300 fixture/theme/width combinations
-  plus the zoom proxy (301 screenshots); `pnpm check` reports zero errors and
-  warnings. Corrected candidate remains v1.4.1; rerun GitHub CI/release before
-  publishing.
+  that the initial Settings selector targeted the wrong heading. A second run
+  identified the actual overflows in a settings-card `h2` and the recovery
+  inspection button; both now have shrink/wrap rules. The local responsive
+  contract passes all 300 fixture/theme/width combinations plus the zoom proxy
+  (301 screenshots); `pnpm check` reports zero errors and warnings. Corrected
+  candidate remains v1.4.1; rerun GitHub CI/release before publishing.
 
 - 2026-11-04 native dev connection repair: the native popup was caused by
   Tauri's stale `localhost:1420` dev URL not matching Vite's

@@ -1167,12 +1167,14 @@ html[data-theme="dark"] body { background: #14191a; }
 .app-shell .queue-recovery-inspection > p { margin: 0; color: var(--theme-muted); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
 .app-shell .queue-recovery-inspection > * { min-width: 0; }
 .app-shell .queue-recovery-section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.app-shell .queue-recovery-inspection > .button { justify-self: start; margin-top: 3px; }
+.app-shell .queue-recovery-inspection > .button { max-width: 100%; justify-self: start; margin-top: 3px; white-space: normal; }
 .app-shell .queue-recovery-ack { margin-top: 14px; }
 .app-shell .queue-recovery-actions { flex-wrap: wrap; }
 .app-shell .queue-recovery-actions > .button { min-width: 0; white-space: normal; }
 .app-shell .settings-page-heading > div:first-child { min-width: 0; }
 .app-shell .settings-page-heading h1 { max-width: 100%; overflow-wrap: anywhere; }
+.app-shell .settings-card-heading > div { min-width: 0; }
+.app-shell .settings-card-heading h2 { min-width: 0; overflow-wrap: anywhere; }
 :is([data-theme="dark"], [data-theme="phosphor"], [data-theme="ion"], [data-theme="breach"]) .app-shell .queue-output-status.blocked { color: #ffb5aa; border-color: #704740; background: #341f1c; }
 @media (max-width: 720px) {
   .app-shell .queue-output-modal { padding: 20px; }
