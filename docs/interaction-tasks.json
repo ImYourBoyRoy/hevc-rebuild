@@ -1,0 +1,320 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "add-folder",
+      "title": "Add a folder to the media queue",
+      "goal": "Open the native folder picker, choose a folder, and scan it into the queue.",
+      "paths": [
+        {
+          "id": "home-empty",
+          "label": "Home with an empty queue → Add folder",
+          "steps": [
+            {
+              "file": "desktop/src/lib/HomeDashboard.svelte",
+              "label": "Add folder"
+            }
+          ]
+        },
+        {
+          "id": "library-empty",
+          "label": "Library empty state → Add folder",
+          "steps": [
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "label": "Add folder"
+            }
+          ]
+        },
+        {
+          "id": "queue-manager",
+          "label": "Library queue manager → Add folder",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+              "label": "Add folder"
+            }
+          ]
+        },
+        {
+          "id": "youtube-prep",
+          "label": "YouTube prep → Add folder",
+          "steps": [
+            {
+              "file": "desktop/src/lib/YouTubePreparation.svelte",
+              "label": "Add folder"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "The picker selection and scan duration are not clicks in this source map."
+      ]
+    },
+    {
+      "id": "add-files",
+      "title": "Add files to the media queue",
+      "goal": "Open the native file picker, choose one or more supported video files, and scan them.",
+      "paths": [
+        {
+          "id": "home-empty",
+          "label": "Home with an empty queue → Add files",
+          "steps": [
+            {
+              "file": "desktop/src/lib/HomeDashboard.svelte",
+              "label": "Add files"
+            }
+          ]
+        },
+        {
+          "id": "library-empty",
+          "label": "Library empty state → Add files",
+          "steps": [
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "label": "Add files"
+            }
+          ]
+        },
+        {
+          "id": "queue-manager",
+          "label": "Library queue manager → Add files",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+              "label": "Add files"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "check-integrity",
+      "title": "Run an integrity check",
+      "goal": "Check a scanned selection without writing media output.",
+      "paths": [
+        {
+          "id": "library-shortcut",
+          "label": "Library action → Check integrity",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+              "label": "Check integrity"
+            }
+          ]
+        },
+        {
+          "id": "run-page",
+          "label": "Run page → Start quick integrity check",
+          "steps": [
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "beginRun"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "The Run-page path assumes the Integrity mode and Quick depth are already selected; the mode and depth selectors are separately mapped."
+      ]
+    },
+    {
+      "id": "metadata-only",
+      "title": "Create a metadata-only MKV",
+      "goal": "Create a validated MKV copy while preserving the source video and reviewing destinations before start.",
+      "paths": [
+        {
+          "id": "library-shortcut",
+          "label": "Library action → Metadata-only MKV → confirm destination",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+              "label": "Metadata-only MKV"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "labelIncludes": "Confirm",
+              "handler": "confirmOutputPreview"
+            }
+          ]
+        },
+        {
+          "id": "run-page",
+          "label": "Run page → Metadata → create → confirm destination",
+          "steps": [
+            {
+              "file": "desktop/src/lib/RunModePicker.svelte",
+              "handler": "onSelect"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "beginRun"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "confirmOutputPreview"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "The output preview can add a Back/adjust loop when collisions are found; that branch is intentionally not counted as a happy path."
+      ]
+    },
+    {
+      "id": "full-rebuild",
+      "title": "Start a full rebuild",
+      "goal": "Review the output plan, acknowledge the real encode, and start a validated rebuild.",
+      "paths": [
+        {
+          "id": "library-shortcut",
+          "label": "Library action → Rebuild video → acknowledge → start",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+              "label": "Rebuild video"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "labelIncludes": "reviewed the destinations",
+              "kind": "form-control",
+              "clicks": 1
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "confirmOutputPreview"
+            }
+          ]
+        },
+        {
+          "id": "run-page",
+          "label": "Run page → Rebuild → start → acknowledge → start",
+          "steps": [
+            {
+              "file": "desktop/src/lib/RunModePicker.svelte",
+              "handler": "onSelect"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "beginRun"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "labelIncludes": "reviewed the destinations",
+              "kind": "form-control",
+              "clicks": 1
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "handler": "confirmOutputPreview"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "The acknowledgment is a required checkbox tap and is counted as one explicit click cost; text entry and native output-folder choices are not counted."
+      ]
+    },
+    {
+      "id": "youtube-export",
+      "title": "Create a YouTube upload copy",
+      "goal": "Analyze selected media and create a separate upload copy without replacing the source.",
+      "paths": [
+        {
+          "id": "youtube-page-existing-source",
+          "label": "YouTube page with an existing scan → Create upload copies",
+          "steps": [
+            {
+              "file": "desktop/src/lib/YouTubePreparation.svelte",
+              "label": "Create upload copies",
+              "handler": "beginRun"
+            }
+          ]
+        },
+        {
+          "id": "youtube-page-new-folder",
+          "label": "YouTube page → Add folder → Create upload copies",
+          "steps": [
+            {
+              "file": "desktop/src/lib/YouTubePreparation.svelte",
+              "label": "Add folder"
+            },
+            {
+              "file": "desktop/src/lib/YouTubePreparation.svelte",
+              "label": "Create upload copies",
+              "handler": "beginRun"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "organize-rename",
+      "title": "Review and apply a library rename",
+      "goal": "Preview a reviewed title/episode filename, confirm the validated preview, and apply the rename.",
+      "paths": [
+        {
+          "id": "library-organizer",
+          "label": "Library → Organize titles → preview → apply → confirm",
+          "steps": [
+            {
+              "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+              "label": "Organize titles"
+            },
+            {
+              "file": "desktop/src/lib/MetadataWorkbench.svelte",
+              "label": "Preview before/after",
+              "handler": "previewNames"
+            },
+            {
+              "file": "desktop/src/lib/MetadataWorkbench.svelte",
+              "label": "Apply reviewed rename"
+            },
+            {
+              "file": "desktop/src/lib/MetadataWorkbench.svelte",
+              "handler": "applyNames"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "This happy path assumes the title assignment and selection are already complete; provider lookup and conflict-resolution loops are separate work."
+      ]
+    },
+    {
+      "id": "stop-run",
+      "title": "Stop an active run",
+      "goal": "Stop safely after the active file, or stop immediately after an explicit confirmation.",
+      "paths": [
+        {
+          "id": "safe-stop",
+          "label": "Active run → Stop after this file",
+          "steps": [
+            {
+              "file": "desktop/src/lib/RunProgress.svelte",
+              "handler": "stopAfterCurrent"
+            }
+          ]
+        },
+        {
+          "id": "stop-now",
+          "label": "Active run → Stop now → confirmation Stop now",
+          "steps": [
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "sourceIncludes": "abortConfirmOpen"
+            },
+            {
+              "file": "desktop/src/routes/+page.svelte",
+              "label": "Stop now",
+              "handler": "confirmStopNow"
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "Safe stop and immediate stop have different safety semantics; the two-click path is not redundant with the one-click safe stop."
+      ]
+    }
+  ]
+}

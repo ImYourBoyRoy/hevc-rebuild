@@ -1,0 +1,1579 @@
+{
+  "version": 1,
+  "description": "Reviewed source-derived UI states and click waterfalls. App clicks, native-picker clicks, automatic transitions, waits, and output outcomes are kept separate.",
+  "variables": {
+    "pickerNavigationClicks": {
+      "symbol": "x",
+      "label": "native picker navigation and selection clicks",
+      "description": "The number of OS file-picker clicks needed to navigate to and select the source. It varies by platform, starting folder, and the user's path. The native picker confirmation is counted separately."
+    }
+  },
+  "groups": {
+    "shell": [
+      {
+        "id": "primary-navigation",
+        "label": "Library / Run / YouTube navigation",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "instances": 3,
+        "kind": "app-click",
+        "note": "One Svelte template control renders three runtime buttons from primaryNavigation."
+      },
+      {
+        "id": "utility-navigation",
+        "label": "Settings / Reports navigation",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "instances": 2,
+        "kind": "app-click",
+        "note": "One Svelte template control renders two runtime buttons from utilityNavigation."
+      },
+      {
+        "id": "choose-media-folder-sidebar",
+        "label": "Choose media folder",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "appearance",
+        "label": "Appearance",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "form-control"
+        },
+        "kind": "form-control",
+        "clicks": 0,
+        "note": "A select action is available but is not a click in the task budgets."
+      },
+      {
+        "id": "refresh-environment",
+        "label": "Refresh environment",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "help",
+        "label": "Help and commands",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "library-empty": [
+      {
+        "id": "scan-options",
+        "label": "Scan options",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "disclosure"
+        },
+        "kind": "app-click",
+        "note": "Opening the disclosure exposes Add path and scan filters; it is not part of the folder-picker happy path."
+      },
+      {
+        "id": "add-folder",
+        "label": "Add folder",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button",
+          "label": "Add folder"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "add-files",
+        "label": "Add files",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button",
+          "label": "Add files"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "library-queue": [
+      {
+        "id": "queue-add-folder",
+        "label": "Add folder",
+        "selector": {
+          "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "queue-add-files",
+        "label": "Add files",
+        "selector": {
+          "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "queue-refresh",
+        "label": "Refresh source",
+        "selector": {
+          "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click",
+        "instances": 1,
+        "note": "One runtime button per queued source."
+      },
+      {
+        "id": "manage-queue",
+        "label": "Manage queue",
+        "selector": {
+          "file": "desktop/src/lib/LibraryQueueStatus.svelte",
+          "kind": "disclosure"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "library-tasks": [
+      {
+        "id": "rename-files",
+        "label": "Rename files",
+        "selector": {
+          "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "organize-titles",
+        "label": "Organize titles",
+        "selector": {
+          "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "check-integrity",
+        "label": "Check integrity",
+        "selector": {
+          "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "metadata-only",
+        "label": "Metadata-only MKV",
+        "selector": {
+          "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "rebuild-video",
+        "label": "Rebuild video",
+        "selector": {
+          "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "run-setup": [
+      {
+        "id": "run-mode-tabs",
+        "label": "Check / Integrity / Metadata / Short test / Rebuild",
+        "selector": {
+          "file": "desktop/src/lib/RunModePicker.svelte",
+          "kind": "button"
+        },
+        "instances": 5,
+        "kind": "app-click",
+        "note": "One Svelte template control renders five runtime radio buttons."
+      },
+      {
+        "id": "choose-rebuild-folder",
+        "label": "Choose folder",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button",
+          "label": "Choose folder"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "use-default-location",
+        "label": "Use default location",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button",
+          "label": "Use default location"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "review-run-files",
+        "label": "Review selected run files",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "disclosure",
+          "occurrence": 1
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "stop-on-error",
+        "label": "Stop queue on first error",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "form-control"
+        },
+        "kind": "form-control",
+        "clicks": 0
+      },
+      {
+        "id": "run-launch",
+        "label": "Review and start selected task",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "output-review": [
+      {
+        "id": "close-output-review",
+        "label": "Close output review",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "output-back",
+        "label": "Back",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "adjust-output-folders",
+        "label": "Adjust output folders",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click",
+        "conditional": true,
+        "note": "Only rendered when the preview finds collisions."
+      },
+      {
+        "id": "full-rebuild-ack",
+        "label": "I reviewed the destinations and understand this starts real encodes.",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "form-control"
+        },
+        "kind": "form-control",
+        "clicks": 1,
+        "conditional": true,
+        "note": "Rendered only for full mode; the checkbox tap is counted."
+      },
+      {
+        "id": "output-confirm",
+        "label": "Confirm destinations and start / Start full rebuild",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "run-active": [
+      {
+        "id": "progress-details",
+        "label": "Open progress details",
+        "selector": {
+          "file": "desktop/src/lib/RunProgress.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "safe-stop",
+        "label": "Stop after this file",
+        "selector": {
+          "file": "desktop/src/lib/RunProgress.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "stop-now",
+        "label": "Stop now",
+        "selector": {
+          "file": "desktop/src/lib/RunProgress.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ],
+    "stop-confirmation": [
+      {
+        "id": "cancel-stop-now",
+        "label": "Cancel stop now",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "keep-running",
+        "label": "Keep running",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      },
+      {
+        "id": "confirm-stop-now",
+        "label": "Stop now",
+        "selector": {
+          "file": "desktop/src/routes/+page.svelte",
+          "kind": "button"
+        },
+        "kind": "app-click"
+      }
+    ]
+  },
+  "states": [
+    {
+      "id": "startup-loading",
+      "title": "Application loading",
+      "condition": "booting || environmentLoading || native shell initialization",
+      "activeControls": [
+        {
+          "group": "shell",
+          "exclude": [
+            "choose-media-folder-sidebar"
+          ]
+        }
+      ],
+      "disabledControls": [
+        {
+          "selector": {
+            "file": "desktop/src/routes/+page.svelte",
+            "kind": "button"
+          },
+          "label": "Choose media folder",
+          "kind": "app-click",
+          "note": "browseFolder() returns until desktopShell is ready."
+        },
+        {
+          "selector": {
+            "file": "desktop/src/routes/+page.svelte",
+            "kind": "button",
+            "label": "Add folder"
+          },
+          "label": "Add folder",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/routes/+page.svelte",
+            "kind": "button",
+            "label": "Add files"
+          },
+          "label": "Add files",
+          "kind": "app-click"
+        }
+      ],
+      "automatic": [
+        {
+          "id": "initialize",
+          "label": "Load preferences, queue, environment and reports",
+          "type": "automatic",
+          "next": "library-empty-ready",
+          "source": "desktop/src/routes/+page.svelte:3900-3963"
+        }
+      ],
+      "notes": [
+        "The shell is rendered during boot, but native actions are not a reliable task starting point until desktopShell and initialization are ready.",
+        "Waiting for initialization costs zero clicks."
+      ]
+    },
+    {
+      "id": "library-empty-ready",
+      "title": "Library page with an empty queue",
+      "condition": "page === library || home, desktopShell, !scanResult, !scanning",
+      "activeControls": [
+        {
+          "group": "shell"
+        },
+        {
+          "group": "library-empty"
+        }
+      ],
+      "notes": [
+        "This is the first task state after the loading wait. Add folder and Add files are enabled here.",
+        "Scan options is a disclosure; its nested Add path control is not active until the disclosure is opened."
+      ]
+    },
+    {
+      "id": "native-folder-picker",
+      "title": "Native folder picker",
+      "condition": "openDialog({ directory: true, multiple: true })",
+      "activeControls": [],
+      "systemControls": [
+        {
+          "id": "picker-navigation",
+          "label": "Navigate and select folder(s)",
+          "type": "native-navigation",
+          "cost": {
+            "variables": {
+              "pickerNavigationClicks": 1
+            }
+          }
+        },
+        {
+          "id": "picker-confirm",
+          "label": "Confirm selection in the OS picker",
+          "type": "native-confirm",
+          "cost": {
+            "native": 1
+          }
+        },
+        {
+          "id": "picker-cancel",
+          "label": "Cancel picker",
+          "type": "native-cancel",
+          "cost": {
+            "native": 1
+          },
+          "alternative": true
+        }
+      ],
+      "automatic": [
+        {
+          "id": "scan-folder",
+          "label": "Scan selected source(s) and update the queue",
+          "type": "automatic",
+          "next": "library-ready",
+          "source": "desktop/src/routes/+page.svelte:3986-3990, 1456-1555"
+        }
+      ],
+      "notes": [
+        "x is user- and OS-dependent picker navigation/selection. The final native confirmation is counted as one separate click.",
+        "Cancel is a branch, not part of a completed task path."
+      ]
+    },
+    {
+      "id": "native-file-picker",
+      "title": "Native file picker",
+      "condition": "openDialog({ directory: false, multiple: true, video filters })",
+      "activeControls": [],
+      "systemControls": [
+        {
+          "id": "picker-navigation",
+          "label": "Navigate and select file(s)",
+          "type": "native-navigation",
+          "cost": {
+            "variables": {
+              "pickerNavigationClicks": 1
+            }
+          }
+        },
+        {
+          "id": "picker-confirm",
+          "label": "Confirm selection in the OS picker",
+          "type": "native-confirm",
+          "cost": {
+            "native": 1
+          }
+        },
+        {
+          "id": "picker-cancel",
+          "label": "Cancel picker",
+          "type": "native-cancel",
+          "cost": {
+            "native": 1
+          },
+          "alternative": true
+        }
+      ],
+      "automatic": [
+        {
+          "id": "scan-files",
+          "label": "Scan selected file(s) and update the queue",
+          "type": "automatic",
+          "next": "library-ready",
+          "source": "desktop/src/routes/+page.svelte:3982-3994, 1456-1555"
+        }
+      ],
+      "notes": [
+        "The same x variable covers file-picker navigation/selection; multi-select may add user-dependent clicks."
+      ]
+    },
+    {
+      "id": "library-ready",
+      "title": "Library page with a completed scan",
+      "condition": "page === library, scanResult, selectedRunEntries ready",
+      "activeControls": [
+        {
+          "group": "shell"
+        },
+        {
+          "group": "library-queue"
+        },
+        {
+          "group": "library-tasks"
+        }
+      ],
+      "conditionalControls": [
+        {
+          "selector": {
+            "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+            "kind": "button"
+          },
+          "all": true,
+          "label": "Per-card review, selection, output and recovery controls"
+        }
+      ],
+      "notes": [
+        "The five task buttons are visible together in the library action row when a runnable selection exists.",
+        "Per-file card buttons are repeated runtime instances; the source map reports their template once and retains Each(...) guards."
+      ]
+    },
+    {
+      "id": "run-page-ready",
+      "title": "Run page before launch",
+      "condition": "page === run, no active run, at least one ready selected entry",
+      "activeControls": [
+        {
+          "group": "shell"
+        },
+        {
+          "group": "run-setup",
+          "exclude": [
+            "choose-rebuild-folder",
+            "use-default-location"
+          ]
+        }
+      ],
+      "conditionalControls": [
+        {
+          "group": "run-setup",
+          "include": [
+            "choose-rebuild-folder",
+            "use-default-location"
+          ]
+        }
+      ],
+      "notes": [
+        "Selecting a mode is one app click when the user starts from the generic Run page.",
+        "A library task shortcut skips the mode-tab and launch clicks by calling chooseLibraryTask() → beginRun() automatically."
+      ]
+    },
+    {
+      "id": "output-preview-metadata",
+      "title": "Metadata output review modal",
+      "condition": "outputPreviewOpen && outputPreview.mode === metadata",
+      "activeControls": [
+        {
+          "group": "output-review",
+          "exclude": [
+            "full-rebuild-ack"
+          ]
+        }
+      ],
+      "notes": [
+        "The happy-path confirm button is enabled only when the output preview is eligible.",
+        "The modal makes the final confirmation click explicit; starting the native run after it is automatic."
+      ]
+    },
+    {
+      "id": "output-preview-full-unacknowledged",
+      "title": "Full rebuild output review before acknowledgment",
+      "condition": "outputPreviewOpen && outputPreview.mode === full && !fullAck",
+      "activeControls": [
+        {
+          "group": "output-review",
+          "include": [
+            "close-output-review",
+            "output-back",
+            "adjust-output-folders",
+            "full-rebuild-ack",
+            "output-confirm"
+          ]
+        }
+      ],
+      "notes": [
+        "The primary button is rendered but disabled until the acknowledgment checkbox is tapped."
+      ]
+    },
+    {
+      "id": "output-preview-full-ready",
+      "title": "Full rebuild output review after acknowledgment",
+      "condition": "outputPreviewOpen && outputPreview.mode === full && fullAck",
+      "activeControls": [
+        {
+          "group": "output-review",
+          "exclude": [
+            "full-rebuild-ack"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "run-active",
+      "title": "Active run / progress",
+      "condition": "workspace.run.id || workspace.run.starting",
+      "activeControls": [
+        {
+          "group": "run-active"
+        }
+      ],
+      "notes": [
+        "The encode, validation, report write, and transition to completion are automatic; progress observation costs zero clicks."
+      ]
+    },
+    {
+      "id": "finished",
+      "title": "Workflow finished",
+      "condition": "run completes, validates, records its report, and returns to an idle state",
+      "activeControls": [],
+      "automatic": [],
+      "notes": [
+        "The finished MKV or report is an outcome, not another click. Any post-run inspection, opening a folder, or retry is a separate task."
+      ]
+    },
+    {
+      "id": "stop-confirmation",
+      "title": "Stop-now confirmation modal",
+      "condition": "abortConfirmOpen",
+      "activeControls": [
+        {
+          "group": "stop-confirmation"
+        }
+      ],
+      "notes": [
+        "The modal is the intentional extra click for an immediate stop."
+      ]
+    },
+    {
+      "id": "youtube-ready",
+      "title": "YouTube page with a ready source",
+      "condition": "page === youtube, scanResult, no active run",
+      "activeControls": [
+        {
+          "group": "shell"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "label": "Add folder"
+          },
+          "label": "Add folder",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "label": "Add files"
+          },
+          "label": "Add files",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "labelIncludes": "Upscale"
+          },
+          "label": "Upscale",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "labelIncludes": "Optimize"
+          },
+          "label": "Optimize",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "occurrence": 1
+          },
+          "label": "Choose folder",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button",
+            "label": "Create upload copies"
+          },
+          "label": "Create upload copies",
+          "kind": "app-click"
+        }
+      ],
+      "conditionalControls": [
+        {
+          "selector": {
+            "file": "desktop/src/lib/YouTubePreparation.svelte",
+            "kind": "button"
+          },
+          "all": true,
+          "label": "Conditional source, selection, pagination and run controls"
+        }
+      ]
+    },
+    {
+      "id": "metadata-organizer",
+      "title": "Metadata organizer rename review",
+      "condition": "page === metadata, organizerScan, selected paths",
+      "activeControls": [
+        {
+          "selector": {
+            "file": "desktop/src/lib/MetadataWorkbench.svelte",
+            "kind": "button"
+          },
+          "label": "Review MKV output plan",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/MetadataWorkbench.svelte",
+            "kind": "button"
+          },
+          "label": "Preview before/after",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/MetadataWorkbench.svelte",
+            "kind": "button"
+          },
+          "label": "Apply reviewed rename",
+          "kind": "app-click"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/MetadataWorkbench.svelte",
+            "kind": "button"
+          },
+          "label": "Confirm rename",
+          "kind": "app-click"
+        }
+      ],
+      "notes": [
+        "Text-entry and provider lookup are represented as non-click work; the rename click budget counts only preview, apply, and confirm controls."
+      ]
+    },
+    {
+      "id": "help-page",
+      "title": "Help and commands page",
+      "condition": "page === help",
+      "activeControls": [
+        {
+          "group": "shell"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/HelpCenter.svelte",
+            "kind": "button"
+          },
+          "all": true,
+          "label": "Copy command/configuration actions"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/HelpCenter.svelte",
+            "kind": "link"
+          },
+          "all": true,
+          "label": "External installation and protocol links",
+          "kind": "external-link"
+        }
+      ]
+    },
+    {
+      "id": "settings-page",
+      "title": "Settings page control surface",
+      "condition": "page === settings",
+      "activeControls": [
+        {
+          "group": "shell"
+        }
+      ],
+      "conditionalControls": [
+        {
+          "selector": {
+            "file": "desktop/src/lib/SettingsPreferences.svelte",
+            "kind": "button"
+          },
+          "all": true,
+          "label": "Settings buttons (source-conditional)"
+        },
+        {
+          "selector": {
+            "file": "desktop/src/lib/SettingsPreferences.svelte",
+            "kind": "link"
+          },
+          "all": true,
+          "label": "Settings anchors and provider links",
+          "kind": "link"
+        }
+      ],
+      "notes": [
+        "Settings has many data-dependent controls. The state inventory lists every source control with its guard; a live settings snapshot is still needed to call one exact subset active."
+      ]
+    },
+    {
+      "id": "reports-page",
+      "title": "Reports page control surface",
+      "condition": "page === reports",
+      "activeControls": [
+        {
+          "group": "shell"
+        }
+      ],
+      "conditionalControls": [
+        {
+          "selector": {
+            "file": "desktop/src/lib/ReportBrowser.svelte",
+            "kind": "button"
+          },
+          "all": true,
+          "label": "Report controls (source-conditional)"
+        }
+      ]
+    }
+  ],
+  "actions": {
+    "navigate-youtube": {
+      "label": "YouTube navigation item",
+      "state": "library-empty-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "youtube-ready",
+      "note": "One runtime instance is the YouTube item in the primary navigation loop."
+    },
+    "empty-add-folder": {
+      "label": "Add folder",
+      "state": "library-empty-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button",
+        "label": "Add folder"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "native-folder-picker"
+    },
+    "empty-add-files": {
+      "label": "Add files",
+      "state": "library-empty-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button",
+        "label": "Add files"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "native-file-picker"
+    },
+    "picker-navigate": {
+      "label": "Navigate and select source",
+      "state": "native-folder-picker",
+      "type": "native-navigation",
+      "cost": {
+        "variables": {
+          "pickerNavigationClicks": 1
+        }
+      },
+      "next": "native-folder-picker"
+    },
+    "picker-confirm": {
+      "label": "Confirm native picker selection",
+      "state": "native-folder-picker",
+      "type": "native-confirm",
+      "cost": {
+        "native": 1
+      },
+      "next": "library-ready"
+    },
+    "file-picker-navigate": {
+      "label": "Navigate and select file(s)",
+      "state": "native-file-picker",
+      "type": "native-navigation",
+      "cost": {
+        "variables": {
+          "pickerNavigationClicks": 1
+        }
+      },
+      "next": "native-file-picker"
+    },
+    "file-picker-confirm": {
+      "label": "Confirm native file-picker selection",
+      "state": "native-file-picker",
+      "type": "native-confirm",
+      "cost": {
+        "native": 1
+      },
+      "next": "library-ready"
+    },
+    "library-check-integrity": {
+      "label": "Check integrity",
+      "state": "library-ready",
+      "selector": {
+        "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-active",
+      "automatic": "chooseLibraryTask(\"integrity\") → beginRun()"
+    },
+    "library-metadata": {
+      "label": "Metadata-only MKV",
+      "state": "library-ready",
+      "selector": {
+        "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "output-preview-metadata",
+      "automatic": "chooseLibraryTask(\"metadata\") → openPage(\"run\") → beginRun() → preview_queue_output_targets"
+    },
+    "library-rebuild": {
+      "label": "Rebuild video",
+      "state": "library-ready",
+      "selector": {
+        "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "output-preview-full-unacknowledged",
+      "automatic": "chooseLibraryTask(\"rebuild\") → openPage(\"run\") → beginRun() → preview_queue_output_targets"
+    },
+    "output-confirm-metadata": {
+      "label": "Confirm destinations and start",
+      "state": "output-preview-metadata",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-active",
+      "automatic": "confirmOutputPreview() → beginQueuedRun()"
+    },
+    "full-ack": {
+      "label": "Acknowledge real encodes",
+      "state": "output-preview-full-unacknowledged",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "form-control"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "output-preview-full-ready"
+    },
+    "output-confirm-full": {
+      "label": "Start full rebuild",
+      "state": "output-preview-full-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-active",
+      "automatic": "confirmOutputPreview() → beginQueuedRun()"
+    },
+    "run-finishes": {
+      "label": "Encode/check, validate, write report and finish",
+      "state": "run-active",
+      "type": "automatic",
+      "cost": {},
+      "next": "finished"
+    },
+    "youtube-create": {
+      "label": "Create upload copies",
+      "state": "youtube-ready",
+      "selector": {
+        "file": "desktop/src/lib/YouTubePreparation.svelte",
+        "kind": "button",
+        "label": "Create upload copies"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-active",
+      "automatic": "beginRun() → beginQueuedRun() for youtube mode"
+    },
+    "youtube-add-folder": {
+      "label": "Add folder",
+      "state": "youtube-ready",
+      "selector": {
+        "file": "desktop/src/lib/YouTubePreparation.svelte",
+        "kind": "button",
+        "label": "Add folder"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "native-folder-picker"
+    },
+    "rename-organize": {
+      "label": "Organize titles",
+      "state": "library-ready",
+      "selector": {
+        "file": "desktop/src/lib/LibraryPosterGrid.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "metadata-organizer",
+      "automatic": "openPage(\"metadata\")"
+    },
+    "rename-preview": {
+      "label": "Preview before/after",
+      "state": "metadata-organizer",
+      "selector": {
+        "file": "desktop/src/lib/MetadataWorkbench.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "metadata-organizer",
+      "automatic": "preview_library_rename"
+    },
+    "rename-apply": {
+      "label": "Apply reviewed rename",
+      "state": "metadata-organizer",
+      "selector": {
+        "file": "desktop/src/lib/MetadataWorkbench.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "metadata-organizer",
+      "automatic": "show rename confirmation"
+    },
+    "rename-confirm": {
+      "label": "Confirm rename",
+      "state": "metadata-organizer",
+      "selector": {
+        "file": "desktop/src/lib/MetadataWorkbench.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "finished",
+      "automatic": "apply_library_rename and rescan queue"
+    },
+    "safe-stop": {
+      "label": "Stop after this file",
+      "state": "run-active",
+      "selector": {
+        "file": "desktop/src/lib/RunProgress.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "finished",
+      "automatic": "request_stop; current file finishes safely"
+    },
+    "stop-now-open": {
+      "label": "Stop now",
+      "state": "run-active",
+      "selector": {
+        "file": "desktop/src/lib/RunProgress.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "stop-confirmation"
+    },
+    "stop-now-confirm": {
+      "label": "Stop now",
+      "state": "stop-confirmation",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "finished",
+      "automatic": "request_abort; mark current file interrupted"
+    },
+    "run-select-metadata": {
+      "label": "Metadata mode tab",
+      "state": "run-page-ready",
+      "selector": {
+        "file": "desktop/src/lib/RunModePicker.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-page-ready"
+    },
+    "run-select-full": {
+      "label": "Rebuild mode tab",
+      "state": "run-page-ready",
+      "selector": {
+        "file": "desktop/src/lib/RunModePicker.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "run-page-ready"
+    },
+    "run-launch-metadata": {
+      "label": "Review and create metadata MKVs",
+      "state": "run-page-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "output-preview-metadata",
+      "automatic": "beginRun() → preview_queue_output_targets"
+    },
+    "run-launch-full": {
+      "label": "Review and start full rebuild",
+      "state": "run-page-ready",
+      "selector": {
+        "file": "desktop/src/routes/+page.svelte",
+        "kind": "button"
+      },
+      "type": "app-click",
+      "cost": {
+        "app": 1
+      },
+      "next": "output-preview-full-unacknowledged",
+      "automatic": "beginRun() → preview_queue_output_targets"
+    }
+  },
+  "flows": [
+    {
+      "id": "fresh-folder-integrity",
+      "title": "Fresh launch → add folder → finished integrity check",
+      "start": "startup-loading",
+      "finish": "finished",
+      "assumptions": [
+        "Tauri shell is available",
+        "The selected source scans successfully",
+        "The queue has at least one runnable media entry after scanning"
+      ],
+      "steps": [
+        {
+          "label": "Wait for the app to finish loading",
+          "type": "automatic",
+          "cost": {},
+          "from": "startup-loading",
+          "to": "library-empty-ready"
+        },
+        {
+          "action": "empty-add-folder"
+        },
+        {
+          "action": "picker-navigate"
+        },
+        {
+          "action": "picker-confirm"
+        },
+        {
+          "label": "Scan source and populate queue",
+          "type": "automatic",
+          "cost": {},
+          "from": "library-ready",
+          "to": "library-ready"
+        },
+        {
+          "action": "library-check-integrity"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "fresh-folder-metadata",
+      "title": "Fresh launch → add folder → finished metadata-only MKV",
+      "start": "startup-loading",
+      "finish": "finished",
+      "assumptions": [
+        "Tauri shell is available",
+        "Required metadata-output tools are ready",
+        "The selected source scans successfully",
+        "Output preview has no collision"
+      ],
+      "steps": [
+        {
+          "label": "Wait for the app to finish loading",
+          "type": "automatic",
+          "cost": {},
+          "from": "startup-loading",
+          "to": "library-empty-ready"
+        },
+        {
+          "action": "empty-add-folder"
+        },
+        {
+          "action": "picker-navigate"
+        },
+        {
+          "action": "picker-confirm"
+        },
+        {
+          "label": "Scan source and populate queue",
+          "type": "automatic",
+          "cost": {},
+          "from": "library-ready",
+          "to": "library-ready"
+        },
+        {
+          "action": "library-metadata"
+        },
+        {
+          "action": "output-confirm-metadata"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "fresh-folder-full-rebuild",
+      "title": "Fresh launch → add folder → finished full rebuild",
+      "start": "startup-loading",
+      "finish": "finished",
+      "assumptions": [
+        "Tauri shell is available",
+        "Full rebuild tools are ready",
+        "The selected source scans successfully",
+        "Output preview has no collision",
+        "The original is left untouched until validation succeeds"
+      ],
+      "steps": [
+        {
+          "label": "Wait for the app to finish loading",
+          "type": "automatic",
+          "cost": {},
+          "from": "startup-loading",
+          "to": "library-empty-ready"
+        },
+        {
+          "action": "empty-add-folder"
+        },
+        {
+          "action": "picker-navigate"
+        },
+        {
+          "action": "picker-confirm"
+        },
+        {
+          "label": "Scan source and populate queue",
+          "type": "automatic",
+          "cost": {},
+          "from": "library-ready",
+          "to": "library-ready"
+        },
+        {
+          "action": "library-rebuild"
+        },
+        {
+          "action": "full-ack"
+        },
+        {
+          "action": "output-confirm-full"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "fresh-files-metadata",
+      "title": "Fresh launch → add files → finished metadata-only MKV",
+      "start": "startup-loading",
+      "finish": "finished",
+      "assumptions": [
+        "Tauri shell is available",
+        "Required metadata-output tools are ready",
+        "The selected files scan successfully",
+        "Output preview has no collision"
+      ],
+      "steps": [
+        {
+          "label": "Wait for the app to finish loading",
+          "type": "automatic",
+          "cost": {},
+          "from": "startup-loading",
+          "to": "library-empty-ready"
+        },
+        {
+          "action": "empty-add-files"
+        },
+        {
+          "action": "file-picker-navigate"
+        },
+        {
+          "action": "file-picker-confirm"
+        },
+        {
+          "label": "Scan file selection and populate queue",
+          "type": "automatic",
+          "cost": {},
+          "from": "library-ready",
+          "to": "library-ready"
+        },
+        {
+          "action": "library-metadata"
+        },
+        {
+          "action": "output-confirm-metadata"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "youtube-existing-source",
+      "title": "YouTube page with an existing source → finished upload copy",
+      "start": "youtube-ready",
+      "finish": "finished",
+      "assumptions": [
+        "A completed scan already exists",
+        "YouTube tools and selected-file analysis are ready"
+      ],
+      "steps": [
+        {
+          "action": "youtube-create"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "youtube-new-folder",
+      "title": "Library → YouTube → add folder → finished upload copy",
+      "start": "library-empty-ready",
+      "finish": "finished",
+      "assumptions": [
+        "Tauri shell is available",
+        "The selected source scans successfully",
+        "YouTube tools are ready"
+      ],
+      "steps": [
+        {
+          "action": "navigate-youtube"
+        },
+        {
+          "action": "youtube-add-folder"
+        },
+        {
+          "action": "picker-navigate"
+        },
+        {
+          "action": "picker-confirm"
+        },
+        {
+          "label": "Scan source and populate YouTube queue",
+          "type": "automatic",
+          "cost": {},
+          "from": "library-ready",
+          "to": "youtube-ready"
+        },
+        {
+          "action": "youtube-create"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "run-page-metadata",
+      "title": "Run page → metadata-only MKV",
+      "start": "run-page-ready",
+      "finish": "finished",
+      "assumptions": [
+        "A completed scan and ready selection already exist",
+        "Output preview has no collision"
+      ],
+      "steps": [
+        {
+          "action": "run-select-metadata"
+        },
+        {
+          "action": "run-launch-metadata"
+        },
+        {
+          "action": "output-confirm-metadata"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "run-page-full",
+      "title": "Run page → full rebuild",
+      "start": "run-page-ready",
+      "finish": "finished",
+      "assumptions": [
+        "A completed scan and ready selection already exist",
+        "Output preview has no collision"
+      ],
+      "steps": [
+        {
+          "action": "run-select-full"
+        },
+        {
+          "action": "run-launch-full"
+        },
+        {
+          "action": "full-ack"
+        },
+        {
+          "action": "output-confirm-full"
+        },
+        {
+          "action": "run-finishes"
+        }
+      ]
+    },
+    {
+      "id": "rename-workflow",
+      "title": "Library → organize titles → preview and confirm rename",
+      "start": "library-ready",
+      "finish": "finished",
+      "assumptions": [
+        "Titles are already assigned to the selected files",
+        "The rename preview has no conflicts"
+      ],
+      "steps": [
+        {
+          "action": "rename-organize"
+        },
+        {
+          "label": "Review or edit title fields",
+          "type": "text-entry",
+          "cost": {},
+          "from": "metadata-organizer",
+          "to": "metadata-organizer"
+        },
+        {
+          "action": "rename-preview"
+        },
+        {
+          "action": "rename-apply"
+        },
+        {
+          "action": "rename-confirm"
+        }
+      ]
+    },
+    {
+      "id": "safe-stop",
+      "title": "Active run → safe stop",
+      "start": "run-active",
+      "finish": "finished",
+      "steps": [
+        {
+          "action": "safe-stop"
+        }
+      ]
+    },
+    {
+      "id": "stop-now",
+      "title": "Active run → stop now with intentional confirmation",
+      "start": "run-active",
+      "finish": "finished",
+      "steps": [
+        {
+          "action": "stop-now-open"
+        },
+        {
+          "action": "stop-now-confirm"
+        }
+      ]
+    }
+  ]
+}

@@ -165,6 +165,39 @@ fn profile_content_with_reviewed(
     })
 }
 
+/// Resolve the x265 content tune for one media file using MediaInfo genres and
+/// optional reviewed-metadata genres. Returns `None` for a normal (untuned) encode.
+pub(crate) fn resolve_run_tune(
+    mediainfo: &Value,
+    requested_tune: &str,
+    detect_animation: bool,
+    file_override: Option<&str>,
+    reviewed_genres: &[String],
+) -> Result<Option<String>, String> {
+    let (requested, detect) = match file_override {
+        Some(value) if matches!(value, "animation" | "none") => (value.to_string(), false),
+        Some(_) => return Err("Per-file content tune must be 'animation' or 'none'.".into()),
+        None => {
+            let value = requested_tune.to_ascii_lowercase();
+            if !matches!(value.as_str(), "auto" | "animation" | "grain" | "none") {
+                return Err("Global content tune must be auto, animation, grain, or none.".into());
+            }
+            (value, detect_animation)
+        }
+    };
+    let settings = json!({
+        "content": {
+            "tune": requested,
+            "detect_animation": detect,
+        }
+    });
+    let decision = profile_content_with_reviewed(mediainfo, reviewed_genres, &settings);
+    Ok(decision
+        .get("resolved_tune")
+        .and_then(Value::as_str)
+        .map(str::to_owned))
+}
+
 /// Mirrors `hevc_rebuild.content.resolve_tune` for supported content settings.
 fn resolve_tune(
     requested: &str,

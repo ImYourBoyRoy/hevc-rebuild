@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ArrowRight, Database, FileText, Film, FolderOpen, Info, LoaderCircle, RefreshCw, Search, Settings2, Trash2, X } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
-  import type { ArtworkCacheInfo, Settings } from './types.js';
+  import type { ArtworkCacheInfo, Settings, WorkDirectoryPreview } from './types.js';
   import type { AppPreferences, PreferencesPayload, MetadataSources, TmdbCredentialStatus, TvdbCredentialStatus } from './ui-contracts.js';
   interface Props {
     preferenceStorage: PreferencesPayload | null;
@@ -25,6 +25,8 @@
     artworkCachePurging: boolean;
     artworkCacheInfo: ArtworkCacheInfo | null;
     artworkCacheError: string;
+    workDirectory: WorkDirectoryPreview | null;
+    previewWorkDirectory: (workRoot: string) => unknown;
     artworkCacheConfirm: boolean;
     newFilenameIncludePattern: string;
     newFilenameExcludePattern: string;
@@ -75,6 +77,8 @@
     artworkCachePurging,
     artworkCacheInfo,
     artworkCacheError,
+    workDirectory,
+    previewWorkDirectory,
     artworkCacheConfirm = $bindable(),
     newFilenameIncludePattern = $bindable(),
     newFilenameExcludePattern = $bindable(),
@@ -116,6 +120,7 @@
           <a href="#environment-capabilities">Tools</a>
           <a href="#metadata-provider-title">Metadata sources</a>
           <a href="#poster-storage-title">Posters</a>
+          <a href="#work-directory-title">Work storage</a>
           <a href="#filename-filter-title">Filename filters</a>
           <a href="#title-cleanup-title">Title cleanup</a>
         </nav>
@@ -236,6 +241,28 @@
             <p class="filename-filter-saved">Load a library’s effective settings to choose whether its new MKV outputs include embedded cover art.</p>
           {/if}
           <div class="artwork-settings-save"><p class="filename-filter-saved">The two choices are independent. Save app defaults to keep embedding for new libraries.</p></div>
+        </section>
+
+        <section class="settings-card" aria-labelledby="work-directory-title">
+          <div class="settings-card-heading"><div class="settings-icon blue"><FolderOpen size={18} /></div><div><h2 id="work-directory-title">Temporary work storage</h2><p>Choose the shared policy for scratch files, HDR10+ remuxes, and validation outputs.</p></div></div>
+          {#if settings}
+            <label class="form-row">
+              <span><strong>Work-root policy</strong><small><code>auto</code> discovers a hidden <code>.hevc-rebuild-work</code> folder beside each source. An absolute path uses one shared folder for all runs. The process-level <code>HEVC_REBUILD_WORK_ROOT</code> override still takes precedence for an operator or test.</small></span>
+              <input aria-label="Temporary work root" value={settings.paths.work_root} oninput={(event) => settings!.paths.work_root = event.currentTarget.value} onchange={() => void previewWorkDirectory(settings!.paths.work_root)} placeholder="auto or /absolute/path" spellcheck="false" autocomplete="off" />
+            </label>
+            {#if workDirectory}
+              <div class="filename-filter-saved" role="status">
+                <strong>Resolved for the current source</strong><br />
+                <code>{workDirectory.directory}</code>
+                <small>Resolution: {workDirectory.resolution}. This preview is dynamic per source; it does not create the folder.</small>
+                {#if workDirectory.fallback_directory}<small>If the adjacent folder cannot be created, the app falls back to <code>{workDirectory.fallback_directory}</code>.</small>{/if}
+              </div>
+            {:else}
+              <p class="filename-filter-saved">Analyze a file or folder to preview the exact source-specific directory. The same policy is used by the GUI, CLI, and MCP.</p>
+            {/if}
+          {:else}
+            <p class="filename-filter-saved">Load a library’s effective settings to edit the shared work-root policy.</p>
+          {/if}
         </section>
 
         <section class="settings-card artwork-cache-settings" aria-labelledby="artwork-cache-title">

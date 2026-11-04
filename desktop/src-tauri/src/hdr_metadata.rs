@@ -2,6 +2,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::VecDeque;
 use std::ffi::OsString;
+use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
@@ -28,6 +29,14 @@ struct Request {
     path_override_video_ordinal: Option<u32>,
     #[serde(default)]
     output_json: Option<PathBuf>,
+    /// When set, FFmpeg stops after this many seconds so short-test extracts
+    /// match the encoded frame window.
+    #[serde(default)]
+    duration_limit_seconds: Option<f64>,
+    #[serde(default)]
+    inject_input_hevc: Option<PathBuf>,
+    #[serde(default)]
+    inject_output_hevc: Option<PathBuf>,
     #[serde(default)]
     profile: Option<DolbyVisionFacts>,
     #[serde(default)]
@@ -90,6 +99,436 @@ pub(crate) fn cli_mode(_args: Vec<OsString>) -> i32 {
     }
 }
 
+/// Extract verified HDR10+ dynamic metadata into a JSON file for x265 or
+/// post-encode inject. `duration_limit_seconds` keeps short-test JSON aligned
+/// with the encoded window.
+pub(crate) fn extract_hdr10plus(
+    ffmpeg: &str,
+    hdr10plus_tool: &str,
+    source: &Path,
+    stream_index: i64,
+    codec_name: &str,
+    output_json: &Path,
+    duration_limit_seconds: Option<f64>,
+) -> Result<(), String> {
+    let stream_index = u32::try_from(stream_index)
+        .map_err(|_| "Source video stream index is outside the supported range.".to_string())?;
+    if let Some(limit) = duration_limit_seconds {
+        if !(limit.is_finite() && limit > 0.0 && limit <= 86_400.0) {
+            return Err(
+                "HDR10+ extract duration limit must be between 0 and 86400 seconds.".into(),
+            );
+        }
+    }
+    extract_hdr10plus_request(&Request {
+        operation: "extract_hdr10plus".into(),
+        tools: ToolPaths {
+            ffmpeg: Some(ffmpeg.to_string()),
+            hdr10plus_tool: Some(hdr10plus_tool.to_string()),
+            x265_dolbyvision: false,
+        },
+        input_path: Some(source.to_path_buf()),
+        stream_index: Some(stream_index),
+        codec_name: Some(codec_name.to_string()),
+        path_override: None,
+        path_override_video_ordinal: None,
+        output_json: Some(output_json.to_path_buf()),
+        duration_limit_seconds,
+        inject_input_hevc: None,
+        inject_output_hevc: None,
+        profile: None,
+        force_deinterlace: false,
+    })
+}
+
+/// Inject HDR10+ SEI into a raw Annex-B HEVC bitstream with hdr10plus_tool.
+pub(crate) fn inject_hdr10plus(
+    hdr10plus_tool: &str,
+    input_hevc: &Path,
+    metadata_json: &Path,
+    output_hevc: &Path,
+) -> Result<(), String> {
+    if !input_hevc.is_file() {
+        return Err(format!(
+            "HDR10+ inject input is missing: {}",
+            input_hevc.display()
+        ));
+    }
+    if !metadata_json.is_file() {
+        return Err(format!(
+            "HDR10+ inject JSON is missing: {}",
+            metadata_json.display()
+        ));
+    }
+    if output_hevc.exists() {
+        return Err(format!(
+            "HDR10+ inject output already exists; refusing to overwrite {}",
+            output_hevc.display()
+        ));
+    }
+    let status = Command::new(hdr10plus_tool)
+        .args(["inject", "-i"])
+        .arg(input_hevc)
+        .args(["-j"])
+        .arg(metadata_json)
+        .args(["-o"])
+        .arg(output_hevc)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("Could not start hdr10plus_tool inject: {error}"))?;
+    if !status.status.success() || !output_hevc.is_file() || file_len(output_hevc)? < 16 {
+        let detail = command_text(&status.stdout, &status.stderr);
+        let _ = fs::remove_file(output_hevc);
+        return Err(format!(
+            "hdr10plus_tool inject failed; refusing possible HDR10+ metadata loss.\n{detail}"
+        ));
+    }
+    Ok(())
+}
+
+/// Prefer encode-time `dhdr10-info` when libx265 was built with HDR10_PLUS;
+/// otherwise preserve via hdr10plus_tool inject after a static-HDR10 encode.
+pub(crate) fn hdr10plus_preservation_mode(x265_hdr10plus: bool) -> &'static str {
+    if x265_hdr10plus {
+        "encode-time"
+    } else {
+        "post-inject"
+    }
+}
+
+/// Demux every encoded video, inject HDR10+ JSON where provided, and remux all
+/// video bitstreams back with mkvmerge so secondary tracks are not dropped.
+/// `video_jsons` is ordered by output video ordinal: `Some(json)` injects,
+/// `None` keeps the demuxed encode as-is.
+pub(crate) fn apply_hdr10plus_injections_to_matroska(
+    ffmpeg: &str,
+    mkvmerge: &str,
+    hdr10plus_tool: &str,
+    matroska: &Path,
+    video_jsons: &[(usize, Option<&Path>)],
+    work_dir: &Path,
+) -> Result<(), String> {
+    if video_jsons.is_empty() || video_jsons.iter().all(|(_, json)| json.is_none()) {
+        return Ok(());
+    }
+    if !matroska.is_file() {
+        return Err(format!(
+            "HDR10+ remux source is missing: {}",
+            matroska.display()
+        ));
+    }
+    if !work_dir.is_dir() {
+        return Err("HDR10+ remux work directory does not exist.".into());
+    }
+
+    let matroska_dir = matroska.parent().unwrap_or_else(|| Path::new("."));
+    let token = std::process::id();
+    let remuxed = matroska_dir.join(format!(".hdr10plus-inject.{token}.remux.mkv"));
+    let backup = matroska_dir.join(format!(".hdr10plus-inject.{token}.pre-inject.mkv"));
+    for path in [&remuxed, &backup] {
+        if path.exists() {
+            return Err(format!(
+                "HDR10+ remux refused to overwrite existing work file {}",
+                path.display()
+            ));
+        }
+    }
+
+    let mut hevc_inputs = Vec::with_capacity(video_jsons.len());
+    let mut cleanup = Vec::new();
+    for &(ordinal, json) in video_jsons {
+        let stem = format!("hdr10plus-inject-v{ordinal}.{token}");
+        let raw_hevc = work_dir.join(format!("{stem}.hevc"));
+        let final_hevc = if json.is_some() {
+            work_dir.join(format!("{stem}.injected.hevc"))
+        } else {
+            raw_hevc.clone()
+        };
+        for path in [&raw_hevc, &final_hevc] {
+            if path.exists() && (json.is_some() || path != &raw_hevc) {
+                return Err(format!(
+                    "HDR10+ remux refused to overwrite existing work file {}",
+                    path.display()
+                ));
+            }
+        }
+
+        let extract = Command::new(ffmpeg)
+            .args(["-hide_banner", "-loglevel", "error", "-nostdin", "-i"])
+            .arg(matroska)
+            .args([
+                "-map",
+                &format!("0:v:{ordinal}"),
+                "-c",
+                "copy",
+                "-bsf:v",
+                "hevc_mp4toannexb",
+                "-f",
+                "hevc",
+            ])
+            .arg(&raw_hevc)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|error| format!("Could not demux HEVC for HDR10+ inject: {error}"))?;
+        if !extract.status.success() || file_len(&raw_hevc)? < 16 {
+            let _ = fs::remove_file(&raw_hevc);
+            return Err(format!(
+                "Could not demux HEVC stream #{ordinal} for HDR10+ inject.\n{}",
+                command_text(&extract.stdout, &extract.stderr)
+            ));
+        }
+        cleanup.push(raw_hevc.clone());
+
+        if let Some(metadata_json) = json {
+            if final_hevc.exists() {
+                let _ = fs::remove_file(&raw_hevc);
+                return Err(format!(
+                    "HDR10+ remux refused to overwrite existing work file {}",
+                    final_hevc.display()
+                ));
+            }
+            inject_hdr10plus(hdr10plus_tool, &raw_hevc, metadata_json, &final_hevc)?;
+            cleanup.push(final_hevc.clone());
+        }
+        hevc_inputs.push(final_hevc);
+    }
+
+    let mut remux = Command::new(mkvmerge);
+    remux.args(["-o"]).arg(&remuxed);
+    for hevc in &hevc_inputs {
+        remux.arg(hevc);
+    }
+    remux.args(["--no-video"]).arg(matroska);
+    let remux = remux
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("Could not start mkvmerge for HDR10+ remux: {error}"))?;
+    if !remux.status.success() || file_len(&remuxed)? < 16 {
+        let _ = fs::remove_file(&remuxed);
+        for path in &cleanup {
+            let _ = fs::remove_file(path);
+        }
+        return Err(format!(
+            "Could not remux HDR10+ injected HEVC with mkvmerge.\n{}",
+            command_text(&remux.stdout, &remux.stderr)
+        ));
+    }
+
+    fs::rename(matroska, &backup)
+        .map_err(|error| format!("Could not stage the pre-inject Matroska aside: {error}"))?;
+    if let Err(error) = fs::rename(&remuxed, matroska) {
+        let _ = fs::rename(&backup, matroska);
+        for path in &cleanup {
+            let _ = fs::remove_file(path);
+        }
+        return Err(format!(
+            "Could not install the HDR10+ injected Matroska: {error}"
+        ));
+    }
+    let _ = fs::remove_file(&backup);
+    for path in &cleanup {
+        let _ = fs::remove_file(path);
+    }
+    Ok(())
+}
+
+/// Inject HDR10+ into one video ordinal of an MP4 (YouTube temp outputs).
+/// Demux → inject → remux with FFmpeg (`+genpts`) because mkvmerge is Matroska-first.
+pub(crate) fn inject_hdr10plus_into_mp4(
+    ffmpeg: &str,
+    hdr10plus_tool: &str,
+    mp4: &Path,
+    video_ordinal: usize,
+    metadata_json: &Path,
+    work_dir: &Path,
+) -> Result<(), String> {
+    if !mp4.is_file() {
+        return Err(format!(
+            "HDR10+ MP4 inject source is missing: {}",
+            mp4.display()
+        ));
+    }
+    if !work_dir.is_dir() {
+        return Err("HDR10+ remux work directory does not exist.".into());
+    }
+    let token = std::process::id();
+    let stem = format!("hdr10plus-mp4-v{video_ordinal}.{token}");
+    let raw_hevc = work_dir.join(format!("{stem}.hevc"));
+    let injected_hevc = work_dir.join(format!("{stem}.injected.hevc"));
+    let mp4_dir = mp4.parent().unwrap_or_else(|| Path::new("."));
+    let remuxed = mp4_dir.join(format!(".{stem}.remux.mp4"));
+    let backup = mp4_dir.join(format!(".{stem}.pre-inject.mp4"));
+    for path in [&raw_hevc, &injected_hevc, &remuxed, &backup] {
+        if path.exists() {
+            return Err(format!(
+                "HDR10+ MP4 remux refused to overwrite existing work file {}",
+                path.display()
+            ));
+        }
+    }
+
+    let extract = Command::new(ffmpeg)
+        .args(["-hide_banner", "-loglevel", "error", "-nostdin", "-i"])
+        .arg(mp4)
+        .args([
+            "-map",
+            &format!("0:v:{video_ordinal}"),
+            "-c",
+            "copy",
+            "-bsf:v",
+            "hevc_mp4toannexb",
+            "-f",
+            "hevc",
+        ])
+        .arg(&raw_hevc)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("Could not demux MP4 HEVC for HDR10+ inject: {error}"))?;
+    if !extract.status.success() || file_len(&raw_hevc)? < 16 {
+        let _ = fs::remove_file(&raw_hevc);
+        return Err(format!(
+            "Could not demux MP4 HEVC for HDR10+ inject.\n{}",
+            command_text(&extract.stdout, &extract.stderr)
+        ));
+    }
+    inject_hdr10plus(hdr10plus_tool, &raw_hevc, metadata_json, &injected_hevc)?;
+
+    let remux = Command::new(ffmpeg)
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-fflags",
+            "+genpts",
+            "-i",
+        ])
+        .arg(&injected_hevc)
+        .args(["-i"])
+        .arg(mp4)
+        .args([
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a?",
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            "-f",
+            "mp4",
+        ])
+        .arg(&remuxed)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("Could not remux HDR10+ injected MP4: {error}"))?;
+    if !remux.status.success() || file_len(&remuxed)? < 16 {
+        let _ = fs::remove_file(&remuxed);
+        let _ = fs::remove_file(&raw_hevc);
+        let _ = fs::remove_file(&injected_hevc);
+        return Err(format!(
+            "Could not remux HDR10+ injected MP4.\n{}",
+            command_text(&remux.stdout, &remux.stderr)
+        ));
+    }
+
+    fs::rename(mp4, &backup)
+        .map_err(|error| format!("Could not stage the pre-inject MP4 aside: {error}"))?;
+    if let Err(error) = fs::rename(&remuxed, mp4) {
+        let _ = fs::rename(&backup, mp4);
+        return Err(format!(
+            "Could not install the HDR10+ injected MP4: {error}"
+        ));
+    }
+    let _ = fs::remove_file(&backup);
+    let _ = fs::remove_file(&raw_hevc);
+    let _ = fs::remove_file(&injected_hevc);
+    Ok(())
+}
+
+fn file_len(path: &Path) -> Result<u64, String> {
+    fs::metadata(path)
+        .map(|meta| meta.len())
+        .map_err(|error| format!("Could not read {}: {error}", path.display()))
+}
+
+fn command_text(stdout: &[u8], stderr: &[u8]) -> String {
+    let mut parts = Vec::new();
+    let stdout = String::from_utf8_lossy(stdout);
+    let stderr = String::from_utf8_lossy(stderr);
+    if !stdout.trim().is_empty() {
+        parts.push(stdout.trim().to_string());
+    }
+    if !stderr.trim().is_empty() {
+        parts.push(stderr.trim().to_string());
+    }
+    if parts.is_empty() {
+        "(no tool output)".into()
+    } else {
+        parts.join("\n")
+    }
+}
+
+/// Reasons Dolby Vision cannot be safely preserved on this source profile.
+pub(crate) fn safe_preservation_reasons_for_profile(
+    profile: &Value,
+    encoder_supports_dolbyvision: bool,
+    force_deinterlace: bool,
+) -> Result<Vec<String>, String> {
+    let facts = dolby_vision_facts_from_value(profile)?;
+    Ok(safe_preservation_reasons(
+        &facts,
+        encoder_supports_dolbyvision,
+        force_deinterlace,
+    ))
+}
+
+/// Reasons an intentional HDR10 fallback would be unsafe for this Dolby Vision source.
+pub(crate) fn hdr10_fallback_reasons_for_profile(profile: &Value) -> Result<Vec<String>, String> {
+    let facts = dolby_vision_facts_from_value(profile)?;
+    Ok(hdr10_fallback_reasons(&facts))
+}
+
+fn dolby_vision_facts_from_value(profile: &Value) -> Result<DolbyVisionFacts, String> {
+    let hdr = profile.get("hdr").unwrap_or(profile);
+    Ok(DolbyVisionFacts {
+        dovi_profile: hdr
+            .get("dolby_vision_profile")
+            .or_else(|| profile.get("dovi_profile"))
+            .and_then(Value::as_u64)
+            .and_then(|value| u8::try_from(value).ok()),
+        dovi_rpu_present: hdr
+            .get("dolby_vision_rpu")
+            .or_else(|| profile.get("dovi_rpu_present"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        dovi_el_present: hdr
+            .get("dolby_vision_enhancement_layer")
+            .or_else(|| profile.get("dovi_el_present"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        dovi_bl_present: hdr
+            .get("dolby_vision_base_layer")
+            .or_else(|| profile.get("dovi_bl_present"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        hdr10: hdr
+            .get("hdr10")
+            .or_else(|| profile.get("hdr10"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        interlaced: profile
+            .get("interlaced")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    })
+}
+
 /// Verify HDR10+ on one encoded output video stream without returning to the
 /// Python compatibility engine. `video_ordinal` is the output's FFprobe `v:N`.
 pub(crate) fn verify_hdr10plus_output(
@@ -113,6 +552,9 @@ pub(crate) fn verify_hdr10plus_output(
         path_override: Some(output.to_path_buf()),
         path_override_video_ordinal: Some(video_ordinal),
         output_json: None,
+        duration_limit_seconds: None,
+        inject_input_hevc: None,
+        inject_output_hevc: None,
         profile: None,
         force_deinterlace: false,
     };
@@ -142,6 +584,9 @@ pub(crate) fn verify_hdr10plus_source(
         path_override: None,
         path_override_video_ordinal: None,
         output_json: None,
+        duration_limit_seconds: None,
+        inject_input_hevc: None,
+        inject_output_hevc: None,
         profile: None,
         force_deinterlace: false,
     })
@@ -165,7 +610,29 @@ fn execute_request(request: Request) -> Result<Value, String> {
         "verify_hdr10plus" => {
             verify_hdr10plus(&request).map(|verified| json!({"verified": verified}))
         }
-        "extract_hdr10plus" => extract_hdr10plus(&request).map(|()| json!({"extracted": true})),
+        "extract_hdr10plus" => {
+            extract_hdr10plus_request(&request).map(|()| json!({"extracted": true}))
+        }
+        "inject_hdr10plus" => {
+            let tool = request
+                .tools
+                .hdr10plus_tool
+                .as_deref()
+                .ok_or_else(|| "hdr10plus_tool is required for inject.".to_string())?;
+            let input = request
+                .inject_input_hevc
+                .as_deref()
+                .ok_or_else(|| "inject_input_hevc is required.".to_string())?;
+            let json = request
+                .output_json
+                .as_deref()
+                .ok_or_else(|| "HDR10+ JSON path is required for inject.".to_string())?;
+            let output = request
+                .inject_output_hevc
+                .as_deref()
+                .ok_or_else(|| "inject_output_hevc is required.".to_string())?;
+            inject_hdr10plus(tool, input, json, output).map(|()| json!({"injected": true}))
+        }
         "dolbyvision_safe_reasons" => {
             let profile = request
                 .profile
@@ -201,12 +668,17 @@ fn verify_hdr10plus(request: &Request) -> Result<bool, String> {
         !output.producer_status.success() && pipe_close_is_expected(&output.producer_stderr);
 
     if output.parser_status.success() && detected {
-        if !output.producer_status.success() && !expected_pipe_close {
+        // hdr10plus_tool --verify exits early; FFmpeg may then die from SIGPIPE
+        // or from an intentional kill used to avoid pipe deadlocks when an extra
+        // reader keeps the pipe open. Detection already proved HDR10+ present.
+        if !output.producer_status.success()
+            && !expected_pipe_close
+            && !output.producer_stderr.trim().is_empty()
+        {
             eprintln!(
-                "HDR10+ verifier detected metadata, but FFmpeg failed unexpectedly: {}",
+                "HDR10+ verifier detected metadata; FFmpeg exited after early parser completion: {}",
                 output.producer_stderr.trim()
             );
-            return Ok(false);
         }
         return Ok(true);
     }
@@ -227,7 +699,7 @@ fn verify_hdr10plus(request: &Request) -> Result<bool, String> {
     Ok(false)
 }
 
-fn extract_hdr10plus(request: &Request) -> Result<(), String> {
+fn extract_hdr10plus_request(request: &Request) -> Result<(), String> {
     if !is_hevc(request.codec_name.as_deref()) {
         return Err("HDR10+ preservation currently requires an HEVC source video stream.".into());
     }
@@ -311,10 +783,12 @@ fn run_hdr_pipeline(request: &Request, mode: PipelineMode) -> Result<PipelineOut
     }
 
     let mut producer = Command::new(ffmpeg);
-    producer
-        .args(["-hide_banner", "-loglevel", "error", "-nostdin", "-i"])
-        .arg(input)
-        .args(["-map"]);
+    producer.args(["-hide_banner", "-loglevel", "error", "-nostdin", "-i"]);
+    producer.arg(input);
+    if let Some(limit) = request.duration_limit_seconds.filter(|value| *value > 0.0) {
+        producer.args(["-t", &format!("{limit:.3}")]);
+    }
+    producer.args(["-map"]);
     if request.path_override.is_some() {
         producer.arg(format!(
             "0:v:{}",
@@ -390,6 +864,17 @@ fn run_hdr_pipeline(request: &Request, mode: PipelineMode) -> Result<PipelineOut
     let parser_stdout_reader = read_bounded_async(parser_stdout);
     let parser_stderr_reader = read_bounded_async(parser_stderr);
     let parser_status = wait_child(&mut parser, "hdr10plus_tool")?;
+    // hdr10plus_tool --verify exits as soon as it sees metadata and stops reading
+    // stdin. If any extra pipe reader remains open (for example inherited agent
+    // host descriptors), FFmpeg never sees SIGPIPE and wait() deadlocks. Once the
+    // parser is done we no longer need the producer in either mode.
+    if producer
+        .try_wait()
+        .map_err(|error| format!("Could not poll FFmpeg: {error}"))?
+        .is_none()
+    {
+        let _ = producer.kill();
+    }
     let producer_status = wait_child(&mut producer, "FFmpeg")?;
     Ok(PipelineOutput {
         producer_status,
@@ -559,6 +1044,12 @@ mod tests {
     }
 
     #[test]
+    fn hdr10plus_preservation_mode_prefers_encode_time_when_x265_supports_it() {
+        assert_eq!(hdr10plus_preservation_mode(true), "encode-time");
+        assert_eq!(hdr10plus_preservation_mode(false), "post-inject");
+    }
+
+    #[test]
     fn expected_pipe_close_never_hides_media_errors() {
         assert!(pipe_close_is_expected("Error writing trailer: Broken pipe"));
         assert!(!pipe_close_is_expected(
@@ -618,10 +1109,17 @@ mod tests {
         std::fs::write(&input, b"source").unwrap();
         let ffmpeg = root.join("ffmpeg");
         let parser = root.join("hdr10plus_tool");
-        std::fs::write(&ffmpeg, "#!/bin/sh\nprintf 'annex-b-hevc-data\\n'\n").unwrap();
+        // Match real hdr10plus_tool --verify: print detection and exit without
+        // draining stdin. Fake FFmpeg writes past a typical pipe buffer so a
+        // missing producer-kill would deadlock the verify path.
+        std::fs::write(
+            &ffmpeg,
+            "#!/bin/sh\ndd if=/dev/zero bs=1024 count=256 2>/dev/null\n",
+        )
+        .unwrap();
         std::fs::write(
             &parser,
-            "#!/bin/sh\nif [ \"$1\" = \"--verify\" ]; then cat >/dev/null; printf 'Dynamic HDR10+ metadata detected\\n'; exit 0; fi\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; output=$1; fi; shift; done\ncat >/dev/null\nprintf '{\"metadata\":true,\"frames\":[]}' > \"$output\"\n",
+            "#!/bin/sh\nif [ \"$1\" = \"--verify\" ]; then printf 'Dynamic HDR10+ metadata detected\\n'; exit 0; fi\nif [ \"$1\" = \"inject\" ]; then\n  out=\n  while [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\n  printf 'injected-hevc-annexb-bytes' > \"$out\"\n  exit 0\nfi\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; output=$1; fi; shift; done\ncat >/dev/null\nprintf '{\"metadata\":true,\"frames\":[]}' > \"$output\"\n",
         )
         .unwrap();
         for path in [&ffmpeg, &parser] {
@@ -642,6 +1140,9 @@ mod tests {
             path_override: None,
             path_override_video_ordinal: None,
             output_json: None,
+            duration_limit_seconds: None,
+            inject_input_hevc: None,
+            inject_output_hevc: None,
             profile: None,
             force_deinterlace: false,
         };
@@ -661,11 +1162,51 @@ mod tests {
             path_override: None,
             path_override_video_ordinal: None,
             output_json: Some(output.clone()),
+            duration_limit_seconds: None,
+            inject_input_hevc: None,
+            inject_output_hevc: None,
             profile: None,
             force_deinterlace: false,
         };
         assert_eq!(execute_request(request).unwrap()["extracted"], true);
-        assert!(std::fs::metadata(output).unwrap().len() >= 16);
+        assert!(std::fs::metadata(&output).unwrap().len() >= 16);
+
+        let hevc_in = root.join("plain.hevc");
+        let hevc_out = root.join("injected.hevc");
+        std::fs::write(&hevc_in, b"fake-hevc-annexb-bytes-here").unwrap();
+        inject_hdr10plus(parser.to_str().unwrap(), &hevc_in, &output, &hevc_out).unwrap();
+        assert!(std::fs::metadata(&hevc_out).unwrap().len() >= 16);
+
+        // Multi-video Matroska inject keeps non-injected ordinals and remuxes all.
+        let matroska = root.join("multi.mkv");
+        std::fs::write(&matroska, b"fake-matroska-container").unwrap();
+        let mkvmerge = root.join("mkvmerge");
+        std::fs::write(
+            &mkvmerge,
+            "#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\nprintf 'remuxed-matroska-bytes-here' > \"$out\"\n",
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&mkvmerge).unwrap().permissions();
+        permissions.set_mode(0o700);
+        std::fs::set_permissions(&mkvmerge, permissions).unwrap();
+        // FFmpeg demux: write enough bytes for each -map 0:v:N request.
+        std::fs::write(
+            &ffmpeg,
+            "#!/bin/sh\neval \"out=\\${$#}\"\nprintf 'demuxed-hevc-annexb-bytes' > \"$out\"\n",
+        )
+        .unwrap();
+        let work = root.join("work");
+        std::fs::create_dir(&work).unwrap();
+        apply_hdr10plus_injections_to_matroska(
+            ffmpeg.to_str().unwrap(),
+            mkvmerge.to_str().unwrap(),
+            parser.to_str().unwrap(),
+            &matroska,
+            &[(0, Some(output.as_path())), (1, None)],
+            &work,
+        )
+        .unwrap();
+        assert!(std::fs::metadata(&matroska).unwrap().len() >= 16);
         std::fs::remove_dir_all(root).unwrap();
     }
 }

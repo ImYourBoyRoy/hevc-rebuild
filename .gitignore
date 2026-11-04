@@ -1,4 +1,4 @@
-# Python runtime artifacts
+# Language/runtime caches
 __pycache__/
 *.py[cod]
 *$py.class
@@ -38,6 +38,7 @@ desktop/src-tauri/gen/schemas/
 .playwright-cli/
 
 # Local run data and portable application sidecars
+.native-smoke/
 logs/
 reports/
 old/
@@ -76,5 +77,6 @@ Thumbs.db
 # Keep source archives out of the source repository; publish release bundles separately.
 /HEVC-Rebuild-*.zip
 
-# Local real-media test clips (made with tools/extract_clip.py); never committed.
+# Local real-media test clips; never committed.
 tests/fixtures/local/
+examples/clips/

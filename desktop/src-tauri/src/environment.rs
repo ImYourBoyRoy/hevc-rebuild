@@ -1,8 +1,7 @@
 //! Native, read-only host and media-tool inspection.
 //!
-//! This intentionally mirrors `hevc_rebuild.environment.inspect_environment` while
-//! the media engine is being migrated. Keep the serialized payload stable for the
-//! Svelte UI, CLI, and MCP clients.
+//! This is the shared native host and media-tool inspection service. Keep the
+//! serialized payload stable for the Svelte UI, CLI, and MCP clients.
 
 use crate::ToolPaths;
 use serde_json::{json, Value};
@@ -16,12 +15,6 @@ use std::time::{Duration, Instant};
 
 const MAX_CAPTURE_BYTES: usize = 1024 * 1024;
 const TOOL_CHECKS: &[(&str, &str, &[&str], bool)] = &[
-    (
-        "python3",
-        "Python 3 (legacy encode engine)",
-        &["--version"],
-        true,
-    ),
     ("ffmpeg", "FFmpeg", &["-hide_banner", "-version"], true),
     ("ffprobe", "FFprobe", &["-version"], true),
     ("mediainfo", "MediaInfo", &["--Version"], true),
@@ -29,7 +22,12 @@ const TOOL_CHECKS: &[(&str, &str, &[&str], bool)] = &[
     ("mkvmerge", "MKVToolNix merger", &["--version"], true),
     ("mkvextract", "MKVToolNix extractor", &["--version"], true),
     ("fc-list", "Fontconfig", &["--version"], false),
-    ("hdr10plus_tool", "HDR10+ helper", &["--version"], true),
+    (
+        "hdr10plus_tool",
+        "HDR10+ helper (optional unless needed)",
+        &["--version"],
+        false,
+    ),
     ("brew", "Homebrew package manager", &["--version"], false),
     ("winget", "Windows Package Manager", &["--version"], false),
     ("apt-get", "APT package manager", &["--version"], false),
@@ -117,7 +115,8 @@ pub(crate) fn inspect_environment(
     let ffmpeg = checks.iter().find(|check| check.key == "ffmpeg");
     let mut pixel_formats = BTreeSet::new();
     let mut dolby_vision_x265 = false;
-    let mut extra_checks = Vec::with_capacity(3);
+    let mut hdr10plus_x265 = false;
+    let mut extra_checks = Vec::with_capacity(4);
     if let Some(ffmpeg) = ffmpeg.filter(|check| check.available) {
         if let Some(path) = ffmpeg.path.as_deref() {
             let encoder_help = run_capture(
@@ -141,6 +140,7 @@ pub(crate) fn inspect_environment(
                                 || (pair[0] == "-dolbyvision" && pair[1].starts_with('<'))
                         })
                 });
+                hdr10plus_x265 = probe_x265_hdr10plus_support(path);
                 let available = pixel_formats.contains("yuv420p");
                 extra_checks.push(Check {
                     key: "libx265",
@@ -153,6 +153,19 @@ pub(crate) fn inspect_environment(
                         "CPU libx265 ready".into()
                     } else {
                         "libx265 does not expose 8-bit 4:2:0".into()
+                    },
+                });
+                extra_checks.push(Check {
+                    key: "libx265_hdr10plus",
+                    label: "libx265 HDR10+",
+                    path: Some(path.to_string()),
+                    version: None,
+                    available: hdr10plus_x265,
+                    required: false,
+                    detail: if hdr10plus_x265 {
+                        "libx265 accepts dhdr10-info".into()
+                    } else {
+                        "libx265 was built without HDR10_PLUS (dhdr10-info disabled)".into()
                     },
                 });
             } else {
@@ -245,12 +258,12 @@ pub(crate) fn inspect_environment(
     };
     let supported = os.get("supported").and_then(Value::as_bool) == Some(true);
     let analysis_ready = available("ffprobe") && available("mediainfo");
-    // YouTube export runs natively in Rust; Python is not required.
+    // YouTube export runs natively in Rust.
     let youtube_ready = supported
         && ["ffmpeg", "ffprobe", "mediainfo", "libx264", "aac"]
             .iter()
             .all(|key| available(key));
-    // Metadata-only MKV runs natively in Rust; Python is not required.
+    // Metadata-only MKV runs natively in Rust.
     let metadata_ready = supported
         && [
             "ffmpeg",
@@ -287,6 +300,7 @@ pub(crate) fn inspect_environment(
         "checks": checks.iter().map(Check::payload).collect::<Vec<_>>(),
         "x265_pixel_formats": pixel_formats,
         "dolby_vision_x265": dolby_vision_x265,
+        "hdr10plus_x265": hdr10plus_x265,
         "can_analyze": analysis_ready,
         "youtube_ready": youtube_ready,
         "metadata_ready": metadata_ready,
@@ -305,7 +319,6 @@ fn required_engine_tools(purpose: &str) -> Result<&'static [&'static str], Strin
             "mkvpropedit",
             "mkvmerge",
             "mkvextract",
-            "hdr10plus_tool",
             "libx265",
         ]),
         "metadata" => Ok(&[
@@ -489,7 +502,53 @@ pub(crate) fn resolve_engine_toolchain(request: &Value) -> Result<Value, String>
             .cloned()
             .unwrap_or(Value::Bool(false)),
     );
+    resolved.insert(
+        "x265_hdr10plus".into(),
+        report
+            .get("hdr10plus_x265")
+            .cloned()
+            .unwrap_or(Value::Bool(false)),
+    );
     Ok(Value::Object(resolved))
+}
+
+/// Ubuntu and many distro libx265 packages ship without cmake `HDR10_PLUS`, so
+/// `-x265-params dhdr10-info=...` is accepted then silently disabled. Probe a
+/// one-frame null encode and treat the cmake warning as unsupported.
+fn probe_x265_hdr10plus_support(ffmpeg: &str) -> bool {
+    let output = match run_capture(
+        ffmpeg,
+        &[
+            "-hide_banner",
+            "-loglevel",
+            "warning",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=64x64:d=0.04",
+            "-frames:v",
+            "1",
+            "-c:v",
+            "libx265",
+            "-pix_fmt",
+            "yuv420p10le",
+            "-x265-params",
+            "dhdr10-info=/nonexistent-hevc-rebuild-hdr10plus-probe.json",
+            "-f",
+            "null",
+            "-",
+        ],
+        Duration::from_secs(20),
+    ) {
+        Ok(output) => output,
+        Err(_) => return false,
+    };
+    let text = command_text(&output.stdout, &output.stderr).to_ascii_lowercase();
+    if text.contains("enable hdr10_plus") || text.contains("dhdr10-info disabled") {
+        return false;
+    }
+    // Supported builds complain about the missing JSON path instead of cmake.
+    text.contains("dhdr10") || text.contains("hdr10+") || text.contains("json") || output.success
 }
 
 fn verify_smoke_encode(program: &str, args: &[&str], label: &str) -> Result<(), String> {
@@ -571,7 +630,6 @@ fn validate_overrides(paths: &ToolPaths) -> Result<(), String> {
 
 fn candidate_paths(paths: &ToolPaths) -> BTreeMap<&'static str, Option<String>> {
     let keys = [
-        "python3",
         "ffmpeg",
         "ffprobe",
         "mediainfo",
@@ -631,12 +689,6 @@ fn candidate_paths(paths: &ToolPaths) -> BTreeMap<&'static str, Option<String>> 
             }
         }
     }
-    if found.get("python3").and_then(Option::as_deref).is_none() {
-        // Windows commonly exposes Python as `python`, while the engine's
-        // stable contract calls the check `python3`.
-        found.insert("python3", find_in_path("python"));
-    }
-
     found.insert(
         "hdr10plus_tool",
         find_managed_tool("hdr10plus_tool").or_else(|| find_in_path("hdr10plus_tool")),
@@ -1253,7 +1305,6 @@ fn missing_apt_packages(checks: &[Check], custom_ffmpeg: bool) -> Vec<String> {
         .map(|check| check.key)
         .collect::<BTreeSet<_>>();
     let packages: &[(&str, &[&str])] = &[
-        ("python3", &["python3"]),
         ("ffmpeg", &["ffmpeg", "ffprobe"]),
         ("mediainfo", &["mediainfo"]),
         ("mkvtoolnix", &["mkvpropedit", "mkvmerge", "mkvextract"]),
@@ -1330,8 +1381,8 @@ mod tests {
             Some("MediaInfoLib - v25.09")
         );
         assert_eq!(
-            preferred_version_line("Python 3.14.4\n").as_deref(),
-            Some("Python 3.14.4")
+            preferred_version_line("FFmpeg version 7.1\n").as_deref(),
+            Some("FFmpeg version 7.1")
         );
     }
 
@@ -1378,7 +1429,7 @@ mod tests {
             required_engine_tools("check").unwrap(),
             &["ffmpeg", "ffprobe"]
         );
-        assert!(required_engine_tools("rebuild")
+        assert!(!required_engine_tools("rebuild")
             .unwrap()
             .contains(&"hdr10plus_tool"));
         assert!(required_engine_tools("metadata")

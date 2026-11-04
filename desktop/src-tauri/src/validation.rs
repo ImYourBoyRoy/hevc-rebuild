@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 
 const MAX_REQUEST_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_STREAMS: usize = 1024;
-const MIN_OUTPUT_BYTES: u64 = 1024 * 1024;
+// A valid short test can be smaller than 1 MiB. FFprobe and the stream/HDR
+// checks below are the authoritative output validation, so this guard only
+// needs to reject an empty file before those checks run.
+const MIN_OUTPUT_BYTES: u64 = 1;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -204,18 +207,13 @@ fn validate_paths(request: &Request) -> Result<(), String> {
     }
     let metadata = request.output_path.metadata().map_err(|_| {
         format!(
-            "Output is missing or implausibly small: {}",
+            "Output is missing or empty: {}",
             request.output_path.display()
         )
     })?;
-    let minimum = if request.copy_only {
-        1
-    } else {
-        MIN_OUTPUT_BYTES
-    };
-    if !metadata.is_file() || metadata.len() < minimum {
+    if !metadata.is_file() || metadata.len() < MIN_OUTPUT_BYTES {
         return Err(format!(
-            "Output is missing or implausibly small: {}",
+            "Output is missing or empty: {}",
             request.output_path.display()
         ));
     }

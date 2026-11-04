@@ -344,7 +344,7 @@ fn stream_groups(profile: &Value) -> Result<Vec<Stream>, String> {
     Ok(streams)
 }
 
-fn build_plan(request: &Value) -> Result<Value, String> {
+pub(crate) fn build_plan(request: &Value) -> Result<Value, String> {
     let tools = field(request, "tools")?;
     let profile = field(request, "profile")?;
     let options = field(request, "options")?;

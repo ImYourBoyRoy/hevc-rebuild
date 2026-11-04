@@ -9,6 +9,7 @@ pub(crate) struct EffectiveSettings {
     settings: Value,
     sources: Vec<String>,
     user_config: String,
+    work_directory: crate::WorkDirectoryPreview,
 }
 
 pub(crate) fn load_effective_settings(root: &str) -> Result<EffectiveSettings, String> {
@@ -82,10 +83,16 @@ fn load_effective_settings_at(
     }
 
     validate_settings(&settings)?;
+    let work_root = settings
+        .pointer("/paths/work_root")
+        .and_then(Value::as_str)
+        .unwrap_or("auto")
+        .to_owned();
     Ok(EffectiveSettings {
         settings,
         sources,
         user_config: display_path(user_config),
+        work_directory: crate::preview_work_directory(root, &work_root)?,
     })
 }
 
@@ -134,6 +141,9 @@ pub(crate) fn default_settings() -> Value {
             "min_free_disk_gib": 0.0,
             "preflight_output_ratio": 1.30,
             "disk_projection_margin_percent": 15.0
+        },
+        "paths": {
+            "work_root": "auto"
         }
     })
 }
@@ -385,6 +395,20 @@ fn validate_settings(settings: &Value) -> Result<(), String> {
         .ok_or("Config metadata.embed_artwork must be true or false.")?;
     validate_blacklist(settings)?;
     boolean(settings, "safety.verify_copy_hashes")?;
+    let work_root = field(settings, "paths.work_root")?
+        .as_str()
+        .ok_or("Config paths.work_root must be 'auto' or an absolute folder path.")?;
+    if work_root.len() > 8192
+        || work_root.chars().any(char::is_control)
+        || (!work_root.eq_ignore_ascii_case("auto")
+            && !work_root.is_empty()
+            && !Path::new(work_root).is_absolute())
+    {
+        return Err(
+            "Config paths.work_root must be 'auto' or an absolute folder path up to 8192 bytes."
+                .into(),
+        );
+    }
     text(
         settings,
         "calibration.mode",
@@ -542,6 +566,12 @@ mod tests {
         assert!(validate_settings(&settings)
             .unwrap_err()
             .contains("duplicate patterns"));
+
+        settings = default_settings();
+        settings["paths"]["work_root"] = json!("relative-work");
+        assert!(validate_settings(&settings)
+            .unwrap_err()
+            .contains("paths.work_root"));
     }
 
     #[test]

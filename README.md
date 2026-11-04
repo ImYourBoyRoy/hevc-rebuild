@@ -24,7 +24,7 @@ replace the original after the output passes validation.
   <img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="HEVC Rebuild Studio Home screen in the Dark theme" width="1200" />
 </p>
 
-<p align="center"><em>Native Tauri desktop app. v1.3.0 is the first public release; clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
+<p align="center"><em>Native Tauri desktop app. v1.4.0 continues the Rust-only desktop migration; clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
 
 ## What it is for
 
@@ -39,7 +39,7 @@ replace the original after the output passes validation.
 
 ### Desktop app
 
-Download the published [v1.3.0 release](https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.3.0) for a Windows NSIS installer, macOS DMG, or Linux AppImage/deb. To build the Tauri app from source on the host where you intend to run it:
+Download the latest published release for a Windows NSIS installer, macOS DMG, or Linux AppImage/deb. To build the Tauri app from source on the host where you intend to run it:
 
 ```bash
 cd desktop
@@ -48,25 +48,26 @@ pnpm tauri dev
 ```
 
 The desktop build needs FFmpeg/FFprobe, MediaInfo, and MKVToolNix. Check only,
-integrity, Metadata-only MKV, and YouTube upload preparation run natively in
-Rust; short tests and full rebuilds still need Python 3. See [tool setup](docs/TOOLS.md) and the [platform
-support contract](docs/PLATFORM-SUPPORT.md).
+integrity, Metadata-only MKV, short tests, full rebuilds, and YouTube upload
+preparation run through the native Rust engine. See [tool setup](docs/TOOLS.md)
+and the [platform support contract](docs/PLATFORM-SUPPORT.md).
 
-### Standalone engine
+### Native executable
 
 Run a read-only environment check first, then inspect a library:
 
 ```bash
-python3 -m hevc_rebuild --setup-only --no-dependency-repair
-python3 -m hevc_rebuild "/path/to/Movies" --recursive --info-only
+hevc-rebuild-studio json environment
+hevc-rebuild-studio cli "/path/to/Movies" --recursive --info-only
 ```
 
 For the safest first run, use **Check only**, then a **Short test**, then a
-reviewed **Full rebuild**. The GUI exposes these modes in the Run setup screen.
+reviewed **Full rebuild**. The GUI, CLI, and MCP server use the same native Rust
+run coordinators and confirmation rules.
 
 ### Installed executable
 
-The packaged executable exposes the same engine and JSON actions:
+The packaged executable exposes the same native workflow and JSON actions:
 
 ```bash
 hevc-rebuild-studio cli "/path/to/Movies" --recursive --info-only
@@ -76,6 +77,48 @@ hevc-rebuild-studio json scan --root "/path/to/Movies" --recursive
 
 See [USAGE.md](docs/USAGE.md) for GUI, CLI, MCP, output, and recovery workflows.
 
+### Native walkthrough control
+
+Maintainers can launch a debug or release binary with
+`HEVC_REBUILD_AGENT_CONTROL=1` to expose a private local control channel for
+real Tauri-window walkthroughs. It supports bounded state/snapshot queries and
+keyboard dispatch without a browser harness:
+
+```bash
+# Development window: start the Tauri supervisor so Vite and its 127.0.0.1
+# devUrl are launched together. Keep recyclable state beside this checkout.
+cd desktop
+export HEVC_REBUILD_AGENT_CONTROL=1
+export HEVC_REBUILD_PORTABLE_DATA_DIR="$PWD/../.native-smoke/manual"
+pnpm tauri dev
+
+# In another terminal, from the repository root:
+cd ..
+./desktop/src-tauri/target/debug/hevc-rebuild-studio agent-control state
+./desktop/src-tauri/target/debug/hevc-rebuild-studio agent-control snapshot
+./desktop/src-tauri/target/debug/hevc-rebuild-studio agent-control press Alt+4
+
+# Installed/release binary:
+HEVC_REBUILD_AGENT_CONTROL=1 hevc-rebuild-studio
+hevc-rebuild-studio agent-control snapshot
+hevc-rebuild-studio agent-control press Alt+4
+```
+
+The development configuration deliberately uses `http://127.0.0.1:1420`,
+matching Vite's bind address. Do not launch a raw debug binary with
+`cargo run` and expect it to start Vite; use `pnpm tauri dev` for development
+or a bundled/static Tauri build for release-style testing. The optional
+`HEVC_REBUILD_PORTABLE_DATA_DIR` keeps the endpoint, settings, logs, and cache
+in a selected project-local profile; without it, normal OS app-state locations
+are used.
+
+The channel is disabled by default, has no shell execution, and is not a
+runtime dependency. Endpoint cleanup is ownership-aware, so an older
+development process cannot remove a newer process's project-local endpoint.
+Native file pickers, OS drag/drop, screen-reader output,
+close/reopen, and stop-now during a live encode still require direct native
+acceptance evidence.
+
 ## Core modes
 
 | Mode | Result |
@@ -84,7 +127,31 @@ See [USAGE.md](docs/USAGE.md) for GUI, CLI, MCP, output, and recovery workflows.
 | **Metadata-only MKV** | Creates a new MKV without re-encoding video. |
 | **Short test** | Produces a bounded test encode before a full run. |
 | **Full rebuild** | Encodes selected video tracks to HEVC and validates the result. |
-| **YouTube prep** | Creates a separate upload copy and leaves the source in place. **Upscale** lifts 720p/1080p sources to 1440p or 4K so YouTube gives them its higher bitrate tier; **Optimize** keeps 1440p/4K/8K sources at their size, stream-copies healthy video with YouTube container tags (faststart, `hvc1`, BT.709 backfill), and re-encodes only oversized files when a sampled SSIM check passes. SDR codec (H.264 default or HEVC), encoder preset, shrink policy, and quality check are selectable. |
+| **YouTube prep** | Creates a separate upload copy and leaves the source in place. **Upscale** lifts 720p/1080p sources to 1440p or 4K so YouTube gives them its higher bitrate tier; **Optimize** keeps 1440p/4K/8K sources at their size, stream-copies healthy video with YouTube container tags (faststart, `hvc1`, BT.709 backfill), and re-encodes only oversized files when a sampled SSIM check passes. SDR codec (H.264 default or HEVC), encoder preset, shrink policy, and quality check are selectable. HDR10+ is preserved on re-encode via the same `hdr10plus_tool` inject path as rebuilds when the helper is installed; otherwise per-file loss consent is required. |
+| **HDR10+ preserve** | Autonomous: encode-time `dhdr10-info` when libx265 has `HDR10_PLUS`, otherwise post-encode inject + remux, then verify. Work dirs default to a source-adjacent `.hevc-rebuild-work/` folder; `HEVC_REBUILD_WORK_ROOT` overrides it, with app-state fallback if the source folder is not writable. Never uses `/tmp`. See [TOOLS.md](docs/TOOLS.md). |
+
+## Shared settings and work-directory discovery
+
+The GUI, CLI, and MCP server use the same native settings and run argument
+contract. The `paths.work_root` setting defaults to `auto`, which resolves
+independently for each source to `<source-folder>/.hevc-rebuild-work/`. An
+absolute `paths.work_root` selects one shared scratch folder. The GUI exposes
+the setting under **Settings → Temporary work storage**.
+
+Every client can inspect the actual source-specific resolution before a run:
+
+```bash
+hevc-rebuild-studio json work-directory --root "/path/to/Movies/Film.mkv"
+hevc-rebuild-studio json work-directory --root "/path/to/Movies" --work-root "/fast/work"
+```
+
+MCP clients use `inspect_work_directory`; `start_media_run` accepts the same
+optional `work_root` override. Direct CLI rebuild, metadata, and YouTube runs
+accept `--work-root auto` or an absolute path. `HEVC_REBUILD_WORK_ROOT` remains
+an explicit process-level override and takes precedence over the saved setting.
+If an automatic source-adjacent folder cannot be created, the app-state
+`work/` folder is used and reported as the fallback. No client silently uses
+`/tmp`.
 
 ## Safety and privacy
 
@@ -148,7 +215,9 @@ checks. See [platform evidence](docs/PLATFORM-SUPPORT.md) and
 | CI, installers, updater, and release secrets | [docs/RELEASE.md](docs/RELEASE.md) |
 | Repository map and protected paths | [docs/PROJECT-STRUCTURE.md](docs/PROJECT-STRUCTURE.md) |
 | Troubleshooting and support | [docs/SUPPORT.md](docs/SUPPORT.md) |
-| Rust/Python ownership and migration | [python-rust-convert.md](docs/maintainer/python-rust-convert.md) |
+| UI source inventory and task budgets | [docs/interaction-map.md](docs/interaction-map.md) · [interaction-map tool](tools/interaction-map.mjs) |
+| UI state waterfalls and minimum click formulas | [docs/interaction-waterfall.md](docs/interaction-waterfall.md) · [waterfall config](docs/interaction-waterfalls.json) · [waterfall tool](tools/interaction-waterfall.mjs) |
+| Native architecture and retirement record | [python-rust-convert.md](docs/maintainer/python-rust-convert.md) |
 | Architecture and implementation notes | [TECHNICAL.md](docs/maintainer/TECHNICAL.md) · [RUST_MIGRATION.md](docs/maintainer/RUST_MIGRATION.md) |
 | Validation evidence and open gates | [REVIEW.md](docs/maintainer/REVIEW.md) |
 
@@ -157,9 +226,6 @@ checks. See [platform evidence](docs/PLATFORM-SUPPORT.md) and
 Use the pinned Node/pnpm versions from `.nvmrc` and `package.json`.
 
 ```bash
-# Python engine and safety tests
-python3 -m unittest discover -s tests -q
-
 # Svelte/Tauri frontend
 cd desktop
 pnpm install --frozen-lockfile
@@ -168,25 +234,34 @@ pnpm check:tsgo
 pnpm build
 pnpm test:metadata-matching
 
+# Source-derived UI click-flow map (repository root package scripts)
+pnpm --dir .. interaction-map
+pnpm --dir .. interaction-map:check
+
+# State-oriented multiflow waterfall (app clicks + native picker x + automatic steps)
+pnpm --dir .. interaction-waterfall
+pnpm --dir .. interaction-waterfall:check
+
 # Native Rust boundary
 cd src-tauri
 cargo fmt --all -- --check
 cargo test --locked --lib
+cargo clippy --all-targets --locked -- -D warnings
 cargo check --locked --bin hevc-rebuild-studio
 ```
 
-Build a host-native installer with `pnpm tauri build` from `desktop/`. Release
-artifacts are produced by GitHub Actions from a version tag; local development
-does not publish or upload anything.
+Build a host-native executable with `pnpm tauri build` from `desktop/`, or use
+the Linux source installer at `./install.sh`. Release artifacts are produced
+by GitHub Actions from a version tag; local development does not publish or
+upload anything.
 
 ## Project layout
 
 ```text
 App/                 local cross-platform artifact drop; keep it at the repository root
 desktop/             Tauri 2 + Svelte desktop application
-desktop/src-tauri/   Rust native boundary and packaging configuration
-hevc_rebuild/        Python compatibility engine and direct CLI
-tests/               Python behavior and safety tests
+desktop/src-tauri/   Rust native boundary, run coordinators, and packaging configuration
+desktop/tests/       Browser/component contract tests
 docs/                human usage, platform, release, and support guides
 docs/maintainer/     architecture, validation, dependency, and migration notes
 ```

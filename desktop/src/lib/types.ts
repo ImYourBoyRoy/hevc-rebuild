@@ -16,6 +16,10 @@ export interface ToolPaths {
 }
 
 export interface Settings {
+  paths: {
+    /** `auto` resolves beside each source; otherwise this is an absolute folder. */
+    work_root: string;
+  };
   video: {
     crf: number;
     preset: string;
@@ -60,6 +64,14 @@ export interface Settings {
     preflight_output_ratio: number;
     disk_projection_margin_percent: number;
   };
+}
+
+export interface WorkDirectoryPreview {
+  source_path: string;
+  configured_root: string;
+  directory: string;
+  resolution: 'source-adjacent' | 'configured' | 'environment-override' | string;
+  fallback_directory: string | null;
 }
 
 export interface CommandCheck {
@@ -297,6 +309,7 @@ export interface ScanResult {
   environment: Environment;
   settings: Settings;
   settings_sources: string[];
+  work_directory: WorkDirectoryPreview;
   warnings?: string[];
   discovery_limit_reached?: boolean;
   interrupted?: boolean;

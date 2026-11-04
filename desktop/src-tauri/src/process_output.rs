@@ -90,8 +90,8 @@ mod tests {
     fn kill_owned_group_stops_spawned_child() {
         use std::process::Stdio;
         let mut child = spawn_owned(
-            Command::new("python3")
-                .args(["-c", "import time; time.sleep(30)"])
+            Command::new("sleep")
+                .arg("30")
                 .stdout(Stdio::null())
                 .stderr(Stdio::null()),
         )
@@ -105,9 +105,9 @@ mod tests {
     #[cfg(unix)]
     fn pipe_error_kills_resistant_child_and_pipe_holding_descendant() {
         use std::process::Stdio;
-        let script = "import os,signal,subprocess,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)']); sys.stdout.buffer.write(b'valid\\n\\xff\\n');sys.stdout.flush();time.sleep(30)";
+        let script = "trap '' TERM; sleep 30 & printf 'valid\\n'; printf '\\377\\n'; sleep 30";
         let mut child = spawn_owned(
-            Command::new("python3")
+            Command::new("sh")
                 .args(["-c", script])
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped()),

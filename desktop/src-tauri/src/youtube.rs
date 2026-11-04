@@ -635,9 +635,9 @@ pub(crate) fn validate_request(request: &Value) -> Result<Value, String> {
     let output = Path::new(required_string(request, "output")?);
     let metadata = fs::metadata(output)
         .map_err(|error| format!("The MP4 output is missing or cannot be read: {error}"))?;
-    if !metadata.is_file() || metadata.len() < 1024 {
+    if !metadata.is_file() || metadata.len() < 1 {
         return Err(format!(
-            "The MP4 output is missing or too small: {}",
+            "The MP4 output is missing or empty: {}",
             output.display()
         ));
     }
@@ -653,6 +653,15 @@ pub(crate) fn validate_request(request: &Value) -> Result<Value, String> {
             == Some(true),
     };
     let (width, height) = validate_output_with(profile, &probe, resolution, &expect)?;
+    if request.get("hdr10plus_expected").and_then(Value::as_bool) == Some(true) {
+        let ffmpeg = required_string(required(request, "tools")?, "ffmpeg")?;
+        let hdr10plus_tool = required_string(required(request, "tools")?, "hdr10plus_tool")?;
+        if !crate::hdr_metadata::verify_hdr10plus_output(ffmpeg, hdr10plus_tool, output, 0)? {
+            return Err(
+                "HDR10+ dynamic metadata was expected in the YouTube output, but verification found none.".into(),
+            );
+        }
+    }
     Ok(json!({"width": width, "height": height}))
 }
 

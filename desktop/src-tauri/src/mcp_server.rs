@@ -1,8 +1,7 @@
 use super::{
     append_tool_path_arguments, executable_in_path, file_settings_override_arguments,
-    settings_arguments, standalone_command, stream_override_arguments,
-    validate_apt_update_confirmation, validate_apt_upgrade_plan, youtube_hdr10plus_loss_arguments,
-    ToolPaths, APT_ALLOWLIST,
+    settings_arguments, stream_override_arguments, validate_apt_update_confirmation,
+    validate_apt_upgrade_plan, youtube_hdr10plus_loss_arguments, ToolPaths, APT_ALLOWLIST,
 };
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -182,6 +181,14 @@ struct RootParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
+struct WorkDirectoryParams {
+    root: String,
+    /// Optional `auto` or absolute folder override. Omit to use effective settings.
+    work_root: Option<String>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 struct ScanParams {
     root: String,
     recursive: Option<bool>,
@@ -240,6 +247,8 @@ struct LocalArtworkCacheParams {
 struct StartRunParams {
     root: String,
     mode: Option<String>,
+    /// `auto` keeps temporary work beside each source; an absolute folder uses a shared work root.
+    work_root: Option<String>,
     youtube_resolution: Option<String>,
     youtube_quality_mode: Option<String>,
     youtube_source_multiplier: Option<f64>,
@@ -510,6 +519,21 @@ impl McpServer {
             crate::media_queue::save_selected_paths(&path, params.selected_media_paths)
                 .and_then(|()| crate::media_queue::summarize(&path, 0, 100)),
         )
+    }
+
+    #[tool(
+        name = "inspect_work_directory",
+        description = "Resolve the temporary work directory for a local media file or folder without creating it. The default is dynamically source-adjacent `.hevc-rebuild-work`; an effective paths.work_root setting, optional work_root override, or HEVC_REBUILD_WORK_ROOT process override is reported explicitly. The response includes the app-state fallback used only when an automatic adjacent folder cannot be created."
+    )]
+    fn inspect_work_directory(
+        &self,
+        Parameters(params): Parameters<WorkDirectoryParams>,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        let payload = crate::resolve_work_directory(&params.root, params.work_root.as_deref())
+            .map_err(|error| ErrorData::invalid_params(error, None))?;
+        serde_json::to_value(payload)
+            .map(rmcp::handler::server::wrapper::Json)
+            .map_err(|error| ErrorData::internal_error(error.to_string(), None))
     }
 
     #[tool(
@@ -853,7 +877,7 @@ impl McpServer {
 
     #[tool(
         name = "get_job",
-        description = "Get scan, encode, repair, or helper-install progress. For media runs, resource_snapshot contains the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory where supported; active safety guards and pressure retries still run in the Python compatibility engine. For folder analysis, request bounded result pages with offset and limit (maximum 250). Includes recent diagnostic lines, job status, and per-file errors."
+        description = "Get scan, encode, repair, or helper-install progress. For media runs, resource_snapshot contains the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory where supported; active safety guards and pressure retries run in the native Rust coordinators. For folder analysis, request bounded result pages with offset and limit (maximum 250). Includes recent diagnostic lines, job status, and per-file errors."
     )]
     fn get_job(
         &self,
@@ -905,7 +929,7 @@ impl McpServer {
 
     #[tool(
         name = "start_media_run",
-        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; metadata-only and YouTube runs execute natively in Rust with in-process memory/disk guards and pressure retries, while test and full rebuilds still use the Python engine during migration. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; these reviewed values are the only source of output title and description tags (sidecar NFO files are not read), and animation genres there select the animation tune. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. file_settings_overrides maps absolute analyzed media paths to current-run CRF, x265 preset, 8-bit promotion, content tune, HDR10+ preservation, Dolby Vision policy, and exact stream-index choices; omitted fields inherit the effective settings and these overrides are never saved as defaults. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_mode=optimize instead keeps the source resolution (1440p or larger only), stream-copies healthy video with YouTube container tags and faststart, and re-encodes only oversized sources when youtube_shrink allows it and the youtube_quality_check SSIM gate passes; youtube_sdr_codec (h264 default, hevc) and youtube_preset (slow default, medium, slower) tune encodes; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. HDR10+ sources are skipped by default because this exporter does not retain dynamic metadata; pass allow_youtube_hdr10plus_loss_paths with only the analyzed files whose dynamic metadata loss you explicitly accept. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
+        description = "Start a check, metadata-only MKV copy, short test, full library rebuild, or YouTube upload-preparation run for one local media file or a folder. Metadata-only mode uses MKVToolNix to copy every source stream into a new MKV, applies reviewed metadata/artwork, verifies copied compressed-stream hashes and HDR signaling, and never invokes a video encoder or replaces the source. It preserves all tracks; file_stream_overrides is therefore not accepted for metadata-only mode. Uses hardware-aware resource limits for encoding modes. While the job runs, get_job includes the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory snapshot where the platform exposes them; check, metadata-only, short-test, full rebuild, and YouTube runs all execute natively in Rust with in-process memory/disk guards and pressure retries. Optional tool_paths selects explicit ffmpeg, ffprobe, mediainfo, mkvpropedit, mkvmerge, or mkvextract executables. `work_root` accepts `auto` for a dynamic source-adjacent `.hevc-rebuild-work` directory or an absolute shared folder; omit it to use effective settings. filename_include_patterns and filename_exclude_patterns filter basenames case-insensitively with * and ?; exclusions take precedence. selected_files optionally restricts this run to absolute file paths from the analyzed input; omit it to process every eligible file. When the paths match saved queue entries, the tool marks those entries running and then records matching report outcomes in the persistent queue; paths without report evidence remain needs_review, never completed. For metadata/test/full output, output_dir sets a default existing destination folder and file_output_dirs maps individual absolute media paths to existing destination folders. file_poster_overrides maps absolute media paths to valid JPEG, PNG, or WebP artwork paths inside the analyzed input or to a private app-cache path returned by cache_library_artwork/cache_local_library_artwork; selected artwork can be attached to new MKV outputs when metadata.embed_artwork is true. file_metadata_overrides maps absolute media paths to reviewed title, year, certification, summaries, plot, genres, rating, source URL, show title, season, episode, and air date fields; these reviewed values are the only source of output title and description tags (sidecar NFO files are not read), and animation genres there select the animation tune. A default folder mirrors the input's relative folder structure; a per-file folder stores that file directly there. Destination files are never overwritten and source files stay in place. Without an output folder, metadata-only output creates a sibling .metadata.mkv when needed; full rebuilds use the validated in-place replacement transaction. For test/full rebuilds, file_stream_overrides maps absolute analyzed media paths to unique FFprobe stream indices; selected real video tracks are encoded to HEVC and other selected tracks are copied. file_settings_overrides maps absolute analyzed media paths to current-run CRF, x265 preset, 8-bit promotion, content tune, HDR10+ preservation, Dolby Vision policy, and exact stream-index choices; omitted fields inherit the effective settings and these overrides are never saved as defaults. Omit an entry to use the configured default selection. settings_json accepts the normal settings object, including metadata.text_blacklist as one pattern per array entry; patterns are case-insensitive substring globs and '*' matches any sequence (for example, Movie*Group). Full rebuild, test output, and YouTube export each require their matching confirmation field. Per-file tune overrides may set animation or normal for selected paths. YouTube copies use a source-aware 1440p/balanced-size default; youtube_mode=optimize instead keeps the source resolution (1440p or larger only), stream-copies healthy video with YouTube container tags and faststart, and re-encodes only oversized sources when youtube_shrink allows it and the youtube_quality_check SSIM gate passes; youtube_sdr_codec (h264 default, hevc) and youtube_preset (slow default, medium, slower) tune encodes; youtube_resolution and youtube_quality_mode can be set explicitly. youtube_source_multiplier adjusts balanced bitrate from 0.5x to 4x the source average (default 2x), still capped at YouTube's recommended rate; estimates are not strict file-size limits. When hdr10plus_tool is available, HDR10+ is preserved on YouTube re-encodes and verified; stream copies retain the source stream. If the helper is unavailable, pass allow_youtube_hdr10plus_loss_paths only for analyzed files whose dynamic metadata loss you explicitly accept. Dolby Vision sources remain skipped by this exporter. Recommended mode may create much larger files. Originals stay in place. Poll get_job and use request_safe_stop to finish the current file then stop. Only process content you own or are authorized to use."
     )]
     fn start_media_run(
         &self,
@@ -1618,7 +1642,7 @@ fn prepare_media_run(
             None,
         ));
     }
-    let settings = if let Some(serialized) = params.settings_json {
+    let mut settings = if let Some(serialized) = params.settings_json {
         serde_json::from_str::<Value>(&serialized).map_err(|error| {
             ErrorData::invalid_params(format!("settings_json is invalid: {error}"), None)
         })?
@@ -1631,6 +1655,12 @@ fn prepare_media_run(
             .cloned()
             .ok_or_else(|| ErrorData::internal_error("Could not load effective settings.", None))?
     };
+    if let Some(work_root) = params.work_root {
+        if !settings.get("paths").is_some_and(Value::is_object) {
+            settings["paths"] = json!({});
+        }
+        settings["paths"]["work_root"] = json!(work_root);
+    }
     let recursive = params.recursive.unwrap_or(true);
     let filename_include_patterns = params.filename_include_patterns.clone().unwrap_or_default();
     let filename_exclude_patterns = params.filename_exclude_patterns.clone().unwrap_or_default();
@@ -2467,7 +2497,7 @@ fn execute_native_check(
 }
 
 /// Metadata-only MKV runs execute natively in Rust and report through the same
-/// job lines the Python engine emitted (`Log:` / `Run report:`).
+/// job lines the native coordinators emit (`Log:` / `Run report:`).
 fn execute_native_metadata_args(
     jobs: &Jobs,
     id: &str,
@@ -2597,6 +2627,72 @@ fn execute_native_youtube_args(
     Ok(i32::from(result.failed > 0))
 }
 
+/// Short-test and full rebuild execute natively in Rust.
+fn execute_native_rebuild_args(
+    jobs: &Jobs,
+    id: &str,
+    args: &[String],
+    echo_to_stderr: bool,
+) -> Result<i32, String> {
+    let options = crate::rebuild_run::RebuildRunOptions::from_engine_args(args)?;
+    let disk_path = options.output_dir.clone().or_else(|| {
+        if options.root.is_file() {
+            options.root.parent().map(PathBuf::from)
+        } else {
+            Some(options.root.clone())
+        }
+    });
+    let resource_jobs = jobs.clone();
+    let resource_id = id.to_owned();
+    let resource_monitor = super::resource_monitor::monitor_process(
+        std::process::id(),
+        disk_path,
+        Duration::from_secs(1),
+        move |snapshot| {
+            if let Ok(mut registry) = resource_jobs.lock() {
+                if let Some(job) = registry.get_mut(&resource_id) {
+                    job.resource_snapshot = Some(snapshot);
+                }
+            }
+        },
+    );
+    let result = crate::rebuild_run::run_rebuild(
+        &options,
+        |progress| {
+            if let Ok(mut registry) = jobs.lock() {
+                if let Some(job) = registry.get_mut(id) {
+                    job.current = progress.current;
+                    job.total = progress.total;
+                    job.last_file = Some(progress.file_path);
+                }
+            }
+        },
+        |line| {
+            if echo_to_stderr {
+                eprintln!("{line}");
+            }
+            record_line(jobs, id, line);
+        },
+        |_| {},
+    );
+    resource_monitor.stop();
+    let result = result?;
+    for line in crate::rebuild_run::closing_lines(&result) {
+        if echo_to_stderr {
+            eprintln!("{line}");
+        }
+        record_line(jobs, id, line);
+    }
+    if let Ok(mut registry) = jobs.lock() {
+        if let Some(job) = registry.get_mut(id) {
+            job.log_path = Some(result.log_path.to_string_lossy().into_owned());
+            job.report_path = Some(result.report_path.to_string_lossy().into_owned());
+            job.result = serde_json::to_value(&result.files).ok();
+        }
+    }
+    Ok(i32::from(result.failed > 0))
+}
+
 fn execute_media_args(
     jobs: &Jobs,
     id: &str,
@@ -2609,70 +2705,7 @@ fn execute_media_args(
     if args.iter().any(|argument| argument == "--metadata-only") {
         return execute_native_metadata_args(jobs, id, args, echo_to_stderr);
     }
-    let mut command = standalone_command("hevc_rebuild", args)?;
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = crate::process_output::spawn_owned(&mut command)
-        .map_err(|error| format!("Could not start the media engine: {error}"))?;
-    let selected_disk_path = args
-        .windows(2)
-        .find(|pair| pair[0] == "--upload-output-dir")
-        .map(|pair| PathBuf::from(&pair[1]))
-        .or_else(|| args.first().map(PathBuf::from));
-    let disk_path = selected_disk_path.map(|path| {
-        if path.is_file() {
-            path.parent().map(PathBuf::from).unwrap_or(path)
-        } else {
-            path
-        }
-    });
-    let resource_jobs = jobs.clone();
-    let resource_id = id.to_owned();
-    let resource_monitor = super::resource_monitor::monitor_process(
-        child.id(),
-        disk_path,
-        Duration::from_secs(1),
-        move |snapshot| {
-            if let Ok(mut registry) = resource_jobs.lock() {
-                if let Some(job) = registry.get_mut(&resource_id) {
-                    job.resource_snapshot = Some(snapshot);
-                }
-            }
-        },
-    );
-    let process_id = child.id();
-    let Some(stderr) = child.stderr.take() else {
-        resource_monitor.stop();
-        return Err("Could not read engine diagnostics.".into());
-    };
-    let stderr_jobs = jobs.clone();
-    let stderr_id = id.to_owned();
-    let stderr_thread = thread::spawn(move || {
-        crate::process_output::read_process_lines(stderr, process_id, |line| {
-            if echo_to_stderr {
-                eprintln!("{line}");
-            }
-            record_line(&stderr_jobs, &stderr_id, line);
-        })
-    });
-    let mut output_result = Ok(());
-    if let Some(stdout) = child.stdout.take() {
-        output_result = crate::process_output::read_process_lines(stdout, process_id, |line| {
-            if echo_to_stderr {
-                eprintln!("{line}");
-            }
-            record_line(jobs, id, line);
-        });
-    }
-    let diagnostic_result = stderr_thread
-        .join()
-        .unwrap_or_else(|_| Err("Engine diagnostic reader panicked.".into()));
-    let status = child.wait();
-    resource_monitor.stop();
-    output_result?;
-    diagnostic_result?;
-    status
-        .map(|status| status.code().unwrap_or(1))
-        .map_err(|error| format!("Could not wait for the media engine: {error}"))
+    execute_native_rebuild_args(jobs, id, args, echo_to_stderr)
 }
 
 fn run_check_job(

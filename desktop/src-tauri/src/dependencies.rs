@@ -614,8 +614,11 @@ fn extract_single_tool_zip(archive_path: &Path, destination: &Path) -> Result<()
         if expanded > MAX_ARCHIVE_EXPANDED_BYTES {
             return Err("The HDR10+ archive exceeded the 512 MiB expanded-size limit.".into());
         }
+        let entry_name = entry
+            .name()
+            .map_err(|error| format!("The verified HDR10+ ZIP archive is invalid: {error}"))?;
         let is_binary = entry.is_file()
-            && Path::new(entry.name())
+            && Path::new(entry_name.as_ref())
                 .file_name()
                 .is_some_and(|name| name == managed_tool_name());
         if !is_binary {
@@ -690,10 +693,30 @@ fn set_executable_permissions(path: &Path) -> Result<(), String> {
 }
 
 fn tool_version(path: &Path) -> Result<String, String> {
-    let output = Command::new(path)
-        .arg("--version")
-        .output()
-        .map_err(|error| format!("Could not run the HDR10+ helper version check: {error}"))?;
+    // Linux can briefly retain ETXTBSY after a staged writable descriptor is
+    // closed. The installer closes the file before this call; a short bounded
+    // retry keeps that close-before-exec invariant reliable on busy filesystems
+    // without masking a persistent execution failure.
+    let mut attempt = 0;
+    let output = loop {
+        match Command::new(path).arg("--version").output() {
+            Ok(output) => break output,
+            Err(error) if error.kind() == io::ErrorKind::ExecutableFileBusy => {
+                if attempt >= 8 {
+                    return Err(format!(
+                        "Could not run the HDR10+ helper version check: {error}"
+                    ));
+                }
+                attempt += 1;
+                std::thread::sleep(Duration::from_millis(2));
+            }
+            Err(error) => {
+                return Err(format!(
+                    "Could not run the HDR10+ helper version check: {error}"
+                ));
+            }
+        }
+    };
     if !output.status.success() {
         return Err(format!(
             "The HDR10+ helper failed its --version check with {}.",

@@ -176,8 +176,8 @@
   <section class="run-settings-group">
     <div class="run-settings-group-heading"><ShieldCheck size={17} /><div><h3>HDR handling</h3><p>Static HDR signaling stays source-aware; these controls cover dynamic metadata and Dolby Vision policy.</p></div></div>
     <div class="run-settings-fields">
-      <label class="run-override-field run-override-toggle" title="HDR10+ is dynamic scene metadata. Turning this off deliberately omits that dynamic metadata from the new encode; static HDR signaling remains source-aware.">
-        <span><input type="checkbox" bind:checked={hdrSet} /> <strong>HDR10+ dynamic metadata</strong><small>preserve and verify it when available</small></span>
+      <label class="run-override-field run-override-toggle" title="When on, HDR10+ is kept automatically: encode-time dhdr10-info if libx265 has HDR10_PLUS, otherwise post-encode hdr10plus_tool inject + remux, then verify. Off deliberately omits dynamic metadata; static HDR signaling stays source-aware.">
+        <span><input type="checkbox" bind:checked={hdrSet} /> <strong>HDR10+ dynamic metadata</strong><small>encode-time or post-inject, then verify</small></span>
         <input type="checkbox" bind:checked={preserveHdr10plus} disabled={!hdrSet} aria-label="Preserve HDR10+ for this file" />
       </label>
       <label class="run-override-field" title="Safe preservation keeps verified Dolby Vision. Verified HDR10 fallback removes Dolby Vision only when the source has a safe HDR10 base. Skip file leaves the source untouched and marks it skipped.">

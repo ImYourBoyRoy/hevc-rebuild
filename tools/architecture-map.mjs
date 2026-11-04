@@ -147,7 +147,6 @@ function analyse() {
 function render({ records }) {
   const totalLines = records.reduce((sum, record) => sum + (record.lines ?? 0), 0);
   const totalBytes = records.reduce((sum, record) => sum + record.bytes, 0);
-  const python = records.filter((record) => record.path.endsWith(".py"));
   const retiringRecords = records.filter((record) => record.retiring);
   const over = records.filter((record) => record.overBudget).sort((a, b) => b.lines - a.lines);
   const directories = [...new Set(records.map((record) => record.directory))].sort((a, b) => {
@@ -170,8 +169,7 @@ function render({ records }) {
   out.push(`| Files | ${records.length} |`);
   out.push(`| Text lines | ${totalLines.toLocaleString("en-US")} |`);
   out.push(`| Size on disk | ${kib(totalBytes)} |`);
-  out.push(`| Python files still present (retirement target) | ${python.length} files / ${python.reduce((sum, record) => sum + (record.lines ?? 0), 0).toLocaleString("en-US")} lines |`);
-  out.push(`| Files flagged retiring | ${retiringRecords.length} |`);
+  out.push(`| Files marked for legacy cleanup | ${retiringRecords.length} |`);
   out.push(`| Files over their advisory line budget | ${over.length} |`);
   out.push("");
   out.push("## Over-budget watchlist");

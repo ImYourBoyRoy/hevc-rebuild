@@ -105,6 +105,8 @@ pub(crate) struct PlanInput<'a> {
     pub shrink: Shrink,
     pub sdr_codec: &'a str,
     pub hdr10plus_loss_accepted: bool,
+    /// When true, a re-encode can keep HDR10+ via post-encode hdr10plus_tool inject.
+    pub hdr10plus_can_inject: bool,
     pub x265_pixel_formats: &'a [String],
     pub file_bytes: u64,
     pub duration: f64,
@@ -355,13 +357,17 @@ pub(crate) fn plan(profile: &Value, input: &PlanInput<'_>) -> Result<OptimizePla
             .and_then(Value::as_bool)
             == Some(true)
     {
-        if input.hdr10plus_loss_accepted {
+        if input.hdr10plus_can_inject {
+            notes.push(
+                "HDR10+ will be preserved after re-encode with hdr10plus_tool inject.".into(),
+            );
+        } else if input.hdr10plus_loss_accepted {
             notes.push("HDR10+ dynamic metadata was not retained after explicit per-file approval; static HDR10/PQ signaling is retained.".into());
         } else if copy_ok {
             notes.push("HDR10+ dynamic metadata is kept by the stream copy; shrinking was skipped because a re-encode would drop it.".into());
             action = Action::Copy;
         } else {
-            return Err("HDR10+ dynamic metadata cannot be retained by a re-encode, and this source cannot be stream-copied. No copy was written; explicitly accept this loss for the individual file to export it.".into());
+            return Err("HDR10+ dynamic metadata cannot be retained by a re-encode without hdr10plus_tool, and this source cannot be stream-copied. No copy was written; install the helper, or explicitly accept this loss for the individual file.".into());
         }
     }
     if action == Action::Encode && copy_ok {
@@ -749,6 +755,7 @@ mod tests {
             shrink,
             sdr_codec: "h264",
             hdr10plus_loss_accepted: false,
+            hdr10plus_can_inject: false,
             x265_pixel_formats: &[],
             file_bytes: 0,
             duration: 100.0,
@@ -860,8 +867,16 @@ mod tests {
         assert!(planned.notes.iter().any(|note| note.contains("HDR10+")));
         options.hdr10plus_loss_accepted = true;
         assert_eq!(plan(&huge, &options).unwrap().action, Action::Encode);
-        let plain = hdr_source(200_000, false);
         options.hdr10plus_loss_accepted = false;
+        options.hdr10plus_can_inject = true;
+        let injected = plan(&huge, &options).unwrap();
+        assert_eq!(injected.action, Action::Encode);
+        assert!(injected
+            .notes
+            .iter()
+            .any(|note| note.contains("hdr10plus_tool inject")));
+        options.hdr10plus_can_inject = false;
+        let plain = hdr_source(200_000, false);
         let planned = plan(&plain, &options).unwrap();
         assert_eq!(planned.action, Action::Encode);
         assert_eq!(planned.encode_bitrate_kbps, 50_000);

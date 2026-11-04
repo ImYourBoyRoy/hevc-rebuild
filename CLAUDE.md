@@ -8,4 +8,8 @@ Before doing anything else in a session:
 2. Run `node tools/tasklist-check.mjs --open` and read the newest `tasklist/*` file (newest wins; it lists what it supersedes).
 3. Read `ARCHITECTURE.md` to locate files before searching the tree.
 
-Key reminders (details live in `AGENTS.md`): Python is being retired, so add no Python parity; write tests before moving code; keep docs, `ARCHITECTURE.md`, `SHA256SUMS` and the tasklist current in the same change; ask the owner when something is ambiguous; commit locally only when asked and never push.
+Key reminders (details live in `AGENTS.md`): the product is Rust-only; do not
+add references to retired runtimes or missing paths; write tests before moving
+code; keep docs, `ARCHITECTURE.md`, `SHA256SUMS` and the tasklist current in
+the same change; ask the owner when something is ambiguous; commit locally
+only when asked and never push.

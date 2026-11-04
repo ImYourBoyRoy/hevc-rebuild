@@ -9,7 +9,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "12.10.1"
+  PNPM_VERSION: "12.16.1"
 
 jobs:
   quality:
@@ -18,9 +18,59 @@ jobs:
     permissions:
       contents: read
 
+  linux-appimage-gate:
+    name: Rebuild Linux AppImage on supported baseline
+    needs: quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libfuse2 \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
+        with:
+          toolchain: stable
+      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: desktop/src-tauri -> target
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+      - name: Rebuild the AppImage
+        working-directory: desktop
+        run: pnpm tauri build --bundles appimage --config src-tauri/tauri.conf.json
+      - name: Inspect and launch the rebuilt AppImage CLI
+        working-directory: .
+        run: |
+          appimage=$(find desktop/src-tauri/target/release/bundle/appimage -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$appimage"
+          file "$appimage"
+          "$appimage" --appimage-extract-and-run json environment
+
   release:
     name: Build ${{ matrix.name }}
-    needs: quality
+    needs: [quality, linux-appimage-gate]
     strategy:
       fail-fast: false
       # Each job contributes to one draft release and one latest.json. Keep

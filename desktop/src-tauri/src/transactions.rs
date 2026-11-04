@@ -114,7 +114,7 @@ fn parse_arguments(args: Vec<OsString>) -> Result<CommitArguments, String> {
     })
 }
 
-fn commit_output(
+pub(crate) fn commit_output(
     source: &Path,
     temporary: &Path,
     final_output: &Path,

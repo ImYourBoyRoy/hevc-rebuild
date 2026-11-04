@@ -111,6 +111,35 @@ pub(crate) fn metadata_text_blacklist_arguments(settings: &Value) -> Result<Vec<
 
 pub(crate) fn settings_arguments(settings: &Value) -> Result<Vec<String>, String> {
     let mut args = Vec::new();
+    // Older saved queue/settings payloads predate the paths section. Preserve
+    // their behavior by treating a missing work-root policy as the new
+    // dynamic default instead of making an otherwise valid run fail.
+    let work_root = settings
+        .get("paths")
+        .and_then(|paths| paths.get("work_root"))
+        .map(|value| {
+            value
+                .as_str()
+                .ok_or("Setting paths.work_root must be text.")
+        })
+        .transpose()?
+        .unwrap_or("auto");
+    let work_root = if work_root.trim().is_empty() {
+        "auto"
+    } else {
+        work_root
+    };
+    if !work_root.eq_ignore_ascii_case("auto")
+        && (work_root.len() > 8192
+            || work_root.chars().any(char::is_control)
+            || !std::path::Path::new(work_root).is_absolute())
+    {
+        return Err(
+            "Setting paths.work_root must be 'auto' or an absolute folder path up to 8192 bytes."
+                .into(),
+        );
+    }
+    args.extend(["--work-root".into(), work_root.to_string()]);
     args.extend([
         "--crf".into(),
         config_integer(settings, "video.crf", 0, 51)?.to_string(),

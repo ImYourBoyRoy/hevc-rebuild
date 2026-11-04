@@ -1,12 +1,12 @@
 # Maintainer notes
 
-These documents support development, validation, and the Python-to-Rust
-migration. They are not required for ordinary installation or use.
+These documents support development, validation, native acceptance, and
+release maintenance. They are not required for ordinary installation or use.
 
 - [Review and release evidence](REVIEW.md)
 - [Architecture notes](TECHNICAL.md)
-- [Rust migration map](RUST_MIGRATION.md)
-- [Python-to-Rust conversion ledger](python-rust-convert.md)
+- [Native Rust architecture record](RUST_MIGRATION.md)
+- [Retired-runtime cleanup record](python-rust-convert.md)
 - [Dependency notes](DEPENDENCIES.md)
 - [Performance measurements](PERFORMANCE.md)
 

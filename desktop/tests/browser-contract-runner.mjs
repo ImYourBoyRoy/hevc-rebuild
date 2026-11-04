@@ -1,13 +1,15 @@
 // Real-browser acceptance; tool-only Playwright dependency stays outside runtime.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer as createTcpServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export async function runBrowserContract(fixture, contract) {
 const desktop = fileURLToPath(new URL('../', import.meta.url));
-const evidence = mkdtempSync(join(tmpdir(), 'hevc-modal-acceptance-'));
-const port = 5181;
+const evidenceRoot = join(desktop, '.native-smoke', 'browser-contracts');
+mkdirSync(evidenceRoot, { recursive: true });
+const evidence = mkdtempSync(join(evidenceRoot, 'acceptance-'));
+const port = await freePort();
 const playwrightCommand = process.platform === 'win32' ? 'pnpm.exe' : 'npx';
 const playwrightPrefix = process.platform === 'win32'
   ? ['dlx']
@@ -56,7 +58,7 @@ function cli(...args) {
 
 try {
   let ready = false;
-  for (let attempt = 0; attempt < 100; attempt++) {
+  for (let attempt = 0; attempt < 600; attempt++) {
     if (server.exitCode !== null) throw new Error(serverLog);
     try { ready = (await fetch(`http://127.0.0.1:${port}`)).ok; } catch {}
     if (ready) break;
@@ -74,6 +76,20 @@ try {
   try { cli('close'); } catch {}
   server.kill('SIGTERM');
   writeFileSync(join(evidence, 'server.txt'), serverLog);
+}
+
+async function freePort() {
+  const probe = createTcpServer();
+  await new Promise((resolve, reject) => {
+    probe.once('error', reject);
+    probe.listen({ host: '127.0.0.1', port: 0 }, resolve);
+  });
+  const address = probe.address();
+  await new Promise((resolve, reject) => {
+    probe.close(error => error ? reject(error) : resolve());
+  });
+  if (!address || typeof address === 'string') throw new Error('Could not allocate a browser contract port');
+  return address.port;
 }
 
 }

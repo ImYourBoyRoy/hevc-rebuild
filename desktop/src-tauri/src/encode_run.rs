@@ -440,10 +440,11 @@ pub(crate) fn run_encode(
         return Ok(resources);
     }
     let stop_requested = spec.stop_file.is_some_and(crate::stop_control::requested);
-    // An abort requests a safe stop before killing the group, so a signal death
-    // with a stop marker is an operator stop; a bare signal (for example the
-    // kernel OOM killer) is a real failure the report must say so about.
-    if killed_by_signal(&status) && stop_requested {
+    // An abort writes the stop marker before terminating the owned process
+    // tree. Unix reports that as a signal; Windows taskkill reports an exit
+    // code. The marker distinguishes either operator action from an unrelated
+    // crash or system kill.
+    if stop_requested {
         return Err(EncodeFailure::Interrupted { resources });
     }
     if killed_by_signal(&status) {
@@ -598,6 +599,23 @@ mod tests {
         crate::stop_control::request(token.path()).unwrap();
         assert!(matches!(
             run_encode(&spec(Some(token.path())), |_| {}, |_| {}),
+            Err(EncodeFailure::Interrupted { .. })
+        ));
+
+        // Windows taskkill reports a nonzero exit code rather than a Unix
+        // signal. An operator stop marker must classify either result alike.
+        let stopped_by_exit_code = vec!["sh".to_string(), "-c".into(), "exit 137".into()];
+        let stopped_spec = EncodeSpec {
+            args: &stopped_by_exit_code,
+            expected_duration: 1.0,
+            output_path: &output,
+            memory_guard_gib: 0.0,
+            disk_guard_bytes: 0,
+            projection_margin_percent: 15.0,
+            stop_file: Some(token.path()),
+        };
+        assert!(matches!(
+            run_encode(&stopped_spec, |_| {}, |_| {}),
             Err(EncodeFailure::Interrupted { .. })
         ));
     }

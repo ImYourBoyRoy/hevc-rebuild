@@ -1,5 +1,6 @@
 import { runBrowserContract } from './browser-contract-runner.mjs';
 async function contract(page) {
+  const baseUrl=new URL(page.url()).origin;
   const navigation = await page.evaluate(() => {
     const entry = performance.getEntriesByType('navigation')[0];
     return { durationMs: entry.duration, domContentLoadedMs: entry.domContentLoadedEventEnd, heapBytes: performance.memory?.usedJSHeapSize ?? null };
@@ -17,7 +18,7 @@ async function contract(page) {
   await page.getByRole('button', {name:'Large queue update',exact:true}).click();
   await page.waitForFunction(() => document.querySelector('output[aria-label="Selected paths"]').textContent.split('|').length === 10000);
   const queueMs = await page.evaluate(start => performance.now()-start, queueStart);
-  await page.goto('http://127.0.0.1:5181');
+  await page.goto(baseUrl);
   const modal = [];
   for (let index=0;index<10;index++) {
     const start = await page.evaluate(() => performance.now());

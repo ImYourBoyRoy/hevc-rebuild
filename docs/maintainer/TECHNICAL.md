@@ -1,288 +1,150 @@
-# HEVC Rebuild v1.3.0 - Technical Notes
-
-## Current acceptance boundary — 2026-10-12
-
-The final `.deb` and AppImage acceptance artifacts were built inside an Ubuntu 24.04.5/glibc 2.39 userspace and passed isolated metadata/install/environment/scan/engine smoke. Packaged WebDriver exercised the real GUI safety dialog and Escape focus return. Screen-reader workflow announcements beyond startup/frame announcements and provider/account paths remain open; Windows/macOS require separate implementation and runtime validation.
-
-## Design goal
-
-Recompress the selected primary video while changing as little else as possible. The tool treats audio/subtitle mutation, silent HDR metadata loss, unsafe Dolby Vision conversion, accidental poster substitution, and replacing an unverified output as hard failures.
-
-## Desktop Studio boundary (1.3.0 preview)
-
-`desktop/` contains the Ubuntu desktop application: Tauri 2 owns native dialogs, narrow typed commands, packaging, and the child-process boundary; Svelte 5 presents environment, library, run, and report workflows. Environment inspection, effective-settings reads, cached APT version reports, report-history reads, Rust-launched per-file CSV appends, read-only GUI/JSON/MCP media discovery/profiling/forecasts, Rust-launched FFprobe/MediaInfo source profiles, live resource sampling/guards, run/retry plans, compressed-stream fingerprints, FFmpeg/x265 argument generation, FFmpeg child supervision, and validated-output commit/rollback are native Rust for app-launched runs. Rust owns calibration eligibility, machine/workload fingerprints, bounded null-output command construction, cache checks, candidate process/resource monitoring, pressure rejection, and candidate selection for Rust-launched jobs. Python adapts native source profiles into existing engine data structures, prepares report values, and keeps the direct-run reference/report writer. Python still owns remaining encode orchestration, Matroska edits, expected global-tag/poster checks, report-value preparation, and final validation-gate policy. Rust `validation.rs` verifies selected-stream identity/count/order, video codec/pixel format/resolution, packet/extradata hashes, track metadata/dispositions/parameters/timing, chapter invariants, duration, and per-encoded-track color/HDR/Dolby Vision output; `hdr_metadata.rs` verifies requested HDR10+ dynamic metadata against the corresponding output stream. Direct engine runs retain Python reference paths until parity closes.
-
-The Rust launcher still starts the fixed `python3 -m hevc_rebuild` compatibility engine for media stages that have not reached parity. Rust-launched jobs inject the executable as a private helper for native discovery, source and selected-video profiles, toolchain version/capability resolution and smoke checks, resource plans/guards, packet verification, FFmpeg argument planning/supervision, selected-stream and per-track HDR validation, report appends, YouTube output validation/install, and validated-output transactions. The Python `probe.py` adapter no longer runs FFprobe/MediaInfo or constructs source profiles for Rust-launched jobs; direct Python runs retain the reference implementation. All supported application JSON actions, including the explicit HDR10+ helper installer, are handled natively in Rust; direct `python3 -m hevc_rebuild.bridge` remains a compatibility/reference entry point. The webview has no general shell capability. Its default Tauri capability grants the folder/file picker only. The bundle copies Python source modules as resources; the `.deb` declares `python3`, and the AppImage still requires system Python 3 for media runs. AppImage's linuxdeploy launcher exports `PYTHONHOME` for its mounted directory despite using host Python, so every Rust-launched Python module command removes that inherited override while preserving the explicit engine `PYTHONPATH`. FFmpeg, MediaInfo, and MKVToolNix are inspected/repaired separately. Check-only requires only FFmpeg and FFprobe, never attempts repair, and reports a missing HDR10+ helper as a non-blocking verification warning. No standalone Python runtime or media toolchain is bundled.
-
-The packaged executable routes `cli` to the existing engine CLI, every documented `json` action to native Rust, and `--mcp` to a local MCP server. Python-backed standalone modes locate bundled engine resources (including the AppImage `APPDIR`, or the explicit `HEVC_REBUILD_ENGINE_ROOT` override) and prepend that directory to `PYTHONPATH` while preserving the caller's working directory. Native JSON scan progress and diagnostics go to stderr while stdout contains one JSON document. CLI mode retains the engine's existing default of full rebuild unless the caller selects check-only or test mode; MCP has an explicit confirmation boundary around output-writing modes.
-
-`desktop/src-tauri/src/environment.rs` is the first native engine-support slice. It checks distro support, effective logical CPUs, RAM/swap (including cgroup-v2 limits), DRM GPU IDs, tool versions, libx265 pixel formats/Dolby Vision option, and YouTube encoder availability. It uses bounded command output and per-command timeouts; checks are read-only. The serialized result keeps the Svelte, JSON CLI, and MCP environment contract. The Python implementation remains for legacy engine callers and parity comparison. See `RUST_MIGRATION.md` for the module-level ownership map and remaining gaps.
-
-`desktop/src-tauri/src/media_scan.rs` is the native read-only media-analysis service for `scan_folder`, JSON `scan`, MCP `start_folder_analysis`, and private discovery/profile helpers used by Rust-launched rebuild and YouTube jobs. It performs bounded local discovery and invokes configured FFprobe plus optional MediaInfo processes; profiles retain raw stream/container/chapter metadata, HDR and color evidence, per-file errors/warnings, memory/YouTube forecasts, and content-tune decisions. Rust-launched rebuilds use `engine-profile` for one full source profile, then `engine-profile-tracks` for only the user-selected video tracks; Python adapts these into `MediaProfile` values for unported stages. App-launched work fails clearly when discovery reaches the 10,000-file cap. `content.rs` reads MediaInfo General genres plus the user's reviewed metadata genres, then mirrors Python's `animation`/`grain`/`none`/`auto` selection rule. The GUI shows genre evidence and the resolved global tune before a run. Python still applies the tune during encoding, so direct CLI and run-time parity remains open. If MediaInfo is absent, FFprobe-only profiles remain visible but the status and tool-readiness checks keep processing blocked. Direct `python3 -m hevc_rebuild` scans remain a compatibility/reference path until fixture parity is accepted. The scanner never writes to input media. Cooperative cancel is shared: GUI `scan_folder` claims the desktop job lock and `cancel_scan` writes the private stop file; JSON `scan --stop-request-file` and MCP `request_safe_stop` on a `folder_analysis` job use the same check between discovered files. Interrupted payloads keep already-analyzed entries and set `interrupted: true`. The saved library queue persists source order plus per-source `entryOrder` and `excludedPaths` so GUI reorder/remove survive refresh.
-
-`desktop/src-tauri/src/library_metadata.rs` owns bounded Rust HTTP clients for Wikidata, Wikipedia, Wikimedia Commons, TVmaze, TMDB, and TheTVDB. Search text is limited to 256 UTF-8 bytes, JSON replies to 8 MiB, returned lists are capped, and each request has a 25-second timeout. The Rust CLI `metadata movie|tv search|details` handles public Wikidata/TVmaze providers and prints JSON. If Wikidata returns no film candidates for a query ending in a year, CLI and MCP search retry without that trailing year; candidates still require review. Four typed MCP tools use those public providers; inputs contain only a title query or reviewed provider ID and never access media files. In the GUI, enabled sources aggregate in parallel: TMDB, Wikidata, and TheTVDB for movies; TMDB, TVmaze, and TheTVDB for series. The user may disable each provider in app-wide Settings; without a saved TMDB token, that provider is skipped and its unavailability is shown while other enabled providers can still return results. `metadata_credentials.rs` stores the user's TMDB Read Access Token and TheTVDB project key/optional subscriber PIN in the OS credential manager. Desktop-only Tauri commands can explicitly reveal a saved value into the Settings window; keep those commands out of CLI/MCP and never log or persist returned secrets in app/browser settings, reports, or queue state. Tauri metadata commands read the token on demand, pass it in an HTTPS Bearer header, and never write it to portable/browser settings, reports, CLI/MCP, or logs. A selected language/region is passed to TMDB and Wikidata; TheTVDB maps supported languages to its language codes, while TVmaze has no language parameter in this integration. Searches send only cleaned title text; filename, year clue, path, local artwork, and media bytes stay on-device.
-
-The metadata workbench receives the current `ScanResult` from the Media Library route. Movie entries and detected TV folders remain explicit library records. Automatic public searches run after scan when enabled and after local artwork inspection; only unique exact normalized title-and-year matches with no same-title year conflict, duplicate provider result, or conflicting provider top result are auto-associated. This deterministic threshold is not a measured 99% precision claim. Full provider details load when the user opens an auto-associated record; all other results remain suggestions. A reviewed remote poster reference is shown in the queue, but image bytes are downloaded only after the user confirms saving to a sidecar or private app cache. The separate `metadata.embed_artwork` setting controls MKV attachment. The editable metadata blacklist cleans local imported title clues before online search, and also cleans proposed rename titles and output metadata; it never changes a source filename during import. Filename include/exclude rules are separate. Manual title search starts from a specific record and remains associated with that file or series. TV scan entries are grouped by detected series folder so provider episode matching and artwork all use the show root. Ambiguous flat/shared folders are not eligible for direct show association. Partial provider failures are shown as warnings and do not discard results from successful sources. Match confidence is a review hint, not probability. Image source/license details remain visible before reuse. TMDB attribution uses its required logo and disclaimer; consult the [official FAQ](https://developer.themoviedb.org/docs/faq), [authentication documentation](https://developer.themoviedb.org/docs/authentication-application), and [API terms](https://www.themoviedb.org/api-terms-of-use). Provider poster previews are restricted to approved image hosts. Locally discovered artwork is read through `library_assets.rs`, checked, and exposed as bounded data URLs; the webview has no general filesystem access for images. The logo is served from TMDB's official static asset URL so it is not bundled in offline builds. TheTVDB requests use user-supplied project credentials after explicit access confirmation and remain GUI-only; series details currently use TheTVDB's default season order. AniList is not integrated while its API terms prohibit data backup/storage; TV/anime episode orders stay subject to explicit review.
-
-`desktop/src-tauri/src/library_organizer.rs` owns bounded local filename/episode-code scans, validated naming templates, exact preview generation, destination conflict detection, CLI plan JSON, and confirmed rename transactions. Movie and TV episode assignments are per-file in the GUI; movie batches can combine different provider records and their edited metadata, while templates persist in native application preferences. The preview ID includes canonical root, paths, requested names, source snapshots, and conflicts; apply rebuilds the plan and requires an exact current ID plus explicit confirmation. Linux uses `renameat2(RENAME_NOREPLACE)`, macOS uses `renamex_np(RENAME_EXCL)`, and Windows uses `std::fs::rename`; same-parent changes are staged before destinations are placed, then the operation attempts rollback on failure. Preview paths account for selected parent-folder moves so a file with the same basename is still shown as changed. Folder scans include bounded examples of possible gaps in the observed `SxxEyy` sequence; this is advisory only because files may use specials or a different episode order, and a season with a multi-episode filename is excluded from the heuristic. The GUI requires explicit acknowledgment before a TV rename when the provider year conflicts with the local filename clue. Matching NFO files (moved as opaque companions, never parsed), file-specific local artwork (basename/poster/cover/fanart/thumb patterns), artwork attribution, common external subtitle, and external audio sidecars follow a video rename with their suffixes intact; all included moves pass through the same preview, collision, and transaction checks. This is an operation-time rollback, not a crash-recovery journal or persistent undo system. Public matching never reads NFO sidecars; `library_assets.rs` inspects adjacent artwork only. Broader embedded-tag matching and advanced TV episode shapes remain future work.
-
-`desktop/src-tauri/src/library_artwork.rs` provides explicitly confirmed GUI, CLI, and MCP poster-save operations. Provider downloads accept only approved HTTPS image hosts; downloads are bounded to 16 MiB per image, targets to 128 folders, and batches to 512 MiB; content type and JPEG/PNG/WebP signatures are checked; and sidecar writes stay in existing directories under the selected root, refuse overwrites, and retain provider attribution beside the image. The HTTP client limits redirects to the same provider host and three hops. Users may instead save a confirmed provider poster into the private app profile's `.cache/artwork` folder, or copy a selected local poster there. Cache files have private Unix permissions, stable content/provider-derived names, and are accepted by Rust's poster override validator only when canonical paths remain inside the application profile. A sidecar save previews target paths before confirmation. The operation-time batch rollback is best-effort and has no crash journal. Sidecar and cache storage do not edit video bytes. The independent `metadata.embed_artwork` setting controls whether a selected poster is normalized to JPEG and attached to a new Matroska file; attachment attribution is copied when available. Disabling embed leaves existing embedded artwork intact and does not delete saved poster images.
-
-Cache inspection reports managed image count/bytes, queue-assigned bytes, unused purgeable bytes, and unrecognized entries. Cache saves and inspection/purge share a mutex; purge also locks queue assignments, verifies the reviewed preview ID against current entry identities, and deletes only recognized provider/local digest-named images and their matching attribution files. Unknown entries remain untouched. CLI exposes `json artwork-cache inspect|purge`; MCP exposes `inspect_artwork_cache` and the explicitly confirmed `purge_unused_artwork_cache`. The local-cache MCP input is an object containing `source_path`. Artwork-cache purge never clears the independent x265 calibration cache.
-
-NFO sidecars are ignored everywhere: the former `library_nfo.rs` preview/apply path and the Python/Rust NFO parsers were removed. Reviewed metadata persists only in the library queue review state and flows into rebuilds through `--file-metadata-overrides-json`; the engine maps the supported fields to global Matroska tags and validates them before commit. Ratings use a 0–10 review scale divided by two for Matroska's 0–5 `RATING`; this remains user metadata rather than an external quality score.
-
-`desktop/src-tauri/src/mcp_server.rs` uses the official Rust MCP SDK and stdio transport. Its typed tools cover native environment/settings inspection, async paginated folder analysis, tracked media runs and safe stop, report/log reading, allowlisted Ubuntu repair, verified HDR10+ helper installation, read-only/check-refresh/exact-confirmation Ubuntu package updates, and reviewed artwork sidecar operations. Environment, folder-analysis, and rebuild calls accept six validated executable overrides through `tool_paths`; rebuild calls also accept per-file tune and FFprobe-index stream-selection maps. Each MCP process owns a bounded job registry; it allows at most two simultaneous read-only analyses and serializes analysis with run/repair/install/update/metadata-write jobs to match the GUI's conflict boundaries. Scan entries are returned in pages capped at 250; recent run output is capped at 120 lines and 4096 characters per line. MCP run actions default to check-only; test/full/YouTube output, metadata writes, and package-changing operations require explicit confirmation fields. The host configuration points directly to `hevc-rebuild-studio --mcp`; no network listener is started.
-
-The native preference file is `settings.json`: for AppImages it is in the writable sibling `<AppImage filename>.data/` directory; for installed `.deb` builds it is under `$XDG_CONFIG_HOME/hevc-rebuild-studio/` (normally `~/.config/hevc-rebuild-studio/`). It stores the appearance, media root, six media-tool executable overrides, scan filters, stop-on-error preference, YouTube preparation settings, and optional saved rebuild profile. Blank tool overrides use PATH; an FFprobe sibling can be discovered beside an overridden FFmpeg. Per-file content-tune and stream-selection maps are run-scoped and are not saved as permanent app defaults. Stream selections use absolute paths and FFprobe indices; Rust validates scope/limits and the Python engine maps and validates the output. AppImage sidecar write failure is surfaced and falls back to per-user XDG config. Existing browser local-storage preferences are migrated once when no native settings file exists.
-
-The Rust `settings.rs` resolver loads and validates built-in defaults, user TOML, saved app profile, then library `.hevc-rebuild.toml`. Tauri, `json defaults`, and MCP `get_effective_settings` share this implementation; Python still parses those layers for the direct engine CLI and Python-backed scans/runs. Parity on isolated default and overlay configs is verified. Run-only edits remain in memory until the user saves them as app defaults. Python user config, logs, and the managed HDR10+ helper also use the AppImage sidecar when portable mode is active; all are kept beside the AppImage without modifying its read-only mounted image.
-
-## Validated-output commit
-
-`desktop/src-tauri/src/transactions.rs` owns the final validated-output commit for Rust-launched engine runs. It requires the temporary and final files to share the source directory, syncs the completed temporary output, refuses occupied final/backup paths, uses `renameat2(RENAME_NOREPLACE)` on Linux, `renamex_np(RENAME_EXCL)` on macOS, and the no-destination-replacement `MoveFileW` API on Windows. It moves the original into `old/`, installs the output, and restores the original if installation fails. Unix directory entries are synced; Windows directory-entry syncing is not implemented yet. If final-directory syncing fails after installation, the helper retains both the new output and original backup. The Python engine still chooses the unique backup filename and only calls this helper after Rust stream validation and Python HDR/Matroska checks pass; direct Python CLI runs retain the existing fallback. This is operation-time rollback, not a crash journal or power-loss recovery mechanism. macOS and Windows branches are not yet compiled or runtime-verified.
-
-## Rebuild-time metadata text cleanup
-
-`hevc_rebuild.metadata` runs text cleanup against the rebuilt temporary Matroska output before validation and transaction commit. Rust-launched jobs use `metadata_text.rs` for the case-insensitive glob rules and conservative release-group suffix policy; direct Python jobs use the matching Python reference. The same user patterns clean filename title clues before online lookup and proposed rename generation, so providers receive the cleaned title; import never changes the source name. Python still extracts, traverses, edits, and reports reviewed metadata values, segment titles, global and track-targeted text tags, track names, chapter titles, and readable encoder/statistics tag text. The policy preserves unmatched text, codec IDs/private data, numeric statistics, and media payloads. The source file is not edited.
-
-Patterns live in the effective `[metadata] text_blacklist` list, in the saved app profile, or as repeated engine CLI flags. MCP callers pass the same list at `settings_json.metadata.text_blacklist`. Matching is case-insensitive substring matching; `*` matches any sequence, including spaces and punctuation. Thus `Movie*Group` matches `movieReleaseGroup` and `Movieshowgroup`. Only the matched substring is removed; duplicate whitespace created where the removal joins text is reduced to one space, while other words, spacing, and punctuation stay unchanged. Patterns are capped at 100 entries and 128 UTF-8 bytes per entry; empty, wildcard-only, controlled-character, and case-insensitive duplicate entries are rejected. The GUI manages one rule per removable chip in **Settings → Title cleanup**, with individual removal and Clear all actions; Save app defaults persists the current effective list.
-
-Each changed field reports its scope, name, before/after values, and matching rules in the per-file CSV, run log, and Reports view. Extraction, parse, or edit failures abort the temporary output before the original can be committed. Rust-launched text policy is native, while XML traversal, Matroska editing, change reporting, and the overall validation gate remain Python-owned; a pre-run review editor is still open.
-
-`desktop/src-tauri/src/environment.rs` is the native environment and toolchain implementation used by the GUI, MCP `inspect_environment`, and `json environment`. It records executable paths and version output for detected tools; saved per-tool overrides may select FFmpeg, FFprobe, MediaInfo, and each MKVToolNix utility. A matching sibling FFprobe is detected beside an overridden FFmpeg unless explicitly selected. It checks supported OS, Python, APT/dpkg prerequisites, FFmpeg and libx265 pixel formats, libx264/AAC encoder availability, MediaInfo, MKVToolNix, Fontconfig, HDR10+ helper, CPU/cgroup memory, and Linux DRM GPU IDs. Its private run resolver applies rebuild versus YouTube requirements and smoke-checks supported encoders for app-launched jobs that disable dependency repair. It reports full-rebuild readiness separately from YouTube export readiness. GPU presence is informational: configured encoders run on CPU. `hevc_rebuild.environment.inspect_environment()` and `deps.resolve_toolchain()` remain direct-engine compatibility paths. Scanning and preflight do not write media or user config.
-
-Ubuntu package version checks are separate opt-in operations and inspect the locally cached APT index. `dependencies.rs` implements this read-only report for the GUI, MCP, and Rust CLI `json apt-updates`; it returns installed/candidate versions, the latest index timestamp, and a stale flag without refreshing or installing anything. The Python bridge retains its equivalent legacy action for compatibility. A stale index is surfaced; refreshing it requires an explicit GUI action, MCP `confirm_refresh=true`, or CLI `json apt-refresh --confirm`. GUI, MCP, and JSON CLI refresh the catalog through Rust. Upgrades require a confirmation list exactly matching the current update report. Before the privileged install, the Rust GUI/MCP command and JSON CLI run an unprivileged APT simulation and require the simulated install set to equal the confirmed allowlisted packages with no removals. The actual `apt-get install --only-upgrade` passes `--no-remove`; the operation does not refresh the index automatically, and no package check or upgrade runs at launch. GUI, MCP, and CLI provide check, refresh, and exact-list upgrade operations; CLI command output is forwarded to stderr so successful JSON results remain parseable on stdout.
-
-### YouTube SDR and HDR upload copies
-
-`hevc_rebuild.youtube` implements a separate output workflow, not a variant of the transactional HEVC rebuild. It accepts one media file or a discovered folder, selects the highest-resolution real video track, transcodes audio to AAC-LC/48 kHz, keeps source frame rate and aspect ratio, and writes MP4 copies into a separate output root. SDR uses libx264. A source with 10/12-bit Rec. 2020 primaries, Rec. 2020 non-constant matrix, and PQ or HLG tags uses 10-bit libx265 Main 10 with matching color signaling. The GUI, CLI, and MCP default to a 1440p target, while source-sized and 4K targets remain available. Targets upscale smaller sources until the short side reaches the selected tier (height for landscape, width for portrait), preserve aspect ratio, and do not downscale a larger source. Wider-than-16:9 sources can exceed standard frame widths. Source subtitles are deliberately omitted from the MP4 and the omission is recorded in the per-file report; upload supported captions separately. Upscaling only changes dimensions. YouTube controls post-upload encoding and playback, so the app makes no codec-tier or quality guarantee.
-
-The default balanced size mode selects an average video-rate target near twice the source's average total file bitrate minus the output AAC tracks, capped by YouTube's published video-rate recommendation for the resulting frame size and frame rate. The `recommended` mode targets YouTube's published recommendation directly. Folder analysis returns size and memory forecasts for both profiles and all resolution choices; memory planning uses the encoded output dimensions, including any upscale. The disk preflight adds a 12% margin. Average bitrate targeting is not a strict output byte ceiling, and actual output varies with content, audio-track count, and encoder behavior. Reports record the estimate, actual output size, selected target, and corresponding YouTube recommendation. The UI explicitly warns when the larger recommended profile is selected.
-
-The desktop app has a dedicated **YouTube prep** sidebar tab. Resolution, bitrate mode, output folder, and the source-size multiplier are editable and persisted with application preferences. The multiplier range is 0.5–4.0, defaults to 2.0, and applies only to Balanced mode; its video bitrate has a 250 kb/s floor and YouTube's published recommendation is the ceiling. GUI per-file and aggregate estimates recalculate as this value changes. CLI uses `--upload-source-multiplier`; MCP `start_media_run` uses `youtube_source_multiplier`. HDR10+ dynamic-metadata loss consent is separate, per-file, run-scoped, defaults to off, and is not stored in preferences. CLI uses repeated `--allow-youtube-hdr10plus-loss <absolute-path>` flags; MCP uses `allow_youtube_hdr10plus_loss_paths`. The multiplier does not create a strict maximum file size.
-
-The baseline workflow requires Python 3, FFmpeg, FFprobe, MediaInfo, libx264, and the AAC encoder. A file detected as HDR additionally requires libx265 to expose `yuv420p10le`; otherwise that file is skipped with a reason. Dolby Vision and incomplete/unsupported HDR color signaling are skipped. YouTube accepts optional HDR10+ dynamic metadata, but this exporter cannot preserve it: an HDR10+ source is skipped unless its absolute path is explicitly approved for metadata loss in this run. The per-file consent is never saved in app settings; approved copies retain static HDR10/PQ signaling, and their reports record the precise loss. The workflow does not require MKVToolNix, Fontconfig, or `hdr10plus_tool`, and it performs no package repair on its own. YouTube's current [HDR requirements](https://support.google.com/youtube/answer/7126552?hl=en-GB) list 720p, 1080p, 1440p, and 2160p, 10/12-bit, Rec. 2020 primaries/matrix, and PQ or HLG. The exporter skips HDR output below 720p. It never moves or overwrites an input: output names are written to a separate `YouTube Uploads` folder by default, existing output files are skipped, and collisions between different source extensions are disambiguated. A temporary MP4 must pass FFprobe checks for video/audio codecs, dimensions, HDR tags where applicable, container, and duration before it is atomically installed. Failures are logged and returned in the normal per-file report.
-
-Folder exports are sequential. For Rust-launched runs, the native helper samples current host CPU/RAM/swap/PSI for `resource_plan.rs`, which chooses starting worker and frame-thread limits; when a guard requests a retry, the native helper calculates the reduced plan. Python starts the private `encode-supervisor` helper, which launches FFmpeg, relays its progress and diagnostics, returns its exit status, and stops/reaps the child on cancellation or adapter disconnect. Python interprets each progress block and sends the supervisor PID, output-volume path, and guard thresholds to the persistent `runtime_guard.rs` helper. Rust samples RAM/swap/PSI, process-tree RSS/VmSwap, CPU/load, temperature, and disk state using the shared `resource_monitor.rs` sampler, then returns the snapshot and its consecutive-sample memory-reserve, active swap-pressure, optional disk-reserve, and projected-output decision. Python maps the snapshot into the current progress/report model and applies a Rust decision through the existing temporary-output stop/retry flow. Direct Python runs keep the original sampler, planner, guard, and FFmpeg process runner. The separate observer publishes its resource snapshots every second to Tauri run events and MCP `get_job.resource_snapshot`. For YouTube exports, it observes the selected destination; if it does not exist yet, monitoring walks to its nearest existing ancestor. Calibration and retry/report orchestration remain Python-owned. The x265-derived profile budget is conservative scheduling guidance for the H.264 path, not an x264-specific peak-RSS prediction; the live guard remains necessary.
-`youtube.rs` is the shared Rust authority for YouTube output dimensions, Balanced/YouTube-guidance bitrate and size estimates, SDR/HDR selection, FFmpeg argument generation, temporary MP4 validation, and no-overwrite output install. `media_scan.rs` supplies native discovery and the same dimension/bitrate rules for read-only forecasts, and `youtube.py` calls the private Rust helpers in Rust-launched GUI/CLI/MCP runs. Python still batches per-file outcomes, chooses destinations, applies output collision/skip policy, handles explicit per-file HDR10+ loss consent and memory retries, and prepares reports; direct Python keeps its compatibility path. Remove that layer only after those workflows have equivalent Rust behavior.
-
-Folder exports are sequential. For Rust-launched runs, the native helper samples current host CPU/RAM/swap/PSI for `resource_plan.rs`, which chooses starting worker and frame-thread limits; when a guard requests a retry, the native helper calculates the reduced plan. Python starts the private `encode-supervisor` helper, which launches FFmpeg, relays its progress and diagnostics, returns its exit status, and stops/reaps the child on cancellation or adapter disconnect. Python interprets each progress block and sends the supervisor PID, output-volume path, and guard thresholds to the persistent `runtime_guard.rs` helper. Rust samples RAM/swap/PSI, process-tree RSS/VmSwap, CPU/load, temperature, and disk state using the shared `resource_monitor.rs` sampler, then returns the snapshot and its consecutive-sample memory-reserve, active swap-pressure, optional disk-reserve, and projected-output decision. Python maps the snapshot into the current progress/report model and applies a Rust decision through the existing temporary-output stop/retry flow. Direct Python runs keep the original sampler, planner, guard, and FFmpeg process runner. The separate observer publishes its resource snapshots every second to Tauri run events and MCP `get_job.resource_snapshot`. For YouTube exports, it observes the selected destination; if it does not exist yet, monitoring walks to its nearest existing ancestor. Calibration and retry/report orchestration remain Python-owned. The x265-derived profile budget is conservative scheduling guidance for the H.264 path, not an x264-specific peak-RSS prediction; the live guard remains necessary.
-
-The standalone Python bridge still returns scan and report data as JSON for compatibility. The Rust executable routes these actions directly to native implementations. Scan settings use the same source precedence without creating a user config during startup or scanning. Run-specific controls are validated in Rust and passed as CLI arguments; they do not rewrite TOML config. A run passes `--no-dependency-repair` and `--skip-update-check`, so startup cannot silently install or update dependencies.
-
-The APT repair command accepts only package names returned by the engine's fixed missing-package map and additionally checks a Rust-side allowlist. After an in-app package review/confirmation it uses `pkexec` to refresh APT metadata and install those packages with `--no-upgrade`. HDR10+ helper installation is a separate explicit Rust action; it downloads only a digest-verified GitHub release, safely reads the expected archive member, smoke-checks the staged executable, and atomically replaces the managed helper. Neither install path runs during environment inspection or folder scan.
-
-Runs stream stdout and stderr through Tauri events, with live Rust resource snapshots alongside them. Safe stop uses the engine's stop-request file: finish the current file, then stop before the next one. `reports.rs` reads CSV history for the GUI, JSON CLI, and MCP from the active engine log directory, including the portable sidecar. The report view only opens canonicalized `.log` paths inside that directory and displays at most the final 1 MB. Python still creates report CSV/log files; logs/reports remain local.
-
-The configured Linux bundle targets are Ubuntu `.deb` and x86-64 AppImage. Both include the Tauri application and Python engine source but depend on system Python 3; media tools remain external. The inspected AppImage includes Ubuntu 26.04.1 GTK/WebKit libraries requiring `GLIBC_2.43`, so it cannot run on Ubuntu 24.04. The packaged app executable requires `GLIBC_2.39`; AppImage must be rebuilt on Ubuntu 24.04 before claiming 24.04 compatibility. The Python engine, dependency manager, environment probes, log paths, and repair commands remain Linux-specific. Windows/macOS need separate implementation and packaged runtime work before support is claimed.
-
-## Default encode
-
-```text
-encoder:                  FFmpeg libx265 (CPU)
-CRF:                      21
-preset:                   slow
-bit depth:                source-exact (8/10/12)
-8 -> 10 promotion:        disabled by default
-chroma:                   source-exact when supported
-content tune:             auto
-animation detection:      embedded Genre / reviewed metadata only
-secondary video:          encode every selected real-video track by default
-HDR10+:                   preserve + verify
-Dolby Vision:             safe Profile-8-native path only
-```
-
-x265's preset model explicitly trades CPU time for compression efficiency; slower presets use more search to obtain lower bitrate at the selected CRF quality. `slow` is the shipped balance while `slower` and `veryslow` remain configurable.
-
-## Bit depth
-
-The tool no longer imposes a 10-bit minimum. It requests the pixel format corresponding to the source bit depth/chroma:
-
-```text
-8-bit  4:2:0 -> yuv420p
-10-bit 4:2:0 -> yuv420p10le
-12-bit 4:2:0 -> yuv420p12le
-```
-
-The same policy applies to 4:2:2 and 4:4:4. Unsupported unusual source depths are rejected rather than rounded silently. `promote_8bit_to_10bit=true` is an explicit user choice; it can change encoder quantization behavior but does not restore information absent from an 8-bit source.
-
-## Content tuning
-
-`content.tune="auto"` uses reliable local metadata only. If embedded general metadata or the user's reviewed metadata contains the genre `Animation`, FFmpeg passes `-tune animation` to libx265. It does not infer animation or grain from filenames. The Media library exposes a run-scoped per-file override: `animation` forces the Animation tune, `none` forces normal tuning, and no override delegates to the saved/global setting and detector. The same map is available to CLI and MCP runs. Reports record the applied tune per file.
-
-`grain` remains a global/manual option because preserving real film grain is bitrate-expensive and should not be guessed. The Media library can customize the selected FFprobe indices per file. Each selected real-video track is encoded to HEVC, so an MKV can carry both a selected 4K and 1080p video stream; selected audio, subtitle, attachment, and data tracks are copied. An explicit map is run-scoped, validated against analyzed file scope/stream IDs, bounded in size, included in FFmpeg maps and Matroska dispositions, and checked against the output. The shared resource plan accounts for all selected video encoders and keeps the live RAM/swap guard active. With no custom map, the saved secondary-video/data policies continue to apply. Synthetic integration tests cover two selected video streams and copied audio/subtitle packet hashes; peak memory on a representative real 4K file remains unverified.
-
-Disk reserve defaults to `0 GiB` as an extra floor. The engine still derives a minimum working-space threshold per source (including a 1 GiB floor and a bounded size fraction), estimates the temporary output, and continuously watches projected output size even when the extra floor is zero. Users may set an additional reserve in resource settings. This avoids presenting a universal 8 GiB value as a media-independent requirement.
-
-## Audio/subtitle invariants
-
-The FFmpeg command globally establishes:
-
-```text
--c copy
-```
-
-and overrides only:
-
-```text
--c:v:0 libx265
-```
-
-The HEVC rebuild has no production audio or subtitle encoder. Validation compares stream counts, codecs, codec parameters, dispositions, language/title metadata, timing, codec-extradata hashes, and compressed packet SHA-256 fingerprints. Any mismatch rejects the rebuilt MKV. Both implementations read FFmpeg framehash output as a stream and fold each packet into a fixed-size digest per stream. Rust-launched GUI, CLI, and MCP runs use `packet_verify.rs` and `validation.rs` for stream comparison, metadata/HDR checks, and fail-before-commit decisions; direct Python engine runs retain the matching reference implementation. Neither path keeps one object per packet or captures all framehash output in memory, so fingerprint state stays bounded as movie duration and bitrate increase. Expected Matroska tag/poster verification and Rust/Python run orchestration parity remain open.
-
-## Multiple video streams
-
-Real video streams are ranked by resolution before default disposition. Attached pictures are excluded. The highest-resolution stream is mapped first. By default, every selected real-video track is encoded to HEVC, so a source with both 4K and 1080p tracks keeps both versions in one MKV. The shared `streams.secondary_video` setting accepts `encode`, `copy`, or `drop`; the library UI exposes all three choices. Per-file track selections remain authoritative for which streams are included, and selected video tracks are encoded in the per-file selection workflow.
-
-## HDR10 / HLG
-
-The selected primary stream is probed with FFprobe and MediaInfo. The encoder preserves/declares color primaries, transfer characteristic, matrix, range, chroma location, mastering-display metadata, MaxCLL/MaxFALL, HDR10 signaling, and HLG alternative-transfer/picture-structure signaling where applicable.
-
-## HDR10+
-
-Dynamic HDR10+ metadata remains an explicit extract/reinsert/verify pipeline:
-
-```text
-selected source HEVC
- -> FFmpeg Annex-B stream-copy
- -> hdr10plus_tool extract JSON
- -> x265 dhdr10-info + dhdr10-opt
- -> output HEVC/MKV
- -> hdr10plus_tool verify
-```
-
-FFmpeg primary-video frame-rate mode is passthrough to avoid casual duplicate/drop behavior that could de-align frame-associated dynamic metadata.
-
-The verifier is a producer/consumer pipeline. `hdr10plus_tool` can legitimately finish and close stdin before FFmpeg has finished writing; FFmpeg then reports `Broken pipe` and a non-zero producer status. v1.2.2 classifies that specific shutdown as expected pipeline behavior instead of surfacing it as a media failure. Unexpected FFmpeg errors are still logged and treated conservatively.
-
-## Dolby Vision - modern path
-
-FFmpeg added native Dolby Vision metadata coding to the libx265 wrapper in 2024. Current capable builds expose the `dolbyvision` encoder option. When safe preservation is selected, HEVC Rebuild requires all of the following:
-
-```text
-DV profile == 8
-RPU present == true
-Enhancement layer present == false
-Base layer present == true
-FFmpeg/libx265 exposes native Dolby Vision coding
-no deinterlacing/filter path that would make RPU/frame alignment unsafe
-```
-
-The encode forces:
-
-```text
--dolbyvision:v:0 1
-```
-
-rather than relying on `auto`. FFmpeg therefore errors if encoded frames do not carry Dolby Vision frame metadata. Output validation then requires a Dolby Vision configuration record, the same profile, RPU presence, no unexpected enhancement layer, and matching base-layer compatibility ID when both sides expose it.
-
-Older Ubuntu/Linux Mint FFmpeg builds may not expose native DV coding. In that case the safe policy skips Dolby Vision instead of using an unverified manual conversion. Profile 5 and Profile 7 are also skipped by the safe policy because their signal/enhancement-layer semantics are not equivalent to simple Profile-8 RPU preservation.
-
-### Dolby Vision evidence and HDR10 fallback
-
-Dolby Vision detection now records the evidence source. An FFprobe `DOVI configuration record` is preferred because it exposes profile, level, RPU, enhancement-layer, base-layer, and compatibility flags. MediaInfo remains a conservative fallback when it explicitly advertises Dolby Vision. Generic text containing only `RPU` is no longer sufficient to label a stream Dolby Vision.
-
-The explicit `hdr10-fallback` path is allowed only when the source is Profile 7 or 8, FFprobe verifies a Dolby Vision base layer, and the selected picture independently identifies as HDR10. The encode intentionally discards Dolby Vision enhancement/RPU data. On FFmpeg/libx265 builds that expose the Dolby Vision encoder option, the fallback forces:
-
-```text
--dolbyvision:v:0 0
-```
-
-because FFmpeg's libx265 option defaults to `auto`. Output validation then requires HDR10 to survive and rejects any output that still identifies as Dolby Vision.
-
-## Config precedence
-
-```text
-built-in safe defaults
- -> ~/.config/hevc-rebuild/config.toml
- -> <media-root>/.hevc-rebuild.toml
- -> command-line arguments
-```
-
-The user config is generated automatically on first run. It uses Python's standard-library TOML parser; no pip dependency is needed.
-
-## Dependency policy
-
-APT manages FFmpeg/FFprobe, MediaInfo, MKVToolNix, fontconfig and CA certificates. The utility checks candidate updates and asks before installing/upgrading.
-
-`hdr10plus_tool` is managed from the official quietvoid GitHub release when not available locally. The release asset must expose a SHA-256 digest/sidecar; unverifiable downloads are rejected.
-
-The utility capability-tests libx265 and its advertised 8/10/12-bit formats. Dolby Vision is enabled only when `ffmpeg -h encoder=libx265` explicitly exposes the native option.
-
-## Metadata/artwork
-
-Automatic post-scan lookup first runs bounded local artwork inspection. For records without a reviewed association, MetadataWorkbench searches enabled providers and emits per-file progress and top-result suggestions. The persistent media queue validates and atomically saves only the suggestion kind/status, title/year/provider, one HTTPS artwork reference, and a bounded error string; it never stores credentials or image bytes. The UI debounces intermediate writes, flushes the completed batch, and restarts only missing or interrupted lookups. Opening a saved suggestion fetches detailed alternatives for that one movie or series record. Suggestions remain separate from reviewed metadata assignments. Native provider/network and restart acceptance are not yet verified.
-
-Reviewed metadata fields are merged into Matroska global tags while unrelated existing global tags are retained. Before validation, a rebuild extracts the temporary MKV's tag and chapter XML and checks textual global/track-targeted tag values, track names, and chapter titles for clear release-group suffixes. Rust supplies the bounded glob/suffix cleanup policy to Rust-launched jobs; Python still traverses and edits XML/Matroska metadata and records exact before/after values in logs and the per-file CSV report. A release/codec marker must precede a recognized group suffix; ordinary titles and technical tokens such as `x265` remain unchanged. Extraction, parse, or edit failures abort the temporary output before the source transaction can commit. Expected-tag/poster validation and end-to-end mutation/report parity remain open.
-
-The **Identify & organize** workbench uses the active scan results. Rust's `library_metadata.rs` accepts only a bounded filename or folder basename and extracts a cleaned title plus optional year/range and certification clues. Movie lookup can search every analyzed file, and TV lookup can search every unambiguous detected series folder; for a generic library root, a common prefix before an episode's `SxxEyy` marker can supply the series title. Duplicate cleaned-title requests are reused. Enabled GUI sources are queried together: TMDB/Wikidata/TheTVDB for movies and TMDB/TVmaze/TheTVDB for TV. TMDB and TheTVDB credentials come from the OS keyring; if absent, either provider is skipped with a setup warning and a direct Settings link. Partial source errors remain visible while successful results are retained. Searches send only the cleaned title; year and certification hints, filenames, paths, ratings, local artwork, and media bytes stay on-device. Manual searches start from a specific movie or series record; candidate matches remain review-only and open against that record's editable assignment. Movie assignments independently edit title/year/certification, short and long text, genres, rating, and poster. Series text and episode assignments remain tied to their detected show folder. Reviewed metadata is saved in the library queue state; media bytes change only in a later confirmed rebuild. Artwork previews are integrated; embedded-tag matching remains open.
-
-No bundled/default artwork exists. Users can save reviewed poster candidates as sidecars: `<movie-stem>-poster.<ext>` beside a movie; `folder.<ext>` and `poster.<ext>` at a series root; and `poster.<ext>` plus `SeasonXX.<ext>` in a season folder, with `season<num>-poster.<ext>` at the series root. Specials use `season-specials-poster.<ext>` in the season folder and series root. The target names follow [Plex](https://support.plex.tv/articles/200220717-local-media-assets-tv-shows/), [Jellyfin](https://jellyfin.org/docs/general/server/media/shows/), and [Kodi](https://kodi.wiki/view/Artwork/Season) local-art conventions; Plex documents JPG, JPEG, PNG, and TBN formats, while the save operation preserves the provider image's detected format. The rebuild also recognizes the original season-poster naming forms. It normalizes matching local art to JPEG and attaches it to the output MKV; an adjacent `.attribution.json` file contributes source/license details to the Matroska attachment description. Without matching local art, copied embedded artwork remains untouched. Reviewed metadata can add supported movie/show/episode fields to the new output's global tags, which are checked during validation. Some metadata fields and track/season-targeted tag structures remain unsupported and remain in the local planning notes.
-
-## Transaction
-
-```text
-source untouched
- -> encode hidden temporary MKV
- -> apply tags/artwork and scrub release-group metadata text
- -> validate all invariants
- -> fsync temporary output
- -> move source to old/
- -> atomically install rebuilt file
-```
-
-A collision in `old/` or final output aborts. If final installation fails after moving the source, rollback is attempted immediately.
-
-## Adaptive CPU, memory, storage, and Linux pressure policy
-
-`auto` mode begins at `available_logical_cpu_count - reserved_cpu_threads`; the shipped default reserves one logical thread. `unlimited` skips that CPU reserve, but neither mode skips the memory cap. Per-file planning uses current `MemAvailable`, effective total memory, cgroup-v2 allowance, memory PSI, dimensions, target bit depth, chroma, and the configured x265 preset. x265's own documentation notes that each frame encoder allocates a large amount of memory and that over-allocation can reduce performance; the planner therefore caps frame and worker concurrency before starting. `max_worker_threads` and `frame_threads` remain operator caps.
-
-Memory safety uses Linux `MemAvailable` plus finite cgroup-v2 allowance when present. The active reserve is the larger of the configured GiB floor and percentage of usable RAM. The default is `max(3 GiB, 8%)`. The profile-scaled scheduling model is `pixels / 1080p-pixels × max(source/target bit depth, 8)/8 × chroma factor × preset lookahead factor`; chroma factors are 1.0 for 4:2:0, 1.25 for 4:2:2, and 1.5 for 4:4:4. The lookahead factor uses documented x265 preset depths normalized to the `slow` preset. One profile unit is budgeted per concurrent frame and 0.25 unit per worker; only 75% of post-reserve headroom is planned (50% when memory PSI full/10s reaches 1%). These constants are intentionally transparent heuristics, not a claim about actual peak RSS. The UI, CLI info-only output, JSON folder scan, and MCP folder analysis expose the starting forecast, headroom, concurrency, risk, model warning, and first reduced-thread retry plan. If the current plan is already at one worker and one frame thread, the scan reports that no lower-parallelism retry is available. Before each Rust-launched file, the native helper samples current host state and asks the shared Rust planner for the starting plan; direct Python runs compute the same policy in Python. The Rust-launched helper also calculates the reduced plan used after a guard-triggered retry. Python applies the selected thread counts to FFmpeg and remains the process supervisor. If no lower plan exists, the engine fails without repeating the same plan. CRF, preset, tune, bit depth, chroma, HDR metadata, and stream-copy policy remain unchanged.
-
-Swap occupancy and system-wide swap-in/out rates are monitored separately from fast-memory headroom. Occupancy alone is not treated as active pressure because pages can remain in swap after a workload has ended. The active FFmpeg process's `VmSwap` is also recorded from `/proc/<pid>/status` (anonymous private swap; shared-memory swap is excluded). During an encode, sustained system-wide swap-in of at least 4 MiB/s together with memory PSI `full avg10` of at least 1% for five consecutive FFmpeg progress samples triggers a temporary-output retry with fewer x265 workers/frames. The traffic/PSI signals can reflect other processes; they are a conservative host-health response, not encoder-attributed I/O. This version does not create, resize, or configure swap: swapfile changes need explicit host authorization, disk-space checks, rollback handling, and can turn an OOM into severe paging. The forecast deliberately does not claim a precise swap size required for a media file.
-
-### Short x265 hardware calibration
-
-The v1.2.6 archive's calibration capability is restored in the current engine and exposed through the desktop settings, CLI, reports, and typed MCP run settings. It is a pre-encode optimization layer, never a replacement for profile-aware planning or live pressure protection.
-
-`auto` (default) calibrates 4K-or-larger media or files meeting the configured size threshold when there is no matching result from the last 24 hours. `ask` reuses a fresh result and prompts only for an uncached eligible file when an interactive terminal is available; non-interactive GUI/MCP runs skip uncached calibration. `always` bypasses the cache and calibrates every processed file while CPU threading is `auto`, so it can add repeated overhead. `off` disables benchmarks. Check-only scans never benchmark. Calibration reads one selected primary-video section, seeks to roughly 25% of the duration, and sends output to FFmpeg's null muxer. It creates no media file and does not edit the source. Defaults compare at most two layouts and encode three source seconds per candidate.
-
-Candidate layouts begin with the current profile-aware plan, then reduce frame and/or worker concurrency. They cannot exceed the current memory-derived/manual thread caps. Each candidate uses the effective CRF, preset, tune, target pixel format, static HDR signaling, HDR10+ metadata when enabled, Dolby Vision policy, and deinterlace path. Per-process RSS, available memory, memory PSI, and system swap-in/out are sampled during the short run. If available memory stays below the configured reserve, or sustained swap-in coincides with full-memory PSI stalls, the candidate process is stopped and rejected. A healthy candidate within the configured throughput tolerance of the fastest result is chosen by lower peak RSS first. Only worker/frame counts can change; quality, HDR, and stream-copy behavior remain fixed.
-
-The cache key includes the FFmpeg/libx265 executable fingerprint, CPU identity and available logical-thread count, effective memory, the base thread plan, media resolution/precision/chroma/HDR/interlace profile, and encode/calibration settings. Cache entries are written atomically with user-only file permissions, pruned to recent entries, and stored under the AppImage writable sidecar when portable mode is active or under the user's XDG cache otherwise. A cached layout is bounded by the freshly recomputed plan; the live RAM reserve and swap/PSI retry stay authoritative throughout the real encode. Calibration is skipped when memory telemetry is missing or already below the configured reserve.
-
-Measurements are short, content-dependent samples and are not peak-RAM guarantees for an entire film. The runtime guard remains necessary because later scenes, x265 builds, other applications, and system memory can differ. Suggested 8 GiB and 16 GiB swap configurations remain optional system-level advice, not per-file safety guarantees; automatic swap creation/resizing is not implemented.
-
-Disk safety has two layers. Preflight requires enough space for a hard working floor plus the configured free-space reserve and calculates a conservative temporary-output budget. Because CRF output size is not knowable in advance, falling below the conservative budget is a warning rather than an automatic rejection when the hard floor is still safe. During encoding the actual free space is sampled every FFmpeg progress interval. Once enough media has been encoded to make projection meaningful, current output size and media progress are used to estimate remaining bytes; the temporary encode is terminated before that projection can consume the disk reserve.
-
-The original is deliberately retained under `old/` after success, so a full rebuild increases filesystem usage by approximately the new output size until the operator deletes the backup. Storage calculations and documentation explicitly account for that behavior.
-
-Linux Pressure Stall Information from `/proc/pressure/{cpu,memory,io}` is sampled. CPU utilization is sampled from `/proc/stat`; swap-in/out rates use deltas from `/proc/vmstat` page counters and the host page size. High CPU utilization is normal for x265. Memory PSI combined with sustained swap-in activity can trigger a lower-parallelism retry; other PSI and swap-rate readings remain diagnostic. Temperature is displayed when a plausible Linux thermal/hwmon sensor is available.
-
-System-wide PSI semantics and the optional cgroup-v2 PSI interface are documented in the [Linux kernel PSI guide](https://docs.kernel.org/accounting/psi.html). The [proc_vmstat(5) reference](https://man7.org/linux/man-pages/man5/proc_vmstat.5.html) documents the swap counters, and [proc_pid_status(5)](https://man7.org/linux/man-pages/man5/proc_pid_status.5.html) documents per-process memory fields.
-
-A child return code of `-9` remains SIGKILL, not proof of OOM. `journalctl -k`/`dmesg` are checked for recent kernel OOM evidence. Only a supported kernel record upgrades the diagnosis to OOM. Otherwise the log records an unexplained external SIGKILL. Every file failure also writes a `FAILURE SUMMARY` containing file, processing phase, exception, resource snapshot, and confirmation that the original was not committed by the failed operation.
-
-## Batch and terminal UI
-
-Files are always processed sequentially, one encode at a time. The GUI uses the explicit global selection when present. Without a selection, new and queued files for the chosen mode run by default; that mode's completed, failed, skipped, interrupted, and needs-review results stay held until the user selects them. It groups work by source and runs each group using its stored recursive/minimum-size/settings snapshot. Canonical paths are deduplicated, and stop-after-current or stop-on-error applies across the group sequence. The JSON CLI `queue-run` and MCP `start_media_queue_run` accept 1–500 explicitly selected source runs, require one common mode, reject duplicate canonical files and roots, and preflight metadata/test/full output targets across the entire selection before execution. Each source retains its own settings and per-file overrides; these modes use one shared default output folder while per-file destinations may differ. Stop-on-error defaults to true. CLI runs synchronously with progress on stderr and a machine-readable final result on stdout; MCP runs in the background, supports `get_job`, and can stop safely after the active file/source. The shared Rust `output_targets.rs` planner checks destination paths and collisions across all selected queue sources before launch; the JSON CLI and MCP expose the same read-only planner. The engine repeats its authoritative per-source preflight before writing. Per-file queued/active/result state persists, active files become interrupted after restart, and later files remain queued. Queue result rows expand to show the full saved message, result paths, and report status; diagnostic loading is bounded to the final 1 MB, while report navigation opens the report and its companion log. Row actions select a failed/skipped item for a manual retry or save a user skip without changing other per-file results. The GUI gates metadata-only, test, and full reruns for interrupted or needs-review items behind saved-report review and a read-only FFprobe inspection of the recorded output (or source path if no output is recorded); it permits an explicit completion decision only with a successful report row and readable recorded output. The JSON CLI and MCP expose a compact paged queue view and a validated selection-only update that preserves other saved decisions. Single-root and multi-source MCP runs record matching queue entries and synchronize final per-file state from each source’s exact CSV report; missing rows remain `needs_review`, and read-only queue inspection preserves current `running` state. CLI/MCP batch retries of interrupted or uncertain entries require explicit path acknowledgment after report/output review. Native close/reopen and GUI report association remain unverified. A run-level card reports queue count, source bytes, CPU topology, memory reserve, and current filesystem capacity. Each file gets a compact card with source/video/HDR characteristics, x265 settings, copied stream counts, CPU plan, RAM reserve and forecast level, and storage budget. Folder scans return the same forecast per file for GUI, JSON CLI, and MCP consumers.
-
-FFmpeg's supported machine-readable `-progress pipe:1` feed drives a two-line in-place live HUD. The first line reports current file number, file percentage, queue percentage-by-file-count, speed and ETA. The second reports CPU utilization, available RAM, FFmpeg/x265 RSS, free disk space, temperature when available, and meaningful I/O pressure. Raw FFmpeg/x265 stderr is drained concurrently to the debug log, avoiding pipe deadlocks and terminal spam. Non-TTY output uses sparse progress milestones rather than carriage-return animation.
-
-## Upstream references reviewed for v1.2.4
-
-- FFmpeg progress and global options: https://ffmpeg.org/ffmpeg.html
-- FFmpeg codecs / native Dolby Vision encoding: https://ffmpeg.org/ffmpeg-codecs.html
-- x265 preset option mapping and lookahead: https://x265.readthedocs.io/en/master/presets.html
-- x265 frame-thread memory and concurrency notes: https://x265.readthedocs.io/en/master/threading.html
-- x265 threading, presets, tunes and HDR options: https://x265.readthedocs.io/
-- Linux PSI pressure accounting: https://docs.kernel.org/accounting/psi.html
-- Linux CPU accounting via `/proc/stat`: https://docs.kernel.org/admin-guide/cpu-load.html
-- hdr10plus_tool: https://github.com/quietvoid/hdr10plus_tool
-- dovi_tool behavior/reference: https://github.com/quietvoid/dovi_tool
-- MKVToolNix/mkvpropedit: https://mkvtoolnix.download/doc/mkvpropedit.html
-
-## Maintenance domain boundaries (2026-10-12)
-
-GUI/MCP validated job arguments share `run_arguments.rs`; pure settings translation is `settings_arguments.rs`. Python validated-output transactions are in `hevc_rebuild/transactions.py`, re-exported through the previous app functions. Successful scan profiles use bounded process-local `profile_cache.rs`, keyed by canonical source/tool identity, file metadata, effective settings, versions and policy revision; live forecasts remain uncached. See the current owner table in `RUST_MIGRATION.md` and measured limits in `PERFORMANCE.md`. No ownership change retires a compatibility path.
+# Technical architecture
+
+This document describes the current product, not the retired implementation
+that preceded the native migration. HEVC Rebuild Studio is a Tauri 2 desktop
+application with a Svelte frontend and a Rust library/binary. The GUI, JSON
+CLI, installed CLI, and stdio MCP server enter the same Rust services.
+
+## Runtime topology
+
+- desktop/src/routes/+page.svelte coordinates the desktop shell, page state,
+  queue events, and Tauri listeners. Reusable UI belongs in desktop/src/lib/.
+- desktop/src-tauri/src/lib.rs owns Tauri commands and shared job dispatch.
+- desktop/src-tauri/src/main.rs routes GUI launch, CLI/JSON actions, MCP, and
+  the opt-in agent-control client mode.
+- Rust modules own discovery, profiles, settings, resource planning, process
+  supervision, HDR policy, validation, transactions, reports, and queue state.
+- desktop/src-tauri/tauri.conf.json contains no script-runtime bundle or
+  hidden media engine. External media tools are resolved explicitly from
+  configured paths or the host PATH.
+
+## Shared interfaces
+
+The GUI, CLI, and MCP contracts share:
+
+1. settings precedence and validation;
+2. dynamic source-specific work-directory resolution;
+3. bounded media discovery and FFprobe/MediaInfo profiles;
+4. resource forecasts and quality-neutral retry plans;
+5. owned process groups and safe stop/abort behavior;
+6. stream, color, HDR, timing, metadata, and payload validation;
+7. no-overwrite output installation and rollback;
+8. report rows and retained failure artifacts; and
+9. queue persistence and recovery.
+
+A client-specific adapter may translate arguments or presentation, but it must
+not reimplement policy or silently select a different work root.
+
+## Work-directory policy
+
+settings.rs resolves paths.work_root = "auto" independently for each source.
+The resolver tries:
+
+    <source-folder>/.hevc-rebuild-work/
+
+and records the source-adjacent path when it is writable. An absolute saved
+path or HEVC_REBUILD_WORK_ROOT is an explicit shared-root override. If the
+adjacent directory cannot be created, the resolver uses the private app-state
+work/ folder and reports the fallback. json work-directory, the GUI Settings
+page, and MCP inspect_work_directory expose the result before a mutating
+operation. Temporary outputs never default to /tmp.
+
+## Media and rebuild pipeline
+
+media_scan.rs discovers bounded candidates, profiles streams and chapters,
+and supplies the same source facts to the GUI, JSON, MCP, and native run
+coordinators. encode_plan.rs, encode_supervisor.rs, and rebuild_run.rs
+construct and supervise selected-track rebuilds. metadata_run.rs handles
+metadata-only remuxes. run_coordinator.rs handles shared job lifecycle,
+progress, reports, cancellation, and retained failures.
+
+validation.rs verifies selected stream identity and order, copied payload and
+extradata fingerprints, codec parameters, timing, dispositions, chapter
+invariants, color, HDR10/HLG mastering/light levels, Dolby Vision policy, and
+HDR10+ output state. transactions.rs installs only validated outputs and
+preserves the original until the no-overwrite transaction succeeds.
+
+## HDR policy
+
+- SDR and static HDR10 follow the normal native encode/remux path.
+- HDR10+ preservation prefers libx265 encode-time dhdr10-info when the
+  capability is present.
+- Otherwise hdr_metadata.rs extracts dynamic metadata, the encode preserves
+  static HDR signaling, and the helper injects metadata before the final
+  remux. Output verification is mandatory.
+- The helper is optional for ordinary SDR/static HDR10 jobs, but a job that
+  promises HDR10+ preservation fails closed when dynamic metadata cannot be
+  verified or preserved.
+- Dolby Vision is skipped by default. hdr10-fallback is an explicit policy
+  and must produce a validated HDR10/HDR10+ result.
+
+The same policy is used for Matroska rebuilds and YouTube MP4 re-encodes.
+
+## YouTube pipeline
+
+youtube.rs owns source-aware dimensions, bitrate/size policy, color/HDR
+routing, FFmpeg arguments, temporary MP4 validation, and no-overwrite
+installation. youtube_optimize.rs and youtube_run.rs add the Optimize policy
+and batch lifecycle.
+
+Upscale can create a separate 1440p or 4K upload copy from a smaller source.
+That changes the upload resolution tier used by YouTube's processing policy;
+it does not recover detail or guarantee a particular viewer bitrate. Optimize
+keeps suitable 1440p/4K/8K sources and re-encodes only when its shrink and
+quality checks permit it. Every export is separately validated and the source
+is untouched.
+
+## Queue, reports, and recovery
+
+media_queue.rs persists scan snapshots, selections, reviewed metadata, posters,
+output plans, and per-file outcomes. Active stages are converted to
+interrupted on reopen. Interrupted or needs-review items require explicit
+report/output review before a mutating retry.
+
+reports.rs reads and appends fixed-schema rows in the private log directory.
+Late failures retain .error.mkv and .error.log; early temporary files are
+removed. process_output.rs and the native supervisors own child groups and
+must terminate descendants on explicit stop or read failure.
+
+## Maintainer walkthrough control
+
+With HEVC_REBUILD_AGENT_CONTROL=1, agent_control.rs starts a private per-user
+local socket on Unix or named pipe on Windows. It accepts bounded JSON-line
+requests for state, snapshot, press, and screenshot. The frontend handles key
+dispatch and returns bounded page/DOM text. The channel does not execute
+commands, is disabled by default, and is not required by normal users.
+
+Native development must be launched through `pnpm tauri dev` from `desktop/`.
+The Tauri dev URL is `http://127.0.0.1:1420`, matching Vite's bind address;
+raw `cargo run` does not launch the frontend dev server. Maintainer smoke
+profiles may set `HEVC_REBUILD_PORTABLE_DATA_DIR` to a project-local folder so
+the endpoint file and recyclable state do not use `/tmp`. Linux uses an
+abstract local socket name recorded in that project-local endpoint file;
+Windows uses a named pipe, and other Unix hosts use the app-state socket path.
+Endpoint cleanup checks the owning PID before removing the record, preventing
+an older process from deleting a newer process's endpoint during a restart.
+
+Keyboard acceptance uses F8 Help; Alt+1 Library; Alt+2 Run; Alt+3 YouTube;
+Alt+4 Settings; Alt+5 Reports; Alt+6 Help; Alt+M metadata; Alt+S
+stop-after-current; Alt+Shift+S stop-now confirmation; and Ctrl+Enter start.
+Native pickers, OS drag/drop, screen-reader announcements, close/reopen, and
+live stop-now still need direct native-window evidence.
+
+## Current validation boundary
+
+Automated Rust and frontend checks prove contracts, compilation, and static
+behavior. They do not prove a clean installer, supported-glibc AppImage
+rebuild, native Windows/macOS runtime behavior, real-media acceptance on every
+HDR class, screen-reader workflow announcements, or an installed updater.
+Those remain release gates and are tracked in the newest sibling tasklist.
+
+## Useful checks
+
+~~~bash
+pnpm --dir desktop check
+pnpm --dir desktop check:tsgo
+pnpm --dir desktop build
+cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked --lib
+cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked --bin hevc-rebuild-studio
+~~~

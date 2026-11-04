@@ -22,17 +22,18 @@ Only host integration varies by operating system:
 
 | Concern | Linux | Windows | macOS |
 | --- | --- | --- | --- |
-| Tool setup | APT review/repair in the desktop; Python setup fallback | `winget` setup through the standalone engine | Homebrew setup through the standalone engine |
-| Required media tools | FFmpeg/FFprobe, MediaInfo, MKVToolNix, Python 3, HDR10+ helper | Same capabilities, resolved from PATH or selected `.exe` paths | Same capabilities, resolved from PATH or selected paths |
+| Tool setup | APT review/repair in the desktop | `winget` setup through the desktop | Homebrew setup through the desktop |
+| Required media tools | FFmpeg/FFprobe, MediaInfo, MKVToolNix; HDR10+ helper when dynamic HDR10+ preservation is needed | Same capabilities, resolved from PATH or selected `.exe` paths | Same capabilities, resolved from PATH or selected paths |
 | HDR10+ helper | Verified upstream `.tar.gz` | Verified upstream `.zip` | Verified universal macOS `.zip` |
 | Settings/profile paths | XDG config/state, or writable AppImage sidecar | Windows application/local-data folders | `Library/Application Support` and `Library/Logs` |
 | Package targets | `.deb`, AppImage | NSIS | `.dmg`, `.app` |
 | Resource telemetry | Linux metrics where available | Portable metrics; unavailable fields are reported as unknown | Portable metrics; unavailable fields are reported as unknown |
 
-The media engine still uses a Python compatibility layer. Python 3 is a
-published host requirement until the remaining orchestration, report, metadata,
-validation, HDR, and transaction stages are ported and parity-tested in Rust.
-This is a runtime dependency decision, not an operating-system restriction.
+All GUI, CLI, JSON, and MCP media workflows use the shared native Rust
+coordinators. No secondary scripting runtime is required. The HDR10+ helper remains an
+optional host capability for sources that need dynamic-metadata preservation;
+the engine fails closed for those files if the helper is absent, while SDR and
+static HDR10 media continue through their normal paths.
 
 ## Release evidence
 

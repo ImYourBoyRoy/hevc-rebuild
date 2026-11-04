@@ -6,10 +6,11 @@ the release-only config enables them in CI.
 
 ## Published packages
 
-`v1.3.0` is published at
-https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.3.0. Its release
-workflow completed the source, native compile, package, updater-signature, and
-manifest checks before publication.
+`v1.3.0` is the currently published release. The `v1.4.0` release candidate
+contains the Rust-only migration, dynamic per-source work-directory discovery,
+native HDR10+ validation, YouTube preparation updates, and cross-platform
+stop-now reporting. Publish it only after the `v1.4.0` workflow completes and
+its draft assets and updater manifest are verified.
 
 The release workflow produces:
 
@@ -68,14 +69,15 @@ prepared.
 ## Release steps
 
 1. Run the local checks from the root and `desktop/src-tauri` documented in the
-   root `README.md`.
+   root `README.md`, including the interaction-map and waterfall checks.
 2. Update the synchronized project version in `VERSION`, `package.json`,
    `desktop/package.json`, `desktop/src-tauri/Cargo.toml`, and
    `desktop/src-tauri/tauri.conf.json`.
 3. Update release notes and commit the version change.
-4. Create and push a matching tag such as `v1.3.1` only after the remote and
+4. Create and push a matching tag such as `v1.4.1` only after the remote and
    GitHub secrets are ready.
-5. The workflow runs CI, builds the four native release lanes, creates a draft
+5. The workflow runs CI, performs a clean native source-install check, rebuilds
+   and launches a Linux AppImage CLI on Ubuntu 24.04/glibc, then builds the four native release lanes, creates a draft
    GitHub Release, uploads the signed `latest.json`, and verifies that all
    updater URLs map to uploaded assets and that no MSI asset exists.
 6. Inspect the draft assets and publish the draft manually. Publishing the
@@ -92,3 +94,8 @@ the signed `latest.json` manifest was verified against the uploaded assets.
 This does not replace clean installer installation, native GUI walkthroughs,
 real-media, accessibility, Apple signing/notarization, or live updater
 installation evidence.
+
+The Linux source installer and AppImage jobs are source/package gates. They do
+not by themselves prove a clean install of the published AppImage, deb, NSIS,
+or DMG, nor do they prove native dialogs, drag/drop, screen readers, or live
+media behavior. Those remain explicit acceptance steps on the supported hosts.

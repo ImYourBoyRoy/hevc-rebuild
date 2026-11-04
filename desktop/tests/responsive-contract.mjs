@@ -1,9 +1,10 @@
 import {runBrowserContract} from './browser-contract-runner.mjs';
 async function contract(page){
+  const baseUrl=new URL(page.url()).origin;
   const widths=[360,390,620,800,1024,1440],themes=['light','dark','phosphor','ion','breach'];
   const results=[];
   for(const fixture of ['home','help','library','run','youtube','support','settings','repair','recovery','rename']){
-    await page.goto(`http://127.0.0.1:5181/?fixture=${['settings','repair','recovery'].includes(fixture)?'support':fixture==='help'?'home':fixture}`);await page.locator('main').waitFor();
+    await page.goto(baseUrl+'/?fixture='+(['settings','repair','recovery'].includes(fixture)?'support':fixture==='help'?'home':fixture));await page.locator('main').waitFor();
     if(fixture==='home')await page.getByRole('checkbox',{name:'Populated queue'}).check();
     if(fixture==='help')await page.getByRole('button',{name:'Toggle Home/Help'}).click();
     if(['settings','repair','recovery'].includes(fixture)){await page.getByRole('combobox',{name:'Support view'}).selectOption(fixture);if(fixture!=='settings')await page.getByRole('button',{name:'Open support review'}).click();}

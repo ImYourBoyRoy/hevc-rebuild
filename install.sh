@@ -3,101 +3,76 @@ set -euo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="$(cat "$HERE/VERSION" 2>/dev/null || echo unknown)"
-echo "Installing HEVC Rebuild v$VERSION..."
-DEST="${XDG_DATA_HOME:-$HOME/.local/share}/hevc-rebuild/app"
-BIN_DIR="$HOME/.local/bin"
-ASSUME_YES=0
+BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
+DEST="$BIN_DIR/hevc-rebuild-studio"
+
+usage() {
+  cat <<'USAGE'
+Usage: ./install.sh [--assume-yes]
+
+Builds the native Rust/Tauri application from this checkout and installs the
+launcher under ~/.local/bin (or XDG_BIN_HOME). The flag is accepted for
+compatibility with older source installers; this installer does not install
+system packages or modify APT state.
+USAGE
+}
+
 for arg in "$@"; do
-  [[ "$arg" == "--assume-yes" ]] && ASSUME_YES=1
+  case "$arg" in
+    --assume-yes) ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "ERROR: unknown option: $arg" >&2; usage >&2; exit 2 ;;
+  esac
 done
 
-prompt_install() {
-  local message="$1"
-  if (( ASSUME_YES )); then
-    return 0
-  fi
-  if [[ ! -t 0 ]]; then
-    echo "ERROR: Interactive installation is required: $message" >&2
-    echo "Re-run from a terminal or pass --assume-yes." >&2
+echo "Building HEVC Rebuild Studio v$VERSION from native Rust/Tauri sources..."
+
+if [[ "${OSTYPE:-}" != linux* ]]; then
+  echo "ERROR: install.sh is for Linux source installs. Use the Tauri package for Windows or macOS." >&2
+  exit 1
+fi
+
+for command_name in node pnpm cargo; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "ERROR: '$command_name' is required to build the native application." >&2
+    echo "Install the pinned Node/pnpm toolchain and Rust/Tauri Linux prerequisites; see docs/TOOLS.md." >&2
     exit 1
   fi
-  while true; do
-    read -r -p "$message [ENTER=continue, Q=quit] " answer
-    case "${answer,,}" in
-      "") return 0 ;;
-      q) echo "Installation cancelled."; exit 130 ;;
-      *) echo "Press ENTER to continue or Q to quit." ;;
-    esac
-  done
-}
-
-sudo_cmd() {
-  if (( EUID == 0 )); then
-    "$@"
-  else
-    command -v sudo >/dev/null 2>&1 || { echo "ERROR: sudo is required for package installation." >&2; exit 1; }
-    sudo "$@"
-  fi
-}
+done
 
 if [[ -r /etc/os-release ]]; then
   # shellcheck disable=SC1091
   . /etc/os-release
-  case "${ID:-}" in
-    ubuntu)
-      echo "Detected Ubuntu ${VERSION_ID:-unknown}."
-      ;;
-    linuxmint)
-      if [[ " ${ID_LIKE:-} " == *" ubuntu "* ]]; then
-        echo "Detected Ubuntu-based Linux Mint ${VERSION_ID:-unknown}."
-      else
-        echo "WARNING: This Linux Mint edition does not identify as Ubuntu-based; the application will perform a stricter compatibility check." >&2
-      fi
-      ;;
-    *)
-      echo "WARNING: This bundle targets Ubuntu and Ubuntu-based Linux Mint. Detected ID=${ID:-unknown}." >&2
-      ;;
-  esac
+  echo "Detected ${PRETTY_NAME:-${ID:-Linux}}."
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  prompt_install "Python 3 is missing. Press ENTER to install it before continuing."
-  sudo_cmd apt-get update
-  sudo_cmd apt-get install -y python3
+pnpm --dir "$HERE/desktop" install --frozen-lockfile
+pnpm --dir "$HERE/desktop" tauri build --no-bundle --config src-tauri/tauri.conf.json
+
+SOURCE_BINARY="$HERE/desktop/src-tauri/target/release/hevc-rebuild-studio"
+if [[ ! -x "$SOURCE_BINARY" ]]; then
+  echo "ERROR: the native release binary was not produced at $SOURCE_BINARY" >&2
+  exit 1
 fi
-command -v python3 >/dev/null 2>&1 || { echo "ERROR: Python 3 is still unavailable after installation." >&2; exit 1; }
 
-mkdir -p "$DEST" "$BIN_DIR"
-rm -rf "$DEST/hevc_rebuild" "$DEST/assets"
-cp -a "$HERE/hevc_rebuild" "$DEST/"
-cp -a "$HERE/hevc_rebuild.py" "$DEST/"
+install -D -m 0755 "$SOURCE_BINARY" "$DEST"
+"$DEST" json environment >/dev/null
 
-cat > "$BIN_DIR/hevc-rebuild" <<EOF
-#!/usr/bin/env bash
-exec python3 "$DEST/hevc_rebuild.py" "\$@"
-EOF
-chmod 0755 "$BIN_DIR/hevc-rebuild"
-
-echo "Installed launcher: $BIN_DIR/hevc-rebuild"
+echo
+echo "============================================================"
+echo "Native HEVC Rebuild Studio installation is complete."
+echo "============================================================"
+echo
+echo "Launcher:"
+echo "  $DEST"
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
-  *) echo "NOTE: $BIN_DIR is not currently on PATH. Add it to your shell PATH, or run $BIN_DIR/hevc-rebuild directly." ;;
+  *) echo "NOTE: $BIN_DIR is not currently on PATH. Add it to your shell PATH, or run $DEST directly." ;;
 esac
-
-"$BIN_DIR/hevc-rebuild" --setup-only "$@"
-
 echo
-echo "============================================================"
-echo "HEVC Rebuild installation for Linux Mint / Ubuntu is complete."
-echo "============================================================"
+echo "The installed executable provides the GUI, CLI, JSON actions, and MCP:"
+echo "  $DEST"
+echo "  $DEST json environment"
+echo "  $DEST --mcp"
 echo
-echo "To start the guided program, run:"
-echo "  $BIN_DIR/hevc-rebuild"
-echo
-echo "The safest first choice in Guided Mode is: 1) Check only"
-echo
-echo "Settings are stored here:"
-echo "  ${XDG_CONFIG_HOME:-$HOME/.config}/hevc-rebuild/config.toml"
-echo "Open them later with:"
-echo "  xdg-open ${XDG_CONFIG_HOME:-$HOME/.config}/hevc-rebuild/config.toml"
-echo
+echo "External media tools are installed or selected separately; see docs/TOOLS.md."

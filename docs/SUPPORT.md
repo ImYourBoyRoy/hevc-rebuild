@@ -10,8 +10,7 @@ Collect:
 
 1. Operating system and architecture.
 2. Application or engine version.
-3. The output of `hevc-rebuild-studio json environment` or the equivalent
-   `python -m hevc_rebuild --setup-only --no-dependency-repair` check.
+3. The output of `hevc-rebuild-studio json environment`.
 4. The exact mode and command used.
 5. The per-run report and adjacent diagnostic log.
 

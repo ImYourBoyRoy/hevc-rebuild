@@ -35,15 +35,21 @@ import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/w
           import type {
     OrganizerTemplates, LibraryCrumb, LibraryPosterCard, AptUpdateStatus, ArtworkCacheInfo, ArtworkCachePurgeResult, CommandCheck, Environment, MediaEntry, Page, ReportRow, RunFinishedEvent, RunLineEvent,
     InterruptedRecovery, MediaQueueDocument, MediaQueueLoadResult, MediaQueueRunState, MediaQueueRunStatus, MediaQueueSource, MetadataLookupStatus, OutputPreview, QueueArtworkCandidate, QueueMetadataSuggestion, QueueMovieReview, QueueSeasonReview, QueueSeriesReview, QueueTvEpisode, RunProgressEvent, RunResourceEvent, RuntimeResourceSnapshot,
-    FileRunSettingsOverride, YoutubeMode, YoutubeSdrCodec, YoutubePreset, YoutubeShrink, YoutubeQualityCheck, RunMode, RunReport, ScanProgress, ScanResult, Settings, ToolPaths,
+    FileRunSettingsOverride, YoutubeMode, YoutubeSdrCodec, YoutubePreset, YoutubeShrink, YoutubeQualityCheck, RunMode, RunReport, ScanProgress, ScanResult, Settings, ToolPaths, WorkDirectoryPreview,
   } from "#lib/types.js";
   import {
     archivedOriginalPath, fileName, normalizeDroppedPaths, pathIsWithin, queuePathKey, relativeQueuePath, remapQueuePath,
   } from "#lib/queue-paths.js";
 
-  type SettingsLoad = { settings: Settings; sources: string[]; user_config: string };
+  type SettingsLoad = { settings: Settings; sources: string[]; user_config: string; work_directory: WorkDirectoryPreview };
   type ReportsPayload = { reports: RunReport[] };
 type RepairFinished = { jobId: string; success: boolean; error: string | null; logWarning?: string | null };
+  type AgentControlRequest = { id: string; action: "press" | "snapshot" | "state" | "screenshot"; key?: string | null };
+  type AgentControlWindow = Window & {
+    __TAURI_INTERNALS__?: unknown;
+    isTauri?: boolean;
+    __hevcAgentControl?: (request: AgentControlRequest) => void;
+  };
 
   type SourceRunBatch = { source: MediaQueueSource; entries: MediaEntry[] };
   type LocalAssetRecord = {
@@ -130,6 +136,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   let settings = $state<Settings | null>(null);
   let settingsSources = $state<string[]>([]);
   let settingsPath = $state("");
+  let workDirectory = $state<WorkDirectoryPreview | null>(null);
   let settingsBaseline = $state("");
   let librarySettingsBaseline = $state("");
   let settingsRoot = $state("");
@@ -651,12 +658,15 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     if (active && !artworkCacheSettingsActive) void refreshArtworkCache();
     artworkCacheSettingsActive = active;
   });
+  let youtubeHdr10plusHelperReady = $derived(
+    (environment?.checks ?? []).some((check) => check.key === "hdr10plus_tool" && check.available),
+  );
   let youtubeEstimateSummary = $derived.by(() => {
     if (!runBatches.length || youtubeMode === "optimize") return null;
     const entries = selectedRunEntries.filter((entry) =>
       entry.profile &&
       !entry.profile.hdr.dolby_vision &&
-      (!hasHdr10plusSignal(entry) || youtubeHdr10plusLossAccepted(entry.path)),
+      (!hasHdr10plusSignal(entry) || youtubeHdr10plusHelperReady || youtubeHdr10plusLossAccepted(entry.path)),
     );
     const estimates = entries.map(youtubeEstimateFor).filter((value) => value !== undefined);
     return {
@@ -728,9 +738,9 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   let hostSetupShell = $derived(environment?.os.package_manager === "winget" ? "PowerShell" : "Terminal");
   let hostSetupCommand = $derived(
     environment?.os.package_manager === "winget"
-      ? ["Python.Python.3.14", "Gyan.FFmpeg", "MediaArea.MediaInfo", "MoritzBunkus.MKVToolNix"].map((id) => `winget install --exact --id ${id} --accept-source-agreements --accept-package-agreements`).join("\n")
+      ? ["Gyan.FFmpeg", "MediaArea.MediaInfo", "MoritzBunkus.MKVToolNix"].map((id) => `winget install --exact --id ${id} --accept-source-agreements --accept-package-agreements`).join("\n")
       : environment?.os.package_manager === "brew"
-        ? "brew install python ffmpeg mediainfo mkvtoolnix fontconfig"
+        ? "brew install ffmpeg mediainfo mkvtoolnix fontconfig"
         : "",
   );
   async function copyHostSetupCommand() {
@@ -1378,6 +1388,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       environment = result.environment;
       settings = result.settings;
       settingsSources = result.settings_sources;
+      workDirectory = result.work_directory;
       settingsRoot = result.root;
       settingsBaseline = JSON.stringify(result.settings);
       librarySettingsBaseline = settingsBaseline;
@@ -1570,6 +1581,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         environment = result.environment;
         settings = preserveRunSettings ?? result.settings;
         settingsSources = result.settings_sources;
+        workDirectory = result.work_directory;
         metadataLookupPending = sourceNeedsMetadataLookup(updatedSource);
         if (metadataLookupPending) metadataLookupClaimed = false;
         if (page !== "home" && page !== "youtube") openPage("library");
@@ -1742,6 +1754,100 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     if (next === "youtube") mode = "youtube";
     else if (mode === "youtube") mode = "check";
     if (appPreferences.lastPage !== next) void persistPreferences({ lastPage: next });
+  }
+
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.defaultPrevented) return;
+    const target = event.target;
+    const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
+    if (event.key === "F8") {
+      event.preventDefault();
+      openPage(page === "help" ? "library" : "help");
+      return;
+    }
+    if (typing && !(event.altKey || event.ctrlKey || event.metaKey)) return;
+    if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+      const pages: Record<string, Page> = { "1": "library", "2": "run", "3": "youtube", "4": "settings", "5": "reports", "6": "help" };
+      const next = pages[event.key];
+      if (next) {
+        event.preventDefault();
+        openPage(next);
+        return;
+      }
+      if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        openPage("metadata");
+        return;
+      }
+      if (event.key.toLowerCase() === "s" && (workspace.run.id || scanning)) {
+        event.preventDefault();
+        void stopAfterCurrent();
+        return;
+      }
+    }
+    if (event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "s" && mutatingRun) {
+      event.preventDefault();
+      abortConfirmOpen = true;
+      return;
+    }
+    if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "Enter" && canStart) {
+      event.preventDefault();
+      void beginRun();
+    }
+  }
+
+  function dispatchAgentKey(specification: string) {
+    const parts = specification.split("+").map((part) => part.trim()).filter(Boolean);
+    const requestedKey = parts.pop() ?? specification;
+    const key = requestedKey === "Space" ? " " : requestedKey;
+    const event = new KeyboardEvent("keydown", {
+      key,
+      code: key.length === 1 ? `Key${key.toUpperCase()}` : key,
+      altKey: parts.some((part) => part.toLowerCase() === "alt"),
+      ctrlKey: parts.some((part) => part.toLowerCase() === "ctrl" || part.toLowerCase() === "control"),
+      metaKey: parts.some((part) => part.toLowerCase() === "meta" || part.toLowerCase() === "command"),
+      shiftKey: parts.some((part) => part.toLowerCase() === "shift"),
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(event);
+  }
+
+  function agentControlSnapshot() {
+    return {
+      page,
+      page_label: pageLabel(page),
+      booting,
+      scanning,
+      workflow_busy: workflowBusy,
+      run_id: workspace.run.id,
+      run_mode: mode,
+      active_element: document.activeElement instanceof HTMLElement ? document.activeElement.outerHTML.slice(0, 2000) : null,
+      title: document.title,
+      text: document.body.innerText.slice(0, 30000),
+    };
+  }
+
+  async function handleAgentControlRequest(request: AgentControlRequest) {
+    let response: Record<string, unknown>;
+    try {
+      if (request.action === "press") {
+        dispatchAgentKey(request.key ?? "");
+        await tick();
+        response = { handled: true, ...agentControlSnapshot() };
+      } else if (request.action === "screenshot") {
+        response = { supported: false, message: "Use the native desktop capture surface for screenshots; the control channel intentionally returns text snapshots only.", ...agentControlSnapshot() };
+      } else {
+        response = agentControlSnapshot();
+      }
+    } catch (error) {
+      response = { error: String(error), ...agentControlSnapshot() };
+    }
+    try {
+      await invoke("reply", { id: request.id, response });
+    } catch (error) {
+      console.error("Could not answer the native agent-control request", error);
+    }
   }
 
   async function restoreWindowState(saved: AppPreferences["windowState"]) {
@@ -3172,8 +3278,10 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   }
 
   function youtubeHdr10plusConsentMessage(entry: MediaEntry): string {
-    if (entry.profile?.hdr.hdr10plus) return "HDR10+ dynamic metadata was detected. The export may lose it; this file stays excluded until you approve.";
-    return "HDR10+ is indicated but not confirmed from frame metadata. Review the source details before approving; otherwise this file stays excluded.";
+    if (entry.profile?.hdr.hdr10plus) {
+      return "HDR10+ was detected and hdr10plus_tool is missing, so a re-encode would drop it. Install the helper to preserve it, or approve static HDR10/PQ-only export for this file.";
+    }
+    return "HDR10+ is indicated but not confirmed from frame metadata, and hdr10plus_tool is missing. Install the helper to preserve it, or approve static HDR10/PQ-only export after review.";
   }
 
   function clockDuration(seconds: number): string {
@@ -3485,7 +3593,6 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
   }
 
   function aptPackageForTool(checkKey: string): string | null {
-    if (checkKey === "python3") return "python3";
     if (checkKey === "ffmpeg" || checkKey === "ffprobe") return "ffmpeg";
     if (["mkvpropedit", "mkvmerge", "mkvextract"].includes(checkKey)) return "mkvtoolnix";
     if (["mediainfo", "fontconfig", "ca-certificates"].includes(checkKey)) return checkKey;
@@ -3763,8 +3870,23 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
       settingsRoot = folder.trim();
       settingsSources = payload.sources;
       settingsPath = payload.user_config;
+      workDirectory = payload.work_directory;
     } catch (error) {
       setNotice(`Could not load the effective settings: ${String(error)}`, "error");
+    }
+  }
+
+  async function previewWorkDirectory(workRoot: string) {
+    const source = root.trim() || workspace.queue.activeRoot;
+    if (!desktopShell || !source) return;
+    try {
+      workDirectory = await invoke<WorkDirectoryPreview>("resolve_work_directory_command", {
+        root: source,
+        workRoot: workRoot.trim() || "auto",
+      });
+    } catch {
+      // The settings editor validates the value on save/start. Keep the last
+      // valid source preview visible while a new value is being edited.
     }
   }
 
@@ -3871,6 +3993,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           environment = scanResult.environment;
           settings = scanResult.settings;
           settingsSources = scanResult.settings_sources;
+          workDirectory = scanResult.work_directory;
           settingsBaseline = JSON.stringify(scanResult.settings);
           librarySettingsBaseline = settingsBaseline;
           settingsRoot = scanResult.root;
@@ -4831,7 +4954,16 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     let disposed = false;
     document.addEventListener("contextmenu", handleUtilityContextMenu);
     publishTheme(theme);
-    desktopShell = isTauri();
+    const nativeWindow = window as AgentControlWindow;
+    nativeWindow.__hevcAgentControl = (request) => {
+      void handleAgentControlRequest(request);
+    };
+    desktopShell = isTauri() || Boolean(nativeWindow.__TAURI_INTERNALS__ || nativeWindow.isTauri);
+    if (desktopShell) {
+      void invoke("frontend_ready").catch((error) => {
+        console.warn("Native agent-control readiness could not be reported", error);
+      });
+    }
     if (!desktopShell) {
       loadBrowserPreferences();
       environmentError = "Open HEVC Rebuild Studio from the desktop app to inspect this computer and connect to the media tools.";
@@ -4844,6 +4976,14 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     }
     const register = async () => {
       const currentWindow = getCurrentWindow();
+      let agentControlListener: UnlistenFn | null = null;
+      try {
+        agentControlListener = await listen<AgentControlRequest>("agent-control-request", (event) => {
+          void handleAgentControlRequest(event.payload);
+        });
+      } catch (error) {
+        console.warn("Native agent-control listener could not be registered", error);
+      }
       const listeners = await Promise.all([
         listen<ScanProgress>("scan-progress", (event) => { scanProgress = event.payload; }),
         listen<RunLineEvent>("run-line", (event) => {
@@ -4934,6 +5074,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           void addQueueSources(paths);
         }),
       ]);
+      if (agentControlListener) listeners.push(agentControlListener);
       const windowResizeListener = await currentWindow.onResized(() => scheduleWindowStateSave());
       listeners.push(windowResizeListener);
       if (disposed) listeners.forEach((unlisten) => unlisten());
@@ -4954,6 +5095,8 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
     };
   });
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <svelte:head>
   <title>HEVC Rebuild Studio</title>
@@ -5063,7 +5206,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         {/await}
       {:else if page === "settings"}
         {#await import("#lib/SettingsPreferences.svelte") then { default: SettingsPreferences }}
-        <SettingsPreferences {preferenceStorage} bind:settings {settingsChanged} {workflowBusy} {appPreferences} bind:metadataLanguageDraft {tmdbCredentialStatus} {tvdbCredentialStatus} {desktopShell} bind:tmdbTokenDraft bind:tmdbTokenVisible {tmdbCredentialBusy} bind:tvdbApiKeyDraft bind:tvdbCredentialsVisible {tvdbCredentialBusy} bind:tvdbSubscriberPinDraft bind:tvdbAccessConfirmed {artworkCacheLoading} {artworkCachePurging} {artworkCacheInfo} {artworkCacheError} bind:artworkCacheConfirm bind:newFilenameIncludePattern bind:newFilenameExcludePattern {filenameFilterError} bind:newMetadataBlacklistPattern {metadataBlacklistError} {saveSettings} {persistPreferences} {saveMetadataLanguageDraft} {updateMetadataSources} {openMetadataProviderSettings} {toggleTmdbCredentialVisibility} {saveTmdbCredential} {removeTmdbCredential} {toggleTvdbCredentialVisibility} {saveTvdbCredential} {removeTvdbCredential} {refreshArtworkCache} {bytes} {purgeUnusedArtworkCache} {addFilenamePattern} {clearFilenamePatterns} {removeFilenamePattern} {addMetadataBlacklistPattern} {clearMetadataBlacklist} {removeMetadataBlacklistPattern}>
+        <SettingsPreferences {preferenceStorage} bind:settings {settingsChanged} {workflowBusy} {appPreferences} bind:metadataLanguageDraft {tmdbCredentialStatus} {tvdbCredentialStatus} {desktopShell} bind:tmdbTokenDraft bind:tmdbTokenVisible {tmdbCredentialBusy} bind:tvdbApiKeyDraft bind:tvdbCredentialsVisible {tvdbCredentialBusy} bind:tvdbSubscriberPinDraft bind:tvdbAccessConfirmed {artworkCacheLoading} {artworkCachePurging} {artworkCacheInfo} {artworkCacheError} bind:artworkCacheConfirm bind:newFilenameIncludePattern bind:newFilenameExcludePattern {filenameFilterError} bind:newMetadataBlacklistPattern {metadataBlacklistError} {workDirectory} {previewWorkDirectory} {saveSettings} {persistPreferences} {saveMetadataLanguageDraft} {updateMetadataSources} {openMetadataProviderSettings} {toggleTmdbCredentialVisibility} {saveTmdbCredential} {removeTmdbCredential} {toggleTvdbCredentialVisibility} {saveTvdbCredential} {removeTvdbCredential} {refreshArtworkCache} {bytes} {purgeUnusedArtworkCache} {addFilenamePattern} {clearFilenamePatterns} {removeFilenamePattern} {addMetadataBlacklistPattern} {clearMetadataBlacklist} {removeMetadataBlacklistPattern}>
           {#snippet environmentPanel()}{@render EnvironmentPanel(environment)}{/snippet}
         </SettingsPreferences>
         {/await}
@@ -5152,10 +5295,6 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
         </section>
 
         {#if !scanResult}<div class="inline-warning"><Info size={17} /><div><strong>Add media to the library before choosing a task.</strong><span>The scan lists media details, resource forecasts, and file-specific warnings.</span></div><button class="button secondary" onclick={() => openPage("library")}>Open library</button></div>{/if}
-        {#if !modeToolsReady && (mode === "test" || mode === "full") && environment?.checks.some((check) => check.key === "python3" && !check.available)}
-          <div class="inline-warning"><Wrench size={17} /><div><strong>Short tests and full rebuilds still need a host Python 3 install.</strong><span>Check only, integrity, and Metadata-only MKV already run natively. Point Settings at python3 or install it with the documented host setup.</span></div><button class="text-button" onclick={() => openPage("settings")}>Open Settings</button></div>
-        {/if}
-
         <RunModePicker {mode} disabled={workflowBusy} toolsReady={Boolean(modeToolsReady)} onSelect={(next: Exclude<RunMode, "youtube">) => (mode = next)} />
         {#if mode === "integrity"}
           <div class="integrity-level" role="radiogroup" aria-label="Integrity depth">
@@ -5210,7 +5349,7 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
             </article>
 
             <article class="settings-card"><div class="settings-card-heading"><div class="settings-icon blue"><ShieldCheck size={18} /></div><div><h3>HDR & stream safety</h3><p>Preserve by default. Never transcode audio or subtitles.</p></div></div>
-              <label class="toggle-row"><span><strong>Preserve HDR10+ dynamic metadata</strong><small>Verify dynamic metadata after encoding</small></span><input type="checkbox" bind:checked={settings.hdr.preserve_hdr10plus} /></label>
+              <label class="toggle-row" title="When enabled, HDR10+ is kept automatically: encode-time dhdr10-info if libx265 was built with HDR10_PLUS, otherwise post-encode hdr10plus_tool inject + remux, then verify."><span><strong>Preserve HDR10+ dynamic metadata</strong><small>Encode-time when libx265 supports it; otherwise inject after encode</small></span><input type="checkbox" bind:checked={settings.hdr.preserve_hdr10plus} /></label>
               <label class="form-row"><span><strong>Dolby Vision policy</strong><small>Safe skips unsupported profiles instead of damaging them</small></span><select bind:value={settings.hdr.dolby_vision}><option value="safe">Safe preservation</option><option value="skip">Skip all Dolby Vision</option><option value="hdr10-fallback">Verified HDR10 fallback</option></select></label>
               <label class="form-row"><span><strong>Secondary video tracks</strong><small>Choose how additional selected video tracks are handled</small></span><select bind:value={settings.streams.secondary_video}><option value="encode">Encode all selected tracks</option><option value="copy">Copy additional tracks</option><option value="drop">Keep primary track only</option></select></label>
               <label class="form-row"><span><strong>Data streams</strong><small>Preserve Matroska-compatible data</small></span><select bind:value={settings.streams.data_streams}><option value="preserve">Preserve</option><option value="drop">Drop</option></select></label>
@@ -5691,9 +5830,10 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
                 </div>
               {/if}
             {/if}
-            {#if page === "youtube" && youtubeEstimate && (!hasHdr10plusSignal(entry) || youtubeHdr10plusLossAccepted(entry.path))}<small class="file-cell-sub">Upload estimate {bytes(youtubeEstimate.estimated_output_bytes)} · {youtubeEstimate.video_bitrate_kbps} kb/s video · {youtubeEstimate.output_width}×{youtubeEstimate.output_height}</small>{/if}
+            {#if page === "youtube" && youtubeEstimate && (!hasHdr10plusSignal(entry) || youtubeHdr10plusHelperReady || youtubeHdr10plusLossAccepted(entry.path))}<small class="file-cell-sub">Upload estimate {bytes(youtubeEstimate.estimated_output_bytes)} · {youtubeEstimate.video_bitrate_kbps} kb/s video · {youtubeEstimate.output_width}×{youtubeEstimate.output_height}</small>{/if}
             {#if page === "youtube" && entry.profile?.hdr.dolby_vision}<small class="row-error">YouTube export skips Dolby Vision sources.</small>{/if}
-            {#if page === "youtube" && hasHdr10plusSignal(entry)}<label class="youtube-loss-consent"><input type="checkbox" checked={youtubeHdr10plusLossAccepted(entry.path)} disabled={workflowBusy} onchange={(event) => setYoutubeHdr10plusLossAccepted(entry.path, event.currentTarget.checked)} /><span><strong>Allow copy without HDR10+ dynamic metadata</strong><small>{youtubeHdr10plusLossAccepted(entry.path) ? "Loss approved for this file; static HDR10/PQ signaling remains." : youtubeHdr10plusConsentMessage(entry)}</small></span></label>{/if}
+            {#if page === "youtube" && hasHdr10plusSignal(entry) && youtubeHdr10plusHelperReady}<small class="file-cell-sub">HDR10+ will be preserved after re-encode with hdr10plus_tool inject (stream copy keeps it as-is).</small>{/if}
+            {#if page === "youtube" && hasHdr10plusSignal(entry) && !youtubeHdr10plusHelperReady}<label class="youtube-loss-consent"><input type="checkbox" checked={youtubeHdr10plusLossAccepted(entry.path)} disabled={workflowBusy} onchange={(event) => setYoutubeHdr10plusLossAccepted(entry.path, event.currentTarget.checked)} /><span><strong>Allow copy without HDR10+ dynamic metadata</strong><small>{youtubeHdr10plusLossAccepted(entry.path) ? "Loss approved for this file; static HDR10/PQ signaling remains. Install hdr10plus_tool to preserve it instead." : youtubeHdr10plusConsentMessage(entry)}</small></span></label>{/if}
             {#if page === "youtube" && (entry.profile?.subtitle_count ?? 0) > 0}<small class="file-cell-sub">Source subtitles are omitted; add supported caption files separately.</small>{/if}
           </td></tr>
       {/each}
@@ -5746,10 +5886,10 @@ type RepairFinished = { jobId: string; success: boolean; error: string | null; l
           {#if environment.missing_apt_packages.length}<div class="apt-update-section-label"><strong>Missing packages</strong><small>Included in the same reviewed setup</small></div><div class="repair-package-list">{#each environment.missing_apt_packages as pkg (pkg)}<code>{pkg}</code>{/each}</div>{/if}
           {#if environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)}<div class="repair-helper-note"><Info size={16} /><span><strong>HDR10+ helper missing.</strong> The setup action installs the checksum-verified upstream helper after APT finishes.</span></div>{/if}
         {:else}
-          <p class="apt-update-empty">Checking Python, FFmpeg, MediaInfo, MKVToolNix, Fontconfig, and certificate packages against the local APT catalog…</p>
+          <p class="apt-update-empty">Checking FFmpeg, MediaInfo, MKVToolNix, Fontconfig, and certificate packages against the local APT catalog…</p>
         {/if}
         {:else}
-          <div class="section-title-row"><div><div class="eyebrow">HOST TOOL SETUP</div><h3>Install the media tools</h3><p>{hostSetupCommand ? `Run this in ${hostSetupShell}, then choose Recheck. Packages that are already installed are left as they are.` : `${environment.os.note}. Install FFmpeg, MediaInfo, MKVToolNix, and Python 3, then choose Recheck or select each executable above.`}</p></div></div>
+          <div class="section-title-row"><div><div class="eyebrow">HOST TOOL SETUP</div><h3>Install the media tools</h3><p>{hostSetupCommand ? `Run this in ${hostSetupShell}, then choose Recheck. Packages that are already installed are left as they are.` : `${environment.os.note}. Install FFmpeg, MediaInfo, and MKVToolNix, then choose Recheck or select each executable above.`}</p></div></div>
           {#if hostSetupCommand}
             <pre class="host-setup-command"><code>{hostSetupCommand}</code><button type="button" class="button secondary" onclick={() => copyHostSetupCommand()}><Copy size={15} /> Copy</button></pre>
             {#if environment.os.package_manager_available === false}<p class="apt-update-empty">{packageManagerLabel} was not found on this computer. {packageManagerLabel === "Homebrew" ? "Install Homebrew from brew.sh first." : "Install App Installer from the Microsoft Store to get winget."}</p>{/if}

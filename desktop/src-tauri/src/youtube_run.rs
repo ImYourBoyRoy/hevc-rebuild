@@ -139,6 +139,7 @@ pub(crate) struct YoutubeRunOptions {
     pub preset: String,
     pub shrink: String,
     pub quality_check: String,
+    pub work_root: String,
 }
 
 #[derive(Clone, Debug)]
@@ -183,6 +184,8 @@ struct Tools {
     ffprobe: String,
     mediainfo: String,
     x265_pixel_formats: Vec<String>,
+    /// Quietvoid helper path when available; enables post-encode HDR10+ inject.
+    hdr10plus: Option<String>,
 }
 
 /// Why a file did not produce an output.
@@ -213,6 +216,7 @@ impl YoutubeRunOptions {
             preset: "slow".into(),
             shrink: "auto".into(),
             quality_check: "standard".into(),
+            work_root: "auto".into(),
             ..Self::default()
         };
         let mut root: Option<PathBuf> = None;
@@ -273,6 +277,10 @@ impl YoutubeRunOptions {
                 "--youtube-quality-check" => options.quality_check = value()?,
                 "--upload-output-dir" => options.output_dir = Some(PathBuf::from(value()?)),
                 "--allow-youtube-hdr10plus-loss" => loss_paths.push(PathBuf::from(value()?)),
+                "--work-root" => {
+                    options.work_root = value()?;
+                    crate::preview_work_directory(Path::new("."), &options.work_root)?;
+                }
                 "--min-free-disk-gib" => min_free_disk_gib = Some(value()?),
                 "--stop-request-file" => options.stop_file = Some(PathBuf::from(value()?)),
                 "--ffmpeg-path" => options.tool_paths.ffmpeg = Some(value()?),
@@ -448,12 +456,14 @@ struct SourcePolicy {
 }
 
 /// Decide whether a source can be exported and how. `Err` carries the SKIPPED
-/// message; consent for HDR10+ dynamic-metadata loss is per file.
+/// message. When `hdr10plus_can_inject` is true, HDR10+ is preserved after
+/// encode via `hdr10plus_tool`; otherwise per-file loss consent is required.
 fn source_policy(
     profile: &Value,
     resolution: &str,
     x265_pixel_formats: &[String],
     hdr10plus_loss_accepted: bool,
+    hdr10plus_can_inject: bool,
 ) -> Result<SourcePolicy, String> {
     let color_mode = youtube::upload_color_mode(profile);
     let unsupported = youtube::unsupported_color_message(color_mode);
@@ -479,12 +489,78 @@ fn source_policy(
         .and_then(Value::as_bool)
         == Some(true)
     {
-        if !hdr10plus_loss_accepted {
-            return Err("HDR10+ dynamic metadata cannot be retained by this YouTube export path. No copy was written; explicitly accept this loss for the individual file to export it.".into());
+        if hdr10plus_can_inject {
+            note = Some(
+                "HDR10+ will be preserved after encode with hdr10plus_tool inject.".to_string(),
+            );
+        } else if !hdr10plus_loss_accepted {
+            return Err("HDR10+ dynamic metadata cannot be retained without hdr10plus_tool. No copy was written; install the helper, or explicitly accept this loss for the individual file to export static HDR10/PQ only.".into());
+        } else {
+            note = Some("HDR10+ dynamic metadata was not retained after explicit per-file approval; static HDR10/PQ signaling is retained.".to_string());
         }
-        note = Some("HDR10+ dynamic metadata was not retained after explicit per-file approval; static HDR10/PQ signaling is retained.".to_string());
     }
     Ok(SourcePolicy { color_mode, note })
+}
+
+/// Extract source HDR10+ JSON into the app work tree for a later MP4 inject.
+fn extract_youtube_hdr10plus_json(
+    tools: &Tools,
+    source: &Path,
+    profile: &Value,
+    work_dir: &Path,
+) -> Result<PathBuf, String> {
+    let helper = tools
+        .hdr10plus
+        .as_deref()
+        .ok_or("HDR10+ inject requires hdr10plus_tool.")?;
+    let stream_index = profile
+        .get("primary_stream_index")
+        .and_then(Value::as_i64)
+        .or_else(|| profile.pointer("/video/index").and_then(Value::as_i64))
+        .unwrap_or(0);
+    let codec = profile
+        .pointer("/video/codec")
+        .and_then(Value::as_str)
+        .unwrap_or("hevc");
+    fs::create_dir_all(work_dir)
+        .map_err(|error| format!("Could not create HDR10+ work folder: {error}"))?;
+    let metadata_json = work_dir.join(format!("youtube-hdr10plus-{}.json", std::process::id()));
+    if metadata_json.exists() {
+        return Err(format!(
+            "HDR10+ extract refused to overwrite {}",
+            metadata_json.display()
+        ));
+    }
+    crate::hdr_metadata::extract_hdr10plus(
+        &tools.ffmpeg,
+        helper,
+        source,
+        stream_index,
+        codec,
+        &metadata_json,
+        None,
+    )?;
+    Ok(metadata_json)
+}
+
+fn inject_youtube_hdr10plus(
+    tools: &Tools,
+    mp4: &Path,
+    metadata_json: &Path,
+    work_dir: &Path,
+) -> Result<(), String> {
+    let helper = tools
+        .hdr10plus
+        .as_deref()
+        .ok_or("HDR10+ inject requires hdr10plus_tool.")?;
+    crate::hdr_metadata::inject_hdr10plus_into_mp4(
+        &tools.ffmpeg,
+        helper,
+        mp4,
+        0,
+        metadata_json,
+        work_dir,
+    )
 }
 
 struct EncodePlan {
@@ -625,6 +701,7 @@ fn resolve_tools(options: &YoutubeRunOptions) -> Result<Tools, String> {
                     .collect()
             })
             .unwrap_or_default(),
+        hdr10plus: optional_tool(&host, "hdr10plus_tool"),
     };
     for (key, label) in [
         ("libx264", "the libx264 encoder"),
@@ -1255,17 +1332,17 @@ fn execute(
         return execute_optimize(context, frame, destination, row, temporary, live, &profile);
     }
     let accepted = options.hdr10plus_loss.contains(source);
+    let can_inject = tools.hdr10plus.is_some();
     let policy = source_policy(
         &profile,
         &options.resolution,
         &tools.x265_pixel_formats,
         accepted,
+        can_inject,
     )
     .map_err(Halt::Skip)?;
     let color_mode = policy.color_mode;
-    if let Some(loss_note) = policy.note {
-        row.insert("hdr10plus_note".into(), json!(loss_note));
-    }
+    let mut hdr10plus_note = policy.note;
     row.insert("upload_color_mode".into(), json!(color_mode));
 
     let duration = profile
@@ -1314,6 +1391,29 @@ fn execute(
         }
     }
 
+    let inject_hdr10plus = can_inject
+        && profile
+            .pointer("/hdr/hdr10plus_hint")
+            .and_then(Value::as_bool)
+            == Some(true);
+    let work_dir = if inject_hdr10plus {
+        Some(
+            crate::media_work_directory(source, &context.options.work_root)?
+                .join(format!("youtube-hdr10plus-{}", std::process::id())),
+        )
+    } else {
+        None
+    };
+    let hdr10plus_json = if inject_hdr10plus {
+        let dir = work_dir.as_ref().expect("inject work dir");
+        (context.line)(format!("{name}: extracting HDR10+ for post-encode inject"));
+        Some(extract_youtube_hdr10plus_json(
+            tools, source, &profile, dir,
+        )?)
+    } else {
+        None
+    };
+
     let plan = plan_resources(
         &options.settings,
         &profile,
@@ -1350,6 +1450,27 @@ fn execute(
         string_args(&built)
     })?;
 
+    if let (Some(json), Some(dir)) = (&hdr10plus_json, &work_dir) {
+        emit(
+            context,
+            frame,
+            "Injecting HDR10+ metadata",
+            0.93,
+            Some(100.0),
+            live,
+        );
+        (context.line)(format!("{name}: injecting HDR10+ into the YouTube MP4"));
+        inject_youtube_hdr10plus(tools, &temp_path, json, dir)?;
+        hdr10plus_note = Some(
+            "HDR10+ dynamic metadata was preserved after encode with hdr10plus_tool inject.".into(),
+        );
+        let _ = fs::remove_file(json);
+        let _ = fs::remove_dir(dir);
+    }
+    if let Some(note_text) = hdr10plus_note {
+        row.insert("hdr10plus_note".into(), json!(note_text));
+    }
+
     emit(context, frame, "Validating output", 0.95, Some(100.0), live);
     let codec_label = if matches!(color_mode, "hdr10" | "hlg") {
         "HEVC Main 10/AAC"
@@ -1363,10 +1484,15 @@ fn execute(
     ));
     let validated = youtube::validate_request(&json!({
         "profile": profile,
-        "tools": {"ffprobe": tools.ffprobe},
+        "tools": {
+            "ffprobe": tools.ffprobe,
+            "ffmpeg": tools.ffmpeg,
+            "hdr10plus_tool": tools.hdr10plus,
+        },
         "output": temp_path.to_string_lossy(),
         "resolution": options.resolution,
         "sdr_codec": options.sdr_codec,
+        "hdr10plus_expected": inject_hdr10plus,
     }))?;
     let (output_width, output_height) = (
         validated.get("width").and_then(Value::as_i64).unwrap_or(0),
@@ -1431,6 +1557,7 @@ fn execute_optimize(
             shrink: Shrink::parse(&options.shrink)?,
             sdr_codec: &options.sdr_codec,
             hdr10plus_loss_accepted: options.hdr10plus_loss.contains(source),
+            hdr10plus_can_inject: tools.hdr10plus.is_some(),
             x265_pixel_formats: &tools.x265_pixel_formats,
             file_bytes: frame.input_bytes,
             duration,
@@ -1501,6 +1628,27 @@ fn execute_optimize(
     let mut decision_note: Option<String> = None;
     let mut quality_value: Option<f64> = None;
     let audio_plan = youtube_optimize::audio_plan_json(&plan.audio);
+    let hdr10plus_expected = tools.hdr10plus.is_some()
+        && profile
+            .pointer("/hdr/hdr10plus_hint")
+            .and_then(Value::as_bool)
+            == Some(true);
+    let inject_hdr10plus = action == Action::Encode && hdr10plus_expected;
+    let optimize_work_dir = if inject_hdr10plus {
+        Some(
+            crate::media_work_directory(source, &context.options.work_root)?
+                .join(format!("youtube-opt-hdr10plus-{}", std::process::id())),
+        )
+    } else {
+        None
+    };
+    let hdr10plus_json = if inject_hdr10plus {
+        let dir = optimize_work_dir.as_ref().expect("inject work dir");
+        (context.line)(format!("{name}: extracting HDR10+ for post-encode inject"));
+        Some(extract_youtube_hdr10plus_json(tools, source, profile, dir)?)
+    } else {
+        None
+    };
 
     if action == Action::Encode {
         let resources =
@@ -1533,14 +1681,37 @@ fn execute_optimize(
             }))?;
             string_args(&built)
         })?;
+        if let (Some(json), Some(dir)) = (&hdr10plus_json, &optimize_work_dir) {
+            emit(
+                context,
+                frame,
+                "Injecting HDR10+ metadata",
+                0.91,
+                Some(100.0),
+                live,
+            );
+            (context.line)(format!("{name}: injecting HDR10+ into the YouTube MP4"));
+            inject_youtube_hdr10plus(tools, &temp_path, json, dir)?;
+            row.insert(
+                "hdr10plus_note".into(),
+                json!("HDR10+ dynamic metadata was preserved after encode with hdr10plus_tool inject."),
+            );
+            let _ = fs::remove_file(json);
+            let _ = fs::remove_dir(dir);
+        }
         emit(context, frame, "Validating output", 0.92, Some(100.0), live);
         youtube::validate_request(&json!({
             "profile": profile,
-            "tools": {"ffprobe": tools.ffprobe},
+            "tools": {
+                "ffprobe": tools.ffprobe,
+                "ffmpeg": tools.ffmpeg,
+                "hdr10plus_tool": tools.hdr10plus,
+            },
             "output": temp_path.to_string_lossy(),
             "resolution": "source",
             "sdr_codec": options.sdr_codec,
             "allow_copied_audio": true,
+            "hdr10plus_expected": inject_hdr10plus,
         }))?;
         let output_bytes = fs::metadata(&temp_path).map(|meta| meta.len()).unwrap_or(0);
         let mut rejection: Option<String> = None;
@@ -1589,6 +1760,13 @@ fn execute_optimize(
         }
         if let Some(why) = rejection {
             let _ = fs::remove_file(&temp_path);
+            row.remove("hdr10plus_note");
+            if let Some(json) = &hdr10plus_json {
+                let _ = fs::remove_file(json);
+            }
+            if let Some(dir) = &optimize_work_dir {
+                let _ = fs::remove_dir_all(dir);
+            }
             if plan.copy_fallback {
                 let text =
                     format!("Kept the original video stream instead of the re-encode: {why}.");
@@ -1632,11 +1810,16 @@ fn execute_optimize(
         emit(context, frame, "Validating output", 0.92, Some(100.0), live);
         youtube::validate_request(&json!({
             "profile": profile,
-            "tools": {"ffprobe": tools.ffprobe},
+            "tools": {
+                "ffprobe": tools.ffprobe,
+                "ffmpeg": tools.ffmpeg,
+                "hdr10plus_tool": tools.hdr10plus,
+            },
             "output": temp_path.to_string_lossy(),
             "resolution": "source",
             "expected_codec": plan.source_codec,
             "allow_copied_audio": true,
+            "hdr10plus_expected": hdr10plus_expected,
         }))?;
         emit(context, frame, "Verifying streams", 0.95, None, live);
         let ordinal = profile
@@ -1764,7 +1947,7 @@ mod tests {
 
     #[test]
     fn sdr_sources_are_always_exportable_without_consent() {
-        let policy = source_policy(&sdr_profile(1920, 1080), "1440p", &[], false).unwrap();
+        let policy = source_policy(&sdr_profile(1920, 1080), "1440p", &[], false, false).unwrap();
         assert_eq!(policy.color_mode, "sdr");
         assert!(policy.note.is_none());
     }
@@ -1782,7 +1965,7 @@ mod tests {
     fn dolby_vision_skips_even_with_consent() {
         let mut dovi = hdr_profile();
         dovi["hdr"]["dolby_vision"] = json!(true);
-        let message = source_policy(&dovi, "4k", &["yuv420p10le".into()], true)
+        let message = source_policy(&dovi, "4k", &["yuv420p10le".into()], true, false)
             .err()
             .unwrap();
         assert!(message.contains("Dolby Vision"));
@@ -1791,11 +1974,11 @@ mod tests {
     #[test]
     fn hdr10plus_loss_requires_per_file_consent_and_leaves_a_note() {
         let formats = vec!["yuv420p10le".to_string()];
-        let declined = source_policy(&hdr_profile(), "4k", &formats, false)
+        let declined = source_policy(&hdr_profile(), "4k", &formats, false, false)
             .err()
             .unwrap();
         assert!(declined.contains("HDR10+ dynamic metadata cannot be retained"));
-        let accepted = source_policy(&hdr_profile(), "4k", &formats, true).unwrap();
+        let accepted = source_policy(&hdr_profile(), "4k", &formats, true, false).unwrap();
         assert_eq!(accepted.color_mode, "hdr10");
         assert!(accepted
             .note
@@ -1803,27 +1986,35 @@ mod tests {
             .contains("explicit per-file approval"));
         let mut plain_hdr = hdr_profile();
         plain_hdr["hdr"]["hdr10plus_hint"] = json!(false);
-        let policy = source_policy(&plain_hdr, "4k", &formats, false).unwrap();
+        let policy = source_policy(&plain_hdr, "4k", &formats, false, false).unwrap();
         assert!(policy.note.is_none());
     }
 
     #[test]
+    fn hdr10plus_inject_skips_loss_consent() {
+        let formats = vec!["yuv420p10le".to_string()];
+        let policy = source_policy(&hdr_profile(), "4k", &formats, false, true).unwrap();
+        assert_eq!(policy.color_mode, "hdr10");
+        assert!(policy.note.unwrap().contains("hdr10plus_tool inject"));
+    }
+
+    #[test]
     fn hdr_requires_ten_bit_x265_and_at_least_720p() {
-        let message = source_policy(&hdr_profile(), "4k", &[], true)
+        let message = source_policy(&hdr_profile(), "4k", &[], true, false)
             .err()
             .unwrap();
         assert!(message.contains("10-bit libx265"));
         let mut small = hdr_profile();
         small["video"]["width"] = json!(640);
         small["video"]["height"] = json!(360);
-        let message = source_policy(&small, "source", &["yuv420p10le".into()], true)
+        let message = source_policy(&small, "source", &["yuv420p10le".into()], true, false)
             .err()
             .unwrap();
         assert!(message.contains("below 720p"));
         let mut untagged = hdr_profile();
         untagged["transfer"] = json!("unknown");
         untagged["hdr"]["hdr10"] = json!(true);
-        let message = source_policy(&untagged, "4k", &["yuv420p10le".into()], true)
+        let message = source_policy(&untagged, "4k", &["yuv420p10le".into()], true, false)
             .err()
             .unwrap();
         assert!(message.contains("PQ or HLG"));
@@ -1978,11 +2169,11 @@ mod tests {
                 "-f",
                 "lavfi",
                 "-i",
-                "testsrc2=size=2560x1440:rate=24:duration=2",
+                "testsrc2=size=2560x1440:rate=24:duration=1",
                 "-f",
                 "lavfi",
                 "-i",
-                "sine=frequency=440:duration=2",
+                "sine=frequency=440:duration=1",
                 "-c:v",
                 "libx264",
                 "-preset",
@@ -2130,6 +2321,16 @@ mod tests {
             "--youtube-upload".into(),
             "--youtube-mode".into(),
             "optimize".into(),
+            "--youtube-preset".into(),
+            "medium".into(),
+            "--max-worker-threads".into(),
+            "1".into(),
+            "--min-free-memory-gib".into(),
+            "0".into(),
+            "--memory-reserve-percent".into(),
+            "0".into(),
+            "--disk-projection-margin-percent".into(),
+            "0".into(),
         ];
         let options = YoutubeRunOptions::from_engine_args(&args).unwrap();
         let result = run_youtube_export(&options, |_| {}, |_| {}, |_| {}).unwrap();
@@ -2165,7 +2366,11 @@ mod tests {
         let saved_row = |needle: &str| {
             saved_rows
                 .iter()
-                .find(|row| row["input"].as_str().is_some_and(|path| path.contains(needle)))
+                .find(|row| {
+                    row["input"]
+                        .as_str()
+                        .is_some_and(|path| path.contains(needle))
+                })
                 .unwrap_or_else(|| panic!("no report row for {needle}: {saved_rows:?}"))
         };
         let healthy_row = saved_row("Healthy");
@@ -2174,7 +2379,10 @@ mod tests {
         // Booleans keep the report schema's established "True"/"False" spelling.
         assert_eq!(healthy_row["video_payload_identical"], "True");
         assert!(
-            !healthy_row["optimize_reason"].as_str().unwrap_or("").is_empty(),
+            !healthy_row["optimize_reason"]
+                .as_str()
+                .unwrap_or("")
+                .is_empty(),
             "copy rows must say why the stream was kept: {healthy_row:?}"
         );
         let huge_row = saved_row("Huge");

@@ -37,19 +37,19 @@ const MEMORY_FULL_PRESSURE_PERCENT: f64 = 1.0;
 const MAX_DIAGNOSTIC_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Deserialize)]
-struct CacheQuery {
-    key: String,
-    cache_hours: f64,
-    base_worker_threads: Option<i64>,
-    base_frame_threads: Option<i64>,
+pub(crate) struct CacheQuery {
+    pub key: String,
+    pub cache_hours: f64,
+    pub base_worker_threads: Option<i64>,
+    pub base_frame_threads: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct EligibilityRequest {
-    width: u32,
-    height: u32,
-    source_size_bytes: u64,
-    large_file_gib: f64,
+pub(crate) struct EligibilityRequest {
+    pub width: u32,
+    pub height: u32,
+    pub source_size_bytes: u64,
+    pub large_file_gib: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -59,99 +59,99 @@ struct CandidateInput {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct CalibrationPlanKey {
-    worker_threads: Option<i64>,
-    frame_threads: Option<i64>,
-    cpu_threads: i64,
-    memory_guard_gib: f64,
+pub(crate) struct CalibrationPlanKey {
+    pub worker_threads: Option<i64>,
+    pub frame_threads: Option<i64>,
+    pub cpu_threads: i64,
+    pub memory_guard_gib: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct CalibrationProfile {
-    source_path: String,
-    duration: Option<f64>,
-    primary_video_index: u32,
-    primary_video_width: u32,
-    primary_video_height: u32,
-    source_bit_depth: i64,
-    source_chroma: String,
-    target_pix_fmt: String,
-    format_level: Option<String>,
-    color_primaries: Option<String>,
-    transfer: Option<String>,
-    color_matrix: Option<String>,
-    color_range_x265: Option<String>,
-    color_range_ffmpeg: Option<String>,
-    chroma_location: Option<i64>,
-    master_display: Option<String>,
-    max_cll: Option<i64>,
-    max_fall: Option<i64>,
-    hdr10: bool,
-    hdr10plus: bool,
-    hlg: bool,
-    dolby_vision: bool,
-    dovi_profile: Option<i64>,
-    dovi_rpu_present: bool,
-    interlaced: bool,
+pub(crate) struct CalibrationProfile {
+    pub source_path: String,
+    pub duration: Option<f64>,
+    pub primary_video_index: u32,
+    pub primary_video_width: u32,
+    pub primary_video_height: u32,
+    pub source_bit_depth: i64,
+    pub source_chroma: String,
+    pub target_pix_fmt: String,
+    pub format_level: Option<String>,
+    pub color_primaries: Option<String>,
+    pub transfer: Option<String>,
+    pub color_matrix: Option<String>,
+    pub color_range_x265: Option<String>,
+    pub color_range_ffmpeg: Option<String>,
+    pub chroma_location: Option<i64>,
+    pub master_display: Option<String>,
+    pub max_cll: Option<i64>,
+    pub max_fall: Option<i64>,
+    pub hdr10: bool,
+    pub hdr10plus: bool,
+    pub hlg: bool,
+    pub dolby_vision: bool,
+    pub dovi_profile: Option<i64>,
+    pub dovi_rpu_present: bool,
+    pub interlaced: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct CalibrationToolchain {
-    ffmpeg: String,
-    x265_pixel_formats: Vec<String>,
-    x265_dolbyvision: bool,
+pub(crate) struct CalibrationToolchain {
+    pub ffmpeg: String,
+    pub x265_pixel_formats: Vec<String>,
+    pub x265_dolbyvision: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct CalibrationOptions {
-    preset: String,
-    tune: Option<String>,
-    crf: i64,
-    sample_seconds: f64,
-    hdr10plus_json: Option<String>,
-    preserve_dolbyvision: bool,
-    strip_dolbyvision: bool,
-    preserve_source_level: bool,
-    disable_hdr10_opt: bool,
-    force_deinterlace: bool,
-    disable_deinterlace: bool,
+pub(crate) struct CalibrationOptions {
+    pub preset: String,
+    pub tune: Option<String>,
+    pub crf: i64,
+    pub sample_seconds: f64,
+    pub hdr10plus_json: Option<String>,
+    pub preserve_dolbyvision: bool,
+    pub strip_dolbyvision: bool,
+    pub preserve_source_level: bool,
+    pub disable_hdr10_opt: bool,
+    pub force_deinterlace: bool,
+    pub disable_deinterlace: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct KeyRequest {
-    profile: CalibrationProfile,
-    toolchain: CalibrationToolchain,
-    options: CalibrationOptions,
-    base_plan: CalibrationPlanKey,
-    total_memory_gib: Option<f64>,
-    max_candidates: usize,
-    throughput_tolerance_percent: f64,
-    hdr10plus_enabled: bool,
-    encoder_fingerprint: Option<String>,
+pub(crate) struct KeyRequest {
+    pub profile: CalibrationProfile,
+    pub toolchain: CalibrationToolchain,
+    pub options: CalibrationOptions,
+    pub base_plan: CalibrationPlanKey,
+    pub total_memory_gib: Option<f64>,
+    pub max_candidates: usize,
+    pub throughput_tolerance_percent: f64,
+    pub hdr10plus_enabled: bool,
+    pub encoder_fingerprint: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct RunRequest {
-    key: String,
-    max_candidates: usize,
-    throughput_tolerance_percent: f64,
-    memory_guard_gib: f64,
-    profile: CalibrationProfile,
-    toolchain: CalibrationToolchain,
-    options: CalibrationOptions,
-    base_plan: CalibrationPlanKey,
+pub(crate) struct RunRequest {
+    pub key: String,
+    pub max_candidates: usize,
+    pub throughput_tolerance_percent: f64,
+    pub memory_guard_gib: f64,
+    pub profile: CalibrationProfile,
+    pub toolchain: CalibrationToolchain,
+    pub options: CalibrationOptions,
+    pub base_plan: CalibrationPlanKey,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct StoreRequest {
-    key: String,
-    worker_threads: i64,
-    frame_threads: i64,
-    results: Vec<CalibrationResult>,
+pub(crate) struct StoreRequest {
+    pub key: String,
+    pub worker_threads: i64,
+    pub frame_threads: i64,
+    pub results: Vec<CalibrationResult>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct CalibrationResult {
+pub(crate) struct CalibrationResult {
     worker_threads: i64,
     frame_threads: i64,
     elapsed_seconds: f64,
@@ -215,7 +215,7 @@ fn read_request<T: for<'de> Deserialize<'de>>() -> Result<T, String> {
     serde_json::from_slice(&bytes).map_err(|error| format!("Invalid calibration request: {error}"))
 }
 
-fn calibration_eligible(request: EligibilityRequest) -> Result<Value, String> {
+pub(crate) fn calibration_eligible(request: EligibilityRequest) -> Result<Value, String> {
     if !request.large_file_gib.is_finite() {
         return Err("Calibration file-size threshold must be finite.".into());
     }
@@ -239,7 +239,7 @@ fn now_seconds() -> f64 {
         .as_secs_f64()
 }
 
-fn calibration_key(request: KeyRequest) -> Result<Value, String> {
+pub(crate) fn calibration_key(request: KeyRequest) -> Result<Value, String> {
     if request.max_candidates == 0
         || request.max_candidates > 4
         || !request.throughput_tolerance_percent.is_finite()
@@ -465,7 +465,7 @@ fn load_cache(path: &PathBuf) -> Value {
         .unwrap_or_else(|| json!({"schema": 1, "entries": {}}))
 }
 
-fn cache_query(request: CacheQuery) -> Result<Value, String> {
+pub(crate) fn cache_query(request: CacheQuery) -> Result<Value, String> {
     if request.key.is_empty() || request.key.len() > 256 || !request.cache_hours.is_finite() {
         return Err("Calibration cache query contains an invalid key or age.".into());
     }
@@ -777,7 +777,7 @@ fn first_numeric_token(value: &str) -> Option<&str> {
     (!token.is_empty() && token.parse::<f64>().is_ok()).then_some(token)
 }
 
-fn run_calibration(request: RunRequest) -> Result<Value, String> {
+pub(crate) fn run_calibration(request: RunRequest) -> Result<Value, String> {
     if request.key.is_empty()
         || request.key.len() > 256
         || !request.throughput_tolerance_percent.is_finite()
@@ -1179,7 +1179,7 @@ fn choose_best_result(results: &[CalibrationResult], tolerance: f64) -> Option<&
         })
 }
 
-fn store_selection(request: StoreRequest) -> Result<Value, String> {
+pub(crate) fn store_selection(request: StoreRequest) -> Result<Value, String> {
     if request.key.is_empty()
         || request.key.len() > 256
         || request.worker_threads < 1

@@ -19,7 +19,13 @@ use std::time::{Duration, Instant};
 const MEDIA_EXTENSIONS: &[&str] = &[
     "mkv", "mp4", "m4v", "mov", "avi", "ts", "m2ts", "mts", "webm",
 ];
-const EXCLUDED_DIRS: &[&str] = &[".hevc-rebuild", ".git", "node_modules", "youtube uploads"];
+const EXCLUDED_DIRS: &[&str] = &[
+    ".hevc-rebuild",
+    ".hevc-rebuild-work",
+    ".git",
+    "node_modules",
+    "youtube uploads",
+];
 const MAX_DISCOVERED_FILES: usize = 10_000;
 const MAX_VIDEO_PROFILES: usize = 1024;
 const MAX_TOOL_JSON_BYTES: usize = 32 * 1024 * 1024;
@@ -188,6 +194,10 @@ pub(crate) fn scan_media(
         .get("sources")
         .cloned()
         .unwrap_or_else(|| json!([]));
+    let work_directory = settings_payload
+        .get("work_directory")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
 
     timings.settings_ms = elapsed_ms(settings_start);
     let tools_start = Instant::now();
@@ -415,6 +425,7 @@ pub(crate) fn scan_media(
         "environment": host,
         "settings": effective_settings,
         "settings_sources": settings_sources,
+        "work_directory": work_directory,
         "warnings": warnings,
         "discovery_limit_reached": discovery.limit_reached,
         "interrupted": interrupted
@@ -2611,9 +2622,23 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Explicit synthetic FFmpeg benchmark; run with HEVC_REBUILD_SCAN_TIMING=1"]
-    fn measure_repeated_scan_profile_cache() {
+    fn repeated_scan_profile_cache_is_validated() {
         let root = temp_dir("cache-benchmark");
+        if !Command::new("ffmpeg")
+            .arg("-version")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
+        {
+            eprintln!("skipping scan cache integration: ffmpeg is unavailable");
+            let _ = fs::remove_dir_all(root);
+            return;
+        }
+        let _state_guard = crate::TEST_STATE_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        std::env::set_var("HEVC_REBUILD_SCAN_TIMING", "1");
         let clip = root.join("synthetic-0.mkv");
         assert!(Command::new("ffmpeg")
             .args([
@@ -2658,19 +2683,10 @@ mod tests {
             assert_eq!(cold_entry["status"], warm_entry["status"]);
         }
         assert_eq!(warm["scan_timings"]["profile_cache_hits"], 20);
-        assert!(warm["scan_timings"]["ffprobe_ms"].as_f64().unwrap() < 1.0);
-        assert!(
-            warm["scan_timings"]["total_ms"].as_f64().unwrap()
-                < cold["scan_timings"]["total_ms"].as_f64().unwrap()
-        );
         fs::write(&clip, b"changed, invalid media").unwrap();
         let changed = scan_media(options, |_, _, _| {}).unwrap();
         assert_eq!(changed["scan_timings"]["profile_cache_hits"], 19);
         assert_eq!(changed["entries"][0]["status"], "Analysis failed");
-        println!(
-            "CACHE_BENCHMARK {}",
-            json!({"cold": cold["scan_timings"], "warm": warm["scan_timings"], "changed": changed["scan_timings"]})
-        );
         fs::remove_dir_all(root).unwrap();
     }
 

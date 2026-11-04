@@ -1,9 +1,8 @@
 //! ./desktop/src-tauri/src/run_coordinator.rs
 //! Native media-run coordinator. Check-only analysis is fully Rust-owned:
 //! FFprobe/MediaInfo profiling, memory forecasts, CSV reports, and stop
-//! handling with no Python process. Encode, metadata-only, short-test, and
-//! YouTube modes still launch the compatibility engine until those slices
-//! reach parity. GUI, JSON CLI, and MCP share this module.
+//! handling. Short-test/full rebuild, metadata-only, and YouTube modes live in
+//! their own native coordinators. GUI, JSON CLI, and MCP share this module.
 
 use crate::media_scan::{analyze_file, scan_media, ScanOptions};
 use crate::stop_control;

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::{self, File};
-use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Seek, SeekFrom, Write};
 #[cfg(unix)]
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -10,8 +10,9 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
+mod agent_control;
 mod calibration;
 mod content;
 mod dependencies;
@@ -40,6 +41,7 @@ mod output_targets;
 mod packet_verify;
 mod process_output;
 mod profile_cache;
+mod rebuild_run;
 mod reports;
 mod resource_monitor;
 mod resource_plan;
@@ -70,7 +72,6 @@ pub(crate) static TEST_STATE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(
 mod youtube_run;
 
 pub(crate) const APT_ALLOWLIST: &[&str] = &[
-    "python3",
     "ffmpeg",
     "mediainfo",
     "mkvtoolnix",
@@ -352,25 +353,6 @@ struct RunLine {
     line: String,
 }
 
-#[derive(Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct EngineProgress {
-    file_name: String,
-    #[serde(default)]
-    file_path: Option<String>,
-    phase: String,
-    batch_number: u32,
-    batch_total: u32,
-    file_percent: Option<f64>,
-    queue_percent: Option<f64>,
-    speed: Option<f64>,
-    eta_seconds: Option<f64>,
-    elapsed_seconds: Option<f64>,
-    input_bytes: Option<u64>,
-    output_bytes: Option<u64>,
-    estimated_output_bytes: Option<u64>,
-}
-
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RunProgress {
@@ -408,136 +390,9 @@ struct RunFinished {
     error: Option<String>,
 }
 
-fn engine_root(app: &AppHandle) -> Result<PathBuf, String> {
-    #[cfg(debug_assertions)]
-    {
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .canonicalize()
-            .map_err(|error| format!("Could not locate the Python media engine: {error}"))?;
-        if root.join("hevc_rebuild").is_dir() {
-            return Ok(root);
-        }
-    }
-
-    app.path()
-        .resolve("engine", tauri::path::BaseDirectory::Resource)
-        .map_err(|error| format!("Could not locate the bundled Python media engine: {error}"))
-}
-
-fn python_program() -> std::ffi::OsString {
-    if let Some(value) = std::env::var_os("HEVC_REBUILD_PYTHON") {
-        return value;
-    }
-    #[cfg(target_os = "windows")]
-    {
-        return "python".into();
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        "python3".into()
-    }
-}
-
-fn python_module_command(module: &str) -> Command {
-    let mut command = Command::new(python_program());
-    command
-        .arg("-m")
-        .arg(module)
-        .env("PYTHONUNBUFFERED", "1")
-        // linuxdeploy's AppRun exports PYTHONHOME to its AppDir even though
-        // this package relies on the system Python runtime and stdlib.
-        .env_remove("PYTHONHOME");
-    command
-}
-
-fn standalone_engine_root() -> Result<PathBuf, String> {
-    if let Some(configured) = std::env::var_os("HEVC_REBUILD_ENGINE_ROOT") {
-        let root = PathBuf::from(configured).canonicalize().map_err(|error| {
-            format!("Configured HEVC_REBUILD_ENGINE_ROOT is unavailable: {error}")
-        })?;
-        if root.join("hevc_rebuild").is_dir() {
-            return Ok(root);
-        }
-        return Err(
-            "HEVC_REBUILD_ENGINE_ROOT must contain the hevc_rebuild Python package.".into(),
-        );
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .canonicalize()
-            .map_err(|error| format!("Could not locate the Python media engine: {error}"))?;
-        if root.join("hevc_rebuild").is_dir() {
-            return Ok(root);
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    if let Some(app_dir) = std::env::var_os("APPDIR") {
-        let candidate = PathBuf::from(app_dir).join("usr/lib/HEVC Rebuild Studio/engine");
-        if candidate.join("hevc_rebuild").is_dir() {
-            return Ok(candidate);
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    for candidate in [
-        PathBuf::from("/usr/lib/HEVC Rebuild Studio/engine"),
-        PathBuf::from("/usr/lib/hevc-rebuild-studio/engine"),
-        PathBuf::from("/usr/share/hevc-rebuild-studio/engine"),
-    ] {
-        if candidate.join("hevc_rebuild").is_dir() {
-            return Ok(candidate);
-        }
-    }
-
-    // Tauri's installed Windows and macOS layouts keep bundled resources
-    // beside the executable rather than in the Linux system directories above.
-    // Keep the standalone CLI and MCP entry points on the same bundled engine
-    // as the GUI without requiring a manually configured environment variable.
-    if let Ok(executable) = std::env::current_exe() {
-        if let Some(executable_directory) = executable.parent() {
-            for candidate in [
-                executable_directory.join("resources/engine"),
-                executable_directory.join("../Resources/engine"),
-                executable_directory.join("../resources/engine"),
-                executable_directory.join("engine"),
-            ] {
-                if candidate.join("hevc_rebuild").is_dir() {
-                    return Ok(candidate.canonicalize().unwrap_or(candidate));
-                }
-            }
-        }
-    }
-    Err(
-        "Could not locate the Python media engine. Set HEVC_REBUILD_ENGINE_ROOT to its folder."
-            .into(),
-    )
-}
-
-fn standalone_command(module: &str, args: &[String]) -> Result<Command, String> {
-    let root = standalone_engine_root()?;
-    let mut command = python_module_command(module);
-    command.args(args);
-    let mut python_paths = vec![root];
-    if let Some(existing) = std::env::var_os("PYTHONPATH") {
-        python_paths.extend(std::env::split_paths(&existing));
-    }
-    let joined = std::env::join_paths(python_paths)
-        .map_err(|error| format!("Could not configure Python's module path: {error}"))?;
-    command.env("PYTHONPATH", joined);
-    if let Ok(executable) = std::env::current_exe() {
-        command.env("HEVC_REBUILD_NATIVE_HELPER", executable);
-    }
-    Ok(command)
-}
-
 fn run_json_cli(args: &[String]) -> i32 {
     if args.is_empty() {
-        eprintln!("Choose a JSON action: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, integrity, check.");
+        eprintln!("Choose a JSON action: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, integrity, check.");
         return 2;
     }
     if args[0] == "output-plan" {
@@ -659,11 +514,66 @@ fn run_json_cli(args: &[String]) -> i32 {
             }
         };
     }
+    if args[0] == "work-directory" {
+        return run_json_work_directory_cli(&args[1..]);
+    }
     eprintln!(
-        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, artwork-cache, integrity.",
+        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, install-hdr10plus, artwork-cache, integrity.",
         args[0]
     );
     2
+}
+
+fn run_json_work_directory_cli(args: &[String]) -> i32 {
+    let mut root = None;
+    let mut work_root = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("work-directory --root requires a path.");
+                    return 2;
+                };
+                if root.replace(value.clone()).is_some() {
+                    eprintln!("work-directory --root can be specified only once.");
+                    return 2;
+                }
+                index += 2;
+            }
+            "--work-root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("work-directory --work-root requires 'auto' or an absolute path.");
+                    return 2;
+                };
+                if work_root.replace(value.clone()).is_some() {
+                    eprintln!("work-directory --work-root can be specified only once.");
+                    return 2;
+                }
+                index += 2;
+            }
+            other => {
+                eprintln!("Unknown work-directory option {other}.");
+                return 2;
+            }
+        }
+    }
+    let Some(root) = root else {
+        eprintln!("work-directory requires --root PATH.");
+        return 2;
+    };
+    match resolve_work_directory(&root, work_root.as_deref())
+        .and_then(|payload| serde_json::to_string(&payload).map_err(|error| error.to_string()))
+    {
+        Ok(payload) => {
+            println!("{payload}");
+            0
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
 }
 
 fn run_json_artwork_cache_cli(args: &[String]) -> i32 {
@@ -1232,14 +1142,64 @@ pub fn cli_mode(mode: &str, args: Vec<std::ffi::OsString>) -> i32 {
     if mode == "json" {
         return run_json_cli(&strings);
     }
-    match standalone_command("hevc_rebuild", &strings) {
-        Ok(mut command) => match command.status() {
-            Ok(status) => status.code().unwrap_or(1),
+    if strings
+        .iter()
+        .any(|argument| argument == "--youtube-upload")
+    {
+        return match youtube_run::YoutubeRunOptions::from_engine_args(&strings).and_then(
+            |options| {
+                youtube_run::run_youtube_export(
+                    &options,
+                    |_| {},
+                    |line| eprintln!("{line}"),
+                    |_| {},
+                )
+            },
+        ) {
+            Ok(job) => {
+                for line in youtube_run::closing_lines(&job) {
+                    println!("{line}");
+                }
+                i32::from(job.failed > 0)
+            }
             Err(error) => {
-                eprintln!("Could not start Python media engine: {error}");
+                eprintln!("{error}");
                 2
             }
-        },
+        };
+    }
+    if strings.iter().any(|argument| argument == "--metadata-only") {
+        return match metadata_run::MetadataRunOptions::from_engine_args(&strings).and_then(
+            |options| {
+                metadata_run::run_metadata_only(
+                    &options,
+                    |_| {},
+                    |line| eprintln!("{line}"),
+                    |_| {},
+                )
+            },
+        ) {
+            Ok(job) => {
+                for line in metadata_run::closing_lines(&job) {
+                    println!("{line}");
+                }
+                i32::from(job.failed > 0)
+            }
+            Err(error) => {
+                eprintln!("{error}");
+                2
+            }
+        };
+    }
+    match rebuild_run::RebuildRunOptions::from_engine_args(&strings).and_then(|options| {
+        rebuild_run::run_rebuild(&options, |_| {}, |line| eprintln!("{line}"), |_| {})
+    }) {
+        Ok(job) => {
+            for line in rebuild_run::closing_lines(&job) {
+                println!("{line}");
+            }
+            i32::from(job.failed > 0)
+        }
         Err(error) => {
             eprintln!("{error}");
             2
@@ -1409,45 +1369,6 @@ pub fn mcp_mode() -> i32 {
     mcp_server::run()
 }
 
-fn engine_command(app: &AppHandle, args: &[String]) -> Result<Command, String> {
-    let root = engine_root(app)?;
-    let mut command = python_module_command("hevc_rebuild");
-    command
-        .args(args)
-        .current_dir(root)
-        .env("HEVC_REBUILD_GUI_EVENTS", "1");
-    if let Ok(executable) = std::env::current_exe() {
-        command.env("HEVC_REBUILD_NATIVE_HELPER", executable);
-    }
-    Ok(command)
-}
-
-fn forward_lines<R: Read + Send + 'static>(
-    app: AppHandle,
-    event: &'static str,
-    run_id: String,
-    stream: R,
-    process_id: u32,
-) -> thread::JoinHandle<Result<(), String>> {
-    thread::spawn(move || {
-        crate::process_output::read_process_lines(stream, process_id, |line| {
-            if event == "run-line" {
-                if let Some(progress) = parse_engine_progress(&run_id, &line) {
-                    let _ = app.emit("run-progress", progress);
-                    return;
-                }
-            }
-            let _ = app.emit(
-                event,
-                RunLine {
-                    run_id: run_id.clone(),
-                    line,
-                },
-            );
-        })
-    })
-}
-
 fn emit_repair_line(
     app: &AppHandle,
     logger: &tool_diagnostics::ToolSetupLogger,
@@ -1475,49 +1396,6 @@ fn forward_repair_lines<R: Read + Send + 'static>(
         crate::process_output::read_process_lines(stream, process_id, |line| {
             emit_repair_line(&app, &logger, &job_id, line);
         })
-    })
-}
-
-fn parse_engine_progress(run_id: &str, line: &str) -> Option<RunProgress> {
-    let payload = line.strip_prefix("#HEVC_REBUILD_PROGRESS\t")?;
-    let event: EngineProgress = serde_json::from_str(payload).ok()?;
-    if event.file_name.trim().is_empty()
-        || event.file_name.len() > 512
-        || event.file_path.as_deref().is_some_and(|path| {
-            path.trim().is_empty() || path.len() > 8192 || !Path::new(path).is_absolute()
-        })
-        || event.phase.trim().is_empty()
-        || event.phase.len() > 96
-        || event.batch_total == 0
-        || event.batch_number == 0
-        || event.batch_number > event.batch_total
-        || event
-            .file_percent
-            .is_some_and(|value| !(0.0..=100.0).contains(&value))
-        || event
-            .queue_percent
-            .is_some_and(|value| !(0.0..=100.0).contains(&value))
-        || event.speed.is_some_and(|value| value < 0.0)
-        || event.eta_seconds.is_some_and(|value| value < 0.0)
-        || event.elapsed_seconds.is_some_and(|value| value < 0.0)
-    {
-        return None;
-    }
-    Some(RunProgress {
-        run_id: run_id.to_string(),
-        file_name: event.file_name,
-        file_path: event.file_path,
-        phase: event.phase,
-        batch_number: event.batch_number,
-        batch_total: event.batch_total,
-        file_percent: event.file_percent,
-        queue_percent: event.queue_percent,
-        speed: event.speed,
-        eta_seconds: event.eta_seconds,
-        elapsed_seconds: event.elapsed_seconds,
-        input_bytes: event.input_bytes,
-        output_bytes: event.output_bytes,
-        estimated_output_bytes: event.estimated_output_bytes,
     })
 }
 
@@ -1873,6 +1751,14 @@ async fn load_settings(root: String) -> Result<settings::EffectiveSettings, Stri
 }
 
 #[tauri::command]
+fn resolve_work_directory_command(
+    root: String,
+    work_root: Option<String>,
+) -> Result<WorkDirectoryPreview, String> {
+    resolve_work_directory(&root, work_root.as_deref())
+}
+
+#[tauri::command]
 fn default_media_root() -> Result<String, String> {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
@@ -2127,7 +2013,14 @@ pub(crate) fn user_home_directory() -> Option<PathBuf> {
 
 pub(crate) fn app_config_directory() -> Result<PathBuf, String> {
     if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable));
+        let path = PathBuf::from(portable);
+        return Ok(if path.is_absolute() {
+            path
+        } else {
+            std::env::current_dir()
+                .map_err(|error| format!("Could not resolve the portable data directory: {error}"))?
+                .join(path)
+        });
     }
     #[cfg(target_os = "windows")]
     {
@@ -2164,7 +2057,14 @@ pub(crate) fn app_config_directory() -> Result<PathBuf, String> {
 
 fn app_state_directory() -> Result<PathBuf, String> {
     if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable));
+        let path = PathBuf::from(portable);
+        return Ok(if path.is_absolute() {
+            path
+        } else {
+            std::env::current_dir()
+                .map_err(|error| format!("Could not resolve the portable data directory: {error}"))?
+                .join(path)
+        });
     }
     #[cfg(target_os = "windows")]
     {
@@ -2194,9 +2094,181 @@ fn app_state_directory() -> Result<PathBuf, String> {
     }
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct WorkDirectoryPreview {
+    pub source_path: String,
+    pub configured_root: String,
+    pub directory: String,
+    pub resolution: String,
+    pub fallback_directory: Option<String>,
+}
+
+fn work_root_selection(configured: &str) -> Result<(Option<PathBuf>, String, String), String> {
+    if let Some(root) = std::env::var_os("HEVC_REBUILD_WORK_ROOT") {
+        let path = PathBuf::from(root);
+        if path.as_os_str().is_empty() {
+            return Err("HEVC_REBUILD_WORK_ROOT cannot be empty.".into());
+        }
+        let text = path
+            .to_str()
+            .ok_or(
+                "HEVC_REBUILD_WORK_ROOT must be an absolute UTF-8 folder path up to 8192 bytes.",
+            )?
+            .to_owned();
+        if text.len() > 8192 || text.chars().any(char::is_control) || !path.is_absolute() {
+            return Err(
+                "HEVC_REBUILD_WORK_ROOT must be an absolute folder path up to 8192 bytes.".into(),
+            );
+        }
+        return Ok((Some(path), "environment-override".into(), text));
+    }
+    let configured = configured.trim();
+    if configured.is_empty() || configured.eq_ignore_ascii_case("auto") {
+        return Ok((None, "source-adjacent".into(), "auto".into()));
+    }
+    let path = PathBuf::from(configured);
+    if configured.len() > 8192 || configured.chars().any(char::is_control) || !path.is_absolute() {
+        return Err(
+            "The work root must be 'auto' or an absolute folder path up to 8192 bytes.".into(),
+        );
+    }
+    Ok((Some(path), "configured".into(), configured.into()))
+}
+
+fn work_directory_anchor(source: &Path) -> &Path {
+    if source.is_dir() {
+        source
+    } else {
+        source
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+    }
+}
+
+/// Resolve the work directory without creating it. This is used by settings,
+/// scan, CLI, MCP, and the GUI so each surface can show the same dynamic path.
+pub(crate) fn preview_work_directory(
+    source: &Path,
+    configured: &str,
+) -> Result<WorkDirectoryPreview, String> {
+    let (override_root, resolution, configured_root) = work_root_selection(configured)?;
+    let directory =
+        override_root.unwrap_or_else(|| work_directory_anchor(source).join(".hevc-rebuild-work"));
+    let fallback_directory = if resolution == "source-adjacent" {
+        app_state_directory()
+            .ok()
+            .map(|path| path.join("work").to_string_lossy().into_owned())
+    } else {
+        None
+    };
+    Ok(WorkDirectoryPreview {
+        source_path: source.to_string_lossy().into_owned(),
+        configured_root,
+        directory: directory.to_string_lossy().into_owned(),
+        resolution,
+        fallback_directory,
+    })
+}
+
+fn create_writable_work_directory(path: &Path) -> Result<(), String> {
+    fs::create_dir_all(path)
+        .map_err(|error| format!("Could not create work folder {}: {error}", path.display()))?;
+    let probe = path.join(format!(
+        ".hevc-rebuild-write-test-{}-{}",
+        std::process::id(),
+        new_job_id()
+    ));
+    let result = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&probe)
+        .map(|_| ())
+        .map_err(|error| format!("Could not write work folder {}: {error}", path.display()));
+    let _ = fs::remove_file(&probe);
+    result
+}
+
+/// Resolve and create a work directory for one source file.
+///
+/// The default is dynamic: work is created beside each source in
+/// `.hevc-rebuild-work`, keeping temporary outputs on the source volume. A
+/// configured `paths.work_root` or the process-level environment override uses
+/// the selected folder directly. If the automatic adjacent folder is
+/// unwritable, the app-state work folder is used as a clearly reported fallback.
+pub(crate) fn media_work_directory(source: &Path, configured: &str) -> Result<PathBuf, String> {
+    let preview = preview_work_directory(source, configured)?;
+    let directory = PathBuf::from(&preview.directory);
+    if preview.resolution != "source-adjacent" {
+        create_writable_work_directory(&directory)?;
+        return Ok(directory);
+    }
+    match create_writable_work_directory(&directory) {
+        Ok(()) => Ok(directory),
+        Err(adjacent_error) => {
+            let fallback = preview
+                .fallback_directory
+                .as_deref()
+                .map(PathBuf::from)
+                .ok_or_else(|| {
+                    format!(
+                        "Could not create source-adjacent work folder {} ({adjacent_error}), and no app-state fallback is available.",
+                        directory.display()
+                    )
+                })?;
+            create_writable_work_directory(&fallback).map_err(|fallback_error| {
+                format!(
+                    "Could not use source-adjacent work folder {} ({adjacent_error}); app-state fallback {} also failed ({fallback_error}).",
+                    directory.display(),
+                    fallback.display()
+                )
+            })?;
+            Ok(fallback)
+        }
+    }
+}
+
+/// Resolve the effective work-directory policy for a file or folder without
+/// creating any directory. This is the shared discovery API used by the GUI,
+/// JSON CLI, and MCP.
+pub(crate) fn resolve_work_directory(
+    root: &str,
+    configured: Option<&str>,
+) -> Result<WorkDirectoryPreview, String> {
+    let source = PathBuf::from(root)
+        .canonicalize()
+        .map_err(|error| format!("Could not open the selected media path: {error}"))?;
+    if !source.is_file() && !source.is_dir() {
+        return Err("The selected media path is not a file or folder.".into());
+    }
+    let configured = match configured {
+        Some(value) => value.to_string(),
+        None => {
+            let payload = serde_json::to_value(settings::load_effective_settings(
+                &source.to_string_lossy(),
+            )?)
+            .map_err(|error| format!("Could not encode effective settings: {error}"))?;
+            payload
+                .pointer("/settings/paths/work_root")
+                .and_then(Value::as_str)
+                .unwrap_or("auto")
+                .to_string()
+        }
+    };
+    preview_work_directory(&source, &configured)
+}
+
 pub(crate) fn app_cache_directory() -> Result<PathBuf, String> {
     if let Some(portable) = std::env::var_os("HEVC_REBUILD_PORTABLE_DATA_DIR") {
-        return Ok(PathBuf::from(portable).join("cache"));
+        let path = PathBuf::from(portable);
+        let path = if path.is_absolute() {
+            path
+        } else {
+            std::env::current_dir()
+                .map_err(|error| format!("Could not resolve the portable data directory: {error}"))?
+                .join(path)
+        };
+        return Ok(path.join("cache"));
     }
     #[cfg(target_os = "windows")]
     {
@@ -3382,6 +3454,53 @@ fn run_native_youtube_job(
     });
 }
 
+/// Short-test and full rebuilds execute fully in Rust with no Python engine.
+fn run_native_rebuild_job(
+    app: &AppHandle,
+    state: &RunState,
+    run_id: &str,
+    options: rebuild_run::RebuildRunOptions,
+    disk_path: PathBuf,
+    stop_file: &Path,
+) {
+    run_native_job(app, state, run_id, disk_path, stop_file, |emit_line| {
+        let job = rebuild_run::run_rebuild(
+            &options,
+            |progress| {
+                let _ = app.emit(
+                    "run-progress",
+                    RunProgress {
+                        run_id: run_id.to_string(),
+                        file_name: progress.file_name,
+                        file_path: Some(progress.file_path),
+                        phase: progress.phase,
+                        batch_number: progress.current as u32,
+                        batch_total: progress.total as u32,
+                        file_percent: progress.file_percent,
+                        queue_percent: Some(progress.queue_percent),
+                        speed: progress.speed,
+                        eta_seconds: progress.eta_seconds,
+                        elapsed_seconds: Some(progress.elapsed_seconds),
+                        input_bytes: progress.input_bytes,
+                        output_bytes: progress.output_bytes,
+                        estimated_output_bytes: progress.estimated_output_bytes,
+                    },
+                );
+            },
+            emit_line,
+            child_tracker(state, run_id),
+        )?;
+        for line in rebuild_run::closing_lines(&job) {
+            emit_line(line);
+        }
+        Ok(NativeOutcome {
+            log_path: job.log_path,
+            report_path: job.report_path,
+            failed: job.failed,
+        })
+    });
+}
+
 #[tauri::command]
 fn start_run(
     app: AppHandle,
@@ -3625,6 +3744,11 @@ fn start_run(
     } else {
         None
     };
+    let native_rebuild = if matches!(request.mode.as_str(), "test" | "full") {
+        Some(rebuild_run::RebuildRunOptions::from_engine_args(&args)?)
+    } else {
+        None
+    };
     claim_job(
         state.inner(),
         new_active_job(id.clone(), Some(stop_file.clone())),
@@ -3657,98 +3781,26 @@ fn start_run(
             );
             return;
         }
-        let mut log_path = None;
-        let mut report_path = None;
-        let mut error = None;
-        let mut exit_code = None;
-        match engine_command(&app_handle, &args).and_then(|mut command| {
-            command.stdout(Stdio::piped()).stderr(Stdio::piped());
-            crate::process_output::spawn_owned(&mut command)
-                .map_err(|error| format!("Could not start the rebuild engine: {error}"))
-        }) {
-            Ok(mut child) => {
-                remember_job_child(&run_state, &worker_id, child.id());
-                let resource_app = app_handle.clone();
-                let resource_run_id = worker_id.clone();
-                let resource_monitor = resource_monitor::monitor_process(
-                    child.id(),
-                    Some(resource_disk_path),
-                    std::time::Duration::from_secs(1),
-                    move |snapshot| {
-                        let _ = resource_app.emit(
-                            "run-resources",
-                            RunResourceEvent {
-                                run_id: resource_run_id.clone(),
-                                snapshot,
-                            },
-                        );
-                    },
-                );
-                let stderr_thread = child.stderr.take().map(|stream| {
-                    forward_lines(
-                        app_handle.clone(),
-                        "run-line",
-                        worker_id.clone(),
-                        stream,
-                        child.id(),
-                    )
-                });
-                if let Some(stdout) = child.stdout.take() {
-                    for line in BufReader::new(stdout).lines() {
-                        match line {
-                            Ok(line) => {
-                                if let Some(value) = line.strip_prefix("Log:") {
-                                    log_path = Some(value.trim().to_string());
-                                } else if let Some(value) = line.strip_prefix("Run report:") {
-                                    report_path = Some(value.trim().to_string());
-                                }
-                                let _ = app_handle.emit(
-                                    "run-line",
-                                    RunLine {
-                                        run_id: worker_id.clone(),
-                                        line,
-                                    },
-                                );
-                            }
-                            Err(read_error) => {
-                                error =
-                                    Some(format!("Could not read rebuild output: {read_error}"));
-                                let _ = child.kill();
-                                break;
-                            }
-                        }
-                    }
-                }
-                if let Some(handle) = stderr_thread {
-                    match handle.join() {
-                        Ok(Err(read_error)) => error = Some(read_error),
-                        Err(_) => error = Some("Rebuild diagnostic reader panicked.".into()),
-                        Ok(Ok(())) => {}
-                    }
-                }
-                match child.wait() {
-                    Ok(status) => exit_code = status.code(),
-                    Err(wait_error) => {
-                        error = Some(format!(
-                            "Could not wait for the rebuild engine: {wait_error}"
-                        ))
-                    }
-                }
-                resource_monitor.stop();
-            }
-            Err(start_error) => error = Some(start_error),
+        if let Some(options) = native_rebuild {
+            run_native_rebuild_job(
+                &app_handle,
+                &run_state,
+                &worker_id,
+                options,
+                resource_disk_path,
+                &stop_file,
+            );
+            return;
         }
-        let stop_requested = stop_control::requested(&stop_file);
-        let _ = fs::remove_file(&stop_file);
         let _ = app_handle.emit(
             "run-finished",
             RunFinished {
                 run_id: worker_id.clone(),
-                exit_code,
-                stop_requested,
-                log_path,
-                report_path,
-                error,
+                exit_code: Some(1),
+                stop_requested: false,
+                log_path: None,
+                report_path: None,
+                error: Some("Unsupported run mode for the native engine.".into()),
             },
         );
         release_job(&run_state, &worker_id);
@@ -4300,13 +4352,22 @@ async fn install_hdr10plus(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let agent_control_state = agent_control::AgentControlState::default();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(agent_control_state.clone())
         .manage(RunState::default())
+        .setup(move |app| {
+            agent_control::start_server(app.handle().clone(), agent_control_state.clone())
+                .map_err(std::io::Error::other)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
+            agent_control::reply,
+            agent_control::frontend_ready,
             load_app_preferences,
             save_app_preferences,
             inspect_environment,
@@ -4345,6 +4406,7 @@ pub fn run() {
             apply_library_rename,
             default_media_root,
             load_settings,
+            resolve_work_directory_command,
             scan_folder,
             load_library_queue,
             reconcile_interrupted_runs,
@@ -4371,53 +4433,22 @@ pub fn run() {
             install_apt_tools,
             install_hdr10plus,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running HEVC Rebuild Studio");
+        .build(tauri::generate_context!())
+        .expect("error while building HEVC Rebuild Studio")
+        .run(|_, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                agent_control::cleanup();
+            }
+        });
+}
+
+pub fn agent_control_mode(args: Vec<std::ffi::OsString>) -> i32 {
+    agent_control::client_mode(args)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn python_module_command_ignores_appimage_python_home() {
-        let command = python_module_command("hevc_rebuild");
-        assert!(command
-            .get_envs()
-            .any(|(name, value)| name == std::ffi::OsStr::new("PYTHONHOME") && value.is_none()));
-        assert!(command.get_envs().any(|(name, value)| name
-            == std::ffi::OsStr::new("PYTHONUNBUFFERED")
-            && value == Some(std::ffi::OsStr::new("1"))));
-    }
-
-    #[test]
-    fn gui_progress_lines_become_bounded_typed_events() {
-        let line = concat!(
-            "#HEVC_REBUILD_PROGRESS\t",
-            r#"{"fileName":"Film.mkv","filePath":"/media/Film.mkv","phase":"Encoding","batchNumber":2,"batchTotal":4,"filePercent":40.0,"queuePercent":35.0,"speed":1.5,"etaSeconds":60.0,"elapsedSeconds":25.0,"inputBytes":1000,"outputBytes":400,"estimatedOutputBytes":1000}"#
-        );
-        let event = parse_engine_progress("run-123", line).expect("parse valid GUI progress");
-        assert_eq!(event.run_id, "run-123");
-        assert_eq!(event.file_name, "Film.mkv");
-        assert_eq!(event.file_path.as_deref(), Some("/media/Film.mkv"));
-        assert_eq!(event.phase, "Encoding");
-        assert_eq!(event.batch_number, 2);
-        assert_eq!(event.batch_total, 4);
-        assert_eq!(event.file_percent, Some(40.0));
-        assert_eq!(event.queue_percent, Some(35.0));
-        assert_eq!(event.input_bytes, Some(1000));
-        assert_eq!(event.estimated_output_bytes, Some(1000));
-    }
-
-    #[test]
-    fn malformed_or_out_of_range_gui_progress_stays_a_diagnostic_line() {
-        assert!(parse_engine_progress("run-123", "ordinary engine output").is_none());
-        let invalid = concat!(
-            "#HEVC_REBUILD_PROGRESS\t",
-            r#"{"fileName":"Film.mkv","filePath":"relative/Film.mkv","phase":"Encoding","batchNumber":1,"batchTotal":1,"filePercent":101.0,"queuePercent":20.0,"speed":1.0,"etaSeconds":1.0,"elapsedSeconds":1.0,"inputBytes":1000,"outputBytes":400,"estimatedOutputBytes":1000}"#
-        );
-        assert!(parse_engine_progress("run-123", invalid).is_none());
-    }
 
     #[test]
     fn metadata_blacklist_is_forwarded_as_individual_engine_arguments() {
@@ -4472,11 +4503,28 @@ mod tests {
         let defaults = settings::default_settings();
         let args = settings_arguments(&defaults)
             .expect("the built-in settings must pass the Rust engine adapter");
+        let work_root = args
+            .windows(2)
+            .find(|pair| pair[0] == "--work-root")
+            .expect("the shared dynamic work-root policy is forwarded");
+        assert_eq!(work_root[1], "auto");
         let option = args
             .windows(2)
             .find(|pair| pair[0] == "--secondary-video")
             .expect("secondary video policy is forwarded");
         assert_eq!(option[1], "encode");
+
+        let mut legacy = settings::default_settings();
+        legacy.as_object_mut().unwrap().remove("paths");
+        let legacy_args = settings_arguments(&legacy)
+            .expect("older saved settings without paths must use the dynamic default");
+        assert_eq!(
+            legacy_args
+                .windows(2)
+                .find(|pair| pair[0] == "--work-root")
+                .unwrap()[1],
+            "auto"
+        );
 
         for policy in ["encode", "copy", "drop"] {
             let mut configured = settings::default_settings();
@@ -4532,63 +4580,79 @@ mod tests {
         fs::remove_dir_all(outside).unwrap();
     }
 
-    #[test]
-    fn every_production_python_script_is_listed_in_the_python_rust_conversion_ledger() {
-        fn collect_python_files(directory: &Path, root: &Path, files: &mut BTreeSet<String>) {
-            let entries = fs::read_dir(directory).expect("read Python source directory");
-            for entry in entries {
-                let entry = entry.expect("read Python source entry");
-                let path = entry.path();
-                let metadata = entry.file_type().expect("inspect Python source entry");
-                if metadata.is_dir() {
-                    if entry.file_name() != "__pycache__" {
-                        collect_python_files(&path, root, files);
-                    }
-                } else if metadata.is_file() && path.extension().is_some_and(|ext| ext == "py") {
-                    files.insert(
-                        path.strip_prefix(root)
-                            .expect("Python source remains inside the repository")
-                            .to_string_lossy()
-                            .replace('\\', "/"),
-                    );
-                }
-            }
-        }
-
-        let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let project_root = crate_root
-            .parent()
-            .and_then(Path::parent)
-            .expect("resolve repository root from the Tauri crate");
-        let mut production_sources = BTreeSet::new();
-        collect_python_files(
-            &project_root.join("hevc_rebuild"),
-            project_root,
-            &mut production_sources,
-        );
-        let root_entrypoint = project_root.join("hevc_rebuild.py");
-        if root_entrypoint.is_file() {
-            production_sources.insert("hevc_rebuild.py".into());
-        }
-        let conversion_ledger =
-            fs::read_to_string(project_root.join("docs/maintainer/python-rust-convert.md"))
-                .expect("read the Python-to-Rust conversion ledger");
-        let missing = production_sources
-            .iter()
-            .filter(|source| !conversion_ledger.contains(&format!("`{source}`")))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        assert!(
-            missing.is_empty(),
-            "Python production files missing from python-rust-convert.md: {missing:?}"
-        );
-    }
-
     fn test_dir(label: &str) -> PathBuf {
         let path = std::env::temp_dir().join(format!("hevc-rebuild-{label}-{}", new_job_id()));
         fs::create_dir_all(&path).expect("create isolated test directory");
         path
+    }
+
+    #[test]
+    fn media_work_directory_defaults_beside_source_and_honors_override() {
+        let _guard = TEST_STATE_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous = std::env::var_os("HEVC_REBUILD_WORK_ROOT");
+        std::env::remove_var("HEVC_REBUILD_WORK_ROOT");
+        let root = test_dir("media-work");
+        let source = root.join("Film.mkv");
+        fs::write(&source, b"fixture").unwrap();
+        let preview = preview_work_directory(&source, "auto").unwrap();
+        assert_eq!(preview.source_path, source.to_string_lossy());
+        assert_eq!(preview.configured_root, "auto");
+        assert_eq!(
+            preview.directory,
+            root.join(".hevc-rebuild-work").to_string_lossy()
+        );
+        assert_eq!(preview.resolution, "source-adjacent");
+        assert_eq!(
+            media_work_directory(&source, "auto").unwrap(),
+            root.join(".hevc-rebuild-work")
+        );
+
+        let blocked_root = root.join("blocked-source");
+        fs::create_dir_all(&blocked_root).unwrap();
+        let blocked_source = blocked_root.join("Film.mkv");
+        fs::write(&blocked_source, b"fixture").unwrap();
+        fs::write(blocked_root.join(".hevc-rebuild-work"), b"not a folder").unwrap();
+        let blocked_preview = preview_work_directory(&blocked_source, "auto").unwrap();
+        let fallback = blocked_preview
+            .fallback_directory
+            .clone()
+            .expect("automatic work directories expose an app-state fallback");
+        assert_eq!(
+            media_work_directory(&blocked_source, "auto").unwrap(),
+            PathBuf::from(&fallback)
+        );
+
+        let override_root = root.join("custom-work");
+        let configured_preview =
+            preview_work_directory(&source, &override_root.to_string_lossy()).unwrap();
+        assert_eq!(
+            configured_preview.configured_root,
+            override_root.to_string_lossy()
+        );
+        assert_eq!(
+            configured_preview.directory,
+            override_root.to_string_lossy()
+        );
+        assert_eq!(configured_preview.resolution, "configured");
+        std::env::set_var("HEVC_REBUILD_WORK_ROOT", &override_root);
+        let environment_preview = preview_work_directory(&source, "auto").unwrap();
+        assert_eq!(environment_preview.resolution, "environment-override");
+        assert_eq!(
+            environment_preview.configured_root,
+            override_root.to_string_lossy()
+        );
+        assert_eq!(
+            media_work_directory(&source, "auto").unwrap(),
+            override_root
+        );
+
+        match previous {
+            Some(value) => std::env::set_var("HEVC_REBUILD_WORK_ROOT", value),
+            None => std::env::remove_var("HEVC_REBUILD_WORK_ROOT"),
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

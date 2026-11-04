@@ -126,6 +126,7 @@ pub(crate) struct MetadataRunOptions {
     pub stop_on_error: bool,
     pub keep_work: bool,
     pub reprocess: bool,
+    pub work_root: String,
     pub stop_file: Option<PathBuf>,
     pub tool_paths: ToolPaths,
 }
@@ -198,6 +199,7 @@ impl MetadataRunOptions {
         let mut options = Self {
             minimum_size_mib: 5,
             embed_artwork: true,
+            work_root: "auto".into(),
             ..Self::default()
         };
         let mut root: Option<PathBuf> = None;
@@ -274,6 +276,10 @@ impl MetadataRunOptions {
                             .filter(|value| value.is_finite() && *value >= 0.0)
                             .ok_or("The disk reserve must be a non-negative number of GiB.")?,
                     );
+                }
+                "--work-root" => {
+                    options.work_root = value()?;
+                    crate::preview_work_directory(Path::new("."), &options.work_root)?;
                 }
                 "--stop-request-file" => options.stop_file = Some(PathBuf::from(value()?)),
                 "--ffmpeg-path" => options.tool_paths.ffmpeg = Some(value()?),
@@ -574,9 +580,10 @@ fn unique_token() -> String {
     )
 }
 
-fn make_work_dir() -> Result<PathBuf, String> {
+fn make_work_dir(source: &Path, configured: &str) -> Result<PathBuf, String> {
+    let root = crate::media_work_directory(source, configured)?;
     for _ in 0..MAX_TEMP_NAME_ATTEMPTS {
-        let candidate = std::env::temp_dir().join(format!("hevc-metadata-only-{}", unique_token()));
+        let candidate = root.join(format!("hevc-metadata-only-{}", unique_token()));
         match fs::create_dir(&candidate) {
             Ok(()) => return Ok(candidate),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
@@ -1011,7 +1018,7 @@ fn process_one(
         "Reading media tracks · {} ({number}/{total})",
         source.file_name().unwrap_or_default().to_string_lossy()
     ));
-    let work_dir = make_work_dir();
+    let work_dir = make_work_dir(source, &context.options.work_root);
     let outcome = match &work_dir {
         Ok(work_dir) => execute(context, &frame, work_dir, &mut state),
         Err(error) => Err(error.clone()),
@@ -2087,33 +2094,8 @@ mod tests {
             .is_ok()
     }
 
-    /// End to end on a synthetic clip: needs ffmpeg + MKVToolNix + MediaInfo and is
-    /// skipped (with a note) on machines without them.
-    #[test]
-    fn synthetic_clip_round_trips_through_native_metadata_only() {
-        for tool in [
-            "ffmpeg",
-            "ffprobe",
-            "mkvmerge",
-            "mkvpropedit",
-            "mkvextract",
-            "mediainfo",
-        ] {
-            if !tool_available(tool) {
-                eprintln!("skipping native metadata-only integration: {tool} is unavailable");
-                return;
-            }
-        }
-        let _state_guard = crate::TEST_STATE_LOCK
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let state_dir = scratch("state");
-        std::env::set_var("HEVC_REBUILD_PORTABLE_DATA_DIR", &state_dir);
-        let root = scratch("clip");
-        let source = root.join("Clip.One (2024 PG).mkv");
-        // ffmpeg's Matroska muxer leaves in-band HEVC parameter sets that mkvmerge
-        // rewrites, so the fixture is normalised through mkvmerge first, like real
-        // MakeMKV/mkvmerge sources. The strict packet-hash gate rejects the raw file.
+    fn make_normalized_synthetic_clip(root: &Path, file_name: &str) -> Option<PathBuf> {
+        let source = root.join(file_name);
         let raw = root.join("raw-fixture.mkv");
         let made = Command::new("ffmpeg")
             .args([
@@ -2151,11 +2133,42 @@ mod tests {
                 .status()
                 .is_ok_and(|status| status.code().is_some_and(|code| code <= 1));
         let _ = fs::remove_file(&raw);
-        if !normalised {
+        if normalised {
+            Some(source)
+        } else {
+            let _ = fs::remove_file(&source);
+            None
+        }
+    }
+
+    /// End to end on a synthetic clip: needs ffmpeg + MKVToolNix + MediaInfo and is
+    /// skipped (with a note) on machines without them.
+    #[test]
+    fn synthetic_clip_round_trips_through_native_metadata_only() {
+        for tool in [
+            "ffmpeg",
+            "ffprobe",
+            "mkvmerge",
+            "mkvpropedit",
+            "mkvextract",
+            "mediainfo",
+        ] {
+            if !tool_available(tool) {
+                eprintln!("skipping native metadata-only integration: {tool} is unavailable");
+                return;
+            }
+        }
+        let _state_guard = crate::TEST_STATE_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let state_dir = scratch("state");
+        std::env::set_var("HEVC_REBUILD_PORTABLE_DATA_DIR", &state_dir);
+        let root = scratch("clip");
+        let Some(source) = make_normalized_synthetic_clip(&root, "Clip.One (2024 PG).mkv") else {
             eprintln!("skipping native metadata-only integration: could not build the fixture");
             let _ = fs::remove_dir_all(root);
             return;
-        }
+        };
         let before = fs::read(&source).unwrap();
         let mut overrides = Map::new();
         overrides.insert(
@@ -2221,44 +2234,49 @@ mod tests {
         }
     }
 
-    /// Opt-in real-media smoke: `HEVC_METADATA_SAMPLE=/path/file.mkv cargo test
-    /// real_media_sample -- --ignored --nocapture`. Output goes to a scratch folder.
+    /// Default metadata-only behavior must validate a normalized native MKV
+    /// without requiring an environment-selected real-media fixture.
     #[test]
-    #[ignore = "needs HEVC_METADATA_SAMPLE pointing at a real MKV"]
-    fn real_media_sample_validates_natively() {
-        let Some(sample) = std::env::var_os("HEVC_METADATA_SAMPLE") else {
-            eprintln!("set HEVC_METADATA_SAMPLE to run this smoke test");
+    fn synthetic_default_media_sample_validates_natively() {
+        for tool in [
+            "ffmpeg",
+            "ffprobe",
+            "mkvmerge",
+            "mkvpropedit",
+            "mkvextract",
+            "mediainfo",
+        ] {
+            if !tool_available(tool) {
+                eprintln!("skipping native metadata-only integration: {tool} is unavailable");
+                return;
+            }
+        }
+        let _state_guard = crate::TEST_STATE_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let state_dir = scratch("default-state");
+        std::env::set_var("HEVC_REBUILD_PORTABLE_DATA_DIR", &state_dir);
+        let root = scratch("default-clip");
+        let Some(source) = make_normalized_synthetic_clip(&root, "Default Clip.mkv") else {
+            eprintln!("skipping native metadata-only integration: could not build the fixture");
+            let _ = fs::remove_dir_all(&root);
+            let _ = fs::remove_dir_all(&state_dir);
             return;
         };
-        let sample = PathBuf::from(sample).canonicalize().unwrap();
-        let state_dir = scratch("sample-state");
-        std::env::set_var("HEVC_REBUILD_PORTABLE_DATA_DIR", &state_dir);
-        let out = scratch("sample-out");
+        let before = fs::read(&source).unwrap();
         let args = vec![
-            sample.to_string_lossy().into_owned(),
+            root.to_string_lossy().into_owned(),
             "--min-size-mib".into(),
             "0".into(),
-            "--output-dir".into(),
-            out.to_string_lossy().into_owned(),
+            "--no-embed-artwork".into(),
         ];
         let options = MetadataRunOptions::from_engine_args(&args).unwrap();
-        let mut last = String::new();
-        let result = run_metadata_only(
-            &options,
-            |progress| {
-                if progress.phase != last {
-                    eprintln!("[{:>5.1}%] {}", progress.queue_percent, progress.phase);
-                    last = progress.phase;
-                }
-            },
-            |line| eprintln!("{line}"),
-            |_| {},
-        )
-        .unwrap();
-        eprintln!("{:#?}", result.files);
+        let result = run_metadata_only(&options, |_| {}, |_| {}, |_| {}).unwrap();
         assert_eq!(result.failed, 0, "{:?}", result.files);
         assert_eq!(result.succeeded, 1);
-        let _ = fs::remove_dir_all(out);
+        assert!(root.join("Default Clip.metadata.mkv").is_file());
+        assert_eq!(fs::read(&source).unwrap(), before);
+        let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(state_dir);
     }
 }
