@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 252 |
-| Text lines | 183,182 |
-| Size on disk | 9915.7 KiB |
+| Files | 253 |
+| Text lines | 184,049 |
+| Size on disk | 10098.2 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 15 |
 
@@ -31,7 +31,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `desktop/src-tauri/src/youtube_run.rs` | 2,416 | 1,500 | 916 |
 | `desktop/src-tauri/src/media_queue.rs` | 2,407 | 1,500 | 907 |
 | `desktop/src-tauri/src/metadata_run.rs` | 2,282 | 1,500 | 782 |
-| `desktop/src/app.css` | 2,116 | 500 | 1,616 |
+| `desktop/src/app.css` | 2,120 | 500 | 1,620 |
 | `desktop/src-tauri/src/library_organizer.rs` | 1,988 | 1,500 | 488 |
 | `desktop/src/lib/types.ts` | 720 | 600 | 120 |
 | `desktop/src/instrument.css` | 700 | 500 | 200 |
@@ -41,7 +41,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-13 files · 958 lines · 36.4 KiB
+14 files · 1,819 lines · 218.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -52,6 +52,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
+| `MEMORY.md` | 861 | 182.1 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 24 | 974 B | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 276 | 13.2 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -103,11 +104,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/`
 
-3 files · 2,830 lines · 228.0 KiB
+3 files · 2,834 lines · 228.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `app.css` | 2,116 | 199.5 KiB | **over budget** — Shared application CSS: shell, run, upload, settings, reports, repair and recovery selector families. |
+| `app.css` | 2,120 | 199.8 KiB | **over budget** — Shared application CSS: shell, run, upload, settings, reports, repair and recovery selector families. |
 | `app.html` | 14 | 470 B | SvelteKit HTML shell. |
 | `instrument.css` | 700 | 28.1 KiB | **over budget** — Three extreme instrument skins share signal tokens but not the same frame language. |
 
@@ -429,7 +430,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 101,751 lines · 3531.0 KiB
+13 files · 101,753 lines · 3531.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -442,7 +443,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `interaction-waterfalls.json` | 1,579 | 42.0 KiB | Reviewed state/action/flow configuration for the reusable Svelte/Tauri interaction waterfall tool. |
 | `PLATFORM-SUPPORT.md` | 68 | 3.9 KiB | Platform support contract |
 | `PROJECT-STRUCTURE.md` | 60 | 3.2 KiB | Project structure |
-| `RELEASE.md` | 101 | 5.1 KiB | Release and update workflow |
+| `RELEASE.md` | 103 | 5.3 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 102 | 4.6 KiB | Installation and external tools |
 | `USAGE.md` | 134 | 5.6 KiB | Human usage guide |

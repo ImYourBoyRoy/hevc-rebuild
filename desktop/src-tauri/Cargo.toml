@@ -1,6 +1,6 @@
 [package]
 name = "hevc-rebuild-studio"
-version = "1.4.0"
+version = "1.4.1"
 description = "Cross-platform desktop interface for safe HEVC media rebuilds"
 authors = ["Roy Dawson IV <Roy.Dawson.IV@gmail.com>"]
 license = "PolyForm-Noncommercial-1.0.0"

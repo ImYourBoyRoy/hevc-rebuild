@@ -6,11 +6,13 @@ the release-only config enables them in CI.
 
 ## Published packages
 
-`v1.3.0` is the currently published release. The `v1.4.0` release candidate
-contains the Rust-only migration, dynamic per-source work-directory discovery,
-native HDR10+ validation, YouTube preparation updates, and cross-platform
-stop-now reporting. Publish it only after the `v1.4.0` workflow completes and
-its draft assets and updater manifest are verified.
+`v1.3.0` is the currently published release. The `v1.4.0` tag is a superseded
+candidate whose frontend responsive contract failed in GitHub Actions; no
+GitHub Release was created from it. The corrected `v1.4.1` candidate contains
+the Rust-only migration, dynamic per-source work-directory discovery, native
+HDR10+ validation, YouTube preparation updates, cross-platform stop-now
+reporting, and the responsive layout fix. Publish `v1.4.1` only after its
+workflow completes and the draft assets and updater manifest are verified.
 
 The release workflow produces:
 

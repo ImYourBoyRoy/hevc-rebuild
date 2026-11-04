@@ -1,6 +1,6 @@
 {
   "name": "hevc-rebuild-studio-workspace",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Workspace command shortcuts for the HEVC Rebuild Studio desktop client.",
   "license": "PolyForm-Noncommercial-1.0.0",
