@@ -4,10 +4,13 @@
   failed its responsive browser contract on 360px Ion layouts (Settings title
   and queue recovery inspection/actions); no GitHub Release was created. The
   `v1.4.0` tag remains immutable. CSS fixes now set shrinkable recovery
-  children/actions and allow the Settings heading to wrap. Local responsive
-  contract passed all 300 fixture/theme/width combinations plus the zoom proxy
-  (301 screenshots); `pnpm check` reports zero errors/warnings. Corrected
-  candidate is v1.4.1; rerun GitHub CI/release workflow before publishing.
+  children/actions and allow the `SettingsPreferences` page heading to wrap;
+  recovery uses a shrinkable grid column. The first `v1.4.1` hosted run exposed
+  that the initial Settings selector targeted the wrong heading. The corrected
+  local responsive contract passed all 300 fixture/theme/width combinations
+  plus the zoom proxy (301 screenshots); `pnpm check` reports zero errors and
+  warnings. Corrected candidate remains v1.4.1; rerun GitHub CI/release before
+  publishing.
 
 - 2026-11-04 native dev connection repair: the native popup was caused by
   Tauri's stale `localhost:1420` dev URL not matching Vite's

@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 253 |
-| Text lines | 184,049 |
-| Size on disk | 10098.2 KiB |
+| Text lines | 184,053 |
+| Size on disk | 10098.5 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 15 |
 
@@ -31,7 +31,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `desktop/src-tauri/src/youtube_run.rs` | 2,416 | 1,500 | 916 |
 | `desktop/src-tauri/src/media_queue.rs` | 2,407 | 1,500 | 907 |
 | `desktop/src-tauri/src/metadata_run.rs` | 2,282 | 1,500 | 782 |
-| `desktop/src/app.css` | 2,120 | 500 | 1,620 |
+| `desktop/src/app.css` | 2,121 | 500 | 1,621 |
 | `desktop/src-tauri/src/library_organizer.rs` | 1,988 | 1,500 | 488 |
 | `desktop/src/lib/types.ts` | 720 | 600 | 120 |
 | `desktop/src/instrument.css` | 700 | 500 | 200 |
@@ -41,7 +41,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-14 files · 1,819 lines · 218.5 KiB
+14 files · 1,822 lines · 218.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -52,7 +52,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 861 | 182.1 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 864 | 182.2 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 24 | 974 B | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 276 | 13.2 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -104,11 +104,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/`
 
-3 files · 2,834 lines · 228.3 KiB
+3 files · 2,835 lines · 228.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `app.css` | 2,120 | 199.8 KiB | **over budget** — Shared application CSS: shell, run, upload, settings, reports, repair and recovery selector families. |
+| `app.css` | 2,121 | 199.9 KiB | **over budget** — Shared application CSS: shell, run, upload, settings, reports, repair and recovery selector families. |
 | `app.html` | 14 | 470 B | SvelteKit HTML shell. |
 | `instrument.css` | 700 | 28.1 KiB | **over budget** — Three extreme instrument skins share signal tokens but not the same frame language. |
 

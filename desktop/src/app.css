@@ -1155,6 +1155,7 @@ html[data-theme="dark"] body { background: #14191a; }
 .app-shell .queue-recovery-file,
 .app-shell .queue-recovery-evidence,
 .app-shell .queue-recovery-inspection { display: grid; gap: 8px; margin-top: 12px; padding: 13px 14px; border: 1px solid var(--theme-line); border-radius: 10px; background: var(--theme-raised); }
+.app-shell .queue-recovery-inspection { grid-template-columns: minmax(0, 1fr); }
 .app-shell .queue-recovery-file > strong,
 .app-shell .queue-recovery-section-title > strong { color: var(--theme-text); font-size: 13px; }
 .app-shell .queue-recovery-file > code,
@@ -1170,8 +1171,8 @@ html[data-theme="dark"] body { background: #14191a; }
 .app-shell .queue-recovery-ack { margin-top: 14px; }
 .app-shell .queue-recovery-actions { flex-wrap: wrap; }
 .app-shell .queue-recovery-actions > .button { min-width: 0; white-space: normal; }
-.app-shell .settings-intro .section-title-row > div { min-width: 0; }
-.app-shell .settings-intro .section-title-row h2 { overflow-wrap: anywhere; }
+.app-shell .settings-page-heading > div:first-child { min-width: 0; }
+.app-shell .settings-page-heading h1 { max-width: 100%; overflow-wrap: anywhere; }
 :is([data-theme="dark"], [data-theme="phosphor"], [data-theme="ion"], [data-theme="breach"]) .app-shell .queue-output-status.blocked { color: #ffb5aa; border-color: #704740; background: #341f1c; }
 @media (max-width: 720px) {
   .app-shell .queue-output-modal { padding: 20px; }
