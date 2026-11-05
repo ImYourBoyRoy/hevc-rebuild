@@ -6,13 +6,18 @@ the release-only config enables them in CI.
 
 ## Published packages
 
-`v1.3.0` is the currently published release. The `v1.4.0` tag is a superseded
-candidate whose frontend responsive contract failed in GitHub Actions; no
-GitHub Release was created from it. The corrected `v1.4.1` candidate contains
-the Rust-only migration, dynamic per-source work-directory discovery, native
-HDR10+ validation, YouTube preparation updates, cross-platform stop-now
-reporting, and the responsive layout fix. Publish `v1.4.1` only after its
-workflow completes and the draft assets and updater manifest are verified.
+`v1.4.1` is the current published release:
+https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.4.1. Its 13 release
+assets cover Windows x64 NSIS, macOS Intel and Apple Silicon DMG/updater bundles,
+Linux x64 AppImage/deb, updater signatures, and `latest.json`. The release
+workflow verified the signed manifest against four platform entries and
+confirmed no MSI asset is present. The `v1.4.0` tag remains an unreleased,
+superseded candidate because its frontend responsive contract failed; the tag
+was preserved and no GitHub Release was created for it.
+
+Version 1.4.1 contains the Rust-only migration, dynamic per-source work-directory
+discovery, native HDR10+ validation, YouTube preparation updates,
+cross-platform stop-now reporting, and responsive layout fixes.
 
 The release workflow produces:
 
@@ -89,13 +94,14 @@ No release tag or upload is performed by local development builds.
 
 ## Current validation boundary
 
-The first public release also completed GitHub Actions package lanes for
-Windows x64, macOS Intel, macOS Apple Silicon, and Linux x64. The Windows NSIS
-artifact and macOS DMGs were produced without MSI or Apple signing inputs, and
-the signed `latest.json` manifest was verified against the uploaded assets.
-This does not replace clean installer installation, native GUI walkthroughs,
-real-media, accessibility, Apple signing/notarization, or live updater
-installation evidence.
+The v1.4.1 release workflow passed Rust and frontend contracts, Linux source
+installation, native compile lanes for Windows/macOS/Linux, the Ubuntu 24.04
+AppImage rebuild-and-launch gate, and all four platform packaging lanes. The
+Windows NSIS artifact and macOS DMGs were produced without MSI or Apple
+code-signing/notarization inputs. The signed `latest.json` manifest was verified
+against the uploaded assets. This does not replace clean installation of the
+published packages, native GUI walkthroughs, real-media, accessibility, Apple
+signing/notarization, or live updater installation evidence.
 
 The Linux source installer and AppImage jobs are source/package gates. They do
 not by themselves prove a clean install of the published AppImage, deb, NSIS,

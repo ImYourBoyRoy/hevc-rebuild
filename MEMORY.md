@@ -1,5 +1,15 @@
 # Project Memory
 
+- 2026-11-05 release completion: `v1.4.1` is published at
+  `https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.4.1`. Main CI
+  run `41929212149` and tagged release workflow `41931388259` succeeded. The
+  release produced 13 assets: Windows NSIS, macOS Intel/Apple Silicon DMGs and
+  updater bundles, Linux AppImage/deb, signatures, and `latest.json`. The draft
+  verifier confirmed four signed platform entries and no MSI. Native install,
+  GUI walkthrough, real-media, screen-reader, and live-updater acceptance
+  remain open. `v1.4.0` remains an unreleased superseded tag after its responsive
+  contract failed; it was not moved or deleted.
+
 - 2026-11-04 release correction: GitHub run `41925997038` for tag `v1.4.0`
   failed its responsive browser contract on 360px Ion layouts (Settings title
   and queue recovery inspection/actions); no GitHub Release was created. The
@@ -10,8 +20,8 @@
   identified the actual overflows in a settings-card `h2` and the recovery
   inspection button; both now have shrink/wrap rules. The local responsive
   contract passes all 300 fixture/theme/width combinations plus the zoom proxy
-  (301 screenshots); `pnpm check` reports zero errors and warnings. Corrected
-  candidate remains v1.4.1; rerun GitHub CI/release before publishing.
+  (301 screenshots); `pnpm check` reports zero errors and warnings. The fixes
+  passed hosted CI before v1.4.1 was tagged and released.
 
 - 2026-11-04 native dev connection repair: the native popup was caused by
   Tauri's stale `localhost:1420` dev URL not matching Vite's

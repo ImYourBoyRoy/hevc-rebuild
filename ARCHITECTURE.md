@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 253 |
-| Text lines | 184,056 |
-| Size on disk | 10098.8 KiB |
+| Text lines | 184,072 |
+| Size on disk | 10099.8 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 15 |
 
@@ -41,7 +41,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-14 files · 1,823 lines · 218.8 KiB
+14 files · 1,833 lines · 219.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -52,7 +52,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 865 | 182.4 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 875 | 183.0 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 24 | 974 B | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 276 | 13.2 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -430,7 +430,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 101,753 lines · 3531.1 KiB
+13 files · 101,759 lines · 3531.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -443,7 +443,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `interaction-waterfalls.json` | 1,579 | 42.0 KiB | Reviewed state/action/flow configuration for the reusable Svelte/Tauri interaction waterfall tool. |
 | `PLATFORM-SUPPORT.md` | 68 | 3.9 KiB | Platform support contract |
 | `PROJECT-STRUCTURE.md` | 60 | 3.2 KiB | Project structure |
-| `RELEASE.md` | 103 | 5.3 KiB | Release and update workflow |
+| `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 102 | 4.6 KiB | Installation and external tools |
 | `USAGE.md` | 134 | 5.6 KiB | Human usage guide |
