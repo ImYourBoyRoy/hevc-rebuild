@@ -168,8 +168,8 @@ fn append_report(request: &AppendReportRequest) -> Result<(), String> {
     append_report_file(&requested, values)
 }
 
-// The descriptor owns the flock, including on an error return. Python uses the
-// same lock on the CSV inode, so mixed native/direct writers also serialize.
+// The descriptor owns the flock, including on an error return. Every writer
+// takes the same lock on the CSV inode, so concurrent runs serialize.
 fn lock_report(file: &File) -> io::Result<()> {
     #[cfg(unix)]
     {
@@ -234,12 +234,13 @@ fn append_report_file(requested: &Path, values: Vec<String>) -> Result<(), Strin
         || file.sync_all(),
         || {
             if original_size == 0 {
-                File::open(
+                // Shared with the install transaction so Windows, which cannot
+                // open a directory to flush it, is handled in one place.
+                crate::transactions::sync_directory(
                     requested
                         .parent()
                         .ok_or_else(|| io::Error::other("Report has no parent directory"))?,
                 )
-                .and_then(|directory| directory.sync_all())
             } else {
                 Ok(())
             }
@@ -388,7 +389,7 @@ fn report_value(path: &Path, created: f64, rows: Vec<Map<String, Value>>) -> Val
     })
 }
 
-/// Load recent local CSV reports without starting the Python compatibility bridge.
+/// Load recent local CSV reports without starting any engine process.
 /// Unavailable folders and malformed individual reports are treated as an empty/omitted result.
 pub(crate) fn list_reports(directory: &Path, limit: usize) -> Value {
     let Ok(entries) = fs::read_dir(directory) else {

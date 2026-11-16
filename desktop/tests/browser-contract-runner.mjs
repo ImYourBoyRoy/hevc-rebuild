@@ -4,7 +4,7 @@ import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSyn
 import { createServer as createTcpServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-export async function runBrowserContract(fixture, contract) {
+export async function runBrowserContract(fixture, contract, options = {}) {
 const desktop = fileURLToPath(new URL('../', import.meta.url));
 const evidenceRoot = join(desktop, '.native-smoke', 'browser-contracts');
 mkdirSync(evidenceRoot, { recursive: true });
@@ -14,7 +14,7 @@ const playwrightCommand = process.platform === 'win32' ? 'pnpm.exe' : 'npx';
 const playwrightPrefix = process.platform === 'win32'
   ? ['dlx']
   : ['--yes'];
-const server = spawn(process.execPath, ['tests/browser-server.mjs'], {
+const server = spawn(process.execPath, [options.server || 'tests/browser-server.mjs'], {
   cwd: desktop, env: { ...process.env, HEVC_UI_FIXTURE_PORT: String(port), HEVC_UI_FIXTURE_CACHE: join(evidence, 'cache') },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -35,7 +35,7 @@ function cli(...args) {
     const stderrFd = openSync(stderrPath, 'w');
     try {
       result = spawnSync(playwrightCommand, commandArgs, {
-        cwd: evidence, timeout: args[0] === 'run-code' ? 300000 : 60000,
+        cwd: evidence, timeout: args[0] === 'run-code' ? 1500000 : 60000,
         stdio: ['ignore', stdoutFd, stderrFd],
       });
     } finally {
@@ -46,7 +46,7 @@ function cli(...args) {
     stderr = readFileSync(stderrPath, 'utf8');
   } else {
     result = spawnSync(playwrightCommand, commandArgs, {
-      cwd: evidence, encoding: 'utf8', timeout: args[0] === 'run-code' ? 300000 : 60000,
+      cwd: evidence, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, timeout: args[0] === 'run-code' ? 1500000 : 60000,
     });
     stdout = result.stdout || '';
     stderr = result.stderr || '';
@@ -65,12 +65,14 @@ try {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   if (!ready) throw new Error('Isolated browser fixture server did not become ready');
-  cli('open', `http://127.0.0.1:${port}?fixture=${fixture}`);
+  cli('open', options.url ? options.url(port) : `http://127.0.0.1:${port}?fixture=${fixture}`);
   cli('snapshot');
   const contractPath = join(evidence, 'contract.js');
   writeFileSync(contractPath, contract.toString().replaceAll('__EVIDENCE__', evidence));
-  console.log(cli('run-code', '--filename', contractPath));
+  const output = cli('run-code', '--filename', contractPath);
+  console.log(output);
   console.log(`Browser evidence: ${evidence}`);
+  return output;
 } finally {
   console.log(`Browser evidence retained: ${evidence}`);
   try { cli('close'); } catch {}

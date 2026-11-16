@@ -9,7 +9,7 @@
   }
   let { run, encodeMeasured, overallRunPercent, progressElapsedLabel, batchCount, batchIndex, bytes, duration, openProgressDetails, stopAfterCurrent, stopNow }: Props = $props();
 </script>
-<!-- Shared app.css owns the explicitly scoped .global-run-progress family, tokens and responsive rules. -->
+<!-- The shared app stylesheets (src/styles/app) own the explicitly scoped .global-run-progress family, tokens and responsive rules. -->
     {#if run.id || run.starting}
       <section class="global-run-progress" aria-label="Workflow progress" aria-live="polite">
         <div class="global-run-progress-heading">

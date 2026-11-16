@@ -139,7 +139,7 @@
         <li>To send one file somewhere else, open <strong>Library</strong> and choose <strong>Set output folder</strong> on its card. That choice overrides the default for that file.</li>
         <li>Before starting a metadata copy, short test, or full rebuild, review the queue-wide destination list. The app checks selected files across every queued source for existing files and duplicate targets.</li>
       </ol>
-      <p>If no separate folder is set, a full rebuild replaces the source only after validation and moves the original into <code>old/</code>. With a separate folder, the source stays where it is. Existing destination files are never overwritten.</p>
+      <p>If no separate folder is set, a full rebuild replaces the source only after validation and moves the original into a hidden <code>.hevc-rebuild-originals</code> folder beside it. Libraries rebuilt by older versions keep their visible <code>old/</code> folders; those backups are still recognized, and nothing is moved or deleted for you. With a separate folder, the source stays where it is. Existing destination files are never overwritten.</p>
     </article>
 
     <article class="help-card help-card-wide">

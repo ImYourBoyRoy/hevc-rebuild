@@ -8,7 +8,8 @@
   import type { LibraryCrumb, LibraryPosterCard } from "./types.js";
   import type { Action } from "svelte/action";
   import type { Attachment } from "svelte/attachments";
-  import "../styles/components/library-poster-grid.css";
+  import "../styles/components/library-poster-grid-1.css";
+  import "../styles/components/library-poster-grid-2.css";
 
   function indeterminate(value: boolean): Attachment<HTMLInputElement> {
     return (node) => {

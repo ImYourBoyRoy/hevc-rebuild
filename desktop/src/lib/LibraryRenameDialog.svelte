@@ -3,7 +3,8 @@
   import Modal from './Modal.svelte';
   import type { MediaEntry, OrganizerTemplates } from './types.js';
   import '../styles/components/metadata-review.css';
-  import '../styles/components/library-poster-grid.css';
+  import '../styles/components/library-poster-grid-1.css';
+  import '../styles/components/library-poster-grid-2.css';
   interface Props {
     libraryRenameOpen: boolean; libraryRenameDialog: HTMLDialogElement | null;
     renameDraft: OrganizerTemplates; moviePatternField: HTMLInputElement | null; episodePatternField: HTMLInputElement | null;

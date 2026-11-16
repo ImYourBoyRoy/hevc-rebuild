@@ -1,19 +1,16 @@
 //! ./desktop/src-tauri/src/matroska_verify.rs
 //! Native post-write expectation checks for a metadata-tagged Matroska output (T4.3d).
 //!
-//! Ports the tail of `hevc_rebuild/validate.py::validate_output`
-//! (`expect_poster` and `expected_global_tags`) plus
-//! `metadata.py::read_global_simple_tags`. Read-only: it never edits `output`.
+//! Checks the expected cover attachment and expected global tags and reads the
+//! output's simple tags. Read-only: it never edits `output`.
 //!
 //! Run: `echo '<request json>' | hevc-rebuild-studio internal metadata-verify`.
 //! Input: tool paths, absolute `output`, `expect_poster`, and ordered
 //! `expected_global_tags` as `[[name, value], ...]` pairs (order decides which
-//! failure is reported first, as in Python dict order).
+//! failure is reported first).
 //! Output: `{"ok":true,"global_tags":{...}}` on success; when an expectation is not
-//! met, `{"ok":false,"message":"<Python-identical text>"}` with exit 0 so the Python
-//! adapter can re-raise the exact user-facing error; unusable input or a failing
-//! MKVToolNix call writes stderr and exits non-zero.
-//! Python adapts to this helper when `HEVC_REBUILD_NATIVE_HELPER` is set.
+//! met, `{"ok":false,"message":"<user-facing text>"}` with exit 0; unusable input
+//! or a failing MKVToolNix call writes stderr and exits non-zero.
 
 use crate::matroska_scrub::{mkv_identify, run_tool, MatroskaTools};
 use crate::matroska_tags::{is_global_tag, parse_xml, py_strip, XmlNode};
@@ -189,7 +186,7 @@ pub(crate) enum VerifyError {
     Operational(String),
 }
 
-/// Check the cover attachment and expected global tags; mismatches match Python wording.
+/// Check the cover attachment and expected global tags; mismatches use the standard user-facing wording.
 pub(crate) fn verify_expected_output(
     tools: &MatroskaTools,
     output: &Path,

@@ -3,8 +3,7 @@
 //! Rust builds a bounded null-output command from the analyzed source and
 //! current encode options, then owns cache validation, candidate execution,
 //! live pressure rejection, and result choice for app-launched GUI/CLI/MCP jobs.
-//! The Python adapter supplies a typed profile/options payload and retains the
-//! direct-run reference implementation until parity is accepted.
+//! The caller supplies a typed profile/options payload.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};

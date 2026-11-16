@@ -9,7 +9,12 @@ CLI, installed CLI, and stdio MCP server enter the same Rust services.
 
 - desktop/src/routes/+page.svelte coordinates the desktop shell, page state,
   queue events, and Tauri listeners. Reusable UI belongs in desktop/src/lib/.
-- desktop/src-tauri/src/lib.rs owns Tauri commands and shared job dispatch.
+- desktop/src-tauri/src/lib.rs is the crate root: module declarations, the Tauri
+  command registry (`run`) and re-exports. Commands live in `commands_*`,
+  `apt_commands` and `run_commands`; the single active-job slot in `job_state`;
+  saved preferences in `app_preferences`; per-user folders in `app_paths` and
+  `work_directory`; the `json` and apt CLI actions in `cli_json`/`cli_apt`; and
+  process entry points in `cli_modes`.
 - desktop/src-tauri/src/main.rs routes GUI launch, CLI/JSON actions, MCP, and
   the opt-in agent-control client mode.
 - Rust modules own discovery, profiles, settings, resource planning, process
@@ -148,3 +153,11 @@ cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked --lib
 cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked --bin hevc-rebuild-studio
 ~~~
+
+## Agent tooling
+
+The Svelte MCP server (`@sveltejs/mcp`, `>=` floor in `desktop/package.json`, exact version in the lockfile) is
+configured for Claude Code (`.mcp.json`), Cursor (`.cursor/mcp.json`) and Codex
+(`.codex/config.toml`). All three run `pnpm --dir desktop exec svelte-mcp`.
+See `AGENTS.md` ("Svelte MCP") for the tools, the per-client notes and the
+update rule.

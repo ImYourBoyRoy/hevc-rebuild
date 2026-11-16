@@ -16,6 +16,17 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+mod portable;
+
+/// What the sampler keeps between readings. Linux reads `/proc` fresh every
+/// time and needs nothing; macOS and Windows keep one `sysinfo` handle so CPU
+/// usage (a delta between readings) works.
+#[cfg(target_os = "linux")]
+#[derive(Default)]
+struct Probe;
+#[cfg(not(target_os = "linux"))]
+use portable::Probe;
+
 const GIB: f64 = 1024.0 * 1024.0 * 1024.0;
 const MAX_PROCESS_TREE: usize = 256;
 
@@ -108,6 +119,7 @@ pub(crate) struct Sampler {
     previous_swap: Option<(u64, u64)>,
     previous_sample: Option<Instant>,
     page_size: u64,
+    probe: Probe,
 }
 
 impl Sampler {
@@ -124,11 +136,11 @@ impl Sampler {
             .previous_sample
             .replace(now)
             .map(|previous| now.duration_since(previous));
-        let cpu_percent = sample_cpu(&mut self.previous_cpu);
+        let cpu_percent = sample_cpu(&mut self.previous_cpu, &mut self.probe);
         let (swap_in_bytes_per_second, swap_out_bytes_per_second) =
             sample_swap(&mut self.previous_swap, elapsed, self.page_size);
         let (memory_total_gib, memory_available_gib, swap_total_gib, swap_free_gib) =
-            memory_stats();
+            memory_stats(&mut self.probe);
         let swap_used_gib = swap_total_gib
             .zip(swap_free_gib)
             .map(|(total, free)| (total - free).max(0.0));
@@ -144,7 +156,7 @@ impl Sampler {
             engine_process_swap_gib,
             ffmpeg_process_rss_gib,
             ffmpeg_process_swap_gib,
-        ) = process_tree_memory(pid);
+        ) = process_tree_memory(pid, &mut self.probe);
         let pressure_memory = read_psi("memory");
         let pressure_io = read_psi("io");
         let pressure_cpu = read_psi("cpu");
@@ -158,9 +170,7 @@ impl Sampler {
                 .unwrap_or_default()
                 .as_millis(),
             cpu_percent,
-            load1: fs::read_to_string("/proc/loadavg")
-                .ok()
-                .and_then(|text| text.split_whitespace().next()?.parse().ok()),
+            load1: load1(),
             memory_total_gib,
             memory_available_gib,
             swap_total_gib,
@@ -187,9 +197,31 @@ impl Sampler {
     }
 }
 
-fn memory_stats() -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+/// One-minute load average. Windows has no such figure, so it stays unknown there.
+fn load1() -> Option<f64> {
     #[cfg(target_os = "linux")]
     {
+        fs::read_to_string("/proc/loadavg")
+            .ok()
+            .and_then(|text| text.split_whitespace().next()?.parse().ok())
+    }
+    #[cfg(all(unix, not(target_os = "linux")))]
+    {
+        let mut load = [0.0f64; 1];
+        // SAFETY: getloadavg writes at most one f64 into the buffer we pass.
+        let written = unsafe { libc::getloadavg(load.as_mut_ptr(), 1) };
+        (written == 1).then_some(load[0])
+    }
+    #[cfg(not(unix))]
+    {
+        None
+    }
+}
+
+fn memory_stats(probe: &mut Probe) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = probe;
         let Ok(meminfo) = fs::read_to_string("/proc/meminfo") else {
             return (None, None, None, None);
         };
@@ -217,7 +249,7 @@ fn memory_stats() -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
     }
     #[cfg(not(target_os = "linux"))]
     {
-        (None, None, None, None)
+        probe.memory()
     }
 }
 
@@ -277,7 +309,7 @@ fn cgroup_memory_gib() -> (Option<f64>, Option<f64>) {
 }
 
 #[cfg(target_os = "linux")]
-fn sample_cpu(previous: &mut Option<(u64, u64)>) -> Option<f64> {
+fn sample_cpu(previous: &mut Option<(u64, u64)>, _probe: &mut Probe) -> Option<f64> {
     let input = fs::read_to_string("/proc/stat").ok()?;
     let current = parse_cpu_counters(input.lines().next()?);
     let old = previous.replace(current)?;
@@ -288,8 +320,8 @@ fn sample_cpu(previous: &mut Option<(u64, u64)>) -> Option<f64> {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn sample_cpu(_previous: &mut Option<(u64, u64)>) -> Option<f64> {
-    None
+fn sample_cpu(_previous: &mut Option<(u64, u64)>, probe: &mut Probe) -> Option<f64> {
+    probe.cpu_percent()
 }
 
 #[cfg(target_os = "linux")]
@@ -386,9 +418,13 @@ fn parse_psi(input: &str) -> BTreeMap<String, f64> {
         .collect()
 }
 
-fn process_tree_memory(root: u32) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+fn process_tree_memory(
+    root: u32,
+    probe: &mut Probe,
+) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
     #[cfg(target_os = "linux")]
     {
+        let _ = probe;
         let mut queue = VecDeque::from([root]);
         let mut visited = std::collections::BTreeSet::new();
         let mut engine = None;
@@ -435,8 +471,10 @@ fn process_tree_memory(root: u32) -> (Option<f64>, Option<f64>, Option<f64>, Opt
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = root;
-        (None, None, None, None)
+        // Per-process swap is not exposed here, so it stays unknown.
+        let rows = probe.processes();
+        let memory = portable::tree_memory(&rows, root, MAX_PROCESS_TREE);
+        (memory.engine_rss_gib, None, memory.ffmpeg_rss_gib, None)
     }
 }
 
@@ -479,43 +517,10 @@ fn is_ffmpeg_process(pid: u32) -> bool {
         })
 }
 
-#[cfg(target_os = "linux")]
-fn unix_u64(value: impl TryInto<u64>) -> Option<u64> {
-    value.try_into().ok()
-}
-
-#[cfg(target_os = "linux")]
+/// (total, used, available) bytes of the volume holding `path`, on every supported OS.
 fn disk_stats(path: &Path) -> Option<(u64, u64, u64)> {
-    use std::os::unix::ffi::OsStrExt;
-    for existing in path
-        .ancestors()
-        .filter(|ancestor| !ancestor.as_os_str().is_empty())
-    {
-        let Ok(path) = std::ffi::CString::new(existing.as_os_str().as_bytes()) else {
-            continue;
-        };
-        let mut stats = std::mem::MaybeUninit::<libc::statvfs>::zeroed();
-        // SAFETY: the C path is NUL-terminated and stats points to writable memory.
-        let code = unsafe { libc::statvfs(path.as_ptr(), stats.as_mut_ptr()) };
-        if code != 0 {
-            continue;
-        }
-        // SAFETY: statvfs initialized the structure on success.
-        let stats = unsafe { stats.assume_init() };
-        let block_size = unix_u64(stats.f_frsize)?;
-        let total = unix_u64(stats.f_blocks)?.saturating_mul(block_size);
-        let used = unix_u64(stats.f_blocks)?
-            .saturating_sub(unix_u64(stats.f_bfree)?)
-            .saturating_mul(block_size);
-        let free = unix_u64(stats.f_bavail)?.saturating_mul(block_size);
-        return Some((total, used, free));
-    }
-    None
-}
-
-#[cfg(not(target_os = "linux"))]
-fn disk_stats(_path: &Path) -> Option<(u64, u64, u64)> {
-    None
+    crate::media_scan::disk_space::disk_space(path)
+        .map(|space| (space.total_bytes, space.used_bytes, space.available_bytes))
 }
 
 #[cfg(target_os = "linux")]

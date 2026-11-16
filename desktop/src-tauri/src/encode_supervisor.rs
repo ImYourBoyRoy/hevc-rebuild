@@ -1,8 +1,7 @@
 //! Own the FFmpeg child process for media runs launched through the Rust app.
 //!
-//! The compatibility engine still parses FFmpeg progress and builds reports.
 //! This helper keeps the progress stream stable while ensuring that cancelling
-//! or closing the Python adapter also stops its FFmpeg child.
+//! the run or closing the controlling process also stops its FFmpeg child.
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -267,7 +266,7 @@ fn read_cancel_requests(cancelled: Arc<AtomicBool>) {
             Err(_) => break,
         }
     }
-    // EOF means the Python compatibility process closed unexpectedly. Stop the
+    // EOF means the controlling process closed unexpectedly. Stop the
     // child instead of leaving a detached encode running without its UI/report.
     cancelled.store(true, Ordering::Release);
 }

@@ -1,6 +1,5 @@
-//! Read-only content genre and x265 tune decisions shared with the scanner and
-//! Rust-launched encoder adapter. The Python compatibility engine retains the
-//! direct-run fallback while the shared policy is parity-checked.
+//! Read-only content genre and x265 tune decisions shared by the scanner and the
+//! encoder planning.
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -254,7 +253,7 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn global_tune_and_automatic_animation_match_python_policy() {
+    fn global_tune_and_automatic_animation_follow_the_shared_policy() {
         assert_eq!(resolve_tune("auto", true, true), Some("animation"));
         assert_eq!(resolve_tune("auto", true, false), None);
         assert_eq!(resolve_tune("auto", false, true), None);

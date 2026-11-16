@@ -1,8 +1,7 @@
 //! ./desktop/src-tauri/src/integrity.rs
 //! Native read-only media integrity checks. Quick inspects container/index
 //! structure; Full decodes every stream to FFmpeg's null muxer. Neither path
-//! writes media. GUI, JSON CLI, and MCP share this module so the app does not
-//! need Python to decide whether a file is intact or corrupt.
+//! writes media. GUI, JSON CLI, and MCP share this module.
 
 use crate::stop_control;
 use crate::ToolPaths;

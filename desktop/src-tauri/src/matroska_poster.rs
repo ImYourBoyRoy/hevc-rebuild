@@ -1,16 +1,13 @@
 //! ./desktop/src-tauri/src/matroska_poster.rs
-//! Native poster selection, JPEG normalization, and cover attachment (T4.3c).
+//! Native poster selection, JPEG normalization, and cover attachment.
 //!
-//! Ports `hevc_rebuild/metadata.py::{_poster_candidates, choose_poster,
-//! poster_to_jpeg, _poster_attachment_description, attach_cover}`. Library art
-//! is only ever read; the single mutation is `mkvpropedit` on `output`, which
+//! Library art is only ever read; the single mutation is `mkvpropedit` on `output`, which
 //! replaces cover/poster-like image attachments and adds `cover.jpg`.
 //!
 //! Run: `echo '<request json>' | hevc-rebuild-studio internal metadata-poster`.
 //! Input: absolute `media_path`, optional `poster_override`, and (to attach) an
 //! `attach` block with ffmpeg/mkv tool paths, `output`, and `work_dir`.
 //! Output: chosen poster, attachment description, deleted attachment ids.
-//! Python remains authoritative for production runs until parity is proven.
 
 use crate::matroska_scrub::{checked, mkv_identify, MatroskaTools, EDIT_TIMEOUT, INSPECT_TIMEOUT};
 use crate::metadata_text::is_python_whitespace;

@@ -1,8 +1,8 @@
 //! ./desktop/src-tauri/src/encode_run.rs
-//! Native FFmpeg encode supervisor (T4.5). Replaces the Python `run_encode`
-//! loop for coordinators that run entirely in Rust (YouTube export first).
+//! Native FFmpeg encode supervisor.
 //!
-//! Run: called in-process by `youtube_run`; there is no CLI entry point.
+//! Run: called in-process by the run coordinators (`rebuild_run`, `youtube_run`);
+//! there is no CLI entry point.
 //! Inputs: a full FFmpeg argument vector that includes `-progress pipe:1`, the
 //! expected duration, the growing output path, and the memory/disk guard
 //! limits. Outputs: live `EncodeProgress` callbacks and a map of peak resource
@@ -10,8 +10,8 @@
 //! Side effects: spawns FFmpeg in its own process group so a safe-stop abort,
 //! guard stop, or pipe failure kills the encoder and every descendant. The
 //! output file is left for the caller to validate, install, or delete.
-//! Notes: the guard policy is the same `runtime_guard` policy the Python engine
-//! used (memory reserve, swap pressure, disk reserve, projected output size).
+//! Notes: the guard policy is the shared `runtime_guard` policy (memory reserve,
+//! swap pressure, disk reserve, projected output size).
 
 use crate::process_output::{kill_owned_group, spawn_owned};
 use crate::resource_monitor::RuntimeResourceSnapshot;
@@ -303,7 +303,11 @@ enum Halt {
     Failure(String),
 }
 
-fn describe_disk_halt(reason: Option<&str>, free: Option<u64>, projected: Option<u64>) -> String {
+pub(crate) fn describe_disk_halt(
+    reason: Option<&str>,
+    free: Option<u64>,
+    projected: Option<u64>,
+) -> String {
     let gib = |bytes: u64| bytes as f64 / (1024.0 * 1024.0 * 1024.0);
     match (reason, free, projected) {
         (Some("projected_output"), Some(free), Some(projected)) => format!(

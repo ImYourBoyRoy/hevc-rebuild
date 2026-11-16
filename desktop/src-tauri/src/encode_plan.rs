@@ -1,11 +1,8 @@
-//! Rust-owned FFmpeg/x265 argument planning for the compatibility engine.
+//! Rust-owned FFmpeg/x265 argument planning.
 //!
-//! The Python compatibility adapter still owns run orchestration, output
-//! validation, transactions, reports, and HDR10+ extraction/reinsertion. Rust
-//! also constructs and supervises app-launched calibration benchmarks from a
-//! typed profile/options payload supplied by Python. Runs started by the Rust app
-//! ask this module to construct their exact encode argument vector; direct
-//! Python runs keep the reference planner until parity is proven.
+//! Every run started by the GUI, CLI, or MCP server asks this module to build
+//! its exact encode argument vector from a typed profile/options payload.
+//! Orchestration, validation, transactions, and reports live in `rebuild_run`.
 
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};

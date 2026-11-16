@@ -74,6 +74,9 @@ pub(crate) fn append_filename_filter_arguments(
     for pattern in exclude {
         args.extend(["--exclude-filename-pattern".into(), pattern.clone()]);
     }
+    // The caller chose this list, even when it is empty: the engine must not add
+    // its own default exclusions on top of an explicit choice.
+    args.push("--no-default-exclusions".into());
     Ok(())
 }
 
@@ -254,9 +257,9 @@ pub(crate) fn stream_override_arguments(
     Ok(vec!["--file-stream-overrides-json".into(), serialized])
 }
 
-/// Validate and forward settings that are scoped to one current run. The
-/// Python compatibility engine remains the final validator for the supported
-/// field values; Rust owns the request-size, path, and input-boundary checks.
+/// Validate and forward settings that are scoped to one current run. This
+/// owns the request-size, path, and input-boundary checks; the run coordinator's
+/// argument parser remains the final validator for the supported field values.
 pub(crate) fn file_settings_override_arguments(
     root: &Path,
     overrides: BTreeMap<String, Value>,

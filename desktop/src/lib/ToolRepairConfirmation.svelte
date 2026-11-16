@@ -5,7 +5,7 @@
   interface Props { repairConfirmOpen: boolean; environment: Environment | null; aptUpdates: AptUpdateStatus | null; workflowBusy: boolean; confirmAptRepair: () => unknown; onClose: () => void }
   let { repairConfirmOpen, environment, aptUpdates, workflowBusy, confirmAptRepair, onClose }: Props = $props();
 </script>
-<!-- Shared confirm-modal/repair-plan selectors in app.css preserve exact-plan review and theme overrides. -->
+<!-- Shared confirm-modal/repair-plan selectors in the app stylesheets (src/styles/app) preserve exact-plan review and theme overrides. -->
 {#if repairConfirmOpen && environment && aptUpdates}
   <Modal open={repairConfirmOpen} class="confirm-modal" labelId="repair-title" onClose={onClose}>
       <div class="confirm-symbol repair-symbol"><Wrench size={21} /></div><button class="icon-button modal-close" aria-label="Close confirmation" onclick={onClose}><X size={18} /></button>

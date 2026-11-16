@@ -1,5 +1,362 @@
 # Project Memory
 
+- 2026-11-15 Hardening round (local, uncommitted): (1) **Resource sampling on macOS/Windows** (`resource_monitor/portable.rs`):
+  `sysinfo` (target-specific dependency, off Linux only) gives memory/swap/processes; Windows CPU uses `GetSystemTimes`
+  directly because sysinfo's Windows CPU path calls PDH, which wine lacks (found by the wine run). The swap-pressure rule
+  still needs Linux PSI, so it stays Linux-only; memory-reserve works everywhere. (2) **Hidden backup folder**
+  `.hevc-rebuild-originals` (`backup_folder.rs`; legacy `old/` still recognized, never migrated or deleted; discovery always
+  skips the hidden folder; CLI/JSON/engine parsers default-exclude legacy `old` unless `--no-default-exclusions` or explicit
+  patterns). (3) **SSIM quality gate** (`quality_gate.rs`; default enforce at 0.95; scores in reports; measured data in
+  docs/USAGE.md; SSIM at CRF 40 on clean CGI is still 0.965, so it is a safety net, not proof of transparency). (4) Fixed the
+  pinned `runProgressStatus`/finish-notice/pluralization quirks, deleted dead `largestFileDiskFloor`, made the six
+  Unix-gated tests platform-absolute. Verification: Linux 341, macOS 26.7.3 guest 341, Windows-under-wine 330, 0 failed. The
+  Mac guest moved to `192.168.122.211` (jump via the builder); never rsync `desktop/.native-smoke` (5.9 GB) or `target`.
+- 2026-11-15 T10.7 finished for the frontend (local, uncommitted): `MetadataWorkbench.svelte` 3,316 -> 368 lines and
+  the over-budget stylesheets split. Slices 8-14 after the earlier notes: `match-lookup.ts` (16 tests), `artwork-save.ts`
+  (10), `organizer-rename.ts` (15), `poster-selection.ts` (9), `organizer-session.ts` (10), the ten effects and four
+  derived values in `state/workbench-effects.svelte.ts` / `workbench-derived.svelte.ts` / `workbench-props.ts`, and
+  the views `WorkbenchDetailPanel` (319) and `WorkbenchMoviesPanel` (250). Tools in the scratchpad: `mk-wb-fn.mjs`
+  (move functions; `stateNamespaces`, `preamble`), `mk-wb-effects.mjs` (effects, derived and component rewrite),
+  `mk-wb-view.mjs` (view with props by name; its scope scan must balance braces, a lazy regex missed a
+  single-line destructure once), `prune-wb.py`, `mutate.sh`, `split-css.mjs`. Lessons: a mutation count is
+  only meaningful after the baseline test run is green (one run counted a failing baseline as caught mutants);
+  hosts built with `composeHost` need the extras object first; effects that read props go through a getter view
+  so reads stay reactive; shorthand object properties and `get x()` accessors break a name-prefix rewrite and
+  are fixed by hand. CSS: the six built bundles are byte-identical before and after the split; the component
+  test harness `tests/browser/main.js` also imports the stylesheets and must be updated with them. Verification
+  per slice: golden 448 unchanged, nine browser contracts, check/tsgo/build, autofixer (only the three old
+  unkeyed `{#each}` findings remain). Not covered by browser evidence: provider search, details, artwork save,
+  rename (unit tests and the type checker only). Next: nothing open in T10.7 for the frontend; the Rust modules
+  belong to the lib.rs split session; native-window acceptance is still unproven.
+- 2026-11-15 T10.7 MetadataWorkbench slice 7: provider details (frontend, local, uncommitted): `MetadataWorkbench.svelte`
+  2,337 -> 2,098 lines. Six functions (`openMatch` with one branch per provider and kind, `hydrateSeriesProvider`,
+  `applyTmdbMovieDetails`, the three review shortcuts) moved to `provider-details.ts`
+  (`createProviderDetails({ invoke, host, actions })`; 13 tests first). Component functions that still live in the
+  component (`syncEpisodeAssignments`, `assignCurrentMovie`, `chooseAnalyzedSeries`) are passed as lazy wrapper
+  actions; `applyCatalogToFiles`/`applySeasonPublication` come from `match-assignments`. Golden 448 unchanged, eight
+  browser contracts pass, 23 of 23 unit mutations caught after adding cases for five survivors (non-integer
+  episode, 10,000 cap, negative season, kept poster id, sync only for series). Next: the lookup runners
+  `findMovieMatches`/`findSeriesMatches` (~110 and ~130 lines, they call everything extracted so far), then artwork
+  save, rename, `$derived`/`$effect` and the template views.
+- 2026-11-15 T10.7 MetadataWorkbench slice 6: saved matches and assignments (frontend, local, uncommitted):
+  `MetadataWorkbench.svelte` 2,547 -> 2,337 lines. 14 functions (saved match sets, film search need and label, poster
+  choices, automatic and seeded movie and series assignments, filename drafts, catalog and season text for a series,
+  `seriesGroupForHydrate`) moved to `match-assignments.ts` (`createMatchAssignments({ invoke, isDesktop, host, actions })`;
+  13 tests first, the real `fillEpisodeFromCatalog`/`fillSeasonFromProvider` as oracles). Host = `composeHost` over
+  organizer, local-assets and lookup state plus the bindable `movieAssignments`/`seriesAssignments` props (getter/setter)
+  and read-only `scanResult`, `queueSuggestions`, `textBlacklistPatterns`. Golden 448 unchanged, eight browser
+  contracts pass, 19 of 19 unit mutations caught after adding three cases for survivors. Next: match lookup runners
+  (`findMovieMatches`, `findSeriesMatches`, `hydrateSeriesProvider`, `openMatch`, `applyTmdbMovieDetails`), then
+  artwork save, rename, `$derived`/`$effect` and the template views.
+- 2026-11-15 T10.7 MetadataWorkbench slice 5: search panel (frontend, local, uncommitted): `MetadataWorkbench.svelte`
+  2,657 -> 2,547 lines. 12 functions (open a search for a movie or series, run it, close it, year mismatch,
+  collapsed candidate lists, `rankByFilenameYear`, `currentReviewedSeriesRoot`) moved to `search-panel.ts`
+  (`createSearchPanel({ host, actions, isDesktop })`; 12 tests written first). The host is `composeHost` over the six
+  state instances plus the bindable `selectedMediaPaths` prop (getter/setter); `mk-wb-fn.mjs` gained `stateNamespaces`
+  to turn `searchState.x` into `h.x`. `initialCandidateCount` is now exported from the module. Golden 448 unchanged,
+  eight browser contracts pass, 16 of 16 unit mutations caught. The golden has no provider search commands, so
+  this panel is covered by unit tests and the type checker only. Next: match lookup (`findMovieMatches`,
+  `findSeriesMatches`, `hydrateSeriesProvider`, `openMatch`, `seedMovieDrafts`), then artwork save and rename.
+- 2026-11-15 T10.7 MetadataWorkbench slice 4: state classes (frontend, local, uncommitted): the 52 `$state` fields
+  moved from `MetadataWorkbench.svelte` into six rune classes (`state/workbench-*-state.svelte.ts`: search, lookup,
+  organizer, local assets, rename, artwork save), instantiated in the component; `local-assets.ts` now takes the
+  instance directly. The component is 2,657 lines (references got longer, declarations left). Rewrite done with
+  `mk-state-wb.mjs` (copy of `mk-state.mjs` pointed at the component, accepting plain initializers): first rename
+  locals that shadow fields (found with a regex scan, then confirmed by the type checker: `provider` x2,
+  `results` x2), then fix shorthand properties (`{ provider, }` -> `provider: searchState.provider,`) and a `Props`
+  type parameter named `provider` that the rewrite also touched. Golden unchanged at 448; the browser contracts
+  library, rename, responsive, modal, home-help, youtube, run and support were run for extra evidence (see the
+  tasklist); autofixer `issues: []` on the classes. Non-reactive lets (`cancelLookupRequested`, `lastLookupStopped`,
+  the `last*` markers) stay in the component. Next: controllers for the search panel, match lookup, artwork save and
+  rename taking these instances as hosts; then `$derived`/`$effect` and the template views.
+- 2026-11-15 T10.7 MetadataWorkbench slice 3 (frontend, local, uncommitted): 2,806 -> 2,702 lines. The provider
+  title search (`searchPublicTitles`, `filenameClue`) moved to `provider-search.ts` (`createProviderSearch({ invoke,
+  isDesktop, host })`; 8 tests written first). The host is a getter-only view of the component's props, so no state
+  moved. Golden unchanged at 448 (no provider search commands in the bridge, so unit coverage only); 13 of 13
+  unit mutations caught. `prune-wb.py` (scratchpad) removes imports the component no longer uses after each move.
+  Next: the search panel state (`prepareSearchTarget`, `searchTitles`, `closeTitleSearch`) and match lookup need
+  the component state to move into rune classes first, because they assign a dozen shared fields.
+- 2026-11-15 T10.7 MetadataWorkbench slice 2 (frontend, local, uncommitted): 2,879 -> 2,807 lines. Local artwork
+  discovery (5 functions) moved to `local-assets.ts` (`createLocalAssets({ invoke, isDesktop, host })`; 9 tests,
+  first red). The component keeps the six state variables and passes a getter/setter host over them
+  (`localAssetsHost`), so code outside the controller is untouched; this is the interim step before rune state
+  classes. `mk-wb-fn.mjs` (scratchpad) moves component functions with bare state names turned into `h.name` and
+  never removes the `</script>` line. Golden unchanged at 448 but not sensitive to this code (two golden-level
+  mutations were not caught); 9 of 10 unit mutations caught (the tenth is an equivalent mutant) after one
+  assertion was added. Next: title search and lookup controller (search, findMovieMatches, findSeriesMatches,
+  hydrateSeriesProvider, openMatch), which needs a fake provider bridge in tests and ideally new golden flows.
+- 2026-11-15 T10.7 MetadataWorkbench slice 1 (frontend, local, uncommitted): `MetadataWorkbench.svelte` 3,316 ->
+  2,879 lines. Moved verbatim: 35 local types to `metadata-workbench-types.ts`, 15 pure organizer functions to
+  `organizer-analysis.ts` (16 tests) and 19 pure candidate/artwork functions to `metadata-candidates.ts` (19
+  tests), tests first. Golden unchanged at 448; 14 unit mutations all caught. Gotchas: `mk-pure` removes the line
+  after a moved function, which was `</script>` when the last function in the script moved (restored by hand);
+  most "stateful" functions flagged by a name-based scan were false positives (locals named like state), so the
+  reliable test is to move them and let `svelte-check` report undefined names. The golden barely reaches the
+  workbench (search, lookup, artwork and rename flows are not driven), so the remaining stateful slices need unit
+  tests with a fake bridge first. svelte-autofixer reports three unkeyed `{#each}` blocks that already existed.
+  Next: local assets/previews controller, then search/lookup, artwork save, rename, state classes, template views;
+  CSS splits (`app.css` 2,123, `instrument.css` 700, `library-poster-grid.css` 562) remain open.
+- 2026-11-14 helper-function slice (frontend, local, uncommitted): `+page.svelte` 1,124 -> 480 lines (5,904 at
+  the start; the <=800 target is met). The 71 small helpers moved into seven modules, tests written first:
+  `entry-display.ts` (pure display helpers; 10 tests), `file-settings.ts` (per-file run settings, estimates,
+  streams, overrides; 17), `reports-controller.ts` (report history, delete confirmation, log read/copy,
+  interrupted-session recovery; 7), `file-pickers.ts` (native folder/file pickers, output folders, analyze,
+  rescan, open location, cancel scan; 12), `tool-paths.ts` (six path drafts, save/recheck, choose/clear; 9),
+  `app-navigation.ts` (page switch, progress details, provider settings jump; 5) and `library-actions.ts`
+  (bulk selection, review dialog, poster image, lookup need, review targets; 12). Only `setNotice`,
+  `claimMetadataLookup` and `localRecordFromAsset` stay in the route. Creation order matters: reports and
+  navigation/tool-path modules are created before the queue and run hosts that take their functions by value;
+  library actions are created after the rename controller and reached through lazy wrappers by earlier hosts.
+  The golden grew to 448 snapshots (42 new: folder/file picks and cancels, rebuild/YouTube output folders,
+  report refresh/choose/copy/delete, tool path choose/cancel/clear, provider links with focus, progress
+  details) generated from the pre-extraction route in an isolated copy; the 406 existing snapshots are
+  unchanged and the refactored route matches all 448. The fake bridge gained `plugin:dialog|open`, a clipboard
+  recorder, `delete_reports`, `open_file_location` and `cancel_scan`. Checks: `pnpm check`/`check:tsgo` 0/0,
+  `pnpm build`, all unit suites, MCP svelte-autofixer on the route `issues: []`. Mutations caught by the golden:
+  folder dialog `multiple`, delete-count plural, tool dialog title, provider-field focus, YouTube mode check,
+  series drill-down season; unit tests catch the rest, and a surviving local-series lookup mutation led to a
+  new test. Unit-only (not in the golden): the "Tools needed" label, review-selection notice, 512-folder cap, scan
+  cancel, per-file output choose/clear, open file location, toolchain shortcut, setup-command copy, poster image
+  choice. Operational note: background jobs launched from this session died on session restarts; long golden
+  runs now run detached (`setsid nohup`) and mutation scripts restore files themselves.
+  Next: T10.7 (`MetadataWorkbench.svelte` and the CSS splits); native-window acceptance is still unproven.
+- 2026-11-14 effects + derived slice (frontend, local, uncommitted): `+page.svelte` 1,544 -> 1,124 lines (5,904 at
+  the start). All 67 route `$derived` values moved into `lib/state/app-derived.svelte.ts` (`AppDerived`: state
+  instances and six route helpers injected; each field is `$derived.by(() => ...)`, evaluated lazily, because
+  TypeScript cannot see that a bare `$derived(expr)` field initializer is deferred) and all nine `$effect`
+  blocks into `lib/state/app-effects.svelte.ts` (`installAppEffects(ctx)`, called once just before `onMount`, so
+  creation order is unchanged). Golden unchanged at 406; mutations (paging `ceil` -> `floor`, queue persistence
+  debounce 200 -> 20000 ms) drift 44 snapshots. MCP svelte-autofixer: route and both modules `issues: []`.
+  Remaining script: about 70 small helper functions (~630 lines), controller wiring (~160), imports (~70) and
+  the template (~100).
+- 2026-11-14 state-module slice (frontend, local, uncommitted): `+page.svelte` 1,887 -> 1,544 lines. All 143 route
+  `$state` fields now live in eleven rune classes under `desktop/src/lib/state/` (app, scan, review, library UI,
+  run UI, YouTube, reports, credentials, settings, tool setup, artwork) plus `defaults.ts` and `bind-host.ts`.
+  `withGetters` attaches route-derived read-only members; `composeHost` (a proxy over the instances plus an
+  object of route-derived members and functions) replaced the eight hand-written host objects, and its
+  intersection type keeps the compiler checking every controller's host interface. Verified in three
+  batches with the unchanged 406-snapshot golden (no snapshot edited); mutations of one default in two
+  state classes (TMDB token visibility, page size) drift 24 snapshots. MCP svelte-autofixer: route and the
+  tested state classes `issues: []`; its Map/Set hint for `recoveryReviewedPaths` and
+  `youtubeHdr10plusLossPaths` is not applied (the sets are replaced, never mutated). Gotchas found: the
+  rewrite helper must skip comments, treat only the contents of `{...}` as code in the template, and treat
+  object keys differently from ternary branches; locals named like a field (`root`, `mode`) were renamed first.
+  Remaining in the route (script ~1,390 lines): 67 `$derived` (~210), 9 `$effect` (~200), 71 small helper
+  functions (~630), controller wiring (~160) and imports.
+- 2026-11-14 boot, input and rename slices (frontend, local, uncommitted): `+page.svelte` 2,434 -> 1,887 lines.
+  New modules (tests written first): `app-boot.ts` (initialize, legacy migration, browser-preview prefs, mount
+  sequence, all native listeners, drag-drop, cleanup, external links; 21 tests), `app-input.ts` (keyboard
+  shortcuts, agent-control channel, native context menus; 15) and `library-rename.ts` (rename dialog helpers,
+  applyLibraryRename, task shortcuts, metadata-only selection, queue remap after renames, review dialog
+  open/close; 21). The golden grew to 406 snapshots (36 new: F8/Alt/Ctrl+Enter shortcuts, agent-control
+  press/state/screenshot replies, drag-enter/leave/drop, external-link open, rename dialog open/token/reset/
+  conflict/apply); they were generated from the pre-extraction route in an isolated copy, no existing snapshot
+  changed, and the refactored route matches. Mutations: each module has one mutation failing one unit test;
+  the golden caught the Ctrl+Enter gate; not caught at golden level: drag highlight while busy, the
+  "Rename one folder" message, and the rename dialog staying open after success. The golden's settle() now
+  waits for startup and the mounted app shell, and the comparison ignores the wall-clock "Ns elapsed" progress label
+  (stored values are unchanged; a loaded machine drifted it by a few seconds): an earlier flake (first Alt+4 before the preview page mounted)
+  appeared while another process saturated the CPU. Context menus are unit-tested only (the bridge has no
+  native menu). Not extracted: remaining state declarations and hosts, report/log helpers, run-settings
+  editor helpers, queue artwork/estimates helpers.
+- 2026-11-14 poster-card, artwork, credentials and settings slices (frontend, local, uncommitted): `+page.svelte`
+  3,002 -> 2,434 lines. New modules (tests written first): `library-cards.ts` (card builders, browse views,
+  crumbs, lookup banner; 18 tests), `artwork-controller.ts` (queue previews, observer, artwork cache
+  inspect/purge; 15), `credentials-controller.ts` (TMDB/TheTVDB; 13), `settings-controller.ts` (effective
+  settings, work-directory preview, language, provider toggles, blacklist, filename filters; 17). The golden
+  grew to 370 snapshots (60 new: TMDB/TVDB save/show/hide/reveal/remove, artwork-cache review/cancel/purge/
+  refresh, language/filters/blacklist/work root, Run-page settings edit/save/reset); the new snapshots were
+  generated from the pre-extraction route in an isolated copy of desktop/, no existing snapshot changed,
+  and the refactored route matches. Mutations: three controller mutations (cache purge preview id, TMDB token visibility after save, language region case plus the duplicate-filter check) each fail one unit test; the golden aborts on the credentials one (Hide token never appears), the artwork and settings ones were not isolated at golden level.
+  A fixture default that changed 34 existing snapshots was corrected before merging. svelte-autofixer
+  (pinned CLI): route `issues: []`. Not extracted: initialize(), listeners, handleQueuePathsRenamed,
+  rename/organizer, keyboard and agent control, reports, remaining state declarations and hosts.
+- 2026-11-14 repair slice (frontend, local, uncommitted): `+page.svelte` 3,345 -> 3,002 lines.
+  `tool-setup-controller.ts` (loadEnvironment, APT update check / catalog refresh / reviewed toolchain job,
+  HDR10+ helper install, setup logs list/read/export, tool outcome recording, and the repair-line /
+  repair-log-warning / repair-finished handlers; typed `ToolSetupHost`, injected bridge and save dialog;
+  42 tests written first, red before the module existed) and `views/EnvironmentPanel.svelte`. The golden
+  grew to 310 snapshots: the fake bridge now answers the repair commands and emits the repair events, with
+  five new Settings scenarios (update check + reviewed toolchain job + live output + finish, stale-catalog
+  refresh then continue, failure, HDR10+ helper install, saved-log view/export); the 30 new snapshots were
+  generated from the pre-extraction route, no existing snapshot changed, and the refactored route matches.
+  Mutations: removing the continue-after-refresh flow and a swapped EnvironmentPanel handler fail the golden
+  contract (the confirmation dialog never opens), and three controller mutations each fail a unit test.
+  svelte-autofixer (pinned CLI): EnvironmentPanel `issues: []`. Not extracted: tool-path save/choose/clear
+  helpers, copyHostSetupCommand, initialize(), listeners, poster-card builders.
+- 2026-11-14 svelte-autofixer run (frontend, local): with the Svelte MCP now configured in `.mcp.json`, the
+  project-pinned CLI `cd desktop && pnpm exec svelte-mcp svelte-autofixer <file> --svelte-version 5.57.3`
+  was run on `+page.svelte` and all eight `lib/views/*.svelte`: `issues: []` everywhere. Suggestions are
+  style-only and not applied (`class:` -> `class`, `bind:this`, pre-existing `$effect` hints). The MCP
+  tools were not loaded in the running session (servers load at session start); the CLI was used instead.
+- 2026-11-14 dialog slice (frontend, local, uncommitted): StopNowDialog, OutputPreviewDialog and
+  MetadataReviewDialog moved from `+page.svelte` into `views/` (28, 93 and 203 lines). Route 3,550 -> 3,345
+  lines. The 280-snapshot golden matches unchanged; one mutation per dialog (stop confirm wired to
+  close, rebuild acknowledgement gate removed, series title patched into year) drifted 36 snapshots and
+  was restored. Deliberately NOT extracted: the YouTube/Settings/Reports/Help wrappers (lazy-import
+  pass-throughs of 40-60 props to existing components; a view would only re-declare the same props)
+  and the EnvironmentPanel snippet (about 50 tool-repair state dependencies; belongs with a future
+  repair controller). Route target <= 800 lines is not reachable by view extraction alone: about
+  3,150 of the 3,345 lines are script (wiring, listeners, initialize, poster cards, repair jobs).
+  No svelte-autofixer run.
+- 2026-11-14 view-component slices 3+4 (frontend, local, uncommitted): the sidebar and top bar/notice moved
+  from `+page.svelte` into `views/ShellSidebar.svelte` and `views/ShellHeader.svelte`, and the MediaTable
+  snippet into `views/MediaTable.svelte` (268 lines, rendered inside the YouTube wrapper). Route
+  3,813 -> 3,550 lines. The golden grew to 280 snapshots (new: header Help button, Refresh environment,
+  YouTube page, YouTube row unselect/reselect); the 12+8 new snapshots were generated from the
+  pre-extraction route and merged without changing any existing one; the refactored route matches.
+  Mutations caught: failed-report badge (4 snapshots), header Help target (8), table selection/checked (16);
+  an earlier mutation of the media-table status label and toggle went unseen until the YouTube row
+  steps were added. One golden run under machine load drifted 6 timing snapshots (elapsed seconds,
+  debounced save order) and matched on rerun. Not extracted: Youtube/Settings/Reports wrappers,
+  EnvironmentPanel snippet, dialogs. No svelte-autofixer run.
+- 2026-11-10 view-component slice 2 (frontend, local, uncommitted): the Library page markup moved from
+  `+page.svelte` into `desktop/src/lib/views/LibraryView.svelte` (179 lines; 12 `bind:` props for scan options,
+  search, paging and rename dialog refs, the rest read-only props and route callbacks; selection and
+  "keep ready files" writes stay route callbacks). Route 3,881 -> 3,813. The 260-snapshot golden
+  matches unchanged; mutations: inverted selection toggle made the contract fail (selection click
+  timeout), loosened unresolved-selection warning drifted 96 snapshots. Interaction-map selectors for
+  Add folder/Add files now point at LibraryView. Still in the route: Shell, YouTube/Settings/Reports
+  wrappers, media-table snippet, dialogs. No svelte-autofixer run.
+- 2026-11-10 view-component slice 1 (frontend, local, uncommitted): the Run page markup moved from
+  `+page.svelte` into `desktop/src/lib/views/RunView.svelte` (props + `bind:` for mode, integrity level,
+  stop-on-error, settings and the launch button; stop-now and "keep ready files" are route callbacks).
+  Route 4,005 -> 3,881 lines. The 260-snapshot route golden matches unchanged (no golden edit needed);
+  mutation (stop-now shown outside mutating modes) drifted 20 snapshots. Not yet extracted: Library,
+  YouTube wrapper, Settings wrapper, Reports wrapper, Shell, media table snippet, dialogs.
+  No svelte-autofixer run.
+- 2026-11-09 window-state slices (frontend, local, uncommitted): `+page.svelte` 4,157 -> 4,005 lines.
+  `browser-preferences.ts` (pure parser of the localStorage preferences: old shapes, legacy keys,
+  per-field validation; 14 tests) and `window-state-controller.ts` (publishTheme/applyTheme,
+  serialized persistPreferences, restoreWindowState with monitor clamping, debounced
+  saveCurrentWindowState; native window/monitor/storage/timers injected; 13 tests), tests first.
+  Golden is 260 snapshots: the fake bridge now has a 2x monitor with a 1400x850 work area (a saved
+  1600x1000 window is clamped to 1360x810 on restore), records window calls and save_app_preferences,
+  and the contract emits tauri://resize for resize/maximize/no-op flows and switches themes; four
+  browser-preview scenarios cover legacy object, legacy keys, corrupt JSON and a modern save. The
+  generated-from-ORIGINAL golden matches. The golden regeneration now takes about 15 minutes (the
+  runner's run-code timeout was raised to 25 minutes). `initialize()` and the desktop-side
+  migration stay in the route. No svelte-autofixer run.
+- 2026-11-09 review slices A+B (frontend, local, uncommitted): `+page.svelte` 4,490 -> 4,157 lines.
+  `review-notes.ts` (pure: inherited certificate/comment rules and notes, `applyTvField`, poster
+  choices, reviewedSeriesForPath, headings; 16 tests) and `library-review.ts` (ensure/patch
+  series/season/episode/movie reviews, open dialogs, poster selection, comment rules; typed
+  `LibraryReviewHost`; 19 tests); tests written first. Golden grew to 216 snapshots with typed edits in
+  the series, season, episode and film dialogs and the exact saved payloads; the golden generated
+  from the ORIGINAL 5,904-line route matches. Pinned quirk: clearing the episode Season box saves
+  season 0 (Number("") === 0). The golden records only the final debounced save, so rejected
+  intermediate values (e.g. episode 0) are caught by unit tests, not the golden. Ordering note: the
+  controllers are created before createRunOverrides because it takes reviewedSeriesForPath by value.
+  Still in the route: showLibraryReview (focus/showModal), card builders (libraryPosterCard,
+  groupPosterCard...), artwork preview cache, handleQueuePathsRenamed. No svelte-autofixer run.
+- 2026-11-09 run slice B (frontend, local, uncommitted): `+page.svelte` 4,750 -> 4,490 lines.
+  `run-overrides.ts` (poster/metadata overrides sent with start_run; 9 tests) and `run-launch.ts`
+  (beginRun, launchRun, output-preview confirm, recovery review; typed `RunLaunchHost`; 18 tests)
+  extracted, tests written first. Golden grew to 188 snapshots: metadata and full launches through
+  the output-preview dialog (with the full-rebuild acknowledgement), per-file overrides recorded
+  from start_run, stop-now, an interrupted full rebuild and the three-file recovery review, a
+  collision preview. Golden generated from the ORIGINAL 5,904-line route matches. Gaps: the
+  season-poster saved-vs-on-disk order and the mark-as-complete recovery path are unit-tested only
+  (golden fixture has no saved season poster / successful report); a runner maxBuffer was raised for
+  the 1 MB golden result. No svelte-autofixer run.
+- 2026-11-09 run slice A (frontend, local, uncommitted): `+page.svelte` 5,054 -> 4,750 lines.
+  `run-controller.ts` owns beginQueuedRun, startNextRunBatch, finishRun, stopAfterCurrent,
+  confirmStopNow, run-progress -> queue-state mapping, rename-state hook, manual retry/skip and
+  report/diagnostics lookups, via a typed `RunHost` (about 35 accessors in the route). 25 tests
+  with fake host/invoke (written first, red). The fake Tauri bridge can now emit events: golden is
+  120 snapshots including a full integrity run (start, progress, validating, safe stop, finish,
+  second run failing) with recorded start_run/request_stop calls and queue run-state writes; the
+  golden generated from the ORIGINAL 5,904-line route matches. Pinned quirks: the finish notice
+  kind follows the exit code only (an engine error with exit 0 is announced as success); "1 source
+  batch remain queued" is not pluralized. Still in the route: launchRun, output-preview and
+  recovery-review dialogs, beginRun, selectedPoster/MetadataOverrides, stop-now UI path is unit
+  tested only (needs a mutating mode). No svelte-autofixer run.
+- 2026-11-09 queue slice B (frontend, local, uncommitted): `+page.svelte` 5,357 -> 5,054 lines.
+  `queue-controller.ts` now owns scanQueueSource, activateQueueSource, removeQueueSource,
+  addQueueSources, reorder/move/remove/restore and loadMediaQueue. The route's state is reached
+  through one typed `QueueHost` object of getter/setter accessors (about 40 lines in the route);
+  `invoke`, the desktop check and persistence are injected. 18 tests with a fake host and fake
+  invoke (written first, red). Golden 92 snapshots incl. a Refresh scan flow with a fake
+  `scan_folder`; golden generated from the ORIGINAL 5,904-line route matches the refactored route;
+  a mutation of the scan's exclusion policy fails 4. Found while testing: a refresh drops every
+  match suggestion under the refreshed root (so lookups rerun) - pinned as existing behavior. Still
+  in the route: claimMetadataLookup, sourceNeedsMetadataLookup, cancelScan, run-state
+  progress/retry/skip, rename-state hooks. No svelte-autofixer run.
+- 2026-11-09 queue slice A (frontend, local, uncommitted): `+page.svelte` 5,503 -> 5,357 lines.
+  `queue-document.ts` (pure: document build, reorder/remove/restore/prune, status marking) and
+  `queue-persistence.ts` (write chain + full/targeted saves, injected `invoke` and state getters,
+  tested with a fake invoke). Golden grew to 88 snapshots (failed source, stale file, failed run
+  state, reorder/remove flows, recorded queue writes); the original 5,904-line route still matches
+  all 88 and a mutation of the exclusion logic fails 8. NOT moved: `scanQueueSource`,
+  `activateQueueSource`, `loadMediaQueue`, run-state progress/retry (entangled with route
+  state; `queue.svelte.ts` proper remains open, T10.5). No svelte-autofixer run.
+- 2026-11-09 route decomposition, slices 2-5 (frontend, local, uncommitted): `+page.svelte`
+  5,904 -> 5,503 lines. New pure modules in `desktop/src/lib/`: `poster-urls`, `review-factories`,
+  `filename-template`, `format`, `outcomes`, `normalizers`, `queue-run-state`; state-dependent
+  ones take getters (`createPosterResolvers`, `createReviewFactories`) so `$state` reads stay
+  reactive. Each has a Node test written first (red, then green). New real-route golden
+  `pnpm test:route-golden`: 76 snapshots, browser-preview mode plus a fake Tauri bridge with
+  fixtures from a real `json scan` of a synthetic library (populated queue, reviews, posters,
+  film/series/season review flows). The original 5,904-line route matches all 76; mutating the
+  poster/filename modules fails it. Browser evidence only, not native-window.
+  `pnpm check`/`check:tsgo` 0 errors 0 warnings, `pnpm build` ok. NOT done: Svelte MCP
+  `svelte-autofixer` (tools unavailable), controllers (T10.5), view components (T10.6),
+  `MetadataWorkbench` (T10.7). Found, pinned not fixed: `runProgressStatus` never matches the
+  engine's "Encoding" phases (tasklist T10.17). Next: slice `queue.svelte.ts` (T10.5).
+
+- 2026-11-09 real-media validation (local, uncommitted): ran full in-place
+  rebuilds on scratch COPIES (never the originals) of Media_Examples: an SDR
+  HEVC episode, The Proposal (HEVC + DTS + SRT), Gnomeo & Juliet (H.264 mp4 with
+  two data streams, AC3, cover, chapters) and the 4K HDR10+ Doctor Sleep clip.
+  All four succeed; independently checked with ffprobe/mkvmerge: identical video
+  frame counts and durations, bit-identical copied audio, byte-identical `old/`
+  backups, HDR10 mastering/CLL and HDR10+ dynamic metadata preserved. Findings
+  fixed: (1) the packet-count gate now ignores discard-flagged preroll packets
+  (a copy-cut clip has ~100 of them; raw counts falsely refused a good encode);
+  (2) Matroska cover art was silently dropped by every rebuild on FFmpeg 8 (it is
+  exposed as an attached-picture video stream and never selected). Stream-copying
+  it makes a second video track, so `matroska_apply` now re-attaches the source
+  cover as `cover.jpg` (`carry_source_cover`; mkvextract for Matroska, FFmpeg
+  attached-picture extraction for MP4); (3) a data stream (MP4 timecode) made the
+  encode fail because Matroska cannot store it; such streams are now skipped with
+  a log/report note and an explicit selection is rejected up front. Sample
+  gotchas for future runs: `ffmpeg -ss N -c copy` cuts drop `attached_pic` and add
+  preroll/edit-list offsets (use `mkvmerge --split parts:` for mkv); file names
+  starting `Test_` are skipped as test outputs. Not covered: Dolby Vision, real
+  interlaced content, and full-length titles.
+- 2026-11-09 rebuild_run refactor (local, uncommitted): `execute()` (about 1,050
+  lines) is now a 28-line sequence over 12 stage functions (`analyze_source`,
+  `verify_hdr10plus_sources`, `resolve_content_tune`, `resolve_dolby_vision`,
+  `record_analysis_and_plan`, `prepare_output`, `extract_hdr10plus`,
+  `encode_video`, `inject_hdr10plus`, `embed_metadata`, `validate_output`,
+  `install_output`) sharing a `FilePlan`; the moved code is unchanged. Policy
+  skips return `Flow::Finished`. Report `status` and failure `phase` are now the
+  `RunStatus` and `Phase` enums; their text is pinned by a test because CSV
+  reports and `.error.log` files embed it. New tests cover
+  `release_temporary_output` (early discard, late `.error` quarantine with
+  numbered non-overwriting names, success untouched). Test flake fixed: tests
+  that write then exec a fake tool could hit ETXTBSY when other threads fork
+  concurrently; they now use `crate::write_test_script` (100 ms settle).
+  Suite: 275 tests, 18 consecutive full runs green. Only the SDR/H.264 path is
+  covered end to end; the HDR10+/Dolby Vision stage moves were verified by the
+  compiler and the existing unit tests, not by real HDR media.
+- 2026-11-09 review fixes (local, uncommitted): a post-install directory-sync
+  failure is now an `InstallOutcome` warning instead of an error, so a validated
+  output is never quarantined as `.error.mkv`; `rebuild_run` preflights the `old/`
+  backup location before encoding; the rebuild validator compares video packet
+  counts of every re-encoded stream against its source (tolerance
+  `max(3, 0.01%)`; skipped for `--test`/copy-only) because container duration is
+  the longest stream and cannot see a truncated video track; new end-to-end
+  synthetic-clip tests cover full in-place rebuild and `--test`; an empty
+  auto-created `.hevc-rebuild-work` folder is removed after a run; the media-tool
+  tests share `media_tools_ready` and CI sets `HEVC_REQUIRE_MEDIA_TOOLS=1` and
+  installs ffmpeg/mkvtoolnix/mediainfo so they cannot skip silently; an advisory
+  `rust-tests-cross-platform` CI job runs unit tests on Windows/macOS; stale
+  Python-era module headers were rewritten. The packet-count tolerance has only
+  been exercised on synthetic clips; confirm on real SDR/HDR10/HDR10+ media
+  before release. This file was trimmed: the complete previous copy (including the
+  old Snapshot) is `../hevc-rebuild-local-notes/MEMORY-full-2026-11-09.md`.
+
 - 2026-11-05 release completion: `v1.4.1` is published at
   `https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.4.1`. Main CI
   run `41929212149` and tagged release workflow `41931388259` succeeded. The
@@ -147,7 +504,7 @@
   lossless-first, H.264 SDR / HEVC HDR with toggles). `youtube_optimize.rs`
   (plan/copy args/SSIM gate), `youtube_run.rs::execute_optimize` + shared
   `encode_with_retries`. Settings flow GUI `RunRequest` / MCP `start_run` ->
-  `lib.rs::youtube_mode_arguments` -> `--youtube-mode/-sdr-codec/-preset/-shrink/
+  `youtube_arguments.rs::youtube_mode_arguments` -> `--youtube-mode/-sdr-codec/-preset/-shrink/
   -quality-check`; prefs keys `youtubeMode|SdrCodec|Preset|Shrink|QualityCheck`
   (`YOUTUBE_CHOICE_PREFERENCES`). UI: mode picker + `styles/components/
   youtube-mode.css`. Optimize rejects <1440p and Dolby Vision; optimize_* fields
@@ -304,447 +661,6 @@
   mutating modes and the Debian package still depends on it. Next slice is the
   mutating run coordinator in `run_coordinator.rs`.
 
-- 2026-10-21 release and hygiene completion: the public repository is clean on
-  `main` at `5238aa9` after the documentation follow-up; `MEMORY.md` is
-  ignored and absent from the current
-  public tree. Dated audit files, duplicate Keller quick-start material, and
-  maintainer notes were moved out of the root; `App/` remains at the root as an
-  ignored cross-platform artifact drop. No tracked `.env` files or
-  high-confidence API/token/private-key matches were found; the local root
-  `.env` remains mode 600 and ignored. The old `MEMORY.md` content still
-  exists in historical commits, but it is no longer part of the current branch.
-
-- 2026-10-21 release completion: CI run `39554481628` passed all Rust, Python,
-  frontend, Linux, Windows, and macOS compile/package gates, including the
-  draft-release manifest verifier. The earlier requested pre-release failure
-  occurred in run `39543371532` when unintended Apple signing inputs caused
-  the macOS bundle step to fail; that run was cancelled before release. The
-  corrected workflow omits Apple signing inputs while retaining Tauri updater
-  signing. Release `v1.3.0` is public at
-  `https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.3.0` with Linux
-  AppImage/deb, Windows NSIS `.exe`, macOS Intel/Apple Silicon DMGs and app
-  archives, signatures, and `latest.json`; no MSI is present. The manifest
-  matches release asset IDs, and a live updater API asset request returned HTTP
-  200 with `application/octet-stream`. Post-release CI `39559078092` also
-  passed on the documentation follow-up. Apple signing/notarization and a native
-  installed-app update walkthrough remain intentionally unverified.
-
-- 2026-10-19 repository hygiene: removed dated audit/task files, the duplicate
-  `KELLER-QUICK-START.txt`, and public tracking of `MEMORY.md`; preserved the
-  dated material in `../hevc-rebuild-local-notes/` and kept the local memory
-  file ignored. Moved maintainer architecture, validation, dependency, and
-  migration notes under `docs/maintainer/`. Updated links, the Rust ledger
-  test path, and `SHA256SUMS`; relative-link, focused Rust-ledger, diff-check,
-  and checksum validation passed. Cleanup was committed and pushed; the local
-  memory file remains ignored and is not part of the public tree.
-
-- 2026-10-19 native cross-platform acceptance: the final source snapshot was
-  built natively through `Remote_Build` on macOS 26.7.1 x86_64 and through the
-  Server_Manager Windows guest on Windows Server 2025 x64. macOS passed frozen
-  install, both Svelte checkers, production frontend build, native Tauri
-  release build, executable CLI smoke, and CI-safe DMG creation; the DMG was
-  mounted read-only and contained the `.app`. Windows passed `pnpm check`,
-  native frontend/Tauri release build, NSIS packaging, executable `--help`,
-  `json environment`, and an empty synthetic scan; the final NSIS installer is
-  5,055,715 bytes, SHA-256
-  `209d08c1dfadf96adfcb14286db2f5051029af19bc9426d6b683dbafe709bf76`, and
-  no MSI was produced. The final macOS Intel DMG is 8,739,139 bytes, SHA-256
-  `92126f2bf4fc741725b758a4d11fc0d5387d8dc92cefea7af589461b0902c4bd`; both
-  verified packages were copied into the ignored root `App/` artifact drop.
-  Windows browser contracts passed
-  metadata 9/9, modal, home/help, library, rename, run, support, responsive
-  (300 viewport/theme checks plus zoom proxy), performance, workspace-state,
-  and YouTube. The responsive pass exposed and then verified a real narrow Help
-  note overflow fix; the Windows runner now uses Playwright `--filename` and a
-  longer browser-code timeout. The macOS guest lacks FFmpeg, MediaInfo,
-  MKVToolNix, Homebrew, and `hdr10plus_tool`, so full media readiness,
-  native GUI walkthroughs, real-media behavior, Apple Silicon, signing,
-  notarization, GitHub release execution, and live updater installation remain
-  open. The public repository is now `https://github.com/ImYourBoyRoy/hevc-rebuild`;
-  `main` was subsequently cleaned and pushed at `be6118f`; tag `v1.3.0` now
-  points to that verified release snapshot and is publicly published.
-
-- 2026-10-19 artifact-drop clarification: `App/` remains at the repository root
-  but is now an explicit cross-platform local artifact drop. Git ignores every
-  generated package, updater file, and writable sidecar inside it while keeping
-  `App/README.md`. Tauri actually writes host-native packages under
-  `desktop/src-tauri/target/release/bundle/`; copying verified outputs into
-  `App/` is a manual convenience step. Updated the root README, project
-  structure guide, `AGENTS.md`, and the artifact-drop instructions. Public
-  release packages are produced by GitHub Actions; generated `App/` files stay
-  local and ignored.
-
-- 2026-10-19 README cleanup: replaced the 746-line root README with a
-  concise 196-line landing page modeled on the project's other desktop tools.
-  It now leads with the app icon, badges, navigation, purpose, quick start,
-  core modes, safety, themes, release/update summary, focused documentation
-  links, validation commands, root `App/` placement, and license. Reduced
-  `desktop/README.md` to an 85-line scoped native-development guide. Detailed
-  behavior remains routed through `docs/USAGE.md`, `docs/TOOLS.md`,
-  `docs/PLATFORM-SUPPORT.md`, `docs/RELEASE.md`, and `docs/maintainer/`.
-  No runtime code changed.
-
-- 2026-10-19 native Tauri theme screenshot pass: captured the real Linux desktop
-  build after `SYSTEM READY` for Light, Dark, Phosphor, Ion, and Breach using
-  isolated portable profiles; existing user settings were not changed. The
-  normalized content-window captures are in `docs/screenshots/` and the root
-  README now includes the five-theme gallery. This is Linux visual evidence
-  only; it does not establish Windows/macOS UI or packaged runtime acceptance.
-
-- 2026-10-19 release/update infrastructure pass: added Tauri process/updater
-  plugins, a checked-in updater public key/endpoint, release-only
-  `createUpdaterArtifacts`, and an in-app signed-update banner. The banner
-  checks five seconds after startup and every 24 hours, shows bounded release
-  notes, remembers **Later** per version, requires explicit install consent,
-  blocks installation while a scan/run/repair/queue rename is active, and
-  relaunches after a successful signed install when the host permits it.
-  Added `.github/workflows/ci.yml` for Python/frontend/Rust checks plus native
-  Linux/Windows/macOS compile smoke, and `.github/workflows/release.yml` for
-  signed Windows NSIS (no MSI), macOS Intel/Apple Silicon, and Ubuntu 24.04
-  Linux `.deb`/AppImage draft releases with `latest.json` verification. Added
-  `docs/RELEASE.md` and `tools/verify-release-manifest.mjs`; the public remote
-  `ImYourBoyRoy/hevc-rebuild` exists and is configured as local `origin`, with
-  the source snapshot pushed to `main`. Validation passed: frozen pnpm install,
-  `pnpm check`, `pnpm check:tsgo`, `pnpm build`, Rust check/format, 201
-  sequential Rust library tests, native `tauri build --no-bundle`, and a
-  local signed Linux release build that emitted `.deb`/AppImage plus `.sig`
-  files. Existing Rust warnings remain; the quality-gated CI run, release
-  execution, asset inspection, and updater URL check were later completed by
-  `39554481628` and public `v1.3.0`. Native GUI/update installation acceptance
-  on each OS remains unverified.
-
-- 2026-10-19 Linux desktop identity fix and first release attempt: enabled
-  Tauri `enableGTKAppId`, added a custom Linux desktop template with the
-  observed X11 `StartupWMClass`, and added Debian post-install/remove hooks
-  that rename the generated product-name entry to the identifier-derived
-  `org.hevcrebuild.desktop.desktop` entry. Added
-  `tools/normalize-linux-appimage.sh` plus the release wrapper so AppImages
-  are normalized before updater archives are rebuilt and signed. The regular
-  Linux build passed; the `.deb` contains the hooks, the normalized AppImage
-  contains exactly one matching root/installed desktop entry, and an isolated
-  X11 launch exposed the HEVC icon pixels and `Hevc-rebuild-studio` class.
-  The release-mode signed rebuild was stopped before completion because the
-  network window was closing. The public remote was then created and the full
-  source snapshot was committed as `37cd2d0`, pushed to `main`, and tagged
-  `v1.3.0`. GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` is configured;
-  Apple signing secrets remain intentionally unset and MSI is excluded. The
-  first release workflow run is `39347415614`: Python, Rust, and Linux native
-  compile passed, while the frontend responsive contract failed remotely on a
-  single support/Ion/360px measurement (`main=369`, `client=360`) that passed
-  locally in the same 301-case matrix. macOS Apple Silicon and Windows native
-  compile jobs were still running when the network window closed. This entry is
-  historical; the responsive fix, formatting fix, Apple-signing fix, and
-  draft-release verifier fix were completed later and validated by public
-  `v1.3.0`.
-
-- 2026-10-19 Python retirement workboard: expanded
-  `docs/maintainer/python-rust-convert.md` into the active file-level plan for removing the
-  Python requirement from the published GUI/CLI/MCP runtime. It records the
-  current Rust/Python process-launch boundaries, keeps direct Python as an
-  optional compatibility tool, and orders the remaining work as native run
-  contract, Rust run coordinator/progress, Matroska metadata/final validation,
-  transaction/recovery convergence, YouTube batch parity, then packaging
-  deprecation. No Python module was deleted and no media/build operation was
-  run; the immediate implementation target is a typed Rust run coordinator.
-
-- 2026-10-19 current-run settings pass: added a non-persistent per-file override
-  contract across the GUI, Tauri request boundary, MCP, and Python engine. The
-  review screen can target the whole run, each source folder, or an individual
-  visible file; overrides cover CRF, x265 preset, 8-bit promotion, content tune
-  including film grain, HDR10+ preservation, verified Dolby Vision policy, and
-  exact stream indices. Saved defaults remain untouched; static HDR signaling is
-  intentionally source-aware rather than exposing an unsafe metadata-strip
-  switch. Added parser/effective-settings tests (3 pass). No frontend/Tauri
-  compilation or media operation was run; native/package acceptance remains
-  open. Next: run the approved frontend/native validation lane before release.
-
-- 2026-10-18 cross-platform feature pass: made the GUI/CLI/MCP feature contract
-  explicit for Linux, Windows, and macOS. Native Rust now treats Windows and
-  macOS as supported hosts when required tools are available, keeps APT checks
-  Linux-only, selects verified HDR10+ `.zip`/`.tar.gz` assets per host,
-  locates bundled Python resources in installed Windows/macOS layouts, opens
-  folders with `explorer`/`open`/`xdg-open`, and stores settings, queue,
-  reports, calibration, artwork cache, and managed helpers in native profile
-  locations. Python config/state/cache helpers mirror those locations; Linux
-  behavior and portable AppImage sidecars remain preserved. `pnpm check`,
-  `pnpm check:tsgo`, all six browser contracts run serially, metadata matching
-  9/9, Python unittest discovery 204 tests with 33 skips, `cargo fmt --check`,
-  `cargo metadata --offline --locked --no-deps`, and `git diff --check` passed.
-  Windows/macOS manual tool paths no longer require winget/Homebrew; those
-  managers are required only for automatic repair, and GUI/MCP APT refresh
-  paths reject non-Linux hosts before spawning a package process.
-  Full dependency metadata could not run offline because `jiff-static` was not
-  cached. No application build, native Windows/macOS build, packaged launch,
-  or media operation was run; those remain release gates. `ruff` was not
-  available on PATH. The cross-platform source changes are not yet committed.
-
-- 2026-10-18 UI/documentation completion pass: fixed the Help page's narrow
-  viewport overflow by constraining card grid tracks/list items and wrapping
-  its safety note text; isolated browser probes now report no document or main
-  overflow at 360, 390, 620, 800, 1024, or 1440px across Light, Dark,
-  Phosphor, Ion, and Breach. Added `docs/PROJECT-STRUCTURE.md`, linked it from
-  the root README, refreshed the desktop dependency-version note, added a
-  current worktree validation block to `REVIEW.md`, and replaced the stale
-  Keller quick-start text with links to the maintained docs. No production,
-  Tauri, native, or release build was run. The current AppImage remains a
-  glibc 2.43 artifact; native drag/drop and packaged visual acceptance remain
-  open.
-
-- 2026-10-18 Media Library drag-and-drop follow-up: the Tauri window already had
-  native multi-file/folder drops enabled and was adding dropped paths to the
-  persistent queue. `+page.svelte` now uses Tauri's full drag lifecycle to show
-  a Media Library drop hint and active state, while preserving path-based
-  scanning, duplicate-source handling, current filters, and the existing
-  busy-state guard. `pnpm check` and `pnpm check:tsgo` both passed with 0
-  errors and 0 warnings; `git diff --check` passed. No native or production
-  build was run, so end-to-end OS drag/drop acceptance remains open.
-
-- 2026-10-18 Identify & organize UI follow-up: `MetadataWorkbench.svelte` now
-  reads persisted queue match suggestions with normalized paths, so the
-  organizer shows the same saved title/poster state as Media Library when the
-  page is opened after scanning. Preferred local poster artwork is previewed
-  automatically without silently selecting it for output. Movie rows now use a
-  compact reviewed/suggested/empty match card, keep candidate lists collapsed,
-  and no longer create a nested scrolling movie list. `pnpm check` passed with
-  0 errors and 0 warnings; metadata matching tests passed 9/9; `git diff
-  --check` and `sha256sum -c SHA256SUMS` passed. `pnpm check:tsgo` also passed.
-  The broad responsive contract executed 300 checks but reported the existing
-  Help fixture's 360/390px horizontal overflow; this change does not touch the
-  Help surface and no baseline rerun was available in this turn. No frontend
-  production, Tauri, native, or media build was run. Native visual acceptance
-  of this organizer state remains open.
-
-- 2026-10-18 current release-preparation change: PolyForm Noncommercial 1.0.0
-  is now the repository license, package metadata names the SPDX identifier,
-  and concise human docs cover GUI/CLI/MCP usage, tool setup, support, and the
-  Python-to-Rust file-level ledger. Late completed-output failures now retain
-  collision-safe `<stem>.error.mkv` plus matching `<stem>.error.log` artifacts;
-  the source remains protected and the report remains failed/unvalidated.
-  The direct Python engine now has explicit APT/Linux, winget/Windows, and
-  Homebrew/macOS setup paths; HDR10+ assets are checksum-verified and the
-  official universal macOS archive is recognized. Native Tauri desktop
-  packaging/runtime remains Linux-first, and Python remains a current host
-  runtime requirement until the compatibility engine is retired. The full
-  Python suite passed with 202 tests and 33 skips, focused platform/metadata
-  and dependency-update checks passed, and `git diff --check` is clean. No
-  Cargo/Tauri or release build was run. The final non-ignored changes are ready
-  for the local commit.
-
-- 2026-10-18 Linux desktop release build: from `desktop/`, `pnpm check`
-  passed with 0 errors and 0 warnings, `pnpm build` passed, and `pnpm tauri
-  build` exited 0. The generated `.deb` (7,736,460 bytes, SHA-256
-  `b2976a79ef529a84e4607854af418cabef7010ec6a2521c9733284ea3e42a645`) and
-  x86-64 AppImage (92,584,440 bytes, SHA-256
-  `1c443581082f9334018c0be9ef22b386529907b06daed0a38b98f72d8cc2fd43`) were
-  inspected for package/engine contents and copied byte-for-byte into `App/`.
-  The AppImage was built on the current glibc 2.43 host; no native launch or
-  media run was performed. Keep `App/` as the user-facing Linux artifact drop;
-  rebuild on Ubuntu 24.04 before claiming AppImage compatibility there.
-
-- 2026-10-14 Windows CLI build lane: the Server_Manager WinServer adapter
-  provisioned Windows Server 2025 with Python 3.15.0 via pyenv-native,
-  installed HEVC-owned FFmpeg/FFprobe 9.0.2, MediaInfo 26.10, and MKVToolNix
-  102.0.0 through the explicit winget resolver, and completed a synthetic
-  1920x1080 10-bit short encode/validation. Windows locking/fsync portability
-  fixes are in `hevc_rebuild/util.py`. A strict metadata-only synthetic
-  packet-fingerprint check remains open because the remux changed video packet
-  boundaries; do not treat that narrow failure as a toolchain failure. Native
-  Windows desktop UI, signed packaging, and real-media acceptance remain open.
-
-- 2026-10-18 release planning: the old clapperboard/play icon was replaced with
-  a generated abstract interlocking-layer mark using charcoal green, sage,
-  off-white, and amber; Tauri desktop icons, Windows ICO, macOS ICNS, Windows
-  tiles, `desktop/src-tauri/icons/source.png`, and the frontend favicon were
-  regenerated. `pnpm build` passed after the asset change. The current local
-  repository has no remote and remains a large dirty working tree; do not push
-  it directly or make it public until a clean release snapshot, license,
-  privacy scrub, and repository choice are complete. Planned updater shape is
-  Tauri's static GitHub Releases manifest with one signed platform bundle per
-  release, not per-file update checks; exact repository URL is still unknown.
-
-## Snapshot
-
-- 2026-10-12T21:00:02-06:00: T-098 [x]. Release decision: not ready for publication. Source and Linux package gates are green, but publication is blocked by the T-092 screen-reader workflow evidence gap, unverified Windows/macOS runtime, no authorized upload/playback proof, synthetic-only media, and host HDR10+/Dolby Vision encoder limitations. The exact next action is to resolve T-092, then obtain authorized cross-platform and account/media evidence before publication.. Current evidence: `2026-10-11_evidence.md`. Exact next: Resolve T-092 screen-reader workflow evidence; then obtain authorized Windows/macOS and upload/playback evidence before publication..
-
-- 2026-10-12T21:00:02-06:00: T-097 [x]. The documented Linux/Ubuntu path has source and packaged evidence. The direct Windows CLI compilation lane is now separately verified; Windows/macOS desktop runtime or GUI claims are still not generalized from Linux. Current evidence: `2026-10-11_evidence.md`. Exact next: T-098 release decision and final handoff.
-
-- 2026-10-12T21:00:02-06:00: T-096 [x]. Local policy and integration checks passed. The default HDR10+ YouTube path skipped unsupported dynamic metadata without producing an output; the explicit no-consent path returned the expected policy failure. No upload, authenticated provider, network account, or playback claim was made.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-097 cross-platform and supported-target evidence.
-
-- 2026-10-12T21:00:02-06:00: T-095 [x]. Synthetic SDR, HDR10, and HLG checks, metadata, short, and full runs exited 0; collision and disk-pressure cases exited 1 with unchanged sources. HDR10+ was detected; metadata/short/full kept source safety and exited 1 because host x265 lacks HDR10_PLUS, while default YouTube policy skipped it with no output. Dolby Vision was detected; metadata exited 0, short/full failed closed on host VBV limitations, and explicit HDR10 fallback exited 0. Source hashes, output hashes, logs, multi-track identity, subtitles, attachments, chapters, corrupt metadata, helper failure, cancellation, and disk/collision evidence are recorded.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-096 YouTube/network policy boundary.
-
-- 2026-10-12T21:00:02-06:00: T-094 [x]. The final deb and AppImage built and launched on Ubuntu 24.04.5/glibc 2.39. All package smoke checks exited 0. WebDriver loaded tauri://localhost, showed the 20-item synthetic library, Run Setup, and the full confirmation; Escape restored focus to Review & start full rebuild. The actual packaged GTK chooser opened and Cancel was activated through AT-SPI. The synthetic queue and logs persisted across close/reopen.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-095 representative synthetic-media matrix and preservation.
-
-- 2026-10-12T21:00:01-06:00: T-093 [x]. 301 synthetic screenshots passed at 360, 390, 620, 800, 1024, and 1440 CSS pixels across light, dark, phosphor, ion, and breach themes; document and main horizontal overflow stayed false, canonical tokens were present, and the 720 CSS-pixel effective viewport proxy at 200 percent passed.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-094 packaged oldest-supported-Linux acceptance.
-
-- 2026-10-12T21:00:01-06:00: T-092 [!]. Blocked only on complete screen-reader workflow proof. Browser keyboard/focus contracts pass all 24 transitions across six callers; native and packaged focus-return/cancel evidence passes, including the final packaged Escape return to Review & start full rebuild. The isolated packaged Orca run spoke only startup and frame text; it did not confirm workflow labels, alerts, progress, or report navigation.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-093 responsive, theme, and zoom acceptance.
-
-- 2026-10-12T21:00:01-06:00: T-082 [x]. Final source checks and the Ubuntu 24.04 package build completed with exit 0. The AppImage is 85916152 bytes (SHA256 76484d86cfc241b5834469d558b72da5e831e5cee5a540ee5a8399e05029dcd1) and the deb is 7646558 bytes (SHA256 3aefbf117b779745e0d3e312aad9538d60c51e5dc254cc2f5c245579ec9b7d8e); package smoke, sidecar discovery, scan, and info-only CLI checks all passed.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 keyboard and assistive-technology acceptance.
-
-- 2026-10-12T20:57:11-06:00: T-090 [x]. Final source/static gate passes: 192 Python tests, 201 Rust tests with 1 explicit benchmark ignored, both type lanes, build, format, compiler check, focused lint, and diff check exit 0.. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 keyboard and assistive-technology acceptance.
-
-- 2026-10-12T18:40:23-06:00: T-091 [x]. Native empty/populated queues, file and folder addition, 20-file count-based scan progress, title/poster review, selection persistence, refresh, removal back to empty and close/reopen verified. Current evidence: `2026-10-11_evidence.md`. Exact next: T-092 remaining native dialog and assistive-technology acceptance.
-
-- 2026-10-12T18:09:01-06:00: T-090 [x]. 191 Python tests and 201 Rust tests pass, one explicit benchmark ignored; both TypeScript lanes and production build pass; compiler/format/focused lint pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-091 native populated-library walkthrough.
-
-- 2026-10-12T17:57:21-06:00: T-083 [x]. Current handoff and next task recorded; historical memory notes retained verbatim under an explicit superseded heading; documentation remains synchronized as acceptance work continues. Current evidence: `2026-10-11_evidence.md`. Exact next: T-090.
-
-- 2026-10-12T17:57:21-06:00: T-082 [~]. Format/check/build/Clippy execution pass; 200 Rust tests pass, 1 explicit benchmark ignored; 189 configured-native Python tests pass; native launch passes; package smoke pending. Current evidence: `2026-10-11_evidence.md`. Exact next: T-083 documentation synchronization, then T-090 final safety/source gate; finish T-082 package evidence with T-094.
-
-
-- Current work (2026-10-12): `2026-10-11_tasklist.md` has been executed through T-098. T-092 remains `[!]` because the isolated Orca run did not prove workflow announcements; T-098 records a not-ready-for-publication decision. Exact next is to resolve T-092, then obtain authorized Windows/macOS and upload/playback evidence.
-- Follow-up utility (2026-10-12): `tools/extract_clip.py` creates bounded short fixtures on Linux, macOS, and Windows with positive seconds/minutes parsing, no-overwrite publication, source preservation, fast stream-copy mode, and frame-accurate H.264/AAC transcode mode. `tests/test_extract_clip.py` covers parser/argv contracts, source hashing, stream preservation, collision refusal, and both extraction modes. Focused tests and compile checks pass. The user then explicitly authorized VM startup: `WinServer` is running at discovered guest address `192.168.122.251` but has no toolkit guest adapter or documented credential path, so no Windows command was attempted; the macOS guests remain off because builder QEMU 10.2.1 rejects their retained `pc-q35-4.2` machine type. Do not change the production XML or reuse the macOS secret for Windows. Next: obtain a documented Windows guest connection and a compatible/isolated QEMU 4.2 path before rerunning synthetic fixture smoke.
-- Canonical state/evidence: task-list statuses and `2026-10-11_evidence.md`; `RUST_MIGRATION.md` current hybrid owners; `desktop/UI_OWNERSHIP.md` and `CSS_CONTRACT.md` UI contracts; `DEPENDENCIES.md` controlled updates; `PERFORMANCE.md` measured decisions.
-- Preserve baseline dirty findings/memory/tasklist and all product features. No commit or user-media access. Private fixtures/evidence are `/tmp/hevc-tasklist-20261011-00zltisa`; the original baseline snapshots remain there. Ubuntu 24.04 userspace preparation is under ignored `desktop/src-tauri/target/ubuntu24-acceptance` with verified upstream image checksum; only that isolated rootfs receives packages.
-- Last confirmed evidence: 192 configured-native Python tests; 201 Rust tests with one explicit benchmark ignored; both type lanes, frontend build, focused lint, diff check, Ubuntu 24.04.5 package smoke, packaged WebDriver safety focus return, packaged chooser cancellation, and synthetic HDR10+/Dolby Vision policy matrix. Screen-reader workflow announcements, Windows/macOS runtime, and authorized upload/playback remain open.
-
-### Historical snapshot notes — superseded by the current ledger
-
-The dated notes below are retained verbatim for continuity; old counts, next tasks and pre-fix findings are historical.
-
-- 2026-10-12T17:50:42-06:00: T-081 [x]. All 12 batch validation commands pass; native Home/Library launch smoke passes; total JS +80 bytes, gzip +142 bytes. Current evidence: `2026-10-11_evidence.md`. Exact next: T-082.
-
-- 2026-10-12T17:48:11-06:00: T-080 [x]. Exact before/target versions, Node engines/Rust MSRV, rollback files/commands and validation plan recorded. Current evidence: `2026-10-11_evidence.md`. Exact next: T-081.
-
-- 2026-10-12T17:47:06-06:00: T-073 [x]. Build and browser tests pass; total production JS 649230B/194991B gzip, main route 548758B/156351B gzip; fixture navigation 307ms, 20/200 cards 78/232ms, 10000 paths 467ms, modal 31-78ms. Current evidence: `2026-10-11_evidence.md`. Exact next: T-080.
-
-- 2026-10-12T17:47:06-06:00: T-072 [x]. 20 profiles take 3.648/2.016/1.153s at 1/2/4 workers; cancellation joins 3.0/2.6/5.8ms; pressure completes 3/4/6 bounded current jobs; retain serial and eager forecasts. Current evidence: `2026-10-11_evidence.md`. Exact next: T-073.
-
-- 2026-10-12T17:44:27-06:00: T-071 [x]. 200 Rust tests pass, 1 explicit benchmark ignored by default; cache benchmark passes: cold 4335ms versus warm 560ms, 20 hits; modified invalid source yields Analysis failed and only 19 hits; eviction/settings/tool/version invalidation tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-072.
-
-- 2026-10-12T17:42:06-06:00: T-070 [x]. 198 Rust tests pass; scan walls 0.775/4.296/19.745s; external tool/profile work dominates, forecasts 0.5/9.4/48.1ms; cancellation exit 3.3ms; cumulative child peak RSS 64-77MiB. Current evidence: `2026-10-11_evidence.md`. Exact next: T-071.
-
-- 2026-10-12T17:39:50-06:00: T-065 [x]. 13 Python policy tests and 4 Rust YouTube tests pass; unsupported sources fail closed. Current evidence: `2026-10-11_evidence.md`. Exact next: T-070.
-
-- 2026-10-12T17:38:48-06:00: T-064 [x]. 187 Python tests pass; compile and whitespace checks pass; first Ruff found obsolete transaction-only run import and it was removed with its responsibility moved. Current evidence: `2026-10-11_evidence.md`. Exact next: T-065.
-
-- 2026-10-12T17:38:14-06:00: T-063 [x]. 198 Rust tests and 7 rebuilt-helper parity fixtures pass; native debug build and whitespace check pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-064.
-
-- 2026-10-12T17:36:21-06:00: T-062 [x]. 7 shared fixtures pass; earlier 180 native-enabled Python tests pass without skips. Current evidence: `2026-10-11_evidence.md`. Exact next: T-063.
-
-- 2026-10-11T21:39:15-06:00: T-061 [x]. Current hybrid ownership table is source-grounded; Python orchestration/tag/artwork/reference paths retained and historical migration evidence explicitly distinguished. Current evidence: `2026-10-11_evidence.md`. Exact next: T-062.
-
-- 2026-10-11T21:39:15-06:00: T-060 [x]. 54 browser viewport snapshots pass at 360/390/620/800/1024/1440 with five Home themes and Library/Run/YouTube/Reports fixtures; no document/main horizontal overflow; canonical tokens present. Current evidence: `2026-10-11_evidence.md`. Exact next: T-061.
-
-- 2026-10-11T21:35:29-06:00: T-059 [x]. Both checkers zero diagnostics, build and 198 Rust tests pass; rebuilt helper; browser report/log/delete-cancel, credential/provider callbacks, cache review-cancel, stale exact-plan/auth callback, setup log/export, failed probe and recovery acknowledgment/focus pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-060.
-
-- 2026-10-11T21:28:52-06:00: T-058 [x]. Both checker lanes pass; 7 direct Python policy tests pass with 4 optional native skips; 4 Rust YouTube tests pass; browser independent open/policy/preferences/output/failure/stop/busy checks pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-059.
-
-- 2026-10-11T21:25:00-06:00: T-057 [x]. TS7/build/state contracts pass; browser progress/ETA, calibration/report logs, stop controls, unknown/non-finite telemetry and four terminal updates pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-058.
-
-- 2026-10-11T21:22:24-06:00: T-056 [x]. All targeted backend/type/matching checks pass; browser token/caret/focus, reset, collision display, single/whole-selection, cancel/reopen, busy and shape gates pass; MetadataWorkbench browser boundary/mode/guidance retained. Current evidence: `2026-10-11_evidence.md`. Exact next: T-057.
-
-- 2026-10-11T21:19:40-06:00: T-055 [x]. TS7 has zero diagnostics; build passes; browser empty/populated, scan, three source callbacks, exact grouped selection, three processing actions, output callbacks, busy gates and three TV review levels/inheritance/posters pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-056.
-
-- 2026-10-11T21:16:50-06:00: T-054 [x]. Svelte check has zero errors/warnings; real-browser synthetic empty/populated Home, missing/ready tools, eight actions, report/log references, five skins and existing Help commands pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-055.
-
-- 2026-10-11T21:08:56-06:00: T-053 [x]. Three state-contract tests and both checkers/build pass; empty/populated selection, active/stale event identity, cancelled/failed/recovered/uncertain report states covered. Current evidence: `2026-10-11_evidence.md`. Exact next: T-054.
-
-- 2026-10-11T21:08:56-06:00: T-052 [x]. All six surfaces use shared modal; both checkers/build pass; six surface-class keyboard/focus-return fixtures pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-053.
-
-- 2026-10-11T21:01:58-06:00: T-051 [x]. 24 Tab/Shift+Tab transitions, initial safe focus, Escape/cancel return, inert background, acknowledgment/validation/loading and backdrop policy pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-052.
-
-- 2026-10-11T20:54:57-06:00: T-002, T-050 [x]. Complete preservation contract and UI extraction map recorded before modal/slice implementation. Current evidence: `2026-10-11_evidence.md`. Exact next: T-051.
-
-- 2026-10-11T20:53:00-06:00: T-040, T-041, T-042, T-043, T-044, T-045, T-047 [x]. Focused Ruff zero; rustfmt passes; Rust binary check warning-free; 198 Rust tests pass; 180 Python tests pass (23 native skips). Current evidence: `2026-10-11_evidence.md`. Exact next: T-050.
-
-- 2026-10-11T20:47:25-06:00: T-037 [x]. 4 Python stop-control regressions and 197 Rust tests pass; subsequent organizer check brings available Rust test count to 198. Current evidence: `2026-10-11_evidence.md`. Exact next: T-040.
-
-- 2026-10-11T20:47:25-06:00: T-034, T-035, T-036 [x]. 7 direct transaction tests, 4 Rust transaction tests, 12 organizer tests and 177-test Python suite pass (23 optional native skips). Current evidence: `2026-10-11_evidence.md`. Exact next: T-037.
-
-- 2026-10-11T20:46:12-06:00: T-030, T-031, T-032 [x]. Both checkers report zero errors/warnings; production build passes. Current evidence: `2026-10-11_evidence.md`. Exact next: T-034–T-037.
-
-- 2026-10-11T20:35:22-06:00: T-022, T-023 [x]. Partial namespace and precedence tests pass; baseline Python failures resolved. Current evidence: `2026-10-11_evidence.md`. Exact next: T-030.
-
-- 2026-10-11T20:35:21-06:00: T-046 [x]. Rust reader regressions and all 192 library tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-022/T-023.
-
-- 2026-10-11T20:35:21-06:00: T-019, T-020, T-021 [x]. Bounded helper/process/drain tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-046 immediately after T-021.
-
-- 2026-10-11T20:35:21-06:00: T-015, T-016, T-017, T-018 [x]. Finite and external JSON boundary regression checks pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-019–T-021.
-
-- 2026-10-11T20:35:21-06:00: T-012, T-013, T-014 [x]. Report durability, handler lifecycle, private new artifacts and native writer association tests pass. Current evidence: `2026-10-11_evidence.md`. Exact next: T-015/T-016.
-
-- 2026-10-11 execution: baseline root/main/964bab0 and initial three dirty documentation paths saved privately at `/tmp/hevc-tasklist-20261011-00zltisa`. Current ledger: `2026-10-11_evidence.md`. T-000 complete; T-010 UUID artifact identity and frozen-clock sequential-run test passed. Baseline: 188 Rust tests pass; TS6/build pass; TS7 has 25 errors; Rust format fails; Python unittest 137 run, 2 failures/1 error/21 skipped with isolated helper root. pytest/Ruff unavailable in host Python. No media/credentials/packages/commits. T-011 complete: schema-aware shared flock writers; direct and mixed Rust/Python processes pass, exact-report queue regression preserves selection. First safety sequence T-010/T-011/T-033/T-024/T-025 complete with focused unit/process tests. Default retained and helper tests isolated. T-001 matrix recorded. Exact next: T-012 fsync report durability, then utility/process hardening; partial namespace remains T-022.
-
-- 2026-10-11: Created `2026-10-11_tasklist.md` from the current findings and preservation policy. It is an execution checklist with P0/P1/P2 tasks, dependencies, exact file areas, acceptance criteria, source/native/package/real-media evidence boundaries, UI/backend sequencing, and a progress ledger. No product source fixes were applied while creating it. The task list is uncommitted and must be kept aligned with the findings and current dirty-worktree boundary.
-- 2026-10-11: Red-team correction applied to `2026-10-11_tasklist.md`: all finding-map references now point to declared task IDs; T-012 remains dependent on T-033 and is ordered after directory-sync hardening; T-010 proves sequential same-second uniqueness and CSV-header races without adding overlapping MCP jobs; engine log/report mode is an explicit privacy decision separate from existing setup-log `0600`; each UI slice carries its CSS, with token consolidation deferred to T-060. No product source fixes were applied.
-- 2026-10-11: Second task-list red-team correction applied: T-046 is now in the process-safety phase immediately after T-021; F-15 maps to T-065 policy tests; the editing rule is agent-neutral; the audit scoreboard is labeled historical until T-000 reruns it. No product source fixes were applied.
-- 2026-10-11: Accepted implementation order is in `2026-10-11_findings.md`. Preserve features. Remove only unreachable implementation residue. First session: unique report id, atomic CSV header, raise on a failed Linux directory open, and deterministic tests. Isolate the metadata toolchain test from the user HDR10+ helper cache. Do not rewrite it to this machine’s path, and do not change the `Movie*Group` default. Then move `LibraryCrumb` and `LibraryPosterCard` into `types.ts`. Redundant imports may go. Compatibility helpers are preserved or delegated. `DiskPressureError` stays. Rust wrappers are `pub(crate)` or private. The route becomes a thin coordinator. Backend domain splits do not wait on the UI. `WorkflowIllustration` mounts through Home. No product fixes applied. This plan edit is uncommitted.
-- 2026-10-11: Rechecked the unused-symbol concern source-wide. `app.py`'s `signal`, `DiskPressureError`, `choose_poster`, `ffprobe_json`, and `pressure_stats` imports have no in-file use; only the `DiskPressureError` import is redundant because `encode.py` raises that live exception at three disk-pressure paths. The rebuild `validate_output(...)` call must stay because it raises on failure; only the `validation` result binding is unread. `encode.py`'s `_meminfo_values`, `_cgroup_available_gib`, and `_meminfo_gib` have no current call sites in source/tests and duplicate `resources.py` memory logic; they are compatibility shims to remove or delegate, not work the tool should start invoking. The Rust wrapper finding is path-scoped: `library_organizer::build_plan` is test-only, while `encode_plan::build_plan` is live production code. No source fixes were applied.
-- 2026-10-11: Expanded `2026-10-11_findings.md` beyond the utility audit to stale/unused code, module structure, UI/accessibility, CSS layering, and dependency freshness. Verified 19 focused Ruff unused-symbol findings, four Rust dead functions plus Clippy warnings, repeated Rust `BufRead::lines().flatten()` error-discard loops, the 6,107-line/239-function Svelte route, the two-layer 1,997-line CSS system, inconsistent native/custom dialogs without visible shared focus management, and pending pnpm/Cargo updates. These are separate maintainability, UX, or verification findings; no source fixes were applied. Current status remains: TS7 checker fails, Rust fmt fails, four Python tests fail, and native/packaged/real-media/cross-platform acceptance is open. Next: fix release blockers, establish ownership/lint gates, then refactor modal/type/store boundaries before further UI feature work.
-- 2026-10-11: `2026-10-11_findings.md` is the handoff. Body findings were narrowed in place. Codex’s F-16–F-25 stand, with these corrections: the rebuild `validation` call must stay; `filename_metadata_clue` and the short rename wrappers are test-used, not unreferenced; `encode.py` still has three uncalled meminfo helpers. Line counts match (`+page.svelte` 6107, `app.css` 1997). The app is not a 10/10 release on this evidence. Next: unique report ids, then the 25 TypeScript 7 errors.
-- 2026-10-11: Added `2026-10-11_findings.md`, a red-teamed audit of the shared utility boundary and adjacent Rust/Svelte paths. Highest-confidence issues are concurrent report/log identity and CSV header races, the failing TypeScript 7 checker lane, silent supported-Linux durability errors, and weak finite-number/JSON-shape validation. The audit deliberately downgraded the partial-namespace config test, serial scanning, bundle size, Ruff/format output, and Python/Rust parity to robustness, opportunity, quality, or verification-gap status where production failure was not demonstrated. No media, native window, package, upload, or cross-platform operation was performed. Exact next action: fix report identity/atomic append and TypeScript 7 type contracts, then rerun the validation matrix.
-- 2026-10-10: Library **Rename files** now names one selected file or the whole selection. The pattern is edited in that dialog, token buttons insert the film or episode fields, and the original name sits beside the new name before anything moves. Series and season folder renames stay in the organizer. `pnpm check` had 0 errors and 0 warnings. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.25 MiB). Close the open window and start that file again. Windows and macOS installers were not built: this machine is Ubuntu, and tool setup is still Ubuntu package installation. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-10: An episode MKV now writes that episode’s plot into both the summary and the synopsis. The series description is no longer written as the episode summary, and the series score is not written as the episode rating. The source link is the episode page. S01E01’s existing tags were corrected in place: every original field matches the file in `old/`, the summary is the episode plot, and the video was not re-encoded. The cover remains the 1000×1500 season poster. `pnpm check` had 0 errors and 0 warnings. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.25 MiB). Close the open window and start that file again. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: An episode in a season folder now embeds that season’s poster. The S01E01 rebuild attached the series poster because the season review still held the provider URL, and the run substituted the series file. A season poster on disk now wins over a series-folder choice. A provider URL for that season no longer selects the series poster. Opening the library records the season file already on disk. `pnpm check` had 0 errors and 0 warnings. The season-poster selection test passed. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.25 MiB). Close the open window and start that file again. The finished S01E01 file was not rewritten. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: Home now leads with four actions: add or review media, confirm the match, write metadata or rebuild, and prepare a YouTube copy. The current step is the primary button. Tool checks collapse to a status line and open on request; a missing required tool stays visible. Recent runs and setup logs remain underneath. `pnpm check` had 0 errors and 0 warnings. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.25 MiB). Close the open window and start that file again. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: Home cards are only as tall as their content. The three start steps keep their full sentences. Checks span the page in three columns, and each ready tool shows a short version. Recent runs and setup logs sit under that list. A tool version line is the first output line that contains a version, so MediaInfo is no longer summarized as “Command line.” `pnpm check` had 0 errors and 0 warnings. The version-line unit test passed. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.25 MiB). Close the open window and start that file again. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: Home now fills the window. The three start steps sit in one row. Checks use the left side, with a missing required tool called out and the ready tools in two columns. Recent runs and setup logs stay visible on the right. The HDR10+ helper already installed at `~/.local/share/hevc-rebuild/bin/hdr10plus_tool` (1.7.2) was invisible to the AppImage because that profile only looked in its sidecar. Lookup now checks the user folder, then the sidecar, then `PATH`. A new install writes both places. A portable-profile environment check found the existing helper. `pnpm check` had 0 errors and 0 warnings. The helper-path unit test passed. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.24 MiB). Close the open window and start that file again. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: Home is the first workspace tab. It shows the current queue, toolchain checks, and recent runs without a marketing layout. An empty queue opens on Home. A queue that already has media reopens on the last tab. The saved tab is `lastPage` in application preferences. `pnpm check` had 0 errors and 0 warnings. The workspace-tab preference test passed. Portable AppImage rebuilt at `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.24 MiB). Close the open window and start that file again. Four existing dead-code warnings printed.
-- 2026-10-09: Portable AppImage rebuilt again after the episode and season text change. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.24 MiB). Installer: `desktop/src-tauri/target/release/bundle/deb/HEVC Rebuild Studio_1.3.0_amd64.deb` (7.28 MiB). Close the open window and start that AppImage again. Four existing dead-code warnings printed. The frontend build also printed its existing notice that one chunk is over 500 kB.
-- 2026-10-09: A matched episode now receives that episode’s title, plot, and air date when the field is still empty or still only the filename or series text. A season receives its own plot and audience score when the provider publishes them. A series score is not copied onto a season, and a season with no published plot stays empty. Edited episode and season text is left in place. `pnpm check` had 0 errors and 0 warnings. The season-publication unit test passed.
-- 2026-10-09: A run could not start because TMDB lists the main poster twice, and the queue rejects repeated poster IDs. Provider poster lists now keep the first copy of each ID, and the queue save drops any remaining duplicate before it writes. The series and season images stay. Portable AppImage rebuilt at the same path. Close the open window and start that file again. Four existing dead-code warnings printed. The poster-ID unit test passed.
-- 2026-10-08: Portable AppImage rebuilt so season posters load from the matched show. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage`. Close the open window and start that file again. Four existing dead-code warnings printed.
-- 2026-10-08: Season posters stayed empty after the TV Shows rescan because that queue has episode matches and no series record. Season art is loaded from the matched show even when the series record has not been saved yet, then written as `poster.<ext>` in each season folder. A season card shows Downloading until that season’s own image arrives.
-- 2026-10-08: Portable AppImage rebuilt after the series-poster fix. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage`. Close the open window and start that file again. Four existing dead-code warnings printed. `pnpm check` had 0 errors and 0 warnings. `SHA256SUMS` covers 182 files.
-- 2026-10-08: A TV series card uses the matched provider poster when the saved series record has no image. Faerie Tale Theatre’s episodes already had the TMDB poster, but the series record was still `local:` with an empty artwork list, so the card said “No poster yet.” That image is shown immediately. With Save poster beside the media on, it is saved as `poster.<ext>` in the series folder, and each season poster returned for the series is saved the same way in its season folder. Existing images are not replaced. A local season poster already chosen is not overwritten by the provider URL.
-- 2026-10-08: Portable AppImage rebuilt after the metadata fix. Same path: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage`. Close and reopen that file to load it. The earlier 7-hour encode was already deleted.
-- 2026-10-08: Chaos Theory encoded for 7h 10m, then mkvpropedit rejected the metadata because replaced source tags left empty `<Tag>` elements. That message was on stdout, so the log looked blank, and the finished temp file was deleted. Empty tags are now dropped, command failures include stdout, and a finished encode is retained as a visibly marked `.error.mkv` with a matching `.error.log` when a later step fails. The original was not replaced. Poster cards show an animated Downloading state while art is still arriving. Run setup uses one 14px control size and groups CPU, memory, disk, and calibration. The pressure card shows RAM used, with memory stall separate from swap.
-- 2026-10-08: Release build finished with exit 0 in about 9 minutes. Portable AppImage: `desktop/src-tauri/target/release/bundle/appimage/HEVC Rebuild Studio_1.3.0_amd64.AppImage` (88.23 MiB). Installer: `desktop/src-tauri/target/release/bundle/deb/HEVC Rebuild Studio_1.3.0_amd64.deb` (7.27 MiB). Four existing dead-code warnings printed. The AppImage was not launched.
-- 2026-10-08: The desktop activity log now records an encode line only when the percent crosses a 5% step. The bar, resource cards, and ETA keep updating from the structured progress event. ETA is remaining media duration divided by the current speed, shown as hours and minutes. The Chaos Theory encode stopped at 02:56 because the desktop session closed and the progress pipe broke; x265 had not failed. That close now stops the encoder and records the file as interrupted. The original was not replaced. Progress-view tests passed (6).
-- 2026-10-07: The encode call now passes the primary HDR10+ JSON path that was already prepared. Chaos Theory has none, so that value is empty. The previous NameError stopped the run before x265 started; the original was not replaced.
-- 2026-10-07: Full rebuilds scan a file for HDR10+ only when the container already signals HDR10+. Chaos Theory is HEVC 1920x800 with no HDR signaling, so the full-file scan was the long pause. Two overlapping scans of that file were stopped before encoding started; the original was only being read.
-- 2026-10-07: Opening the app settles files that were active when it last closed. A saved success is marked complete. An unfinished file whose original is still present returns to the queue, and only an unopened temporary encode from this app is removed. A partial encode is not resumed, and existing outputs and old/ backups are not deleted. A missing file stays for review. Recovery is skipped while a job is still running.
-- 2026-10-07: Before encoding, the progress headline names each step as it starts: reading tracks, HDR10+ check, Dolby Vision when present, disk space, HDR10+ extraction when preserved, encode planning, calibration when it runs, then starting the encode. The percent bar stays moving until the encoder reports progress. The Chaos Theory job already running keeps the labels from the process that started it.
-- 2026-10-07: While a file is still being read, the run bar moves and names that task instead of sitting at 0%. Open progress details scrolls to the live activity log. Encode percent appears once output bytes or speed are reported.
-- 2026-10-07: In-place full rebuild review now shows both outcomes: the original moves into `old/`, and the rebuilt file keeps the current name only after validation. The same path is not presented as a separate overwrite destination.
-- 2026-10-07: Run-setup dialogs now live inside the app shell, so titles, body, buttons, and destination paths use the shared type scale. The output-review path is a full-width 15px line and wraps on slashes.
-- 2026-10-07: The full-rebuild confirmation now states temporary working space for the selected file and the free space already on the volume. A 665 MB file budgets 2 GB because the finished size is unknown; it does not require the volume’s free space. The dialog sits outside the app shell, so its body and facts are set to 15px directly.
-- 2026-10-07: Settings notes for poster storage, the artwork cache, filename filters, title cleanup, and provider coverage were shortened. Each line still states the rule: independent poster choices, unused-only cache purge, exclude-over-include matching, and the separate x265 calibration cache.
-- 2026-10-07: Shared type scale in `desktop/src/styles/type-scale.css`, loaded after `app.css` and `instrument.css` for Light, Dark, Phosphor, Ion, and Breach. Page title 28px, section headings 20px, card titles 16px, body 15px, controls 14px, meta floor 12px. Instrument skins no longer add wide tracking to titles. Tool versions and paths wrap. Help command blocks are 13px.
-- 2026-10-07: Ion’s sliding glow is a straight segment only: the sidebar’s right edge (`ion-edge`, translateY) and the top bar’s bottom edge (`ion-rail`, translateX). It no longer follows `offset-path` around corners, and it is not drawn on cards, buttons, or navigation. `.link-button` (Search another title and the other metadata text actions) uses the instrument signal border instead of the browser’s default button chrome.
-- 2026-10-07: Ion’s background is a large field that eases back and forth, with a light that travels the content frame, the sidebar edge, and the top bar. Breach’s hatch is two diagonals that slide by an exact stripe period, so the loop does not jump, plus a soft wash that reverses instead of stepping. Reduced motion turns these off.
-- 2026-10-07: Full dependency update and clean rebuild. pnpm is 12.10.1. SvelteKit is 3.0.1 with adapter-static 4; Kit config lives in `desktop/vite.config.js` and source imports use `#lib`. Svelte 5.57.2, Vite 8.3.3, lucide 1.52.0, Tauri 2.12.1, dialog plugin 2.8.1. Rust stable is 1.99.0. TypeScript stays 6.0.3 on `pnpm check` because Kit 3 and svelte-check require TypeScript 6; 7.0.2 remains the `--tsgo` lane. `generic-array` 0.14.7, `toml` 0.8.2, `toml_datetime` 0.6.3, and `toml_edit` 0.20.2 stay behind latest because the dependency graph pins them. Build caches were purged (`desktop/node_modules/.vite`, `desktop/.svelte-kit`, and `cargo clean`, about 38 GiB). The artwork cache, library queue, and settings were not purged. `pnpm check` reported 0 errors and 0 warnings. The clean `pnpm tauri dev` compile finished in 2m 59s with the four existing unused-function warnings. The first window load requested the old Kit 2 generated paths and 404’d. A relaunch uses `generated/dev/client`. SvelteKit 3’s development page starts from an inline script, so `tauri.conf.json` now sets `devCsp` with `script-src 'self' 'unsafe-inline'` for development only. The packaged `csp` still uses `script-src 'self'`. The browser at `http://127.0.0.1:1420` rendered the Ion Media library after this relaunch.
-- 2026-10-07: Ion’s page radar is a small corner sweep instead of a disc across the content. Buttons, navigation, poster cards, and the review poster keep their own shape. Page titles stay in the designed case. Breach titles no longer jitter.
-- 2026-10-07: Reports & errors can permanently delete saved run reports and companion logs from the app log folder. Setup logs are left alone. The button requires a second confirmation.
-- 2026-10-07: Reports & errors now lists each failed file and its saved message. The badge of 1 is the 2026-09-28 smoke file `Example Film.mkv`, which failed because the output had an attached picture the validator did not expect.
-- 2026-10-07: HDR10+ helper setup failed with “Text file busy” because the version check executed the staged binary while its write handle was still open. The installer now closes that file before `--version`.
-- 2026-10-07: A finished title match no longer prints a Matched badge on the poster card. Matching, Suggested, and Lookup failed still show.
-- 2026-10-07: The film review shows short description and source URL on the form. The comment field no longer explains that it inherits Settings.
-- 2026-10-07: Comment in Settings is the default for every new file. A series, season, episode, or film can save its own; an empty individual comment inherits the next level, then Settings. A file comment replaces the global comment when a new MKV is written. Season cards use a discovered season poster when one is saved, and otherwise show the series poster. A season review shows the series description and series score when that season has none of its own, and uses the first episode air date for the season year. Season and episode reviews show the series content certificate when they do not have one of their own. TheTVDB is checked first. When it has no content rating, the United States certificate from TMDB is used. For Faerie Tale Theatre that certificate is NR. TheTVDB season posters are taken from each season’s image and from artwork linked to that season id. The HDR10+ helper is marked executable before its version check, which was failing with permission denied. `pnpm check` passed. The queue poster test and the comment override test passed.
-- 2026-10-07: A chosen provider poster may be an HTTPS URL. The queue accepts that for the series poster and each season poster, and the review shows the image that was clicked. Season reviews prefer that season’s provider poster over the series poster. A remote image is a preview; a new file still attaches only a local image file. The review Comment field edits the Matroska COMMENT written into every new file. New files also keep the source’s other global tags and write the reviewed title, plot, year or air date, and genres over them. `pnpm check` passed. The poster-path queue test passed.
-- 2026-10-07: Poster cards and the review footer have Open file location (`xdg-open` on the series folder, season folder, or the episode’s folder). The review dialog has a Media info disclosure for that episode, or for every file in the season or series: codec, resolution, duration, tracks, and MediaInfo general fields. A missing local poster is no longer shown from the old preview cache, and the card does not say “From a local NFO” unless the current scan still has the show file. Empty season and episode fields no longer mention a show file. A series whose saved record is still local, or a provider record with no poster URL, is looked up again so air dates and provider images can fill the cards. `pnpm check` passed with 0 errors and 0 warnings. `cargo check --offline` passed with the four existing unused-function warnings. Native folder opening was not clicked in this session.
-- 2026-10-07: Faerie Tale Theatre `tvshow.nfo` is temporarily in `Media_Examples/TV Shows/_held_for_provider_check/Faerie Tale Theatre/` so a provider lookup is not blocked by the local show file. The poster files were later moved out of the series folder as well. Empty episode air dates are filled from TheTVDB when that exact series match loads, with TMDB or TVmaze as the fallback. Provider poster URLs are added to the review rail and used on the cards when the local file is gone.
-- 2026-10-07: Episode reviews read `SYNOPSIS` from the video file’s container tags when there is no episode NFO. A release date stamped on every episode in the series stays off the episode air-date field. Series and season reviews still use `tvshow.nfo`; that file has no per-season plot.
-- 2026-10-07: The Animated control in series, season, episode, and film reviews is a normal checkbox beside the word, not a full-width field. A show NFO `namedseason` becomes the season title (`Season 1` instead of the folder label `Season 01`). Empty season plot, certificate, and score stay empty and say the show file does not have them. Episode reviews take the title from the filename when the only local file is `tvshow.nfo`, and they no longer copy the series plot into the episode or propose a rename to the series name.
-- 2026-10-07: The library no longer uses the large “Your media” heading. Poster cards stay a fixed 210px wide so they are not stretched into a cropped strip. The library action bar sits under the cards instead of covering their titles. TV folders open as a series card, then season cards, then episodes that reuse the season poster. Local `poster.jpg` and `seasonNN-poster` files are read for those cards. Rename files previews original and new names on the library and applies a reviewed rename in place. The top setup badge names the missing required tool. Opening a matched film still loads the provider record into empty plot, genres, rating, source, and poster choices, even when the filename draft had no provider id. The review poster is a fixed 220×330 frame, top-aligned with the title, and the action buttons sit on their own row. The review dialog now keeps the matched suggestion poster, paints an opaque page background (`--theme-page`; `--theme-bg` was undefined), and shows the full source path plus the full destination path. Clicking a library card opens a poster-first movie review in the existing dialog. The compact movie path in `MetadataWorkbench.svelte` skips the analysis list and shows a large poster, a clickable artwork rail, and title, year, certification, and plot. Other title matches and extra fields stay in disclosures. Styles are in `desktop/src/styles/components/metadata-review.css`. The full Identify & organize page is unchanged. TV browsing shows a path back through the series and season. Series and season cards have a tri-state Animated box that sets every episode inside them. Series, season, and episode reviews use the film layout: poster, title, plot, and poster choices. A show NFO whose year and premiere date are the same year still keeps its title, plot, and genres.
-- 2026-10-06: The Media library home is a poster-card grid in `LibraryPosterGrid.svelte`, styled from `desktop/src/styles/components/library-poster-grid.css`. Summary tiles, the task-chooser panel, and the wide technical table are no longer that screen. Each card shows the poster, title, current filename, proposed filename, match state, selection, and an Animated checkbox. Streams, memory, and output stay inside the card. Rename, Metadata-only MKV, and Rebuild act on the selection. Provider thumbnails display when a match arrives; saving or embedding the image still happens when metadata or a rebuild is applied. `ReWorkTasklist.md` now states this as the library home.
-- 2026-09-28: The desktop's first window is now 1600 × 1000 logical pixels and persists/restores its last size and maximized state in the existing settings profile, clamped to the current monitor work area. The saved state is validated by Rust and uses the same portable AppImage sidecar settings path; no new dependency was added. Validation: `pnpm check`, `pnpm check:tsgo`, `pnpm build`, Rust format, all 177 library tests, Rust binary check, JSON manifests, and `git diff --check` passed; four existing dead-code warnings remain. Native resize/restore behavior is unverified. Blacklist and poster settings are already wired through source paths; their native persistence/output checks remain open in `ReWorkTasklist.md`.
-- 2026-09-28: Product focus remains the persistent library workflow for identification, poster review, rename, metadata-only remux, and HEVC rebuild. The redundant single-file Overview/Analyze page is removed; scans start from the shared Media Library queue, and Setup needed opens Environment & capabilities in Settings. Editable blacklist patterns clean imported title clues before public lookup, rename proposals, and output tags; legacy filename filters are separate and removable. Enabled public lookup runs after scan, but auto-association is only the deterministic exact normalized title/year gate with no conflicts, not a measured 99% score. Remote poster references can be previewed, while downloading/saving remains explicitly confirmed. Settings independently control poster sidecar/private-cache storage and MKV embedding. The private poster cache now has queue-aware size reporting and a reviewed purge through Settings, JSON CLI, and MCP. Conflicting scalar fields within or across same-kind local NFOs now fail closed with filenames and field names; malformed NFOs remain visible. Native app, provider, package, media, and cross-platform acceptance remain open.
-- 2026-09-28: Settings → Title cleanup says rules run automatically on imported filename clues before provider search and remain editable as one-pattern chips with per-item removal, Clear all, and Save app defaults. The supplied RenameTheThings archive has no separate word-removal list; its extra/folder/sample/trailer exclusions are seeded as removable Filename filters. Poster storage independently controls adjacent/cache storage and MKV embedding; sidecars use `[media filename]-poster.<ext>`. This turn removed the redundant single-file Overview/Analyze route, directed Setup needed to the environment panel in Settings, fixed spacing between rule counts and Clear all, and added a scroll hint for long lists. `pnpm check`, `pnpm check:tsgo`, `pnpm build`, and `git diff --check` passed. An isolated Playwright browser preview confirmed queue-first navigation, setup-status routing, and readable Light/Dark/Phosphor Settings at 1440×900. It has no Tauri bridge; CUA attachment timed out, so native keyring/settings/queue workflows remain unverified. No user media, credentials, or real settings were read or changed. Next: native acceptance of blacklist persistence, poster save/embed choices, queue restart/recovery, provider lookups, and populated dialogs.
-- 2026-09-28: Completed the managed artwork-cache panel and protected purge path. Rust serializes cache saves/inspection/purge, validates the preview ID, holds queue assignments stable, protects assigned images, deletes only recognized app-managed image/attribution pairs, and leaves unrecognized entries plus the separate x265 calibration cache untouched. Added JSON CLI inspect/purge and MCP inspect/purge; MCP local artwork caching now takes an object with `source_path`. A real startup smoke found and fixed a tool-schema panic from the prior bare-string MCP input. Validation: 172 Rust library tests, Rust fmt/check/build, both Svelte check lanes, frontend build, CLI inspection, and MCP 2025-06-18 handshake/listing of 32 object-schema tools passed. Four existing dead-code warnings remain. No cache entries were deleted and no media/provider credentials were accessed. Native Tauri UI/purge and actual poster attachment still need acceptance.
-- 2026-09-28: Added fail-closed local NFO conflict handling in `library_assets.rs`. The bounded parser retains document kind, detects conflicting scalar fields both inside one same-kind NFO and across duplicate same-kind sidecars, normalizes case/whitespace, genre order, and year aliases, and reports affected basenames/fields without applying either record. Show and episode NFO layering remains separate. Added synthetic fixtures for conflicts and equivalent copies. All 175 Rust library tests pass; format and binary check pass with four existing dead-code warnings. Native workbench review remains open; no user media was read.
-- 2026-09-28: Tool setup diagnostics now persist per APT/helper operation in a private profile-state folder; Settings can reopen and export full `.log`/`.txt` copies. AppImage logs are under its writable sidecar; installed builds use XDG state. Logs are capped at 16 MiB with a visible truncation marker and clipped lines are labeled. `cargo fmt --all -- --check`, `cargo check --locked --bin hevc-rebuild-studio`, `pnpm check`, `pnpm check:tsgo`, `pnpm build`, and `git diff --check`, `sha256sum --check --quiet SHA256SUMS` passed. Native Tauri log viewing/export, APT/helper operations, and permission behavior remain unverified; no package changes, user media access, or tests were run. The current acceptance work is tracked in `ReWorkTasklist.md` and the latest snapshot above.
-- 2026-09-28: Structured run progress identifies the exact queued media path and reports encode, metadata, validation, completion, failure, and interruption phases; encoding is weighted below 100% so later whole-file work can advance displayed progress. Provider poster sidecar saves now bind each returned local path to the exact movie, series, or season review consumed by output overrides; the focused review limits bulk actions to its one visible item. Tool repair presents a concise current stage/result, before/after executable version/path outcomes, and keeps only the latest 120 command lines in a disclosure; persistent saved logs have since been added; native viewing/export remains open. The per-file Animated/Normal/Automatic selector now sits beside filenames; reviewed Animation/Anime genres inform the batch override only when that source has automatic animation detection enabled, while explicit file choices win. Validation after these changes: `pnpm check`, `pnpm check:tsgo` (zero diagnostics), `pnpm build`, and `git diff --check` passed. Earlier in this work cycle, the Rust suite (166 tests), Rust binary check, and Python progress unit file passed. The browser preview at `127.0.0.1:1420` has no Tauri bridge and no media queue; native artwork download/restart/output, repair transaction, tune persistence, and populated dialog behavior remain unverified. No media was read or processed.
-- 2026-09-28: The post-scan Media Library now offers direct actions for title/filename review, metadata-only MKV output, and full HEVC rebuild. Processing actions select the corresponding existing Run setup mode and preserve global queue selection, collision preview, and confirmation gates; title review opens the organizer for the active source. The focused item-review dialog now has a direct **Open full organizer** route. Updated README, desktop README, Help, `AGENTS.md`, and `ReWorkTasklist.md`. Validation: `pnpm check` and `pnpm check:tsgo` reported zero errors/warnings; `pnpm build` completed with static output; `git diff --check` passed. Browser preview at `127.0.0.1:1420` has no scanned queue and cannot invoke Tauri, so populated task routing, modal behavior, native persistence, and dialog semantics remain unverified. No media was read or processed.
-- 2026-09-28: Single-root MCP `start_media_run` now marks matching saved queue items running and synchronizes each final item from the exact report generated by that job. Only report statuses with recognized success values become completed; missing report rows become `needs_review`. The read-only queue summary now reads a validated snapshot without converting active work to interrupted or moving corrupt state files. Report reads are confined to regular CSVs in the application log directory with a 64 MiB cap. Synthetic tests cover queue path matching, preserved global selection, live running visibility, report parsing/path confinement, and no-row review state. Validation: `cargo fmt --all -- --check`, all 156 Rust library tests, and `cargo check --locked --bin hevc-rebuild-studio` passed. This source change has not yet been included in a fresh package smoke; native Tauri acceptance remains open, while multi-source CLI/MCP two-root runs have synthetic source-level coverage. No user media or credentials were accessed.
-- 2026-09-28: The GUI schedules selected or all-ready files sequentially across saved queue sources, uses each source snapshot, deduplicates canonical paths, and persists per-file run states. The whole-queue Rust planner checks existing and duplicate output targets before GUI, JSON CLI, and MCP runs; the engine repeats its per-source preflight before writing. Interrupted or uncertain GUI reruns now require saved-report review plus read-only FFprobe inspection; a successful report and readable recorded output are required to mark complete. JSON CLI `queue` and MCP `inspect_media_queue` provide compact pages; `queue-select` and `set_media_selection` validate exact saved paths and preserve other state. Fresh synthetic CLI smoke verified page privacy and saved selection; MCP smoke negotiated `2025-06-18`, listed 27 tools, and successfully inspected/updated the queue. Validation: Rust format, all 153 Rust library tests, Rust binary check/build, `pnpm check`, `pnpm check:tsgo`, production build, and `git diff --check` passed. Native close/reopen, report association, and recovery interaction remain unverified; multi-source CLI/MCP execution/result sync is implemented and synthetically covered. Provider poster association is implemented in source, but its native download/persistence/output path is not yet verified. No user media or credentials were accessed.
-- 2026-09-28: Metadata-only MKV is wired through the GUI, Rust CLI/MCP contracts, and compatibility engine. It remuxes every source stream, applies reviewed per-file tags and selected local poster art, rejects existing outputs, and validates copied payloads/HDR/chapter/attachment state before install. The Rust resolver does not require x265 or the HDR10+ helper. A synthetic fixture covers two video streams (one static HDR10), audio, subtitles, chapters, a non-cover attachment, poster replacement, reviewed tags, copied-payload verification, and unchanged source hash. Populated native item-review/task-chooser verification, HDR10+/Dolby Vision fixture coverage, live provider-art download/output attachment verification, and GUI queue recovery remain open; multi-source CLI/MCP execution/result sync has synthetic coverage.
-- 2026-09-27: Unified the Ubuntu GUI tool setup into one reviewed action for missing allowlisted packages, exact outdated APT packages, and the managed HDR10+ helper. Launch checks compare detected versions with the local APT catalog without refreshing or installing; stale catalogs are refreshed only when setup is requested, then the exact install/update plan is reviewed. Rust rechecks confirmations, simulates plans, blocks removals/unlisted upgrades, installs missing packages, and updates only the confirmed list; a missing FFprobe can trigger installation of its Ubuntu package even when a custom FFmpeg path is selected, without replacing that path; the helper follows successful APT setup. Documentation and `ReWorkTasklist.md` now distinguish implemented source behavior from native-package verification and upstream-version checks still open. Validation: `cargo fmt --all -- --check`, `cargo test --locked --lib` (131 passed), `cargo check --locked --bin hevc-rebuild-studio`, `pnpm check`, `pnpm check:tsgo`, `pnpm build`, and `git diff --check` passed. No APT catalog refresh, package transaction, helper download/install, native Tauri interaction, or media processing occurred. Next: verify setup confirmation, stale/offline recovery, custom paths, and helper success/failure in the native Ubuntu app; add upstream version sources after their trust/update policy is defined.
-- 2026-09-27: Added [`ReWorkTasklist.md`](ReWorkTasklist.md) as the product-level rework plan and linked it from `todos.md`. The target is one durable multi-root media queue: scan and identify as items are added, quickly review names/posters, then rename, metadata-only MKV remux, or HEVC rebuild with recoverable per-file progress. YouTube remains a separate add-on. Source audit confirmed that the current UI replaces one in-memory `scanResult` on each scan, missing APT repair and package updates are separate, HDR10+ helper installation is separate from APT repair, and the earlier UI showed global upload status plus a folder picker without an initial directory. `Media_Examples` filenames support movie `{title} ({year} {certification}){ext}` and TV `Series/Season 01/S01E01.Episode Title.ext` defaults; this review inspected names only, not media contents. First source changes now open the app on Media library, remove the global YouTube-ready badge and the lower machine/toolchain card, keep YouTube row details on its own page, add a visible/indeterminate select-all checkbox, make Active Library navigate instead of opening a chooser, seed the folder chooser from the current/last media path, and remove the repeated empty-state Analyze action. `pnpm check`, `pnpm check:tsgo`, `pnpm build`, and `git diff --check` passed. The local in-app browser preview showed the revised empty Media library, but it is a web preview and does not prove native Tauri dialog or command behavior. The durable multi-source queue, restart recovery, and the larger metadata/rebuild actions remain open. Next: implement native queue persistence and multi-root selection without losing current scan decisions.
-- 2026-09-27: At the user's explicit request, the repository-root `.env` contains their TMDB Read Access Token, TMDB API key, and TheTVDB project key for personal local storage. `.env` is gitignored and has mode `0600`; never copy its values into logs, source, docs, or commits. The app does not automatically load `.env`: the TMDB Read Access Token is also saved in the OS keyring and the Rust credential/provider functions successfully searched and loaded Gnomeo & Juliet (2011) with 15 artwork candidates. The separate TMDB v3 key is unused by the app. TheTVDB key is stored only in `.env`; do not authenticate/search with it until the user confirms valid project access under the provider's current terms. A temporary Rust provider smoke example was removed after use.
-- 2026-09-27: Continued the RenameTheThings integration with local-first metadata and artwork. `library_assets.rs` inspects bounded movie/episode/show NFOs and recognized adjacent art under the selected root; public title suggestions default on for entries without local NFO metadata, malformed NFOs block silent online fallback, and explicit public-alternative lookup remains available. Episode `<showtitle>` can identify a series without `tvshow.nfo`; the empty TV metadata panel now uses that same record. Local poster previews are per-item images, not playback. CLI `metadata assets inspect` and MCP `inspect_local_library_assets` expose NFO values/artwork paths, not artwork bytes. Fixed XML entity whitespace loss in the NFO parser. Validation: 124 Rust library tests passed; locked Rust check and formatting passed; `pnpm check`, `pnpm check:tsgo` (0 errors/warnings), and production `pnpm build`, `git diff --check`, and regenerated/verified `SHA256SUMS` (168 files) passed; synthetic CLI fixture found local title/poster without contacting providers; MCP protocol 2025-06-18 handshake listed 24 tools including `inspect_local_library_assets`. No user media was scanned or changed, no provider query was made, and native UI interaction remains unverified. Remaining: detect conflicting local NFO sources, inspect embedded tags for matching, verify the preview in the native workbench when the example library is ready, and continue subtitle/extra/multi-episode/undo parity tracked in `todos.md`.
-
-- 2026-09-27: Reworked Settings metadata sources into responsive provider cards with clear credential status, setup links, secure credential forms, and source-specific notices in the scanned-record workbench. TMDB tokens and TheTVDB project keys/optional subscriber PINs are saved in the OS keyring; provider search is skipped and a Settings action is shown until required credentials exist. Search remains local-first, sends cleaned titles only, and leaves candidate selection/review to the user. Movie sources are TMDB/Wikidata; TV sources are TMDB/TVmaze plus optional TheTVDB. TheTVDB currently returns its default episode order only; validate with an eligible user key/PIN before claiming live authentication, then expose reviewed alternate aired/DVD/absolute ordering. AniList remains excluded because its terms prohibit local backup/storage. Settings was inspected in the browser preview in Light and Dark at 950px; credential controls correctly explain that secure storage requires the desktop shell. This is not native-window proof. `pnpm check`, `pnpm check:tsgo`, `cargo fmt --all -- --check`, `cargo check --locked`, `pnpm build`, and `git diff --check` passed. No provider request, media scan/write, or transcode occurred. Native keyring interaction and live provider authentication remain unverified.
-- 2026-09-27: Cross-surface QA used accessible browser navigation plus the Rust CLI and MCP. The browser at `127.0.0.1:1420` is only the web preview; file dialogs, Tauri commands, and OS-keyring credential writes are unavailable there. MCP initialized with protocol `2025-06-18` and listed 24 tools; public Wikidata/TVmaze search/details worked, returning a film artwork candidate and six TV seasons/64 episodes. CLI and MCP each completed a read-only scan of 30 sample files with zero per-file errors. CLI/MCP film search now retries without a trailing year when Wikidata returns no exact-query candidates; `Gnomeo & Juliet 2011` returned the expected 2011 film first. Full environment readiness is false: FFmpeg/FFprobe/Python/libx265 are present; MediaInfo and MKVToolNix are absent; `hdr10plus_tool` is not detected. No package repair, credentials, media writes, or encodes were used. `cargo fmt --all`, all 127 Rust library tests, locked binary build, and `git diff --check` passed. Native Tauri/keyring, live TMDB/TheTVDB authentication, actual rebuild, and package launch remain open. Added a clear Environment/Help note: FFprobe-only scans can run with partial metadata while job readiness remains blocked on processing tools.
-- Earlier metadata inspection: metadata-only scan of `../Media_Examples` processed 30 files (4 movies, 26 episodes; 28.50 GiB) with zero probe errors; all entries were partial because MediaInfo is unavailable. Local asset inspection found the Faerie Tale Theatre show NFO, poster/fanart, six season posters, and inherited episode NFO metadata for all 26 files. No provider request, media write, or transcode occurred.
-- 2026-09-27: `metadata_text.rs` now owns both the case-insensitive glob matching and the conservative built-in release-group suffix policy for Rust-launched runs; Python applies the same policy for direct runs and remains responsible for XML/Matroska edits and report construction. A versioned response marker preserves compatibility with older helpers. On this validation pass, `cargo check --locked --bin hevc-rebuild-studio` and all 108 Rust library tests passed; the 17 metadata Python tests passed both through the Rust helper and in direct mode (2 helper-only tests skipped in direct mode). No media was read or written. Next: continue moving expected Matroska metadata/tag/poster validation and run orchestration into Rust with direct-Python parity retained.
-- 2026-09-27: Rust artwork targets now permit several unique basenames per existing directory and reject NFKC/case-folded collisions. The organizer saves series artwork as `folder` + `poster`; season artwork uses `poster`, Plex `SeasonXX`/specials names, and Kodi show-root `season<num>-poster` names. README/TECHNICAL note Plex's documented JPG/JPEG/PNG/TBN formats because the downloader preserves the provider's detected image format. A Rust inventory test checks that every production Python source is present in `RUST_MIGRATION.md`; this tracks coverage and does not prove migration parity. Validation: `cargo fmt --all -- --check`, `cargo test --locked --lib` (105 passed), `pnpm check`, `pnpm check:tsgo`, and `pnpm build` all passed; one initial Svelte nullability error was fixed before the clean rerun. No media, artwork, packages, or dependency lockfiles changed. Host Node is 26.9.0; `.nvmrc` selects Node 24.21.0 LTS. Project pnpm is pinned at 12.7.0, Rust is 1.98.1, and Tauri is 2.12.0. TS 7.0.2 passes the separate `--tsgo` check while default TS 6.0.3 remains on the standard checker. `cargo update --dry-run` reports no compatible updates. Next migration slice: move rebuild orchestration/report construction into Rust with parity gates; Python runtime removal still requires remaining Matroska/output handling, YouTube batch policy, direct CLI, and Linux/Windows/macOS package/runtime validation.
-- Source project: HEVC Rebuild v1.3.0; Python remains the media-job/orchestration implementation and direct-run parity reference while Rust progressively takes ownership of application behavior.
-- Desktop preview: Tauri 2 + Svelte 5 under `desktop/`, Ubuntu-first, with `.deb` installer and x86-64 AppImage targets.
-- Environment/executable checks, app-launched toolchain version/capability resolution and smoke checks, Rust app-launched input discovery and source/selected-track profiles, effective-settings reads, cached APT version reports, report-history reads, Rust-launched per-file CSV appends, read-only GUI/JSON/MCP media profiling/forecasts (including content-tune previews), Linux live run-resource observations, Rust-launched encoder sampling/plans/guards and run-time tune selection, FFmpeg/x265 argument generation, HDR10+ stream verification/extraction, per-encoded-track HDR/color/Dolby Vision validation, bounded metadata blacklist glob cleanup, compressed-stream packet fingerprints, FFmpeg child lifecycle, and validated-output commit/rollback are native Rust for app-launched runs. Python adapts Rust source profiles and per-progress snapshots, interprets progress and guard outcomes, passes validated tune/stream selections, prepares report values/logs, performs remaining HDR10+ reinsertion and container metadata work, verifies expected Matroska tags/poster, chooses the backup name, and owns run/orchestration resource preflight and the direct Python CLI. Rust owns calibration eligibility, machine/workload fingerprints, bounded command construction, cache checks, benchmark process/resource monitoring, pressure rejection, and calibration selection for Rust-launched jobs. Direct Python runs retain reference profiling/planning, toolchain resolution, discovery, sampling, guards, output-profile validation, report writing, and transaction fallbacks.
-- Local Git repository: `main`; dependency lockfiles are tracked, `.gitignore` excludes local/build outputs, and `.gitattributes` normalizes text to LF. No Git remote is configured.
-- The v1.2.7 source ZIP is the current read-only reference outside this extracted project; preserve both it and the older v1.2.6 archive unchanged.
-- A local Git repository is initialized on `main` with project-scoped identity. Public GitHub release still awaits repository/visibility choices and a license decision.
 
 ## Architecture
 
@@ -873,3 +789,35 @@ The dated notes below are retained verbatim for continuity; old counts, next tas
 - On 2026-09-27: added durable TV-series review state to `media_queue.rs`: edited series fields, HTTPS provider poster references, the bounded episode list, and per-file episode assignments. The Media Library displays the reviewed series title/poster on matching episode rows, and opening an episode returns to the saved show review. Confirmed renames remap the series root and episode paths; removing a source drops series reviews only when no remaining queue paths refer to that series. Removed the metadata workbench's reset of the bound movie review map so switching views no longer clears saved movie decisions. Added backward-compatibility, round-trip, field/URL/duplicate-number validation, and write-preservation tests. `cargo fmt --all -- --check`, `cargo test --locked --lib` (138 passed), `cargo check --locked --bin hevc-rebuild-studio`, `pnpm check`, `pnpm check:tsgo`, `pnpm build`, and `git diff --check` passed. No native Tauri launch, close/reopen, real rename, media access, provider request, package operation, or credential access was performed. Remaining queue gaps include adjacent local-art and per-season-art persistence, durable run/job recovery, cross-source scheduling, MCP/CLI queue APIs, and native acceptance. Next: bind local poster choices into exact queue records and visually verify the end-to-end queue in Tauri using synthetic media.
 
 - On 2026-09-28: narrowed read-only check mode to FFmpeg/FFprobe and made missing HDR10+ helper verification a non-blocking warning; it never attempts dependency repair. Fixed packaged AppImage engine startup: linuxdeploy sets `PYTHONHOME` to the mounted AppDir even though the app uses host Python, so Rust's shared Python module launcher now removes it. Regression test passes. Rebuilt `.deb` (7.00 MiB) and AppImage (87.99 MiB); both passed generated-fixture MCP check-only runs using protocol `2025-06-18`, with `INFO` reports and matching queue state `completed`. The AppImage ran from a copied executable with a sibling `.data` profile; `hdr10plus_tool` was absent and no install occurred. `cargo fmt --all -- --check`, all 159 Rust library tests, and all 129 Python tests passed. The `.deb` and AppImage still come from Ubuntu 26.04.1, so the AppImage remains incompatible with Ubuntu 24.04 glibc; native-window/keyring, install/upgrade, and cross-platform validation remain open. Next: continue closing the rework acceptance items, beginning with native Tauri queue/settings restart and high-volume responsive UI verification.
+
+## 2026-11-09 — Unattended MCP library batches
+
+- **Owner's goal for MCP:** a weak model is told "here is my media folder, rebuild everything, track it, report"; the server scaffolds it so it cannot hurt the library or the disk. The user is consulted once, with a plan, before the run starts, not during it. Do not design around per-step confirmations.
+- **New tools:** `plan_library_batch` (read-only plan, per-volume forecast, `show_the_user` text) then `start_planned_batch(plan_id)` (single-use, void if any planned file's size/mtime changed, refused below the floor without losing the plan), plus `list_jobs`. New module `batch_plan.rs` holds plan/forecast/tracker; wiring is in `mcp_server.rs`.
+- **Safety is enforced in the engine, not by the caller:** the plan writes `resources.min_free_disk_gib` into the settings the run uses (default max(10 GiB, 5% of volume), capped at a quarter), so preflight and the live projection guard apply it. `--max-consecutive-failures 3` plus an immediate halt on any low-space failure (`BatchHalt`, messages pinned by a test to `describe_disk_halt` and `storage_preflight`). Halts give job status `paused` (exit 75); isolated failures give `completed_with_failures`.
+- **Originals are kept in `old/`, so disk use only goes up.** The forecast reports a break-even output/source ratio rather than a guessed output size. Nothing deletes backups automatically.
+- **Bug found by the planning tests:** recursive discovery walked `old/` backups; only the GUI's removable `filename_exclude` preference excluded `old`. The planner now always excludes it and other MCP runs default to excluding it (explicit list opts out). The CLI/JSON entry points still do not apply that default.
+- **Also found:** MCP full rebuild defaulted to a 0 GiB disk reserve (now floored); `start_media_run` description was 4,945 chars (now 964, detail in field docs).
+- **Open:** Windows has no free-space implementation (`disk_free_bytes`/`disk_stats` are `None` off Unix), so by code reading a full rebuild fails its preflight there; needs `GetDiskFreeSpaceExW` and a Windows host. Real multi-hour batch and a genuine low-space pause on a small volume are unvalidated. True human-gated approval would need client-side MCP elicitation; the plan token only guarantees the plan was server-made and the library unchanged, not that a human said yes.
+- **Verification:** 300 lib tests; stdio driver session on generated clips (2 good, 1 corrupt): 2 rebuilt to HEVC, originals byte-identical in `old/`, corrupt file untouched, `completed_with_failures`.
+- **`mcp_server.rs` split (same day):** now `desktop/src-tauri/src/mcp_server/` (`mod.rs` router + registry + startup; `params`, `prepare`, `batch`, `queue_sync`, `exec`, `apt`; test files `batch_tool_tests`, `queue_sync_tests`). Child modules get parent items via `use super::*`; parent re-imports child `pub(super)` items with a glob. The `#[tool_handler] version` must be a string literal; `the_server_reports_the_version_it_ships_as` pins it to `CARGO_PKG_VERSION`. Also fixed the stale `1.3.0` HTTP user agent in `dependencies.rs`.
+- **`lib.rs` split (2026-11-09):** the 5,094-line crate root is now about 270 lines (module list, `run()` command registry, test helpers, re-exports). Moved with no behavior change: `apt_policy`, `job_state`, `cli_json`, `cli_apt`, `cli_modes`, `apt_commands`, `executable_lookup`, `commands_{metadata,library,workspace,queue,logs}`, `app_paths`, `work_directory`, `app_preferences`, `youtube_arguments`, `run_{checks,native,commands}`, plus `argument_tests`. Children use `use super::*`; `lib.rs` re-exports the cross-module items as `pub(crate) use`, so `crate::name` paths in other modules are unchanged. Tauri commands are `pub(crate)` and registered by module path in `generate_handler!`. Characterization tests were added first (job-state slot, job ids, YouTube choice arguments, `executable_in_path`, app directories, log-read confinement, preferences round trip); the 23 existing root tests moved next to their code.
+
+## 2026-11-09 — Cross-platform disk space, and decisions pending
+
+- `desktop/src-tauri/src/media_scan/disk_space.rs` is now the only place free/total space is read (unix `statvfs`, Windows `GetDiskFreeSpaceExW`). `resource_monitor::disk_stats` used to be Linux-only, so the live disk guard was blind on macOS and Windows. Not yet compiled for Windows/macOS (only the Linux Rust target is installed here); the Windows `\\?\` prefix handling is a pure function tested on Linux.
+- The shared tree is mid-split by two other sessions (`lib.rs`; `+page.svelte`/`MetadataWorkbench`), so full `cargo test` may not compile; test new modules in an isolated scratch crate and run `cargo check --lib` on the shared tree.
+- **Owner decisions:** backup folder becomes hidden `.hevc-rebuild-originals` (replacing `old/`; do after the splits, with migration). SSIM gate for the rebuild path "makes sense" (goal: no human-visible degradation). AI upscaling for YouTube mode is undecided; owner asked for thoughts.
+- Verification routes for Windows/macOS: local cross-target compile checks (fast, compile-only) and `../Remote_Build` (macOS KVM guest runs real tests; Windows lane there is GNU cross-compile only unless a WinServer adapter exists). Owner wants the trade-offs discussed before choosing. Do not read `Remote_Build/.env`.
+
+## 2026-11-09 — Cross-platform verification (macOS VM, Windows via wine)
+
+- **How:** `../Remote_Build` (do not read its `.env`). Project slug `hevc_rebuild`: builder `~/hevc_rebuild`, macOS guest `/Users/v1x0r/hevc_rebuild` (via `ssh -J v1x0r@192.168.1.21`; guest rsync is openrsync, use `--stats` not `--info`). `python -m remote_build setup-windows` was run once on the builder with the owner's OK (mingw-w64, nsis, wine64, rcedit). Tests: `cargo test --locked --lib` on the guest (nohup, log file); Windows: `cargo test --locked --lib --target x86_64-pc-windows-gnu --no-run`, copy `WebView2Loader.dll` from `target/.../build/webview2-com-sys-*/out/x64/` next to the test exe, run with `WINEPREFIX=~/hevc_rebuild/wineprefix WINEDLLOVERRIDES="mscoree,mshtml="`.
+- **Results:** Linux 313, macOS 313, Windows-under-wine 296, all passing. Real bugs fixed: Windows output-install flush (read-only handle), Windows report directory flush, `disk_space` file path on Windows, macOS group-kill race.
+- **Still open:** native Windows run; memory/CPU sampler for macOS/Windows; six `#[cfg(unix)]`-gated tests with `/media` fixtures; guest lacks ffmpeg/mkvtoolnix so media tests skip on macOS; the builder has 2x Tesla P40 (relevant to AI upscaling).
+- Scratch files left in my own remote dirs: build `target/` dirs, `wineprefix`, `*.log`, `pgkill*` test binaries. Not cleaned up.
+- **Svelte MCP (2026-11-14):** `@sveltejs/mcp` added as a dev dependency with range `>=0.1.30` (owner preference: float forward and fix on breakage; lockfile resolves 0.1.30; `desktop/package.json`, lockfile +90 packages; `pnpm install --frozen-lockfile` passes). Project-scoped client files: `.mcp.json` (Claude Code), `.cursor/mcp.json` (Cursor), `.codex/config.toml` (Codex); all run `pnpm --dir desktop exec svelte-mcp`. Scripts `mcp:svelte` in root and `desktop/`. A stdio handshake returned `svelte-autofixer`, `get-documentation`, `list-sections`, `playground-link`. ChatGPT apps cannot use repository files or local stdio servers, so no file exists for them. `svelte-autofixer` run through that stdio path on `desktop/src/routes/+page.svelte` returned `issues: []` plus advisory `$effect` suggestions. Not yet exercised: each client actually loading its file (Cursor and Codex untested here). Documented in `AGENTS.md`.
+- **Rust T10.7 splits (2026-11-15):** `media_scan.rs` (3,217 lines) -> `media_scan/{discovery,tool_json,engine_profile,profile,mediainfo,color,values,tests}.rs` (parent 519; `disk_space.rs` unchanged); `media_queue.rs` (2,422) -> `media_queue/{model,recovery,queue_validation,updates,tests}.rs` (parent 373); `library_metadata.rs` (2,455) -> `library_metadata/{types,filename_clue,wikimedia,tvmaze,tvdb,tmdb,tests}.rs` (parent 234); `metadata_run.rs` (2,276) -> `metadata_run/{options,output,source,progress,execute,artifacts,tests}.rs` (parent 403); `youtube_run.rs` (2,404) -> `youtube_run/{options,progress,policy,encode,execute,optimize,tests}.rs` (parent 410); `library_organizer.rs` (1,988) -> `library_organizer/{types,template,plan,apply,cli,scan,tests}.rs` (parent 44). Mechanical moves by item name (scripted, same pattern as `mcp_server`/`lib.rs`): children use `use super::*`, parents keep `pub(crate) use` for external items so every `crate::module::name` path is unchanged; the `fn` name set per file was compared before/after and is identical; tests moved verbatim into each `tests.rs`. The existing 313 tests were the characterization. Still large by design: `metadata_run/execute.rs::execute` (about 380 lines) and `youtube_run` `execute`/`execute_optimize` are single functions; shortening them is a refactor, not a move. `rebuild_run.rs` (4,974), `validation.rs`, `library_artwork.rs` and `environment.rs` remain over the 1,500-line budget and were not in T10.7.
+- **More Rust splits (2026-11-15):** `rebuild_run.rs` (4,974 lines) -> `rebuild_run/{status,model,options,output,streams,resources,progress,analysis,hdr10plus,encode,calibrate,finalize,artifacts,tests}.rs` (parent 502: `run_rebuild`, `run_rebuild_observed`, `process_one`, `execute`); `validation.rs` (1,568) -> `validation/{request,hdr,compare,timing,values,tests}.rs` (parent 249: `validate_streams`); `library_artwork.rs` (1,504) -> `library_artwork/{types,cache,validate,tests}.rs` (parent 396). Same scripted, name-based method; the function-name set of `rebuild_run.rs` and `validation.rs` is identical before and after. `environment.rs` (1,477 lines) is under the 1,500 budget and was left alone. A scripted move can carry a mid-file `use` line along with the item above it: `library_artwork` had a `#[cfg(unix)] use ...PermissionsExt;` that moved into the cache child and broke the parent on unix; it now sits in the parent's imports.
+- **Frontend over-budget splits (2026-11-15):** `src/lib/types.ts` (720) is now a barrel (`export type *`) over `src/lib/native-types/{modes,settings,environment,media,queue,reviews,run,library}.ts`; `tests/run-controller.test.mjs` (509) -> `tests/run-controller-{progress,start,finish,retry}.test.mjs` + `tests/support/run-controller-harness.mjs`; `tests/tool-setup.test.mjs` (509) -> `tests/tool-setup-{environment,repair,logs,install,events}.test.mjs` + `tests/support/tool-setup-harness.mjs`; `tests/route-golden-contract.mjs` (742) -> a 108-line orchestrator plus `tests/route-golden/{bridge,page-helpers,seeded-*,preview-preferences}.mjs`. `package.json` scripts `test:run-controller` and `test:tool-setup` now take a quoted glob (Node >= 22 expands it). The route golden is a single function serialized to the browser, so the sections are `async function name(ctx)` declarations embedded into its body by `toString()`; each section's free variables were checked with `tsc --checkJs` (no undefined names) before running. Verified: node test counts identical (25 and 42), route golden matched all 448 snapshots before and after (baseline 12m38s). No file is over its line budget any more.
+

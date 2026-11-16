@@ -210,6 +210,22 @@ pub(crate) fn settings_arguments(settings: &Value) -> Result<Vec<String>, String
         "verify-copy-hashes",
         config_bool(settings, "safety.verify_copy_hashes")?,
     );
+    // Settings saved before the quality gate existed have no `quality` section;
+    // they get the safe defaults instead of an error.
+    let (gate, floor) = if settings.get("quality").is_some() {
+        (
+            config_string(settings, "quality.ssim_gate", &["off", "report", "enforce"])?,
+            config_number(settings, "quality.min_ssim", 0.5, 1.0)?,
+        )
+    } else {
+        ("enforce".to_string(), 0.95)
+    };
+    args.extend([
+        "--quality-gate".into(),
+        gate,
+        "--quality-min-ssim".into(),
+        floor.to_string(),
+    ]);
 
     let comment = config_value(settings, "metadata.comment")?
         .as_str()

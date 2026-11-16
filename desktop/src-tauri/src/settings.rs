@@ -123,6 +123,10 @@ pub(crate) fn default_settings() -> Value {
         "safety": {
             "verify_copy_hashes": true
         },
+        "quality": {
+            "ssim_gate": "enforce",
+            "min_ssim": 0.95
+        },
         "calibration": {
             "mode": "auto",
             "cache_hours": 24.0,
@@ -395,6 +399,19 @@ fn validate_settings(settings: &Value) -> Result<(), String> {
         .ok_or("Config metadata.embed_artwork must be true or false.")?;
     validate_blacklist(settings)?;
     boolean(settings, "safety.verify_copy_hashes")?;
+    text(
+        settings,
+        "quality.ssim_gate",
+        &["off", "report", "enforce"],
+        "Config quality.ssim_gate must be off, report, or enforce.",
+    )?;
+    number(
+        settings,
+        "quality.min_ssim",
+        0.5,
+        Some(1.0),
+        "Config quality.min_ssim must be a number from 0.5 to 1.0.",
+    )?;
     let work_root = field(settings, "paths.work_root")?
         .as_str()
         .ok_or("Config paths.work_root must be 'auto' or an absolute folder path.")?;

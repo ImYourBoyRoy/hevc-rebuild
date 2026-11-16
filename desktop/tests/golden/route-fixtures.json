@@ -1,0 +1,3900 @@
+{
+ "root": "/fixture/library",
+ "seriesRoot": "/fixture/library/Show Name",
+ "scan": {
+  "candidate_count": 3,
+  "discovery_limit_reached": false,
+  "disk_free_bytes": 536870912000,
+  "entries": [
+   {
+    "already_processed": false,
+    "error": null,
+    "modified_unix_ms": 1700000000000,
+    "name": "Film (2001).mkv",
+    "path": "/fixture/library/Movies/Film (2001).mkv",
+    "profile": {
+     "attachment_count": 0,
+     "audio_count": 1,
+     "chapters_count": 0,
+     "chroma_location": 0,
+     "color_matrix": null,
+     "color_primaries": null,
+     "color_range_ffmpeg": "tv",
+     "color_range_x265": "limited",
+     "color_transfer": null,
+     "content": {
+      "animation_detected": false,
+      "genres": [],
+      "reason": "No Animation genre found in available metadata",
+      "resolved_tune": null,
+      "sources": []
+     },
+     "data_stream_count": 0,
+     "duration_seconds": 1.023,
+     "format_level": "1.2",
+     "frame_metadata_available": true,
+     "hdr": {
+      "dolby_vision": false,
+      "dolby_vision_base_layer": false,
+      "dolby_vision_compatibility_id": null,
+      "dolby_vision_enhancement_layer": false,
+      "dolby_vision_evidence": null,
+      "dolby_vision_level": null,
+      "dolby_vision_profile": null,
+      "dolby_vision_rpu": false,
+      "hdr10": false,
+      "hdr10plus": false,
+      "hdr10plus_hint": false,
+      "hlg": false
+     },
+     "interlaced": false,
+     "mastering_display": null,
+     "mastering_display_source": null,
+     "max_cll": null,
+     "max_fall": null,
+     "mediainfo_available": true,
+     "mediainfo_general": {
+      "AudioCount": "1",
+      "Encoded_Application": "Lavf62.3.100",
+      "Encoded_Library": "Lavf62.3.100",
+      "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+      "File_Modified_Date_Local": "2026-11-09 13:39:19",
+      "Format": "Matroska",
+      "Format_Version": "4",
+      "FrameCount": "24",
+      "FrameRate": "24.000",
+      "IsStreamable": "Yes",
+      "OverallBitRate": "125380",
+      "UniqueID": "fixture",
+      "VideoCount": "1",
+      "extra": {
+       "ErrorDetectionType": "Per level 1"
+      }
+     },
+     "primary_stream_index": 0,
+     "source_metadata": {
+      "chapters": [],
+      "format": {
+       "bit_rate": "125380",
+       "duration": "1.023000",
+       "filename": "/fixture/library/Movies/Film (2001).mkv",
+       "format_long_name": "Matroska / WebM",
+       "format_name": "matroska,webm",
+       "nb_programs": 0,
+       "nb_stream_groups": 0,
+       "nb_streams": 2,
+       "probe_score": 100,
+       "size": "16033",
+       "start_time": "-0.023000",
+       "tags": {
+        "ENCODER": "Lavf62.3.100"
+       }
+      }
+     },
+     "subtitle_count": 0,
+     "tracks": [
+      {
+       "attached_picture": false,
+       "bit_depth": "8",
+       "bit_rate": null,
+       "channel_layout": null,
+       "channels": null,
+       "codec": "h264",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "24/1",
+        "bits_per_raw_sample": "8",
+        "chroma_location": "left",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_name": "h264",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "video",
+        "coded_height": 180,
+        "coded_width": 320,
+        "color_range": "tv",
+        "display_aspect_ratio": "16:9",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+        "extradata_size": 47,
+        "field_order": "progressive",
+        "has_b_frames": 2,
+        "height": 180,
+        "index": 0,
+        "is_avc": "true",
+        "level": 12,
+        "nal_length_size": "4",
+        "pix_fmt": "yuv420p",
+        "profile": "High",
+        "r_frame_rate": "24/1",
+        "refs": 1,
+        "sample_aspect_ratio": "1:1",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "tags": {
+         "DURATION": "00:00:01.000000000",
+         "ENCODER": "Lavc62.11.100 libx264"
+        },
+        "time_base": "1/1000",
+        "width": 320
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "24/1",
+       "height": 180,
+       "index": 0,
+       "language": null,
+       "mediainfo": {
+        "BitDepth": "8",
+        "ChromaSubsampling": "4:2:0",
+        "CodecID": "V_MPEG4/ISO/AVC",
+        "Default": "No",
+        "Duration": "1.000000000",
+        "Encoded_Library": "x264 - core 165",
+        "Forced": "No",
+        "Format": "AVC",
+        "Format_Profile": "High",
+        "FrameRate": "24.000",
+        "FrameRate_Mode": "CFR",
+        "Height": "180",
+        "ScanType": "Progressive",
+        "Width": "320",
+        "colour_range": "Limited"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": "yuv420p",
+       "profile": "High",
+       "sample_rate": null,
+       "title": null,
+       "type": "video",
+       "width": 320
+      },
+      {
+       "attached_picture": false,
+       "bit_depth": 0,
+       "bit_rate": null,
+       "channel_layout": "mono",
+       "channels": 1,
+       "codec": "aac",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "0/0",
+        "bits_per_sample": 0,
+        "channel_layout": "mono",
+        "channels": 1,
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_name": "aac",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "audio",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+        "extradata_size": 5,
+        "index": 1,
+        "initial_padding": 1024,
+        "profile": "LC",
+        "r_frame_rate": "0/0",
+        "sample_fmt": "fltp",
+        "sample_rate": "44100",
+        "start_pts": -23,
+        "start_time": "-0.023000",
+        "tags": {
+         "DURATION": "00:00:01.023000000",
+         "ENCODER": "Lavc62.11.100 aac"
+        },
+        "time_base": "1/1000"
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "0/0",
+       "height": null,
+       "index": 1,
+       "language": null,
+       "mediainfo": {
+        "ChannelLayout": "M",
+        "Channels": "1",
+        "CodecID": "A_AAC-2",
+        "Compression_Mode": "Lossy",
+        "Default": "No",
+        "Duration": "1.023000000",
+        "Encoded_Library": "Lavc62.11.100 aac",
+        "Forced": "No",
+        "Format": "AAC",
+        "FrameRate": "43.066",
+        "SamplingRate": "44100"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": null,
+       "profile": "LC",
+       "sample_rate": "44100",
+       "title": null,
+       "type": "audio",
+       "width": null
+      }
+     ],
+     "video": {
+      "codec": "h264",
+      "height": 180,
+      "secondary_count": 0,
+      "source_bit_depth": 8,
+      "source_chroma": "4:2:0",
+      "target_pixel_format": "yuv420p",
+      "width": 320
+     }
+    },
+    "relative_path": "Movies/Film (2001).mkv",
+    "resource_forecast": {
+     "available_gib": 8.318817138671875,
+     "level": "guarded",
+     "memory_worker_cap": 59,
+     "messages": [
+      "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+      "Current swap is reported for context but is not counted as fast memory headroom."
+     ],
+     "model": "profile-scaled-concurrency-v1",
+     "modeled_plan_gib": 0.688,
+     "per_frame_allowance_gib": 0.25,
+     "per_worker_allowance_gib": 0.062,
+     "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+     "planned_frame_threads": 1,
+     "planned_workers": 7,
+     "planning_budget_gib": 3.989,
+     "preset_factor": 1,
+     "profile_factor": 0.25,
+     "requested_frame_threads": 1,
+     "requested_workers": 7,
+     "reserve_gib": 3,
+     "retry_plan": {
+      "level": "constrained",
+      "modeled_plan_gib": 0.5,
+      "planned_frame_threads": 1,
+      "planned_workers": 4,
+      "reduces_parallelism": true
+     },
+     "swap_free_gib": 12.315914154052734,
+     "swap_used_gib": 3.68408203125,
+     "swap_used_percent": 23.02551818502383,
+     "total_gib": 14.646923065185547
+    },
+    "size_bytes": 1500000000,
+    "status": "Ready",
+    "youtube_estimates": {
+     "1440p": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 2346516,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 16000
+      }
+     },
+     "4k": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 6499896,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 45000
+      }
+     },
+     "source": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 413046,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 2500
+      }
+     }
+    },
+    "youtube_resource_forecasts": {
+     "1440p": {
+      "available_gib": 8.318817138671875,
+      "level": "constrained",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 4,
+      "per_frame_allowance_gib": 1.778,
+      "per_worker_allowance_gib": 0.444,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 2,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 1.778,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 2.222,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "4k": {
+      "available_gib": 8.318817138671875,
+      "level": "high",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+       "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 5,
+      "per_frame_allowance_gib": 4,
+      "per_worker_allowance_gib": 1,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 1,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 4,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "high",
+       "modeled_plan_gib": 5,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": false
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "source": {
+      "available_gib": 8.318817138671875,
+      "level": "guarded",
+      "memory_worker_cap": 59,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 0.688,
+      "per_frame_allowance_gib": 0.25,
+      "per_worker_allowance_gib": 0.062,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+      "planned_frame_threads": 1,
+      "planned_workers": 7,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 0.25,
+      "requested_frame_threads": 1,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 0.5,
+       "planned_frame_threads": 1,
+       "planned_workers": 4,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     }
+    }
+   },
+   {
+    "already_processed": false,
+    "error": null,
+    "modified_unix_ms": 1700000000000,
+    "name": "S01E01.Pilot.mkv",
+    "path": "/fixture/library/Show Name/Season 1/S01E01.Pilot.mkv",
+    "profile": {
+     "attachment_count": 0,
+     "audio_count": 1,
+     "chapters_count": 0,
+     "chroma_location": 0,
+     "color_matrix": null,
+     "color_primaries": null,
+     "color_range_ffmpeg": "tv",
+     "color_range_x265": "limited",
+     "color_transfer": null,
+     "content": {
+      "animation_detected": false,
+      "genres": [],
+      "reason": "No Animation genre found in available metadata",
+      "resolved_tune": null,
+      "sources": []
+     },
+     "data_stream_count": 0,
+     "duration_seconds": 1.023,
+     "format_level": "1.2",
+     "frame_metadata_available": true,
+     "hdr": {
+      "dolby_vision": false,
+      "dolby_vision_base_layer": false,
+      "dolby_vision_compatibility_id": null,
+      "dolby_vision_enhancement_layer": false,
+      "dolby_vision_evidence": null,
+      "dolby_vision_level": null,
+      "dolby_vision_profile": null,
+      "dolby_vision_rpu": false,
+      "hdr10": false,
+      "hdr10plus": false,
+      "hdr10plus_hint": false,
+      "hlg": false
+     },
+     "interlaced": false,
+     "mastering_display": null,
+     "mastering_display_source": null,
+     "max_cll": null,
+     "max_fall": null,
+     "mediainfo_available": true,
+     "mediainfo_general": {
+      "AudioCount": "1",
+      "Encoded_Application": "Lavf62.3.100",
+      "Encoded_Library": "Lavf62.3.100",
+      "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+      "File_Modified_Date_Local": "2026-11-09 13:39:19",
+      "Format": "Matroska",
+      "Format_Version": "4",
+      "FrameCount": "24",
+      "FrameRate": "24.000",
+      "IsStreamable": "Yes",
+      "OverallBitRate": "125380",
+      "UniqueID": "fixture",
+      "VideoCount": "1",
+      "extra": {
+       "ErrorDetectionType": "Per level 1"
+      }
+     },
+     "primary_stream_index": 0,
+     "source_metadata": {
+      "chapters": [],
+      "format": {
+       "bit_rate": "125380",
+       "duration": "1.023000",
+       "filename": "/fixture/library/Show Name/Season 1/S01E01.Pilot.mkv",
+       "format_long_name": "Matroska / WebM",
+       "format_name": "matroska,webm",
+       "nb_programs": 0,
+       "nb_stream_groups": 0,
+       "nb_streams": 2,
+       "probe_score": 100,
+       "size": "16033",
+       "start_time": "-0.023000",
+       "tags": {
+        "ENCODER": "Lavf62.3.100"
+       }
+      }
+     },
+     "subtitle_count": 0,
+     "tracks": [
+      {
+       "attached_picture": false,
+       "bit_depth": "8",
+       "bit_rate": null,
+       "channel_layout": null,
+       "channels": null,
+       "codec": "h264",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "24/1",
+        "bits_per_raw_sample": "8",
+        "chroma_location": "left",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_name": "h264",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "video",
+        "coded_height": 180,
+        "coded_width": 320,
+        "color_range": "tv",
+        "display_aspect_ratio": "16:9",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+        "extradata_size": 47,
+        "field_order": "progressive",
+        "has_b_frames": 2,
+        "height": 180,
+        "index": 0,
+        "is_avc": "true",
+        "level": 12,
+        "nal_length_size": "4",
+        "pix_fmt": "yuv420p",
+        "profile": "High",
+        "r_frame_rate": "24/1",
+        "refs": 1,
+        "sample_aspect_ratio": "1:1",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "tags": {
+         "DURATION": "00:00:01.000000000",
+         "ENCODER": "Lavc62.11.100 libx264"
+        },
+        "time_base": "1/1000",
+        "width": 320
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "24/1",
+       "height": 180,
+       "index": 0,
+       "language": null,
+       "mediainfo": {
+        "BitDepth": "8",
+        "ChromaSubsampling": "4:2:0",
+        "CodecID": "V_MPEG4/ISO/AVC",
+        "Default": "No",
+        "Duration": "1.000000000",
+        "Encoded_Library": "x264 - core 165",
+        "Forced": "No",
+        "Format": "AVC",
+        "Format_Profile": "High",
+        "FrameRate": "24.000",
+        "FrameRate_Mode": "CFR",
+        "Height": "180",
+        "ScanType": "Progressive",
+        "Width": "320",
+        "colour_range": "Limited"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": "yuv420p",
+       "profile": "High",
+       "sample_rate": null,
+       "title": null,
+       "type": "video",
+       "width": 320
+      },
+      {
+       "attached_picture": false,
+       "bit_depth": 0,
+       "bit_rate": null,
+       "channel_layout": "mono",
+       "channels": 1,
+       "codec": "aac",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "0/0",
+        "bits_per_sample": 0,
+        "channel_layout": "mono",
+        "channels": 1,
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_name": "aac",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "audio",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+        "extradata_size": 5,
+        "index": 1,
+        "initial_padding": 1024,
+        "profile": "LC",
+        "r_frame_rate": "0/0",
+        "sample_fmt": "fltp",
+        "sample_rate": "44100",
+        "start_pts": -23,
+        "start_time": "-0.023000",
+        "tags": {
+         "DURATION": "00:00:01.023000000",
+         "ENCODER": "Lavc62.11.100 aac"
+        },
+        "time_base": "1/1000"
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "0/0",
+       "height": null,
+       "index": 1,
+       "language": null,
+       "mediainfo": {
+        "ChannelLayout": "M",
+        "Channels": "1",
+        "CodecID": "A_AAC-2",
+        "Compression_Mode": "Lossy",
+        "Default": "No",
+        "Duration": "1.023000000",
+        "Encoded_Library": "Lavc62.11.100 aac",
+        "Forced": "No",
+        "Format": "AAC",
+        "FrameRate": "43.066",
+        "SamplingRate": "44100"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": null,
+       "profile": "LC",
+       "sample_rate": "44100",
+       "title": null,
+       "type": "audio",
+       "width": null
+      }
+     ],
+     "video": {
+      "codec": "h264",
+      "height": 180,
+      "secondary_count": 0,
+      "source_bit_depth": 8,
+      "source_chroma": "4:2:0",
+      "target_pixel_format": "yuv420p",
+      "width": 320
+     }
+    },
+    "relative_path": "Show Name/Season 1/S01E01.Pilot.mkv",
+    "resource_forecast": {
+     "available_gib": 8.318817138671875,
+     "level": "guarded",
+     "memory_worker_cap": 59,
+     "messages": [
+      "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+      "Current swap is reported for context but is not counted as fast memory headroom."
+     ],
+     "model": "profile-scaled-concurrency-v1",
+     "modeled_plan_gib": 0.688,
+     "per_frame_allowance_gib": 0.25,
+     "per_worker_allowance_gib": 0.062,
+     "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+     "planned_frame_threads": 1,
+     "planned_workers": 7,
+     "planning_budget_gib": 3.989,
+     "preset_factor": 1,
+     "profile_factor": 0.25,
+     "requested_frame_threads": 1,
+     "requested_workers": 7,
+     "reserve_gib": 3,
+     "retry_plan": {
+      "level": "constrained",
+      "modeled_plan_gib": 0.5,
+      "planned_frame_threads": 1,
+      "planned_workers": 4,
+      "reduces_parallelism": true
+     },
+     "swap_free_gib": 12.315914154052734,
+     "swap_used_gib": 3.68408203125,
+     "swap_used_percent": 23.02551818502383,
+     "total_gib": 14.646923065185547
+    },
+    "size_bytes": 3000000000,
+    "status": "Ready",
+    "youtube_estimates": {
+     "1440p": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 2346516,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 16000
+      }
+     },
+     "4k": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 6499896,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 45000
+      }
+     },
+     "source": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 413046,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 2500
+      }
+     }
+    },
+    "youtube_resource_forecasts": {
+     "1440p": {
+      "available_gib": 8.318817138671875,
+      "level": "constrained",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 4,
+      "per_frame_allowance_gib": 1.778,
+      "per_worker_allowance_gib": 0.444,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 2,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 1.778,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 2.222,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "4k": {
+      "available_gib": 8.318817138671875,
+      "level": "high",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+       "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 5,
+      "per_frame_allowance_gib": 4,
+      "per_worker_allowance_gib": 1,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 1,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 4,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "high",
+       "modeled_plan_gib": 5,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": false
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "source": {
+      "available_gib": 8.318817138671875,
+      "level": "guarded",
+      "memory_worker_cap": 59,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 0.688,
+      "per_frame_allowance_gib": 0.25,
+      "per_worker_allowance_gib": 0.062,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+      "planned_frame_threads": 1,
+      "planned_workers": 7,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 0.25,
+      "requested_frame_threads": 1,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 0.5,
+       "planned_frame_threads": 1,
+       "planned_workers": 4,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     }
+    }
+   },
+   {
+    "already_processed": false,
+    "error": null,
+    "modified_unix_ms": 1700000000000,
+    "name": "S01E02.Second.mkv",
+    "path": "/fixture/library/Show Name/Season 1/S01E02.Second.mkv",
+    "profile": {
+     "attachment_count": 0,
+     "audio_count": 1,
+     "chapters_count": 0,
+     "chroma_location": 0,
+     "color_matrix": null,
+     "color_primaries": null,
+     "color_range_ffmpeg": "tv",
+     "color_range_x265": "limited",
+     "color_transfer": null,
+     "content": {
+      "animation_detected": false,
+      "genres": [],
+      "reason": "No Animation genre found in available metadata",
+      "resolved_tune": null,
+      "sources": []
+     },
+     "data_stream_count": 0,
+     "duration_seconds": 1.023,
+     "format_level": "1.2",
+     "frame_metadata_available": true,
+     "hdr": {
+      "dolby_vision": false,
+      "dolby_vision_base_layer": false,
+      "dolby_vision_compatibility_id": null,
+      "dolby_vision_enhancement_layer": false,
+      "dolby_vision_evidence": null,
+      "dolby_vision_level": null,
+      "dolby_vision_profile": null,
+      "dolby_vision_rpu": false,
+      "hdr10": false,
+      "hdr10plus": false,
+      "hdr10plus_hint": false,
+      "hlg": false
+     },
+     "interlaced": false,
+     "mastering_display": null,
+     "mastering_display_source": null,
+     "max_cll": null,
+     "max_fall": null,
+     "mediainfo_available": true,
+     "mediainfo_general": {
+      "AudioCount": "1",
+      "Encoded_Application": "Lavf62.3.100",
+      "Encoded_Library": "Lavf62.3.100",
+      "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+      "File_Modified_Date_Local": "2026-11-09 13:39:19",
+      "Format": "Matroska",
+      "Format_Version": "4",
+      "FrameCount": "24",
+      "FrameRate": "24.000",
+      "IsStreamable": "Yes",
+      "OverallBitRate": "125380",
+      "UniqueID": "fixture",
+      "VideoCount": "1",
+      "extra": {
+       "ErrorDetectionType": "Per level 1"
+      }
+     },
+     "primary_stream_index": 0,
+     "source_metadata": {
+      "chapters": [],
+      "format": {
+       "bit_rate": "125380",
+       "duration": "1.023000",
+       "filename": "/fixture/library/Show Name/Season 1/S01E02.Second.mkv",
+       "format_long_name": "Matroska / WebM",
+       "format_name": "matroska,webm",
+       "nb_programs": 0,
+       "nb_stream_groups": 0,
+       "nb_streams": 2,
+       "probe_score": 100,
+       "size": "16033",
+       "start_time": "-0.023000",
+       "tags": {
+        "ENCODER": "Lavf62.3.100"
+       }
+      }
+     },
+     "subtitle_count": 0,
+     "tracks": [
+      {
+       "attached_picture": false,
+       "bit_depth": "8",
+       "bit_rate": null,
+       "channel_layout": null,
+       "channels": null,
+       "codec": "h264",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "24/1",
+        "bits_per_raw_sample": "8",
+        "chroma_location": "left",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "codec_name": "h264",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "video",
+        "coded_height": 180,
+        "coded_width": 320,
+        "color_range": "tv",
+        "display_aspect_ratio": "16:9",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+        "extradata_size": 47,
+        "field_order": "progressive",
+        "has_b_frames": 2,
+        "height": 180,
+        "index": 0,
+        "is_avc": "true",
+        "level": 12,
+        "nal_length_size": "4",
+        "pix_fmt": "yuv420p",
+        "profile": "High",
+        "r_frame_rate": "24/1",
+        "refs": 1,
+        "sample_aspect_ratio": "1:1",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "tags": {
+         "DURATION": "00:00:01.000000000",
+         "ENCODER": "Lavc62.11.100 libx264"
+        },
+        "time_base": "1/1000",
+        "width": 320
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "24/1",
+       "height": 180,
+       "index": 0,
+       "language": null,
+       "mediainfo": {
+        "BitDepth": "8",
+        "ChromaSubsampling": "4:2:0",
+        "CodecID": "V_MPEG4/ISO/AVC",
+        "Default": "No",
+        "Duration": "1.000000000",
+        "Encoded_Library": "x264 - core 165",
+        "Forced": "No",
+        "Format": "AVC",
+        "Format_Profile": "High",
+        "FrameRate": "24.000",
+        "FrameRate_Mode": "CFR",
+        "Height": "180",
+        "ScanType": "Progressive",
+        "Width": "320",
+        "colour_range": "Limited"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": "yuv420p",
+       "profile": "High",
+       "sample_rate": null,
+       "title": null,
+       "type": "video",
+       "width": 320
+      },
+      {
+       "attached_picture": false,
+       "bit_depth": 0,
+       "bit_rate": null,
+       "channel_layout": "mono",
+       "channels": 1,
+       "codec": "aac",
+       "color_matrix": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "default": false,
+       "ffprobe": {
+        "avg_frame_rate": "0/0",
+        "bits_per_sample": 0,
+        "channel_layout": "mono",
+        "channels": 1,
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_name": "aac",
+        "codec_tag": "0x0000",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_type": "audio",
+        "disposition": {
+         "attached_pic": 0,
+         "captions": 0,
+         "clean_effects": 0,
+         "comment": 0,
+         "default": 0,
+         "dependent": 0,
+         "descriptions": 0,
+         "dub": 0,
+         "forced": 0,
+         "hearing_impaired": 0,
+         "karaoke": 0,
+         "lyrics": 0,
+         "metadata": 0,
+         "multilayer": 0,
+         "non_diegetic": 0,
+         "original": 0,
+         "still_image": 0,
+         "timed_thumbnails": 0,
+         "visual_impaired": 0
+        },
+        "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+        "extradata_size": 5,
+        "index": 1,
+        "initial_padding": 1024,
+        "profile": "LC",
+        "r_frame_rate": "0/0",
+        "sample_fmt": "fltp",
+        "sample_rate": "44100",
+        "start_pts": -23,
+        "start_time": "-0.023000",
+        "tags": {
+         "DURATION": "00:00:01.023000000",
+         "ENCODER": "Lavc62.11.100 aac"
+        },
+        "time_base": "1/1000"
+       },
+       "filename": null,
+       "forced": false,
+       "frame_rate": "0/0",
+       "height": null,
+       "index": 1,
+       "language": null,
+       "mediainfo": {
+        "ChannelLayout": "M",
+        "Channels": "1",
+        "CodecID": "A_AAC-2",
+        "Compression_Mode": "Lossy",
+        "Default": "No",
+        "Duration": "1.023000000",
+        "Encoded_Library": "Lavc62.11.100 aac",
+        "Forced": "No",
+        "Format": "AAC",
+        "FrameRate": "43.066",
+        "SamplingRate": "44100"
+       },
+       "mime_type": null,
+       "ordinal": 0,
+       "pixel_format": null,
+       "profile": "LC",
+       "sample_rate": "44100",
+       "title": null,
+       "type": "audio",
+       "width": null
+      }
+     ],
+     "video": {
+      "codec": "h264",
+      "height": 180,
+      "secondary_count": 0,
+      "source_bit_depth": 8,
+      "source_chroma": "4:2:0",
+      "target_pixel_format": "yuv420p",
+      "width": 320
+     }
+    },
+    "relative_path": "Show Name/Season 1/S01E02.Second.mkv",
+    "resource_forecast": {
+     "available_gib": 8.318817138671875,
+     "level": "guarded",
+     "memory_worker_cap": 59,
+     "messages": [
+      "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+      "Current swap is reported for context but is not counted as fast memory headroom."
+     ],
+     "model": "profile-scaled-concurrency-v1",
+     "modeled_plan_gib": 0.688,
+     "per_frame_allowance_gib": 0.25,
+     "per_worker_allowance_gib": 0.062,
+     "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+     "planned_frame_threads": 1,
+     "planned_workers": 7,
+     "planning_budget_gib": 3.989,
+     "preset_factor": 1,
+     "profile_factor": 0.25,
+     "requested_frame_threads": 1,
+     "requested_workers": 7,
+     "reserve_gib": 3,
+     "retry_plan": {
+      "level": "constrained",
+      "modeled_plan_gib": 0.5,
+      "planned_frame_threads": 1,
+      "planned_workers": 4,
+      "reduces_parallelism": true
+     },
+     "swap_free_gib": 12.315914154052734,
+     "swap_used_gib": 3.68408203125,
+     "swap_used_percent": 23.02551818502383,
+     "total_gib": 14.646923065185547
+    },
+    "size_bytes": 4500000000,
+    "status": "Ready",
+    "youtube_estimates": {
+     "1440p": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 2346516,
+       "output_height": 1440,
+       "output_width": 2560,
+       "recommended_video_bitrate_kbps": 16000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 16000
+      }
+     },
+     "4k": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 6499896,
+       "output_height": 2160,
+       "output_width": 3840,
+       "recommended_video_bitrate_kbps": 45000,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 45000
+      }
+     },
+     "source": {
+      "balanced": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 90801,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 250
+      },
+      "recommended": {
+       "color_mode": "sdr",
+       "estimated_output_bytes": 413046,
+       "output_height": 180,
+       "output_width": 320,
+       "recommended_video_bitrate_kbps": 2500,
+       "source_bytes": 16033,
+       "source_height": 180,
+       "source_width": 320,
+       "video_bitrate_kbps": 2500
+      }
+     }
+    },
+    "youtube_resource_forecasts": {
+     "1440p": {
+      "available_gib": 8.318817138671875,
+      "level": "constrained",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 4,
+      "per_frame_allowance_gib": 1.778,
+      "per_worker_allowance_gib": 0.444,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 2,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 1.778,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 2.222,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "4k": {
+      "available_gib": 8.318817138671875,
+      "level": "high",
+      "memory_worker_cap": 1,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom.",
+       "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+       "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 5,
+      "per_frame_allowance_gib": 4,
+      "per_worker_allowance_gib": 1,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+      "planned_frame_threads": 1,
+      "planned_workers": 1,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 4,
+      "requested_frame_threads": 2,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "high",
+       "modeled_plan_gib": 5,
+       "planned_frame_threads": 1,
+       "planned_workers": 1,
+       "reduces_parallelism": false
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     },
+     "source": {
+      "available_gib": 8.318817138671875,
+      "level": "guarded",
+      "memory_worker_cap": 59,
+      "messages": [
+       "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+       "Current swap is reported for context but is not counted as fast memory headroom."
+      ],
+      "model": "profile-scaled-concurrency-v1",
+      "modeled_plan_gib": 0.688,
+      "per_frame_allowance_gib": 0.25,
+      "per_worker_allowance_gib": 0.062,
+      "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+      "planned_frame_threads": 1,
+      "planned_workers": 7,
+      "planning_budget_gib": 3.989,
+      "preset_factor": 1,
+      "profile_factor": 0.25,
+      "requested_frame_threads": 1,
+      "requested_workers": 7,
+      "reserve_gib": 3,
+      "retry_plan": {
+       "level": "constrained",
+       "modeled_plan_gib": 0.5,
+       "planned_frame_threads": 1,
+       "planned_workers": 4,
+       "reduces_parallelism": true
+      },
+      "swap_free_gib": 12.315914154052734,
+      "swap_used_gib": 3.68408203125,
+      "swap_used_percent": 23.02551818502383,
+      "total_gib": 14.646923065185547
+     }
+    }
+   }
+  ],
+  "environment": {
+   "can_analyze": true,
+   "can_enrich_with_mediainfo": true,
+   "can_probe_media": true,
+   "checks": [
+    {
+     "available": true,
+     "detail": "",
+     "key": "ffmpeg",
+     "label": "FFmpeg",
+     "path": "/usr/bin/ffmpeg",
+     "required": true,
+     "version": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "ffprobe",
+     "label": "FFprobe",
+     "path": "/usr/bin/ffprobe",
+     "required": true,
+     "version": "ffprobe version 8.0.1-3ubuntu2 Copyright (c) 2007-2025 the FFmpeg developers"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "mediainfo",
+     "label": "MediaInfo",
+     "path": "/usr/bin/mediainfo",
+     "required": true,
+     "version": "MediaInfoLib - v26.01"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "mkvpropedit",
+     "label": "MKVToolNix editor",
+     "path": "/usr/bin/mkvpropedit",
+     "required": true,
+     "version": "mkvpropedit v97.0 ('You Don't Have A Clue') 64-bit"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "mkvmerge",
+     "label": "MKVToolNix merger",
+     "path": "/usr/bin/mkvmerge",
+     "required": true,
+     "version": "mkvmerge v97.0 ('You Don't Have A Clue') 64-bit"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "mkvextract",
+     "label": "MKVToolNix extractor",
+     "path": "/usr/bin/mkvextract",
+     "required": true,
+     "version": "mkvextract v97.0 ('You Don't Have A Clue') 64-bit"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "fc-list",
+     "label": "Fontconfig",
+     "path": "/usr/bin/fc-list",
+     "required": false,
+     "version": "fontconfig version 2.17.1"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "hdr10plus_tool",
+     "label": "HDR10+ helper (optional unless needed)",
+     "path": "/home/user/.local/share/hevc-rebuild/bin/hdr10plus_tool",
+     "required": false,
+     "version": "hdr10plus_tool 1.7.2"
+    },
+    {
+     "available": false,
+     "detail": "Not found on PATH",
+     "key": "brew",
+     "label": "Homebrew package manager",
+     "path": null,
+     "required": false,
+     "version": null
+    },
+    {
+     "available": false,
+     "detail": "Not found on PATH",
+     "key": "winget",
+     "label": "Windows Package Manager",
+     "path": null,
+     "required": false,
+     "version": null
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "apt-get",
+     "label": "APT package manager",
+     "path": "/usr/bin/apt-get",
+     "required": false,
+     "version": "apt 3.2.1 (amd64)"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "apt-cache",
+     "label": "APT package catalog",
+     "path": "/usr/bin/apt-cache",
+     "required": false,
+     "version": "apt 3.2.1 (amd64)"
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "dpkg",
+     "label": "Debian package database",
+     "path": "/usr/bin/dpkg",
+     "required": false,
+     "version": "Debian 'dpkg' package management program version 1.23.7 (amd64)."
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "dpkg-query",
+     "label": "Package query tool",
+     "path": "/usr/bin/dpkg-query",
+     "required": false,
+     "version": "Debian dpkg-query package management program query tool version 1.23.7 (amd64)."
+    },
+    {
+     "available": true,
+     "detail": "",
+     "key": "pkexec",
+     "label": "Administrator authentication",
+     "path": "/usr/bin/pkexec",
+     "required": false,
+     "version": "pkexec version 127"
+    },
+    {
+     "available": true,
+     "detail": "CPU libx265 ready",
+     "key": "libx265",
+     "label": "libx265 encoder",
+     "path": "/usr/bin/ffmpeg",
+     "required": true,
+     "version": null
+    },
+    {
+     "available": false,
+     "detail": "libx265 was built without HDR10_PLUS (dhdr10-info disabled)",
+     "key": "libx265_hdr10plus",
+     "label": "libx265 HDR10+",
+     "path": "/usr/bin/ffmpeg",
+     "required": false,
+     "version": null
+    },
+    {
+     "available": true,
+     "detail": "libx264 available",
+     "key": "libx264",
+     "label": "libx264 encoder",
+     "path": "/usr/bin/ffmpeg",
+     "required": false,
+     "version": null
+    },
+    {
+     "available": true,
+     "detail": "aac available",
+     "key": "aac",
+     "label": "AAC encoder",
+     "path": "/usr/bin/ffmpeg",
+     "required": false,
+     "version": null
+    }
+   ],
+   "dolby_vision_x265": true,
+   "hardware": {
+    "cpu_model": "Intel(R) Core(TM) i7-1065G7 CPU @ 1.30GHz",
+    "encoder": "CPU libx265",
+    "gpu_devices": [
+     "NVIDIA (0x1d13)",
+     "Intel (0x8a52)"
+    ],
+    "logical_cpus": 8,
+    "memory_available_gib": 8.318817138671875,
+    "memory_total_gib": 14.646923065185547,
+    "swap_free_gib": 12.315914154052734,
+    "swap_total_gib": 15.999996185302734,
+    "swap_used_gib": 3.68408203125,
+    "swap_used_percent": 23.02551818502383
+   },
+   "hdr10plus_x265": false,
+   "metadata_ready": true,
+   "missing_apt_packages": [],
+   "os": {
+    "name": "Ubuntu",
+    "note": "Supported release",
+    "package_manager": "apt",
+    "package_manager_available": true,
+    "supported": true,
+    "version": "26.04"
+   },
+   "ready": true,
+   "x265_pixel_formats": [
+    "gbrp",
+    "gbrp10le",
+    "gbrp12le",
+    "gray",
+    "gray10le",
+    "gray12le",
+    "yuv420p",
+    "yuv420p10le",
+    "yuv420p12le",
+    "yuv422p",
+    "yuv422p10le",
+    "yuv422p12le",
+    "yuv444p",
+    "yuv444p10le",
+    "yuv444p12le",
+    "yuva420p",
+    "yuva420p10le",
+    "yuvj420p",
+    "yuvj422p",
+    "yuvj444p"
+   ],
+   "youtube_ready": true
+  },
+  "input_kind": "folder",
+  "interrupted": false,
+  "minimum_size_mib": 0,
+  "recursive": true,
+  "root": "/fixture/library",
+  "settings": {
+   "calibration": {
+    "cache_hours": 24,
+    "large_file_gib": 20,
+    "max_candidates": 2,
+    "mode": "auto",
+    "sample_seconds": 3,
+    "throughput_tolerance_percent": 3
+   },
+   "content": {
+    "detect_animation": true,
+    "tune": "auto"
+   },
+   "hdr": {
+    "dolby_vision": "safe",
+    "preserve_hdr10plus": true
+   },
+   "metadata": {
+    "comment": "Fixture comment",
+    "embed_artwork": true,
+    "text_blacklist": []
+   },
+   "paths": {
+    "work_root": "auto"
+   },
+   "resources": {
+    "disk_projection_margin_percent": 15,
+    "frame_threads": 0,
+    "max_worker_threads": 0,
+    "memory_reserve_percent": 8,
+    "min_free_disk_gib": 0,
+    "min_free_memory_gib": 3,
+    "preflight_output_ratio": 1.3,
+    "reserved_cpu_threads": 1,
+    "threading": "auto"
+   },
+   "safety": {
+    "verify_copy_hashes": true
+   },
+   "quality": {
+    "ssim_gate": "enforce",
+    "min_ssim": 0.95
+   },
+   "streams": {
+    "data_streams": "preserve",
+    "secondary_video": "encode"
+   },
+   "video": {
+    "crf": 21,
+    "preset": "slow",
+    "promote_8bit_to_10bit": false
+   }
+  },
+  "settings_sources": [
+   "/home/user/.config/hevc-rebuild/config.toml"
+  ],
+  "total_input_bytes": 9000000000,
+  "warnings": [],
+  "work_directory": {
+   "configured_root": "auto",
+   "directory": "/fixture/library/.hevc-rebuild-work",
+   "fallback_directory": "/home/user/.local/state/hevc-rebuild/work",
+   "resolution": "source-adjacent",
+   "source_path": "/fixture/library"
+  }
+ },
+ "settingsLoad": {
+  "settings": {
+   "calibration": {
+    "cache_hours": 24,
+    "large_file_gib": 20,
+    "max_candidates": 2,
+    "mode": "auto",
+    "sample_seconds": 3,
+    "throughput_tolerance_percent": 3
+   },
+   "content": {
+    "detect_animation": true,
+    "tune": "auto"
+   },
+   "hdr": {
+    "dolby_vision": "safe",
+    "preserve_hdr10plus": true
+   },
+   "metadata": {
+    "comment": "Fixture comment",
+    "embed_artwork": true,
+    "text_blacklist": []
+   },
+   "paths": {
+    "work_root": "auto"
+   },
+   "resources": {
+    "disk_projection_margin_percent": 15,
+    "frame_threads": 0,
+    "max_worker_threads": 0,
+    "memory_reserve_percent": 8,
+    "min_free_disk_gib": 0,
+    "min_free_memory_gib": 3,
+    "preflight_output_ratio": 1.3,
+    "reserved_cpu_threads": 1,
+    "threading": "auto"
+   },
+   "safety": {
+    "verify_copy_hashes": true
+   },
+   "quality": {
+    "ssim_gate": "enforce",
+    "min_ssim": 0.95
+   },
+   "streams": {
+    "data_streams": "preserve",
+    "secondary_video": "encode"
+   },
+   "video": {
+    "crf": 21,
+    "preset": "slow",
+    "promote_8bit_to_10bit": false
+   }
+  },
+  "sources": [
+   "/home/user/.config/hevc-rebuild/config.toml"
+  ],
+  "user_config": "/fixture/config/settings.toml",
+  "work_directory": {
+   "configured_root": "auto",
+   "directory": "/fixture/library/.hevc-rebuild-work",
+   "fallback_directory": "/home/user/.local/state/hevc-rebuild/work",
+   "resolution": "source-adjacent",
+   "source_path": "/fixture/library"
+  }
+ },
+ "preferences": {
+  "preferences": {
+   "theme": "light",
+   "windowState": {
+    "width": 1600,
+    "height": 1000,
+    "maximized": false
+   },
+   "lastPage": "library",
+   "root": "/fixture/library",
+   "toolPaths": {
+    "ffmpeg": null,
+    "ffprobe": null,
+    "mediainfo": null,
+    "mkvpropedit": null,
+    "mkvmerge": null,
+    "mkvextract": null
+   },
+   "recursive": true,
+   "minimumSizeMib": "0",
+   "stopOnError": false,
+   "youtubeResolution": "1440p",
+   "youtubeQualityMode": "balanced",
+   "youtubeSourceMultiplier": 2,
+   "youtubeMode": "upscale",
+   "youtubeSdrCodec": "h264",
+   "youtubePreset": "slow",
+   "youtubeShrink": "auto",
+   "youtubeQualityCheck": "standard",
+   "youtubeOutputDir": null,
+   "rebuildOutputDir": null,
+   "fileOutputDirs": {},
+   "filenameIncludePatterns": [],
+   "filenameExcludePatterns": [
+    "old",
+    ".*"
+   ],
+   "filenameExcludeDefaultsVersion": 2,
+   "metadataAutoLookup": false,
+   "metadataLanguage": "en-US",
+   "metadataSources": {
+    "tmdb": true,
+    "wikidata": true,
+    "tvmaze": true,
+    "tvdb": false
+   },
+   "organizerTemplates": {
+    "movie": "{title} [[({year} {certification})]]{ext}",
+    "series": "{series_title}",
+    "season": "Season {season:02}",
+    "episode": "S{season:02}E{episode:02}.{episode_title}{ext}"
+   },
+   "savePosterBesideMedia": false,
+   "settings": null
+  },
+  "settingsFile": "/fixture/config/app.json",
+  "hasSavedSettings": true,
+  "portable": false,
+  "storageWarning": null
+ },
+ "queueLoad": {
+  "queue": {
+   "version": 1,
+   "sources": [
+    {
+     "root": "/fixture/library",
+     "status": "ready",
+     "scanResult": {
+      "candidate_count": 3,
+      "discovery_limit_reached": false,
+      "disk_free_bytes": 536870912000,
+      "entries": [
+       {
+        "already_processed": false,
+        "error": null,
+        "modified_unix_ms": 1700000000000,
+        "name": "Film (2001).mkv",
+        "path": "/fixture/library/Movies/Film (2001).mkv",
+        "profile": {
+         "attachment_count": 0,
+         "audio_count": 1,
+         "chapters_count": 0,
+         "chroma_location": 0,
+         "color_matrix": null,
+         "color_primaries": null,
+         "color_range_ffmpeg": "tv",
+         "color_range_x265": "limited",
+         "color_transfer": null,
+         "content": {
+          "animation_detected": false,
+          "genres": [],
+          "reason": "No Animation genre found in available metadata",
+          "resolved_tune": null,
+          "sources": []
+         },
+         "data_stream_count": 0,
+         "duration_seconds": 1.023,
+         "format_level": "1.2",
+         "frame_metadata_available": true,
+         "hdr": {
+          "dolby_vision": false,
+          "dolby_vision_base_layer": false,
+          "dolby_vision_compatibility_id": null,
+          "dolby_vision_enhancement_layer": false,
+          "dolby_vision_evidence": null,
+          "dolby_vision_level": null,
+          "dolby_vision_profile": null,
+          "dolby_vision_rpu": false,
+          "hdr10": false,
+          "hdr10plus": false,
+          "hdr10plus_hint": false,
+          "hlg": false
+         },
+         "interlaced": false,
+         "mastering_display": null,
+         "mastering_display_source": null,
+         "max_cll": null,
+         "max_fall": null,
+         "mediainfo_available": true,
+         "mediainfo_general": {
+          "AudioCount": "1",
+          "Encoded_Application": "Lavf62.3.100",
+          "Encoded_Library": "Lavf62.3.100",
+          "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+          "File_Modified_Date_Local": "2026-11-09 13:39:19",
+          "Format": "Matroska",
+          "Format_Version": "4",
+          "FrameCount": "24",
+          "FrameRate": "24.000",
+          "IsStreamable": "Yes",
+          "OverallBitRate": "125380",
+          "UniqueID": "fixture",
+          "VideoCount": "1",
+          "extra": {
+           "ErrorDetectionType": "Per level 1"
+          }
+         },
+         "primary_stream_index": 0,
+         "source_metadata": {
+          "chapters": [],
+          "format": {
+           "bit_rate": "125380",
+           "duration": "1.023000",
+           "filename": "/fixture/library/Movies/Film (2001).mkv",
+           "format_long_name": "Matroska / WebM",
+           "format_name": "matroska,webm",
+           "nb_programs": 0,
+           "nb_stream_groups": 0,
+           "nb_streams": 2,
+           "probe_score": 100,
+           "size": "16033",
+           "start_time": "-0.023000",
+           "tags": {
+            "ENCODER": "Lavf62.3.100"
+           }
+          }
+         },
+         "subtitle_count": 0,
+         "tracks": [
+          {
+           "attached_picture": false,
+           "bit_depth": "8",
+           "bit_rate": null,
+           "channel_layout": null,
+           "channels": null,
+           "codec": "h264",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "24/1",
+            "bits_per_raw_sample": "8",
+            "chroma_location": "left",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "codec_name": "h264",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "video",
+            "coded_height": 180,
+            "coded_width": 320,
+            "color_range": "tv",
+            "display_aspect_ratio": "16:9",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+            "extradata_size": 47,
+            "field_order": "progressive",
+            "has_b_frames": 2,
+            "height": 180,
+            "index": 0,
+            "is_avc": "true",
+            "level": 12,
+            "nal_length_size": "4",
+            "pix_fmt": "yuv420p",
+            "profile": "High",
+            "r_frame_rate": "24/1",
+            "refs": 1,
+            "sample_aspect_ratio": "1:1",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "tags": {
+             "DURATION": "00:00:01.000000000",
+             "ENCODER": "Lavc62.11.100 libx264"
+            },
+            "time_base": "1/1000",
+            "width": 320
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "24/1",
+           "height": 180,
+           "index": 0,
+           "language": null,
+           "mediainfo": {
+            "BitDepth": "8",
+            "ChromaSubsampling": "4:2:0",
+            "CodecID": "V_MPEG4/ISO/AVC",
+            "Default": "No",
+            "Duration": "1.000000000",
+            "Encoded_Library": "x264 - core 165",
+            "Forced": "No",
+            "Format": "AVC",
+            "Format_Profile": "High",
+            "FrameRate": "24.000",
+            "FrameRate_Mode": "CFR",
+            "Height": "180",
+            "ScanType": "Progressive",
+            "Width": "320",
+            "colour_range": "Limited"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": "yuv420p",
+           "profile": "High",
+           "sample_rate": null,
+           "title": null,
+           "type": "video",
+           "width": 320
+          },
+          {
+           "attached_picture": false,
+           "bit_depth": 0,
+           "bit_rate": null,
+           "channel_layout": "mono",
+           "channels": 1,
+           "codec": "aac",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "0/0",
+            "bits_per_sample": 0,
+            "channel_layout": "mono",
+            "channels": 1,
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "codec_name": "aac",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "audio",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+            "extradata_size": 5,
+            "index": 1,
+            "initial_padding": 1024,
+            "profile": "LC",
+            "r_frame_rate": "0/0",
+            "sample_fmt": "fltp",
+            "sample_rate": "44100",
+            "start_pts": -23,
+            "start_time": "-0.023000",
+            "tags": {
+             "DURATION": "00:00:01.023000000",
+             "ENCODER": "Lavc62.11.100 aac"
+            },
+            "time_base": "1/1000"
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "0/0",
+           "height": null,
+           "index": 1,
+           "language": null,
+           "mediainfo": {
+            "ChannelLayout": "M",
+            "Channels": "1",
+            "CodecID": "A_AAC-2",
+            "Compression_Mode": "Lossy",
+            "Default": "No",
+            "Duration": "1.023000000",
+            "Encoded_Library": "Lavc62.11.100 aac",
+            "Forced": "No",
+            "Format": "AAC",
+            "FrameRate": "43.066",
+            "SamplingRate": "44100"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": null,
+           "profile": "LC",
+           "sample_rate": "44100",
+           "title": null,
+           "type": "audio",
+           "width": null
+          }
+         ],
+         "video": {
+          "codec": "h264",
+          "height": 180,
+          "secondary_count": 0,
+          "source_bit_depth": 8,
+          "source_chroma": "4:2:0",
+          "target_pixel_format": "yuv420p",
+          "width": 320
+         }
+        },
+        "relative_path": "Movies/Film (2001).mkv",
+        "resource_forecast": {
+         "available_gib": 8.318817138671875,
+         "level": "guarded",
+         "memory_worker_cap": 59,
+         "messages": [
+          "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+          "Current swap is reported for context but is not counted as fast memory headroom."
+         ],
+         "model": "profile-scaled-concurrency-v1",
+         "modeled_plan_gib": 0.688,
+         "per_frame_allowance_gib": 0.25,
+         "per_worker_allowance_gib": 0.062,
+         "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+         "planned_frame_threads": 1,
+         "planned_workers": 7,
+         "planning_budget_gib": 3.989,
+         "preset_factor": 1,
+         "profile_factor": 0.25,
+         "requested_frame_threads": 1,
+         "requested_workers": 7,
+         "reserve_gib": 3,
+         "retry_plan": {
+          "level": "constrained",
+          "modeled_plan_gib": 0.5,
+          "planned_frame_threads": 1,
+          "planned_workers": 4,
+          "reduces_parallelism": true
+         },
+         "swap_free_gib": 12.315914154052734,
+         "swap_used_gib": 3.68408203125,
+         "swap_used_percent": 23.02551818502383,
+         "total_gib": 14.646923065185547
+        },
+        "size_bytes": 1500000000,
+        "status": "Ready",
+        "youtube_estimates": {
+         "1440p": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 2346516,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 16000
+          }
+         },
+         "4k": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 6499896,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 45000
+          }
+         },
+         "source": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 413046,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 2500
+          }
+         }
+        },
+        "youtube_resource_forecasts": {
+         "1440p": {
+          "available_gib": 8.318817138671875,
+          "level": "constrained",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 4,
+          "per_frame_allowance_gib": 1.778,
+          "per_worker_allowance_gib": 0.444,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 2,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 1.778,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 2.222,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "4k": {
+          "available_gib": 8.318817138671875,
+          "level": "high",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+           "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 5,
+          "per_frame_allowance_gib": 4,
+          "per_worker_allowance_gib": 1,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 1,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 4,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "high",
+           "modeled_plan_gib": 5,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": false
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "source": {
+          "available_gib": 8.318817138671875,
+          "level": "guarded",
+          "memory_worker_cap": 59,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 0.688,
+          "per_frame_allowance_gib": 0.25,
+          "per_worker_allowance_gib": 0.062,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+          "planned_frame_threads": 1,
+          "planned_workers": 7,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 0.25,
+          "requested_frame_threads": 1,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 0.5,
+           "planned_frame_threads": 1,
+           "planned_workers": 4,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         }
+        }
+       },
+       {
+        "already_processed": false,
+        "error": null,
+        "modified_unix_ms": 1700000000000,
+        "name": "S01E01.Pilot.mkv",
+        "path": "/fixture/library/Show Name/Season 1/S01E01.Pilot.mkv",
+        "profile": {
+         "attachment_count": 0,
+         "audio_count": 1,
+         "chapters_count": 0,
+         "chroma_location": 0,
+         "color_matrix": null,
+         "color_primaries": null,
+         "color_range_ffmpeg": "tv",
+         "color_range_x265": "limited",
+         "color_transfer": null,
+         "content": {
+          "animation_detected": false,
+          "genres": [],
+          "reason": "No Animation genre found in available metadata",
+          "resolved_tune": null,
+          "sources": []
+         },
+         "data_stream_count": 0,
+         "duration_seconds": 1.023,
+         "format_level": "1.2",
+         "frame_metadata_available": true,
+         "hdr": {
+          "dolby_vision": false,
+          "dolby_vision_base_layer": false,
+          "dolby_vision_compatibility_id": null,
+          "dolby_vision_enhancement_layer": false,
+          "dolby_vision_evidence": null,
+          "dolby_vision_level": null,
+          "dolby_vision_profile": null,
+          "dolby_vision_rpu": false,
+          "hdr10": false,
+          "hdr10plus": false,
+          "hdr10plus_hint": false,
+          "hlg": false
+         },
+         "interlaced": false,
+         "mastering_display": null,
+         "mastering_display_source": null,
+         "max_cll": null,
+         "max_fall": null,
+         "mediainfo_available": true,
+         "mediainfo_general": {
+          "AudioCount": "1",
+          "Encoded_Application": "Lavf62.3.100",
+          "Encoded_Library": "Lavf62.3.100",
+          "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+          "File_Modified_Date_Local": "2026-11-09 13:39:19",
+          "Format": "Matroska",
+          "Format_Version": "4",
+          "FrameCount": "24",
+          "FrameRate": "24.000",
+          "IsStreamable": "Yes",
+          "OverallBitRate": "125380",
+          "UniqueID": "fixture",
+          "VideoCount": "1",
+          "extra": {
+           "ErrorDetectionType": "Per level 1"
+          }
+         },
+         "primary_stream_index": 0,
+         "source_metadata": {
+          "chapters": [],
+          "format": {
+           "bit_rate": "125380",
+           "duration": "1.023000",
+           "filename": "/fixture/library/Show Name/Season 1/S01E01.Pilot.mkv",
+           "format_long_name": "Matroska / WebM",
+           "format_name": "matroska,webm",
+           "nb_programs": 0,
+           "nb_stream_groups": 0,
+           "nb_streams": 2,
+           "probe_score": 100,
+           "size": "16033",
+           "start_time": "-0.023000",
+           "tags": {
+            "ENCODER": "Lavf62.3.100"
+           }
+          }
+         },
+         "subtitle_count": 0,
+         "tracks": [
+          {
+           "attached_picture": false,
+           "bit_depth": "8",
+           "bit_rate": null,
+           "channel_layout": null,
+           "channels": null,
+           "codec": "h264",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "24/1",
+            "bits_per_raw_sample": "8",
+            "chroma_location": "left",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "codec_name": "h264",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "video",
+            "coded_height": 180,
+            "coded_width": 320,
+            "color_range": "tv",
+            "display_aspect_ratio": "16:9",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+            "extradata_size": 47,
+            "field_order": "progressive",
+            "has_b_frames": 2,
+            "height": 180,
+            "index": 0,
+            "is_avc": "true",
+            "level": 12,
+            "nal_length_size": "4",
+            "pix_fmt": "yuv420p",
+            "profile": "High",
+            "r_frame_rate": "24/1",
+            "refs": 1,
+            "sample_aspect_ratio": "1:1",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "tags": {
+             "DURATION": "00:00:01.000000000",
+             "ENCODER": "Lavc62.11.100 libx264"
+            },
+            "time_base": "1/1000",
+            "width": 320
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "24/1",
+           "height": 180,
+           "index": 0,
+           "language": null,
+           "mediainfo": {
+            "BitDepth": "8",
+            "ChromaSubsampling": "4:2:0",
+            "CodecID": "V_MPEG4/ISO/AVC",
+            "Default": "No",
+            "Duration": "1.000000000",
+            "Encoded_Library": "x264 - core 165",
+            "Forced": "No",
+            "Format": "AVC",
+            "Format_Profile": "High",
+            "FrameRate": "24.000",
+            "FrameRate_Mode": "CFR",
+            "Height": "180",
+            "ScanType": "Progressive",
+            "Width": "320",
+            "colour_range": "Limited"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": "yuv420p",
+           "profile": "High",
+           "sample_rate": null,
+           "title": null,
+           "type": "video",
+           "width": 320
+          },
+          {
+           "attached_picture": false,
+           "bit_depth": 0,
+           "bit_rate": null,
+           "channel_layout": "mono",
+           "channels": 1,
+           "codec": "aac",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "0/0",
+            "bits_per_sample": 0,
+            "channel_layout": "mono",
+            "channels": 1,
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "codec_name": "aac",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "audio",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+            "extradata_size": 5,
+            "index": 1,
+            "initial_padding": 1024,
+            "profile": "LC",
+            "r_frame_rate": "0/0",
+            "sample_fmt": "fltp",
+            "sample_rate": "44100",
+            "start_pts": -23,
+            "start_time": "-0.023000",
+            "tags": {
+             "DURATION": "00:00:01.023000000",
+             "ENCODER": "Lavc62.11.100 aac"
+            },
+            "time_base": "1/1000"
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "0/0",
+           "height": null,
+           "index": 1,
+           "language": null,
+           "mediainfo": {
+            "ChannelLayout": "M",
+            "Channels": "1",
+            "CodecID": "A_AAC-2",
+            "Compression_Mode": "Lossy",
+            "Default": "No",
+            "Duration": "1.023000000",
+            "Encoded_Library": "Lavc62.11.100 aac",
+            "Forced": "No",
+            "Format": "AAC",
+            "FrameRate": "43.066",
+            "SamplingRate": "44100"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": null,
+           "profile": "LC",
+           "sample_rate": "44100",
+           "title": null,
+           "type": "audio",
+           "width": null
+          }
+         ],
+         "video": {
+          "codec": "h264",
+          "height": 180,
+          "secondary_count": 0,
+          "source_bit_depth": 8,
+          "source_chroma": "4:2:0",
+          "target_pixel_format": "yuv420p",
+          "width": 320
+         }
+        },
+        "relative_path": "Show Name/Season 1/S01E01.Pilot.mkv",
+        "resource_forecast": {
+         "available_gib": 8.318817138671875,
+         "level": "guarded",
+         "memory_worker_cap": 59,
+         "messages": [
+          "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+          "Current swap is reported for context but is not counted as fast memory headroom."
+         ],
+         "model": "profile-scaled-concurrency-v1",
+         "modeled_plan_gib": 0.688,
+         "per_frame_allowance_gib": 0.25,
+         "per_worker_allowance_gib": 0.062,
+         "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+         "planned_frame_threads": 1,
+         "planned_workers": 7,
+         "planning_budget_gib": 3.989,
+         "preset_factor": 1,
+         "profile_factor": 0.25,
+         "requested_frame_threads": 1,
+         "requested_workers": 7,
+         "reserve_gib": 3,
+         "retry_plan": {
+          "level": "constrained",
+          "modeled_plan_gib": 0.5,
+          "planned_frame_threads": 1,
+          "planned_workers": 4,
+          "reduces_parallelism": true
+         },
+         "swap_free_gib": 12.315914154052734,
+         "swap_used_gib": 3.68408203125,
+         "swap_used_percent": 23.02551818502383,
+         "total_gib": 14.646923065185547
+        },
+        "size_bytes": 3000000000,
+        "status": "Ready",
+        "youtube_estimates": {
+         "1440p": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 2346516,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 16000
+          }
+         },
+         "4k": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 6499896,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 45000
+          }
+         },
+         "source": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 413046,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 2500
+          }
+         }
+        },
+        "youtube_resource_forecasts": {
+         "1440p": {
+          "available_gib": 8.318817138671875,
+          "level": "constrained",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 4,
+          "per_frame_allowance_gib": 1.778,
+          "per_worker_allowance_gib": 0.444,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 2,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 1.778,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 2.222,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "4k": {
+          "available_gib": 8.318817138671875,
+          "level": "high",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+           "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 5,
+          "per_frame_allowance_gib": 4,
+          "per_worker_allowance_gib": 1,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 1,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 4,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "high",
+           "modeled_plan_gib": 5,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": false
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "source": {
+          "available_gib": 8.318817138671875,
+          "level": "guarded",
+          "memory_worker_cap": 59,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 0.688,
+          "per_frame_allowance_gib": 0.25,
+          "per_worker_allowance_gib": 0.062,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+          "planned_frame_threads": 1,
+          "planned_workers": 7,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 0.25,
+          "requested_frame_threads": 1,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 0.5,
+           "planned_frame_threads": 1,
+           "planned_workers": 4,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         }
+        }
+       },
+       {
+        "already_processed": false,
+        "error": null,
+        "modified_unix_ms": 1700000000000,
+        "name": "S01E02.Second.mkv",
+        "path": "/fixture/library/Show Name/Season 1/S01E02.Second.mkv",
+        "profile": {
+         "attachment_count": 0,
+         "audio_count": 1,
+         "chapters_count": 0,
+         "chroma_location": 0,
+         "color_matrix": null,
+         "color_primaries": null,
+         "color_range_ffmpeg": "tv",
+         "color_range_x265": "limited",
+         "color_transfer": null,
+         "content": {
+          "animation_detected": false,
+          "genres": [],
+          "reason": "No Animation genre found in available metadata",
+          "resolved_tune": null,
+          "sources": []
+         },
+         "data_stream_count": 0,
+         "duration_seconds": 1.023,
+         "format_level": "1.2",
+         "frame_metadata_available": true,
+         "hdr": {
+          "dolby_vision": false,
+          "dolby_vision_base_layer": false,
+          "dolby_vision_compatibility_id": null,
+          "dolby_vision_enhancement_layer": false,
+          "dolby_vision_evidence": null,
+          "dolby_vision_level": null,
+          "dolby_vision_profile": null,
+          "dolby_vision_rpu": false,
+          "hdr10": false,
+          "hdr10plus": false,
+          "hdr10plus_hint": false,
+          "hlg": false
+         },
+         "interlaced": false,
+         "mastering_display": null,
+         "mastering_display_source": null,
+         "max_cll": null,
+         "max_fall": null,
+         "mediainfo_available": true,
+         "mediainfo_general": {
+          "AudioCount": "1",
+          "Encoded_Application": "Lavf62.3.100",
+          "Encoded_Library": "Lavf62.3.100",
+          "File_Modified_Date": "2026-11-09 20:39:19 UTC",
+          "File_Modified_Date_Local": "2026-11-09 13:39:19",
+          "Format": "Matroska",
+          "Format_Version": "4",
+          "FrameCount": "24",
+          "FrameRate": "24.000",
+          "IsStreamable": "Yes",
+          "OverallBitRate": "125380",
+          "UniqueID": "fixture",
+          "VideoCount": "1",
+          "extra": {
+           "ErrorDetectionType": "Per level 1"
+          }
+         },
+         "primary_stream_index": 0,
+         "source_metadata": {
+          "chapters": [],
+          "format": {
+           "bit_rate": "125380",
+           "duration": "1.023000",
+           "filename": "/fixture/library/Show Name/Season 1/S01E02.Second.mkv",
+           "format_long_name": "Matroska / WebM",
+           "format_name": "matroska,webm",
+           "nb_programs": 0,
+           "nb_stream_groups": 0,
+           "nb_streams": 2,
+           "probe_score": 100,
+           "size": "16033",
+           "start_time": "-0.023000",
+           "tags": {
+            "ENCODER": "Lavf62.3.100"
+           }
+          }
+         },
+         "subtitle_count": 0,
+         "tracks": [
+          {
+           "attached_picture": false,
+           "bit_depth": "8",
+           "bit_rate": null,
+           "channel_layout": null,
+           "channels": null,
+           "codec": "h264",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "24/1",
+            "bits_per_raw_sample": "8",
+            "chroma_location": "left",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "codec_name": "h264",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "video",
+            "coded_height": 180,
+            "coded_width": 320,
+            "color_range": "tv",
+            "display_aspect_ratio": "16:9",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:5c20c6d14b88d3800ba5981635a6f08f68514c315b89baf963b11b2ab8b79976",
+            "extradata_size": 47,
+            "field_order": "progressive",
+            "has_b_frames": 2,
+            "height": 180,
+            "index": 0,
+            "is_avc": "true",
+            "level": 12,
+            "nal_length_size": "4",
+            "pix_fmt": "yuv420p",
+            "profile": "High",
+            "r_frame_rate": "24/1",
+            "refs": 1,
+            "sample_aspect_ratio": "1:1",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "tags": {
+             "DURATION": "00:00:01.000000000",
+             "ENCODER": "Lavc62.11.100 libx264"
+            },
+            "time_base": "1/1000",
+            "width": 320
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "24/1",
+           "height": 180,
+           "index": 0,
+           "language": null,
+           "mediainfo": {
+            "BitDepth": "8",
+            "ChromaSubsampling": "4:2:0",
+            "CodecID": "V_MPEG4/ISO/AVC",
+            "Default": "No",
+            "Duration": "1.000000000",
+            "Encoded_Library": "x264 - core 165",
+            "Forced": "No",
+            "Format": "AVC",
+            "Format_Profile": "High",
+            "FrameRate": "24.000",
+            "FrameRate_Mode": "CFR",
+            "Height": "180",
+            "ScanType": "Progressive",
+            "Width": "320",
+            "colour_range": "Limited"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": "yuv420p",
+           "profile": "High",
+           "sample_rate": null,
+           "title": null,
+           "type": "video",
+           "width": 320
+          },
+          {
+           "attached_picture": false,
+           "bit_depth": 0,
+           "bit_rate": null,
+           "channel_layout": "mono",
+           "channels": 1,
+           "codec": "aac",
+           "color_matrix": null,
+           "color_primaries": null,
+           "color_transfer": null,
+           "default": false,
+           "ffprobe": {
+            "avg_frame_rate": "0/0",
+            "bits_per_sample": 0,
+            "channel_layout": "mono",
+            "channels": 1,
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "codec_name": "aac",
+            "codec_tag": "0x0000",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_type": "audio",
+            "disposition": {
+             "attached_pic": 0,
+             "captions": 0,
+             "clean_effects": 0,
+             "comment": 0,
+             "default": 0,
+             "dependent": 0,
+             "descriptions": 0,
+             "dub": 0,
+             "forced": 0,
+             "hearing_impaired": 0,
+             "karaoke": 0,
+             "lyrics": 0,
+             "metadata": 0,
+             "multilayer": 0,
+             "non_diegetic": 0,
+             "original": 0,
+             "still_image": 0,
+             "timed_thumbnails": 0,
+             "visual_impaired": 0
+            },
+            "extradata_hash": "SHA256:e1d9202ffd952e4a2732fa1093c81702a05a553570e848fb8e670c958c05c101",
+            "extradata_size": 5,
+            "index": 1,
+            "initial_padding": 1024,
+            "profile": "LC",
+            "r_frame_rate": "0/0",
+            "sample_fmt": "fltp",
+            "sample_rate": "44100",
+            "start_pts": -23,
+            "start_time": "-0.023000",
+            "tags": {
+             "DURATION": "00:00:01.023000000",
+             "ENCODER": "Lavc62.11.100 aac"
+            },
+            "time_base": "1/1000"
+           },
+           "filename": null,
+           "forced": false,
+           "frame_rate": "0/0",
+           "height": null,
+           "index": 1,
+           "language": null,
+           "mediainfo": {
+            "ChannelLayout": "M",
+            "Channels": "1",
+            "CodecID": "A_AAC-2",
+            "Compression_Mode": "Lossy",
+            "Default": "No",
+            "Duration": "1.023000000",
+            "Encoded_Library": "Lavc62.11.100 aac",
+            "Forced": "No",
+            "Format": "AAC",
+            "FrameRate": "43.066",
+            "SamplingRate": "44100"
+           },
+           "mime_type": null,
+           "ordinal": 0,
+           "pixel_format": null,
+           "profile": "LC",
+           "sample_rate": "44100",
+           "title": null,
+           "type": "audio",
+           "width": null
+          }
+         ],
+         "video": {
+          "codec": "h264",
+          "height": 180,
+          "secondary_count": 0,
+          "source_bit_depth": 8,
+          "source_chroma": "4:2:0",
+          "target_pixel_format": "yuv420p",
+          "width": 320
+         }
+        },
+        "relative_path": "Show Name/Season 1/S01E02.Second.mkv",
+        "resource_forecast": {
+         "available_gib": 8.318817138671875,
+         "level": "guarded",
+         "memory_worker_cap": 59,
+         "messages": [
+          "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+          "Current swap is reported for context but is not counted as fast memory headroom."
+         ],
+         "model": "profile-scaled-concurrency-v1",
+         "modeled_plan_gib": 0.688,
+         "per_frame_allowance_gib": 0.25,
+         "per_worker_allowance_gib": 0.062,
+         "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+         "planned_frame_threads": 1,
+         "planned_workers": 7,
+         "planning_budget_gib": 3.989,
+         "preset_factor": 1,
+         "profile_factor": 0.25,
+         "requested_frame_threads": 1,
+         "requested_workers": 7,
+         "reserve_gib": 3,
+         "retry_plan": {
+          "level": "constrained",
+          "modeled_plan_gib": 0.5,
+          "planned_frame_threads": 1,
+          "planned_workers": 4,
+          "reduces_parallelism": true
+         },
+         "swap_free_gib": 12.315914154052734,
+         "swap_used_gib": 3.68408203125,
+         "swap_used_percent": 23.02551818502383,
+         "total_gib": 14.646923065185547
+        },
+        "size_bytes": 4500000000,
+        "status": "Ready",
+        "youtube_estimates": {
+         "1440p": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 2346516,
+           "output_height": 1440,
+           "output_width": 2560,
+           "recommended_video_bitrate_kbps": 16000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 16000
+          }
+         },
+         "4k": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 6499896,
+           "output_height": 2160,
+           "output_width": 3840,
+           "recommended_video_bitrate_kbps": 45000,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 45000
+          }
+         },
+         "source": {
+          "balanced": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 90801,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 250
+          },
+          "recommended": {
+           "color_mode": "sdr",
+           "estimated_output_bytes": 413046,
+           "output_height": 180,
+           "output_width": 320,
+           "recommended_video_bitrate_kbps": 2500,
+           "source_bytes": 16033,
+           "source_height": 180,
+           "source_width": 320,
+           "video_bitrate_kbps": 2500
+          }
+         }
+        },
+        "youtube_resource_forecasts": {
+         "1440p": {
+          "available_gib": 8.318817138671875,
+          "level": "constrained",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 2 frame thread(s)."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 4,
+          "per_frame_allowance_gib": 1.778,
+          "per_worker_allowance_gib": 0.444,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 2,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 1.778,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 2.222,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "4k": {
+          "available_gib": 8.318817138671875,
+          "level": "high",
+          "memory_worker_cap": 1,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom.",
+           "The current RAM plan adjusts this profile to 1 worker(s) and 1 frame thread(s).",
+           "Modeled memory headroom is low; live pressure checks remain the final safety guard."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 5,
+          "per_frame_allowance_gib": 4,
+          "per_worker_allowance_gib": 1,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard; concurrency limited by profile-aware memory budget",
+          "planned_frame_threads": 1,
+          "planned_workers": 1,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 4,
+          "requested_frame_threads": 2,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "high",
+           "modeled_plan_gib": 5,
+           "planned_frame_threads": 1,
+           "planned_workers": 1,
+           "reduces_parallelism": false
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         },
+         "source": {
+          "available_gib": 8.318817138671875,
+          "level": "guarded",
+          "memory_worker_cap": 59,
+          "messages": [
+           "Profile-scaled concurrency allowance is a conservative scheduling heuristic, not a prediction of exact peak encoder RAM.",
+           "Current swap is reported for context but is not counted as fast memory headroom."
+          ],
+          "model": "profile-scaled-concurrency-v1",
+          "modeled_plan_gib": 0.688,
+          "per_frame_allowance_gib": 0.25,
+          "per_worker_allowance_gib": 0.062,
+          "plan_reason": "all logical CPU threads minus 1; dynamic memory/PSI guard",
+          "planned_frame_threads": 1,
+          "planned_workers": 7,
+          "planning_budget_gib": 3.989,
+          "preset_factor": 1,
+          "profile_factor": 0.25,
+          "requested_frame_threads": 1,
+          "requested_workers": 7,
+          "reserve_gib": 3,
+          "retry_plan": {
+           "level": "constrained",
+           "modeled_plan_gib": 0.5,
+           "planned_frame_threads": 1,
+           "planned_workers": 4,
+           "reduces_parallelism": true
+          },
+          "swap_free_gib": 12.315914154052734,
+          "swap_used_gib": 3.68408203125,
+          "swap_used_percent": 23.02551818502383,
+          "total_gib": 14.646923065185547
+         }
+        }
+       }
+      ],
+      "environment": {
+       "can_analyze": true,
+       "can_enrich_with_mediainfo": true,
+       "can_probe_media": true,
+       "checks": [
+        {
+         "available": true,
+         "detail": "",
+         "key": "ffmpeg",
+         "label": "FFmpeg",
+         "path": "/usr/bin/ffmpeg",
+         "required": true,
+         "version": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "ffprobe",
+         "label": "FFprobe",
+         "path": "/usr/bin/ffprobe",
+         "required": true,
+         "version": "ffprobe version 8.0.1-3ubuntu2 Copyright (c) 2007-2025 the FFmpeg developers"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "mediainfo",
+         "label": "MediaInfo",
+         "path": "/usr/bin/mediainfo",
+         "required": true,
+         "version": "MediaInfoLib - v26.01"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "mkvpropedit",
+         "label": "MKVToolNix editor",
+         "path": "/usr/bin/mkvpropedit",
+         "required": true,
+         "version": "mkvpropedit v97.0 ('You Don't Have A Clue') 64-bit"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "mkvmerge",
+         "label": "MKVToolNix merger",
+         "path": "/usr/bin/mkvmerge",
+         "required": true,
+         "version": "mkvmerge v97.0 ('You Don't Have A Clue') 64-bit"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "mkvextract",
+         "label": "MKVToolNix extractor",
+         "path": "/usr/bin/mkvextract",
+         "required": true,
+         "version": "mkvextract v97.0 ('You Don't Have A Clue') 64-bit"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "fc-list",
+         "label": "Fontconfig",
+         "path": "/usr/bin/fc-list",
+         "required": false,
+         "version": "fontconfig version 2.17.1"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "hdr10plus_tool",
+         "label": "HDR10+ helper (optional unless needed)",
+         "path": "/home/user/.local/share/hevc-rebuild/bin/hdr10plus_tool",
+         "required": false,
+         "version": "hdr10plus_tool 1.7.2"
+        },
+        {
+         "available": false,
+         "detail": "Not found on PATH",
+         "key": "brew",
+         "label": "Homebrew package manager",
+         "path": null,
+         "required": false,
+         "version": null
+        },
+        {
+         "available": false,
+         "detail": "Not found on PATH",
+         "key": "winget",
+         "label": "Windows Package Manager",
+         "path": null,
+         "required": false,
+         "version": null
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "apt-get",
+         "label": "APT package manager",
+         "path": "/usr/bin/apt-get",
+         "required": false,
+         "version": "apt 3.2.1 (amd64)"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "apt-cache",
+         "label": "APT package catalog",
+         "path": "/usr/bin/apt-cache",
+         "required": false,
+         "version": "apt 3.2.1 (amd64)"
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "dpkg",
+         "label": "Debian package database",
+         "path": "/usr/bin/dpkg",
+         "required": false,
+         "version": "Debian 'dpkg' package management program version 1.23.7 (amd64)."
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "dpkg-query",
+         "label": "Package query tool",
+         "path": "/usr/bin/dpkg-query",
+         "required": false,
+         "version": "Debian dpkg-query package management program query tool version 1.23.7 (amd64)."
+        },
+        {
+         "available": true,
+         "detail": "",
+         "key": "pkexec",
+         "label": "Administrator authentication",
+         "path": "/usr/bin/pkexec",
+         "required": false,
+         "version": "pkexec version 127"
+        },
+        {
+         "available": true,
+         "detail": "CPU libx265 ready",
+         "key": "libx265",
+         "label": "libx265 encoder",
+         "path": "/usr/bin/ffmpeg",
+         "required": true,
+         "version": null
+        },
+        {
+         "available": false,
+         "detail": "libx265 was built without HDR10_PLUS (dhdr10-info disabled)",
+         "key": "libx265_hdr10plus",
+         "label": "libx265 HDR10+",
+         "path": "/usr/bin/ffmpeg",
+         "required": false,
+         "version": null
+        },
+        {
+         "available": true,
+         "detail": "libx264 available",
+         "key": "libx264",
+         "label": "libx264 encoder",
+         "path": "/usr/bin/ffmpeg",
+         "required": false,
+         "version": null
+        },
+        {
+         "available": true,
+         "detail": "aac available",
+         "key": "aac",
+         "label": "AAC encoder",
+         "path": "/usr/bin/ffmpeg",
+         "required": false,
+         "version": null
+        }
+       ],
+       "dolby_vision_x265": true,
+       "hardware": {
+        "cpu_model": "Intel(R) Core(TM) i7-1065G7 CPU @ 1.30GHz",
+        "encoder": "CPU libx265",
+        "gpu_devices": [
+         "NVIDIA (0x1d13)",
+         "Intel (0x8a52)"
+        ],
+        "logical_cpus": 8,
+        "memory_available_gib": 8.318817138671875,
+        "memory_total_gib": 14.646923065185547,
+        "swap_free_gib": 12.315914154052734,
+        "swap_total_gib": 15.999996185302734,
+        "swap_used_gib": 3.68408203125,
+        "swap_used_percent": 23.02551818502383
+       },
+       "hdr10plus_x265": false,
+       "metadata_ready": true,
+       "missing_apt_packages": [],
+       "os": {
+        "name": "Ubuntu",
+        "note": "Supported release",
+        "package_manager": "apt",
+        "package_manager_available": true,
+        "supported": true,
+        "version": "26.04"
+       },
+       "ready": true,
+       "x265_pixel_formats": [
+        "gbrp",
+        "gbrp10le",
+        "gbrp12le",
+        "gray",
+        "gray10le",
+        "gray12le",
+        "yuv420p",
+        "yuv420p10le",
+        "yuv420p12le",
+        "yuv422p",
+        "yuv422p10le",
+        "yuv422p12le",
+        "yuv444p",
+        "yuv444p10le",
+        "yuv444p12le",
+        "yuva420p",
+        "yuva420p10le",
+        "yuvj420p",
+        "yuvj422p",
+        "yuvj444p"
+       ],
+       "youtube_ready": true
+      },
+      "input_kind": "folder",
+      "interrupted": false,
+      "minimum_size_mib": 0,
+      "recursive": true,
+      "root": "/fixture/library",
+      "settings": {
+       "calibration": {
+        "cache_hours": 24,
+        "large_file_gib": 20,
+        "max_candidates": 2,
+        "mode": "auto",
+        "sample_seconds": 3,
+        "throughput_tolerance_percent": 3
+       },
+       "content": {
+        "detect_animation": true,
+        "tune": "auto"
+       },
+       "hdr": {
+        "dolby_vision": "safe",
+        "preserve_hdr10plus": true
+       },
+       "metadata": {
+        "comment": "Fixture comment",
+        "embed_artwork": true,
+        "text_blacklist": []
+       },
+       "paths": {
+        "work_root": "auto"
+       },
+       "resources": {
+        "disk_projection_margin_percent": 15,
+        "frame_threads": 0,
+        "max_worker_threads": 0,
+        "memory_reserve_percent": 8,
+        "min_free_disk_gib": 0,
+        "min_free_memory_gib": 3,
+        "preflight_output_ratio": 1.3,
+        "reserved_cpu_threads": 1,
+        "threading": "auto"
+       },
+       "safety": {
+        "verify_copy_hashes": true
+       },
+       "quality": {
+        "ssim_gate": "enforce",
+        "min_ssim": 0.95
+       },
+       "streams": {
+        "data_streams": "preserve",
+        "secondary_video": "encode"
+       },
+       "video": {
+        "crf": 21,
+        "preset": "slow",
+        "promote_8bit_to_10bit": false
+       }
+      },
+      "settings_sources": [
+       "/home/user/.config/hevc-rebuild/config.toml"
+      ],
+      "total_input_bytes": 9000000000,
+      "warnings": [],
+      "work_directory": {
+       "configured_root": "auto",
+       "directory": "/fixture/library/.hevc-rebuild-work",
+       "fallback_directory": "/home/user/.local/state/hevc-rebuild/work",
+       "resolution": "source-adjacent",
+       "source_path": "/fixture/library"
+      }
+     },
+     "error": null,
+     "updatedAtMs": 1700000000000,
+     "changedFiles": [
+      "/fixture/library/Show Name/Season 1/S01E02.Second.mkv"
+     ],
+     "missingFiles": [],
+     "excludedPaths": [],
+     "entryOrder": []
+    },
+    {
+     "root": "/fixture/second",
+     "status": "failed",
+     "scanResult": null,
+     "error": "Fixture scan failure: folder not readable",
+     "updatedAtMs": 1700000000000,
+     "changedFiles": [],
+     "missingFiles": [],
+     "excludedPaths": [],
+     "entryOrder": []
+    }
+   ],
+   "selectedMediaPaths": [
+    "/fixture/library/Movies/Film (2001).mkv"
+   ],
+   "fileTuneOverrides": {},
+   "fileStreamOverrides": {},
+   "movieReviews": {
+    "/fixture/library/Movies/Film (2001).mkv": {
+     "title": "Fixture Film",
+     "year": "2001",
+     "certification": "PG",
+     "recordId": "tmdb:1",
+     "shortDescription": "A fixture film.",
+     "plot": "A fixture film plot.",
+     "genresText": "Drama",
+     "ratingText": "7.1",
+     "sourceUrl": "https://fixture.invalid/title/film",
+     "artworkCandidates": [
+      {
+       "id": "film",
+       "provider": "tmdb",
+       "title": "Film poster",
+       "imageUrl": "https://fixture.invalid/film.jpg",
+       "thumbnailUrl": "https://fixture.invalid/film-thumb.jpg",
+       "sourceUrl": "https://fixture.invalid/title/film",
+       "creator": null,
+       "license": null,
+       "licenseUrl": null,
+       "attribution": null
+      }
+     ],
+     "posterId": "film",
+     "localPosterPath": "/fixture/library/Movies/poster.jpg"
+    }
+   },
+   "seriesReviews": {
+    "/fixture/library/Show Name": {
+     "title": "Fixture Show",
+     "year": "2020",
+     "certification": "TV-PG",
+     "recordId": "tvmaze:2",
+     "shortDescription": "A fixture show.",
+     "plot": "A fixture show plot.",
+     "genresText": "Comedy",
+     "ratingText": "8.0",
+     "sourceUrl": "https://fixture.invalid/title/show",
+     "artworkCandidates": [
+      {
+       "id": "show",
+       "provider": "tmdb",
+       "title": "Show poster",
+       "imageUrl": "https://fixture.invalid/show.jpg",
+       "thumbnailUrl": "https://fixture.invalid/show-thumb.jpg",
+       "sourceUrl": "https://fixture.invalid/title/show",
+       "creator": null,
+       "license": null,
+       "licenseUrl": null,
+       "attribution": null
+      }
+     ],
+     "posterId": "show",
+     "localPosterPath": "",
+     "localSeasonPosterPaths": {},
+     "seasonRecords": {},
+     "episodes": [
+      {
+       "season": 1,
+       "episode": 1,
+       "title": "The Pilot",
+       "airdate": "2020-01-01",
+       "summary": "Fixture summary 1",
+       "sourceUrl": ""
+      },
+      {
+       "season": 1,
+       "episode": 2,
+       "title": "The Second",
+       "airdate": "2020-01-02",
+       "summary": "Fixture summary 2",
+       "sourceUrl": ""
+      }
+     ],
+     "episodeAssignments": {
+      "/fixture/library/Show Name/Season 1/S01E01.Pilot.mkv": {
+       "season": 1,
+       "episode": 1,
+       "title": "The Pilot",
+       "airdate": "2020-01-01",
+       "summary": "Fixture summary 1",
+       "sourceUrl": ""
+      }
+     }
+    }
+   },
+   "matchSuggestions": {
+    "/fixture/library/Show Name/Season 1/S01E02.Second.mkv": {
+     "kind": "tv",
+     "status": "ready",
+     "title": "Fixture Show",
+     "year": "2020",
+     "provider": "tvmaze",
+     "recordId": "tvmaze:2",
+     "sourceUrl": "https://fixture.invalid/title/show",
+     "description": "A fixture show.",
+     "autoAssociated": true,
+     "artwork": {
+      "id": "show",
+      "provider": "tmdb",
+      "title": "Show poster",
+      "imageUrl": "https://fixture.invalid/show.jpg",
+      "thumbnailUrl": "https://fixture.invalid/show-thumb.jpg",
+      "sourceUrl": "https://fixture.invalid/title/show",
+      "creator": null,
+      "license": null,
+      "licenseUrl": null,
+      "attribution": null
+     },
+     "error": ""
+    }
+   },
+   "runStates": {
+    "/fixture/library/Show Name/Season 1/S01E02.Second.mkv": {
+     "status": "failed",
+     "mode": "full",
+     "message": "Fixture failure: output did not validate",
+     "outputPath": null,
+     "reportPath": "/fixture/reports/run.csv",
+     "reportStatus": "FAILED",
+     "updatedAtMs": 1700000000000
+    }
+   },
+   "activeRoot": "/fixture/library",
+   "updatedAtMs": 1700000000000
+  },
+  "queueFile": "/fixture/config/queue.json",
+  "warning": null
+ }
+}

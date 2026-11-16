@@ -12,6 +12,26 @@ pub(crate) fn spawn_owned(command: &mut Command) -> std::io::Result<Child> {
     command.spawn()
 }
 
+/// Re-send SIGKILL to a group a few times after the first kill.
+///
+/// macOS can miss a child that was forked an instant before the first
+/// `kill(-pgid)`: the signal returns success but that child survives and keeps
+/// the output pipe open. Measured on macOS 26 with a shell that backgrounds a
+/// `sleep` and then emits invalid output: 2 of 300 single kills left the child
+/// alive for its full 30 s, and 0 of 300 did with a second kill 15 ms later.
+/// Linux is unaffected, so the extra sweeps there only cost a few milliseconds.
+/// Sweeping stops as soon as the group is gone (the kill reports an error).
+#[cfg(unix)]
+fn sweep_group(group: libc::pid_t) {
+    for _ in 0..3 {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        // SAFETY: signalling a process group has no memory-safety requirements.
+        if unsafe { libc::kill(-group, libc::SIGKILL) } != 0 {
+            break;
+        }
+    }
+}
+
 /// Kill a process group created by `spawn_owned`. The caller still reaps the child.
 pub(crate) fn kill_owned_group(process_id: u32) -> Result<(), String> {
     #[cfg(unix)]
@@ -20,6 +40,7 @@ pub(crate) fn kill_owned_group(process_id: u32) -> Result<(), String> {
             .map_err(|_| "Engine process id is invalid.".to_string())?;
         let group_result = unsafe { libc::kill(-pid, libc::SIGKILL) };
         if group_result == 0 {
+            sweep_group(pid);
             return Ok(());
         }
         let group_error = std::io::Error::last_os_error();
@@ -73,6 +94,7 @@ pub(crate) fn read_process_lines(
                 // retains responsibility for reaping the direct child.
                 if let Ok(pid) = libc::pid_t::try_from(process_id) {
                     libc::kill(-pid, libc::SIGKILL);
+                    sweep_group(pid);
                 }
             }
             Err(error)
@@ -131,6 +153,33 @@ mod tests {
         assert!(start.elapsed() < std::time::Duration::from_secs(5));
         assert_eq!(lines[0], "valid");
         assert!(lines[1].contains("read failed"));
+    }
+    #[test]
+    #[cfg(unix)]
+    fn repeated_pipe_errors_never_strand_a_descendant() {
+        // Regression for the macOS fork/kill race: the single-kill version left a
+        // backgrounded child alive (and the pipe open) in a small fraction of runs.
+        use std::process::Stdio;
+        for round in 0..60 {
+            let script = "trap '' TERM; sleep 30 & printf 'valid\\n'; printf '\\377\\n'; sleep 30";
+            let mut child = spawn_owned(
+                Command::new("sh")
+                    .args(["-c", script])
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped()),
+            )
+            .unwrap();
+            let start = std::time::Instant::now();
+            let failed = read_process_lines(child.stdout.take().unwrap(), child.id(), |_| {});
+            assert!(failed.is_err());
+            let _ = child.wait();
+            let mut sink = Vec::new();
+            child.stderr.take().unwrap().read_to_end(&mut sink).unwrap();
+            assert!(
+                start.elapsed() < std::time::Duration::from_secs(5),
+                "round {round}: a descendant outlived the group kill"
+            );
+        }
     }
     struct RepeatedError<'a>(&'a AtomicUsize);
     impl Read for RepeatedError<'_> {

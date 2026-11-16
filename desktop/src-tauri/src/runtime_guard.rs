@@ -1,8 +1,7 @@
-//! Stateful live memory and disk guard policy used by the compatibility engine.
+//! Stateful live memory and disk guard policy for encode runs.
 //!
-//! The Python engine remains the FFmpeg process/UI supervisor during migration.
-//! It sends process/output/progress context over this private JSON-lines
-//! interface; Rust samples the host and owns live retry/stop decisions.
+//! Callers send process/output/progress context; this module samples the host and
+//! owns live retry/stop decisions.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -246,7 +245,7 @@ fn handle_line(
 
 /// In-process guard for native coordinators: one stateful policy and one
 /// resource sampler per encode attempt (the JSON-lines helper above wraps the
-/// same two pieces for the Python compatibility engine).
+/// same two pieces for external callers).
 pub(crate) struct LiveGuard {
     policy: GuardPolicy,
     sampler: Sampler,
@@ -453,7 +452,11 @@ mod tests {
         });
         let response = handle_line(&mut policy, &mut sampler, &request.to_string()).unwrap();
         assert_eq!(response["decision"]["action"], "continue");
+        // Linux reads /proc; macOS and Windows read the OS through `sysinfo`
+        // (resource_monitor/portable.rs). Every platform reports memory, so the
+        // memory-reserve rule always has data to act on.
         assert!(response["snapshot"]["memory_available_gib"].is_number());
+        assert!(response["snapshot"]["memory_total_gib"].is_number());
         assert!(
             response["snapshot"]["memory_full_avg10"].is_number()
                 || response["snapshot"]["memory_full_avg10"].is_null()

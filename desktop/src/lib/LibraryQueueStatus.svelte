@@ -6,7 +6,8 @@
   import ScanProgressBar from "./ScanProgressBar.svelte";
   import type { QueueState } from "./workspace-state.js";
   import type { ScanProgress } from "./types.js";
-  import "../styles/components/library-poster-grid.css";
+  import "../styles/components/library-poster-grid-1.css";
+  import "../styles/components/library-poster-grid-2.css";
 
   interface Props {
     queue: QueueState;

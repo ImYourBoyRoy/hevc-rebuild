@@ -1,5 +1,10 @@
-import '../../src/app.css';
-import '../../src/instrument.css';
+import '../../src/styles/app/app-base.css';
+import '../../src/styles/app/app-design-system-1.css';
+import '../../src/styles/app/app-design-system-2.css';
+import '../../src/styles/app/app-design-system-3.css';
+import '../../src/styles/app/app-metadata-setup.css';
+import '../../src/styles/instrument/instrument-1.css';
+import '../../src/styles/instrument/instrument-2.css';
 import '../../src/styles/type-scale.css';
 import { mount } from 'svelte';
 import ModalHarness from './ModalHarness.svelte';

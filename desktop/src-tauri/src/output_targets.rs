@@ -390,7 +390,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("hevc-output-plan-{label}-{stamp}"));
+        let root = crate::test_temp_base().join(format!("hevc-output-plan-{label}-{stamp}"));
         fs::create_dir_all(&root).unwrap();
         root
     }

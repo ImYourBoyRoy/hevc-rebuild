@@ -1,8 +1,7 @@
 //! Rust-owned YouTube output policy, FFmpeg arguments, and MP4 validation.
 //!
-//! The Python compatibility workflow still owns batch orchestration and report
-//! presentation. Rust is the source of truth for sizing, bitrate, HDR routing,
-//! encoder arguments, and output acceptance when launched by the desktop app.
+//! This module is the source of truth for sizing, bitrate, HDR routing, encoder
+//! arguments, and output acceptance; batch orchestration lives in `youtube_run`.
 
 use serde_json::{json, Value};
 use std::ffi::OsString;
@@ -66,8 +65,8 @@ fn dispatch(request: Value) -> Result<Value, String> {
         Some("install") => {
             let temporary = Path::new(required_string(&request, "temporary")?);
             let output = Path::new(required_string(&request, "output")?);
-            crate::transactions::install_export_output(temporary, output)?;
-            Ok(json!({"installed": true}))
+            let outcome = crate::transactions::install_export_output(temporary, output)?;
+            Ok(json!({"installed": true, "warning": outcome.warning}))
         }
         _ => Err(
             "YouTube operation must be policy, dimensions, color-mode, args, or validate.".into(),

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "svelte": {
+      "command": "pnpm",
+      "args": ["--dir", "desktop", "exec", "svelte-mcp"]
+    }
+  }
+}

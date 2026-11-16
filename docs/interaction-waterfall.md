@@ -40,19 +40,19 @@ Active source templates: **5** · estimated runtime controls: **8** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Visible but disabled during this state
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); browseFolder() returns until desktopShell is ready. |
-| Add folder | app-click | [desktop/src/routes/+page.svelte:5281:472](../desktop/src/routes/+page.svelte#L5281) | native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home"; else(scanResult); !scanning |
-| Add files | app-click | [desktop/src/routes/+page.svelte:5281:588](../desktop/src/routes/+page.svelte#L5281) | native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home"; else(scanResult); !scanning |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); browseFolder() returns until desktopShell is ready. |
+| Add folder | app-click | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFolder (boundary) | else(scanResult); !scanning |
+| Add files | app-click | [desktop/src/lib/views/LibraryView.svelte:178:578](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFile (boundary) | else(scanResult); !scanning |
 
 ### Automatic transitions
 
@@ -75,15 +75,15 @@ Active source templates: **9** · estimated runtime controls: **12** · disabled
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Scan options | app-click | [desktop/src/routes/+page.svelte:5222:13](../desktop/src/routes/+page.svelte#L5222) | — | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home"; Opening the disclosure exposes Add path and scan filters; it is not part of the folder-picker happy path. |
-| Add folder | app-click | [desktop/src/routes/+page.svelte:5281:472](../desktop/src/routes/+page.svelte#L5281) | native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home"; else(scanResult); !scanning |
-| Add files | app-click | [desktop/src/routes/+page.svelte:5281:588](../desktop/src/routes/+page.svelte#L5281) | native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home"; else(scanResult); !scanning |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Scan options | app-click | [desktop/src/lib/views/LibraryView.svelte:119:3](../desktop/src/lib/views/LibraryView.svelte#L119) | — | Opening the disclosure exposes Add path and scan filters; it is not part of the folder-picker happy path. |
+| Add folder | app-click | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFolder (boundary) | else(scanResult); !scanning |
+| Add files | app-click | [desktop/src/lib/views/LibraryView.svelte:178:578](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFile (boundary) | else(scanResult); !scanning |
 
 Notes:
 - This is the first task state after the loading wait. Add folder and Add files are enabled here.
@@ -161,40 +161,40 @@ Active source templates: **15** · estimated runtime controls: **18** · disable
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Add folder | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:122:26](../desktop/src/lib/LibraryQueueStatus.svelte#L122) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | queue.sources.length \|\| scanning; onAddFolder |
-| Add files | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:122:26](../desktop/src/lib/LibraryQueueStatus.svelte#L122) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | queue.sources.length \|\| scanning; onAddFolder |
-| Refresh source | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:122:26](../desktop/src/lib/LibraryQueueStatus.svelte#L122) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | queue.sources.length \|\| scanning; onAddFolder; One runtime button per queued source. |
-| Manage queue | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:158:9](../desktop/src/lib/LibraryQueueStatus.svelte#L158) | — | queue.sources.length \|\| scanning; activeSource?.scanResult && onRemoveFile |
-| Rename files | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) | — | crumbs.length; Each(crumbs); crumb.onSelect |
-| Organize titles | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) | — | crumbs.length; Each(crumbs); crumb.onSelect |
-| Check integrity | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) | — | crumbs.length; Each(crumbs); crumb.onSelect |
-| Metadata-only MKV | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) | — | crumbs.length; Each(crumbs); crumb.onSelect |
-| Rebuild video | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) | — | crumbs.length; Each(crumbs); crumb.onSelect |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Add folder | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder |
+| Add files | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder |
+| Refresh source | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder; One runtime button per queued source. |
+| Manage queue | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:159:9](../desktop/src/lib/LibraryQueueStatus.svelte#L159) | — | queue.sources.length \|\| scanning; activeSource?.scanResult && onRemoveFile |
+| Rename files | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) | — | crumbs.length; Each(crumbs); crumb.onSelect |
+| Organize titles | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) | — | crumbs.length; Each(crumbs); crumb.onSelect |
+| Check integrity | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) | — | crumbs.length; Each(crumbs); crumb.onSelect |
+| Metadata-only MKV | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) | — | crumbs.length; Each(crumbs); crumb.onSelect |
+| Rebuild video | app-click | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) | — | crumbs.length; Each(crumbs); crumb.onSelect |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:123:7](../desktop/src/lib/LibraryPosterGrid.svelte#L123) | callback:onReviewCurrent (boundary) | onReviewCurrent |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:177:9](../desktop/src/lib/LibraryPosterGrid.svelte#L177) | callback:onOpenReview (boundary)<br>callback:openLibraryPoster (boundary)<br>native-command:read_local_library_artwork_preview | Each(cards) |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:203:9](../desktop/src/lib/LibraryPosterGrid.svelte#L203) | callback:onOpenReview (boundary)<br>callback:openLibraryPoster (boundary)<br>native-command:read_local_library_artwork_preview | Each(cards) |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:214:9](../desktop/src/lib/LibraryPosterGrid.svelte#L214) | callback:onOpenLocation (boundary)<br>callback:openFileLocation (boundary)<br>native-command:open_file_location | Each(cards) |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:234:11](../desktop/src/lib/LibraryPosterGrid.svelte#L234) | callback:onReview (boundary)<br>callback:openLibraryReview (boundary)<br>native-command:read_local_library_artwork_preview | Each(cards); card.reviewLabel |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:237:11](../desktop/src/lib/LibraryPosterGrid.svelte#L237) | callback:onAdjustRun (boundary)<br>callback:openRunSettingsEditor (boundary) | Each(cards); canAdjustRun && card.kind === "media" && card.selected |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:240:11](../desktop/src/lib/LibraryPosterGrid.svelte#L240) | callback:onRemoveFromQueue (boundary)<br>callback:removeQueueEntry (boundary)<br>native-command:save_library_queue | Each(cards); onRemoveFromQueue && card.mediaPaths.length |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:252:13](../desktop/src/lib/LibraryPosterGrid.svelte#L252) | callback:onSetOutput (boundary)<br>callback:chooseFileOutput (boundary)<br>native-dialog:file/folder picker<br>native-command:save_app_preferences | Each(cards); card.kind === "media" |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:253:38](../desktop/src/lib/LibraryPosterGrid.svelte#L253) | callback:onClearOutput (boundary)<br>callback:clearFileOutput (boundary)<br>native-command:save_app_preferences | Each(cards); card.kind === "media"; card.outputIsCustom |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:269:5](../desktop/src/lib/LibraryPosterGrid.svelte#L269) | callback:onRename (boundary)<br>callback:chooseLibraryTask (boundary)<br>page:run<br>native-command:list_reports<br>native-command:preview_queue_output_targets<br>native-command:save_library_queue<br>native-command:start_run<br>page:dynamic:runMode === "youtube" ? "youtube" : "run" (dynamic)<br>native-command:read_log | always |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:270:21](../desktop/src/lib/LibraryPosterGrid.svelte#L270) | callback:onOrganize (boundary)<br>page:metadata | onOrganize |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:271:5](../desktop/src/lib/LibraryPosterGrid.svelte#L271) | callback:onIntegrity (boundary)<br>callback:chooseLibraryTask (boundary)<br>page:run<br>native-command:list_reports<br>native-command:preview_queue_output_targets<br>native-command:save_library_queue<br>native-command:start_run<br>page:dynamic:runMode === "youtube" ? "youtube" : "run" (dynamic)<br>native-command:read_log | always |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:272:5](../desktop/src/lib/LibraryPosterGrid.svelte#L272) | callback:onMetadata (boundary)<br>callback:chooseLibraryTask (boundary)<br>page:run<br>native-command:list_reports<br>native-command:preview_queue_output_targets<br>native-command:save_library_queue<br>native-command:start_run<br>page:dynamic:runMode === "youtube" ? "youtube" : "run" (dynamic)<br>native-command:read_log | always |
-| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:273:5](../desktop/src/lib/LibraryPosterGrid.svelte#L273) | callback:onRebuild (boundary)<br>callback:chooseLibraryTask (boundary)<br>page:run<br>native-command:list_reports<br>native-command:preview_queue_output_targets<br>native-command:save_library_queue<br>native-command:start_run<br>page:dynamic:runMode === "youtube" ? "youtube" : "run" (dynamic)<br>native-command:read_log | always |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:124:7](../desktop/src/lib/LibraryPosterGrid.svelte#L124) | callback:onReviewCurrent (boundary) | onReviewCurrent |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:178:9](../desktop/src/lib/LibraryPosterGrid.svelte#L178) | callback:onOpenReview (boundary)<br>callback:openLibraryPoster (boundary) | Each(cards) |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:204:9](../desktop/src/lib/LibraryPosterGrid.svelte#L204) | callback:onOpenReview (boundary)<br>callback:openLibraryPoster (boundary) | Each(cards) |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:215:9](../desktop/src/lib/LibraryPosterGrid.svelte#L215) | callback:onOpenLocation (boundary)<br>callback:openFileLocation (boundary) | Each(cards) |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:235:11](../desktop/src/lib/LibraryPosterGrid.svelte#L235) | callback:onReview (boundary)<br>callback:openLibraryReview (boundary) | Each(cards); card.reviewLabel |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:238:11](../desktop/src/lib/LibraryPosterGrid.svelte#L238) | callback:onAdjustRun (boundary)<br>callback:openRunSettingsEditor (boundary) | Each(cards); canAdjustRun && card.kind === "media" && card.selected |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:241:11](../desktop/src/lib/LibraryPosterGrid.svelte#L241) | callback:onRemoveFromQueue (boundary)<br>callback:removeQueueEntry (boundary) | Each(cards); onRemoveFromQueue && card.mediaPaths.length |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:253:13](../desktop/src/lib/LibraryPosterGrid.svelte#L253) | callback:onSetOutput (boundary)<br>callback:chooseFileOutput (boundary) | Each(cards); card.kind === "media" |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:254:38](../desktop/src/lib/LibraryPosterGrid.svelte#L254) | callback:onClearOutput (boundary)<br>callback:clearFileOutput (boundary) | Each(cards); card.kind === "media"; card.outputIsCustom |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:270:5](../desktop/src/lib/LibraryPosterGrid.svelte#L270) | callback:onRename (boundary)<br>callback:chooseLibraryTask (boundary) | always |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:271:21](../desktop/src/lib/LibraryPosterGrid.svelte#L271) | callback:onOrganize (boundary)<br>page:metadata | onOrganize |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:272:5](../desktop/src/lib/LibraryPosterGrid.svelte#L272) | callback:onIntegrity (boundary)<br>callback:chooseLibraryTask (boundary) | always |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:273:5](../desktop/src/lib/LibraryPosterGrid.svelte#L273) | callback:onMetadata (boundary)<br>callback:chooseLibraryTask (boundary) | always |
+| Per-card review, selection, output and recovery controls | button | [desktop/src/lib/LibraryPosterGrid.svelte:274:5](../desktop/src/lib/LibraryPosterGrid.svelte#L274) | callback:onRebuild (boundary)<br>callback:chooseLibraryTask (boundary) | always |
 
 Notes:
 - The five task buttons are visible together in the library action row when a runnable selection exists.
@@ -211,23 +211,23 @@ Active source templates: **10** · estimated runtime controls: **17** · disable
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Check / Integrity / Metadata / Short test / Rebuild | app-click | [desktop/src/lib/RunModePicker.svelte:61:7](../desktop/src/lib/RunModePicker.svelte#L61) | callback:onSelect (boundary)<br>callback:onTabKeydown (boundary) | Each(options); One Svelte template control renders five runtime radio buttons. |
-| Review selected run files | app-click | [desktop/src/routes/+page.svelte:5222:13](../desktop/src/routes/+page.svelte#L5222) | — | else(page === "help"); else(page === "settings"); else(page === "metadata"); page === "library" \|\| page === "home" |
-| Stop queue on first error | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | always |
-| Review and start selected task | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Review selected run files | app-click | [desktop/src/lib/views/RunView.svelte:123:3](../desktop/src/lib/views/RunView.svelte#L123) | — | settings && (mode === "full" \|\| mode === "test") |
+| Stop queue on first error | form-control | [desktop/src/lib/views/RunView.svelte:127:158](../desktop/src/lib/views/RunView.svelte#L127) | — | settings && (mode === "full" \|\| mode === "test") |
+| Review and start selected task | app-click | [desktop/src/lib/views/RunView.svelte:80:230](../desktop/src/lib/views/RunView.svelte#L80) | page:library | !scanResult |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Choose folder | app-click | [desktop/src/routes/+page.svelte:5310:421](../desktop/src/routes/+page.svelte#L5310) | native-dialog:file/folder picker<br>native-command:save_app_preferences | else(page === "help"); else(page === "settings"); else(page === "metadata"); else(page === "library" \|\| page === "home"); else(page === "youtube"); page === "run"; mode !== "check" && mode !== "integrity" |
-| Use default location | app-click | [desktop/src/routes/+page.svelte:5310:542](../desktop/src/routes/+page.svelte#L5310) | native-command:save_app_preferences | else(page === "help"); else(page === "settings"); else(page === "metadata"); else(page === "library" \|\| page === "home"); else(page === "youtube"); page === "run"; mode !== "check" && mode !== "integrity" |
+| Choose folder | app-click | [desktop/src/lib/views/RunView.svelte:93:411](../desktop/src/lib/views/RunView.svelte#L93) | callback:chooseRebuildOutput (boundary) | mode !== "check" && mode !== "integrity" |
+| Use default location | app-click | [desktop/src/lib/views/RunView.svelte:93:532](../desktop/src/lib/views/RunView.svelte#L93) | — | mode !== "check" && mode !== "integrity" |
 
 Notes:
 - Selecting a mode is one app click when the user starts from the generic Run page.
@@ -244,10 +244,10 @@ Active source templates: **4** · estimated runtime controls: **4** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Close output review | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Back | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Adjust output folders | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); conditional branch; Only rendered when the preview finds collisions. |
-| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Close output review | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Back | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Adjust output folders | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview; conditional branch; Only rendered when the preview finds collisions. |
+| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
 
 Notes:
 - The happy-path confirm button is enabled only when the output preview is eligible.
@@ -264,11 +264,11 @@ Active source templates: **5** · estimated runtime controls: **5** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Close output review | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Back | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Adjust output folders | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); conditional branch; Only rendered when the preview finds collisions. |
-| I reviewed the destinations and understand this starts real encodes. | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | conditional branch; Rendered only for full mode; the checkbox tap is counted. |
-| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Close output review | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Back | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Adjust output folders | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview; conditional branch; Only rendered when the preview finds collisions. |
+| I reviewed the destinations and understand this starts real encodes. | form-control | [desktop/src/lib/views/OutputPreviewDialog.svelte:85:38](../desktop/src/lib/views/OutputPreviewDialog.svelte#L85) | — | open && outputPreview; outputPreview.mode === "full"; conditional branch; Rendered only for full mode; the checkbox tap is counted. |
+| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
 
 Notes:
 - The primary button is rendered but disabled until the acknowledgment checkbox is tapped.
@@ -284,10 +284,10 @@ Active source templates: **4** · estimated runtime controls: **4** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Close output review | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Back | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Adjust output folders | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); conditional branch; Only rendered when the preview finds collisions. |
-| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Close output review | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Back | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
+| Adjust output folders | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview; conditional branch; Only rendered when the preview finds collisions. |
+| Confirm destinations and start / Start full rebuild | app-click | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) | callback:onClose (boundary) | open && outputPreview |
 
 ### Active run / progress
 
@@ -300,9 +300,9 @@ Active source templates: **3** · estimated runtime controls: **3** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Open progress details | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary)<br>page:dynamic:workspace.run.mode === "youtube" ? "youtube" : "run" (dynamic) | run.id \|\| run.starting |
-| Stop after this file | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary)<br>page:dynamic:workspace.run.mode === "youtube" ? "youtube" : "run" (dynamic) | run.id \|\| run.starting |
-| Stop now | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary)<br>page:dynamic:workspace.run.mode === "youtube" ? "youtube" : "run" (dynamic) | run.id \|\| run.starting |
+| Open progress details | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary) | run.id \|\| run.starting |
+| Stop after this file | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary) | run.id \|\| run.starting |
+| Stop now | app-click | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) | callback:openProgressDetails (boundary) | run.id \|\| run.starting |
 
 Notes:
 - The encode, validation, report write, and transition to completion are automatic; progress observation costs zero clicks.
@@ -334,9 +334,9 @@ Active source templates: **3** · estimated runtime controls: **3** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Cancel stop now | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Keep running | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Stop now | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Cancel stop now | app-click | [desktop/src/lib/views/StopNowDialog.svelte:19:3](../desktop/src/lib/views/StopNowDialog.svelte#L19) | callback:onClose (boundary) | always |
+| Keep running | app-click | [desktop/src/lib/views/StopNowDialog.svelte:19:3](../desktop/src/lib/views/StopNowDialog.svelte#L19) | callback:onClose (boundary) | always |
+| Stop now | app-click | [desktop/src/lib/views/StopNowDialog.svelte:19:3](../desktop/src/lib/views/StopNowDialog.svelte#L19) | callback:onClose (boundary) | always |
 
 Notes:
 - The modal is the intentional extra click for an immediate stop.
@@ -352,33 +352,33 @@ Active source templates: **12** · estimated runtime controls: **15** · disable
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Add folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | always |
-| Add files | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:181](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFile (boundary)<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | always |
-| Upscale | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:100](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary)<br>native-command:save_app_preferences | always |
-| Optimize | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:410](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary)<br>native-command:save_app_preferences | always |
-| Choose folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | always |
-| Create upload copies | app-click | [desktop/src/lib/YouTubePreparation.svelte:84:322](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:beginRun (boundary)<br>native-command:list_reports<br>native-command:preview_queue_output_targets<br>native-command:save_library_queue<br>native-command:start_run<br>page:dynamic:runMode === "youtube" ? "youtube" : "run" (dynamic)<br>native-command:read_log | else(run.id) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Add folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary) | always |
+| Add files | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:181](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFile (boundary) | always |
+| Upscale | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:100](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary) | always |
+| Optimize | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:410](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary) | always |
+| Choose folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary) | always |
+| Create upload copies | app-click | [desktop/src/lib/YouTubePreparation.svelte:84:322](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:beginRun (boundary) | else(run.id) |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:32:314](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:analyzeFolder (boundary)<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:36:260](../desktop/src/lib/YouTubePreparation.svelte#L36) | callback:browseFolder (boundary)<br>native-command:default_media_root<br>native-dialog:file/folder picker<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:230](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:chooseYoutubeOutput (boundary)<br>native-dialog:file/folder picker<br>native-command:save_app_preferences | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:351](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:persistPreferences (boundary)<br>native-command:save_app_preferences | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:32:314](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:analyzeFolder (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:36:260](../desktop/src/lib/YouTubePreparation.svelte#L36) | callback:browseFolder (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:230](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:chooseYoutubeOutput (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:351](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:persistPreferences (boundary) | always |
 | Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:66:412](../desktop/src/lib/YouTubePreparation.svelte#L66) | page:settings | !modeToolsReady |
 | Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:434](../desktop/src/lib/YouTubePreparation.svelte#L79) | callback:setFilteredSelection (boundary) | scanResult; visibleEntries.length > mediaPageSize |
 | Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:738](../desktop/src/lib/YouTubePreparation.svelte#L79) | — | scanResult |
 | Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:886](../desktop/src/lib/YouTubePreparation.svelte#L79) | page:library | scanResult |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:333](../desktop/src/lib/YouTubePreparation.svelte#L81) | callback:analyzeFolder (boundary)<br>native-command:load_settings<br>native-command:save_app_preferences<br>native-command:save_library_queue<br>native-command:scan_folder<br>page:library | else(scanResult); !scanning |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:84:50](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:stopAfterCurrent (boundary)<br>native-command:request_stop | run.id |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:333](../desktop/src/lib/YouTubePreparation.svelte#L81) | callback:analyzeFolder (boundary) | else(scanResult); !scanning |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:84:50](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:stopAfterCurrent (boundary) | run.id |
 | Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:84:178](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:stopNow (boundary) | run.id; stopNow |
 
 ### Metadata organizer rename review
@@ -392,10 +392,10 @@ Active source templates: **4** · estimated runtime controls: **4** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Review MKV output plan | app-click | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary)<br>page:settings | !compactItemMode |
-| Preview before/after | app-click | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary)<br>page:settings | !compactItemMode |
-| Apply reviewed rename | app-click | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary)<br>page:settings | !compactItemMode |
-| Confirm rename | app-click | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary)<br>page:settings | !compactItemMode |
+| Review MKV output plan | app-click | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary) | !compactItemMode |
+| Preview before/after | app-click | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary) | !compactItemMode |
+| Apply reviewed rename | app-click | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary) | !compactItemMode |
+| Confirm rename | app-click | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) | callback:onOpenSettings (boundary)<br>callback:openMetadataProviderSettings (boundary) | !compactItemMode |
 
 Notes:
 - Text-entry and provider lookup are represented as non-click work; the rename click budget counts only preview, apply, and confirm controls.
@@ -411,12 +411,12 @@ Active source templates: **17** · estimated runtime controls: **20** · disable
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:151:52](../desktop/src/lib/HelpCenter.svelte#L151) | — | always |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:154:114](../desktop/src/lib/HelpCenter.svelte#L154) | — | always |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:155:76](../desktop/src/lib/HelpCenter.svelte#L155) | — | always |
@@ -440,33 +440,33 @@ Active source templates: **6** · estimated runtime controls: **9** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:116:27](../desktop/src/lib/SettingsPreferences.svelte#L116) | callback:saveSettings (boundary)<br>native-command:save_app_preferences | settings |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:157:53](../desktop/src/lib/SettingsPreferences.svelte#L157) | callback:openMetadataProviderSettings (boundary)<br>page:settings | !tmdbCredentialStatus.configured |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:182:53](../desktop/src/lib/SettingsPreferences.svelte#L182) | callback:openMetadataProviderSettings (boundary)<br>page:settings | !tvdbCredentialStatus.configured |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:75](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:toggleTmdbCredentialVisibility (boundary)<br>native-command:reveal_tmdb_read_token | tmdbCredentialStatus.configured \|\| tmdbTokenDraft |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:311](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:saveTmdbCredential (boundary)<br>native-command:save_tmdb_read_token<br>native-command:tmdb_credential_status | always |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:635](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:removeTmdbCredential (boundary)<br>native-command:remove_tmdb_read_token<br>native-command:tmdb_credential_status | tmdbCredentialStatus.configured |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:102](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:toggleTvdbCredentialVisibility (boundary)<br>native-command:reveal_tvdb_credentials | tvdbCredentialStatus.configured \|\| tvdbApiKeyDraft \|\| tvdbSubscriberPinDraft |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:395](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:saveTvdbCredential (boundary)<br>native-command:save_tvdb_credentials<br>native-command:tvdb_credential_status | always |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:756](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:removeTvdbCredential (boundary)<br>native-command:remove_tvdb_credentials<br>native-command:tvdb_credential_status | tvdbCredentialStatus.configured |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:269:260](../desktop/src/lib/SettingsPreferences.svelte#L269) | callback:refreshArtworkCache (boundary)<br>native-command:inspect_app_artwork_cache | always |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:116:27](../desktop/src/lib/SettingsPreferences.svelte#L116) | callback:saveSettings (boundary) | settings |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:157:53](../desktop/src/lib/SettingsPreferences.svelte#L157) | callback:openMetadataProviderSettings (boundary) | !tmdbCredentialStatus.configured |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:182:53](../desktop/src/lib/SettingsPreferences.svelte#L182) | callback:openMetadataProviderSettings (boundary) | !tvdbCredentialStatus.configured |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:75](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:toggleTmdbCredentialVisibility (boundary) | tmdbCredentialStatus.configured \|\| tmdbTokenDraft |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:311](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:saveTmdbCredential (boundary) | always |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:197:635](../desktop/src/lib/SettingsPreferences.svelte#L197) | callback:removeTmdbCredential (boundary) | tmdbCredentialStatus.configured |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:102](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:toggleTvdbCredentialVisibility (boundary) | tvdbCredentialStatus.configured \|\| tvdbApiKeyDraft \|\| tvdbSubscriberPinDraft |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:395](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:saveTvdbCredential (boundary) | always |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:223:756](../desktop/src/lib/SettingsPreferences.svelte#L223) | callback:removeTvdbCredential (boundary) | tvdbCredentialStatus.configured |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:269:260](../desktop/src/lib/SettingsPreferences.svelte#L269) | callback:refreshArtworkCache (boundary) | always |
 | Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:284:15](../desktop/src/lib/SettingsPreferences.svelte#L284) | — | else(!desktopShell); else(artworkCacheLoading && !artworkCacheInfo); artworkCacheInfo; artworkCacheInfo.purgeableImageCount && !artworkCacheConfirm |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:288:17](../desktop/src/lib/SettingsPreferences.svelte#L288) | callback:purgeUnusedArtworkCache (boundary)<br>native-command:purge_unused_app_artwork_cache | else(!desktopShell); else(artworkCacheLoading && !artworkCacheInfo); artworkCacheInfo; else(artworkCacheInfo.purgeableImageCount && !artworkCacheConfirm); artworkCacheConfirm |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:288:17](../desktop/src/lib/SettingsPreferences.svelte#L288) | callback:purgeUnusedArtworkCache (boundary) | else(!desktopShell); else(artworkCacheLoading && !artworkCacheInfo); artworkCacheInfo; else(artworkCacheInfo.purgeableImageCount && !artworkCacheConfirm); artworkCacheConfirm |
 | Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:289:17](../desktop/src/lib/SettingsPreferences.svelte#L289) | — | else(!desktopShell); else(artworkCacheLoading && !artworkCacheInfo); artworkCacheInfo; else(artworkCacheInfo.purgeableImageCount && !artworkCacheConfirm); artworkCacheConfirm |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:310:476](../desktop/src/lib/SettingsPreferences.svelte#L310) | callback:addFilenamePattern (boundary)<br>native-command:save_app_preferences | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]) |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:312:216](../desktop/src/lib/SettingsPreferences.svelte#L312) | callback:clearFilenamePatterns (boundary)<br>native-command:save_app_preferences | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]); appPreferences[key].length |
-| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:313:171](../desktop/src/lib/SettingsPreferences.svelte#L313) | callback:removeFilenamePattern (boundary)<br>native-command:save_app_preferences | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]); appPreferences[key].length; Each(appPreferences[key]) |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:310:476](../desktop/src/lib/SettingsPreferences.svelte#L310) | callback:addFilenamePattern (boundary) | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]) |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:312:216](../desktop/src/lib/SettingsPreferences.svelte#L312) | callback:clearFilenamePatterns (boundary) | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]); appPreferences[key].length |
+| Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:313:171](../desktop/src/lib/SettingsPreferences.svelte#L313) | callback:removeFilenamePattern (boundary) | Each([{ kind: "include", title: "Include names", hint: "Only names matching at least one pattern are scanned." }, { kind: "exclude", title: "Exclude names", hint: "Names matching any pattern are skipped." }]); appPreferences[key].length; Each(appPreferences[key]) |
 | Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:328:309](../desktop/src/lib/SettingsPreferences.svelte#L328) | callback:addMetadataBlacklistPattern (boundary) | settings |
 | Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:331:253](../desktop/src/lib/SettingsPreferences.svelte#L331) | callback:clearMetadataBlacklist (boundary) | settings; settings.metadata.text_blacklist.length |
 | Settings buttons (source-conditional) | button | [desktop/src/lib/SettingsPreferences.svelte:332:180](../desktop/src/lib/SettingsPreferences.svelte#L332) | callback:removeMetadataBlacklistPattern (boundary) | settings; settings.metadata.text_blacklist.length; Each(settings.metadata.text_blacklist) |
@@ -494,23 +494,23 @@ Active source templates: **6** · estimated runtime controls: **9** · disabled 
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Library / Run / YouTube navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
-| Settings / Reports navigation | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Choose media folder | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) | native-command:save_app_preferences | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Help and commands | app-click | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
+| Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
+| Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:34:13](../desktop/src/lib/ReportBrowser.svelte#L34) | callback:loadReports (boundary)<br>native-command:list_reports | always |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:36:15](../desktop/src/lib/ReportBrowser.svelte#L36) | callback:deleteReportHistory (boundary)<br>native-command:delete_reports<br>native-command:list_reports | reportDeleteConfirm |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:34:13](../desktop/src/lib/ReportBrowser.svelte#L34) | callback:loadReports (boundary) | always |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:36:15](../desktop/src/lib/ReportBrowser.svelte#L36) | callback:deleteReportHistory (boundary) | reportDeleteConfirm |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:37:15](../desktop/src/lib/ReportBrowser.svelte#L37) | — | reportDeleteConfirm |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:39:15](../desktop/src/lib/ReportBrowser.svelte#L39) | — | else(reportDeleteConfirm) |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:62:17](../desktop/src/lib/ReportBrowser.svelte#L62) | callback:chooseReport (boundary)<br>native-command:read_log | reports.length; Each(reports) |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:67:234](../desktop/src/lib/ReportBrowser.svelte#L67) | callback:openLog (boundary)<br>native-command:read_log | reports.length; activeReport |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:62:17](../desktop/src/lib/ReportBrowser.svelte#L62) | callback:chooseReport (boundary) | reports.length; Each(reports) |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:67:234](../desktop/src/lib/ReportBrowser.svelte#L67) | callback:openLog (boundary) | reports.length; activeReport |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:94:156](../desktop/src/lib/ReportBrowser.svelte#L94) | callback:copyLog (boundary) | reports.length; activeReport |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:99:310](../desktop/src/lib/ReportBrowser.svelte#L99) | page:dynamic:hasScan ? "run" : "library" (dynamic) | else(reports.length) |
 
@@ -531,11 +531,11 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `startup-loading` → `library-empty-ready` | Wait for the app to finish loading | automatic | `0` | `—` |
-| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/routes/+page.svelte:5281:472](../desktop/src/routes/+page.svelte#L5281) |
+| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) |
 | 3 | `native-folder-picker` → `native-folder-picker` | Navigate and select source | native-navigation | `x` | `—` |
 | 4 | `native-folder-picker` → `library-ready` | Confirm native picker selection | native-confirm | `1` | `—` |
 | 5 | `library-ready` → `library-ready` | Scan source and populate queue | automatic | `0` | `—` |
-| 6 | `library-ready` → `run-active` | Check integrity<br>`chooseLibraryTask("integrity") → beginRun()` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) |
+| 6 | `library-ready` → `run-active` | Check integrity<br>`chooseLibraryTask("integrity") → beginRun()` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) |
 | 7 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `x + 3` total clicks = 2 app + 1 native-picker/system + variable picker clicks.
@@ -556,12 +556,12 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `startup-loading` → `library-empty-ready` | Wait for the app to finish loading | automatic | `0` | `—` |
-| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/routes/+page.svelte:5281:472](../desktop/src/routes/+page.svelte#L5281) |
+| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) |
 | 3 | `native-folder-picker` → `native-folder-picker` | Navigate and select source | native-navigation | `x` | `—` |
 | 4 | `native-folder-picker` → `library-ready` | Confirm native picker selection | native-confirm | `1` | `—` |
 | 5 | `library-ready` → `library-ready` | Scan source and populate queue | automatic | `0` | `—` |
-| 6 | `library-ready` → `output-preview-metadata` | Metadata-only MKV<br>`chooseLibraryTask("metadata") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) |
-| 7 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 6 | `library-ready` → `output-preview-metadata` | Metadata-only MKV<br>`chooseLibraryTask("metadata") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) |
+| 7 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) |
 | 8 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `x + 4` total clicks = 3 app + 1 native-picker/system + variable picker clicks.
@@ -583,13 +583,13 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `startup-loading` → `library-empty-ready` | Wait for the app to finish loading | automatic | `0` | `—` |
-| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/routes/+page.svelte:5281:472](../desktop/src/routes/+page.svelte#L5281) |
+| 2 | `library-empty-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) |
 | 3 | `native-folder-picker` → `native-folder-picker` | Navigate and select source | native-navigation | `x` | `—` |
 | 4 | `native-folder-picker` → `library-ready` | Confirm native picker selection | native-confirm | `1` | `—` |
 | 5 | `library-ready` → `library-ready` | Scan source and populate queue | automatic | `0` | `—` |
-| 6 | `library-ready` → `output-preview-full-unacknowledged` | Rebuild video<br>`chooseLibraryTask("rebuild") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) |
-| 7 | `output-preview-full-unacknowledged` → `output-preview-full-ready` | Acknowledge real encodes | app-click | `1` | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) |
-| 8 | `output-preview-full-ready` → `run-active` | Start full rebuild<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 6 | `library-ready` → `output-preview-full-unacknowledged` | Rebuild video<br>`chooseLibraryTask("rebuild") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) |
+| 7 | `output-preview-full-unacknowledged` → `output-preview-full-ready` | Acknowledge real encodes | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:85:38](../desktop/src/lib/views/OutputPreviewDialog.svelte#L85) |
+| 8 | `output-preview-full-ready` → `run-active` | Start full rebuild<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) |
 | 9 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `x + 5` total clicks = 4 app + 1 native-picker/system + variable picker clicks.
@@ -610,12 +610,12 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `startup-loading` → `library-empty-ready` | Wait for the app to finish loading | automatic | `0` | `—` |
-| 2 | `library-empty-ready` → `native-file-picker` | Add files | app-click | `1` | [desktop/src/routes/+page.svelte:5281:588](../desktop/src/routes/+page.svelte#L5281) |
+| 2 | `library-empty-ready` → `native-file-picker` | Add files | app-click | `1` | [desktop/src/lib/views/LibraryView.svelte:178:578](../desktop/src/lib/views/LibraryView.svelte#L178) |
 | 3 | `native-file-picker` → `native-file-picker` | Navigate and select file(s) | native-navigation | `x` | `—` |
 | 4 | `native-file-picker` → `library-ready` | Confirm native file-picker selection | native-confirm | `1` | `—` |
 | 5 | `library-ready` → `library-ready` | Scan file selection and populate queue | automatic | `0` | `—` |
-| 6 | `library-ready` → `output-preview-metadata` | Metadata-only MKV<br>`chooseLibraryTask("metadata") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) |
-| 7 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 6 | `library-ready` → `output-preview-metadata` | Metadata-only MKV<br>`chooseLibraryTask("metadata") → openPage("run") → beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) |
+| 7 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) |
 | 8 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `x + 4` total clicks = 3 app + 1 native-picker/system + variable picker clicks.
@@ -652,7 +652,7 @@ Assumptions:
 
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
-| 1 | `library-empty-ready` → `youtube-ready` | YouTube navigation item | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 1 | `library-empty-ready` → `youtube-ready` | YouTube navigation item | app-click | `1` | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) |
 | 2 | `youtube-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) |
 | 3 | `native-folder-picker` → `native-folder-picker` | Navigate and select source | native-navigation | `x` | `—` |
 | 4 | `native-folder-picker` → `library-ready` | Confirm native picker selection | native-confirm | `1` | `—` |
@@ -676,8 +676,8 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `run-page-ready` → `run-page-ready` | Metadata mode tab | app-click | `1` | [desktop/src/lib/RunModePicker.svelte:61:7](../desktop/src/lib/RunModePicker.svelte#L61) |
-| 2 | `run-page-ready` → `output-preview-metadata` | Review and create metadata MKVs<br>`beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
-| 3 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 2 | `run-page-ready` → `output-preview-metadata` | Review and create metadata MKVs<br>`beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/views/RunView.svelte:80:230](../desktop/src/lib/views/RunView.svelte#L80) |
+| 3 | `output-preview-metadata` → `run-active` | Confirm destinations and start<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) |
 | 4 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `3` total clicks = 3 app + 0 native-picker/system + variable picker clicks.
@@ -696,9 +696,9 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `run-page-ready` → `run-page-ready` | Rebuild mode tab | app-click | `1` | [desktop/src/lib/RunModePicker.svelte:61:7](../desktop/src/lib/RunModePicker.svelte#L61) |
-| 2 | `run-page-ready` → `output-preview-full-unacknowledged` | Review and start full rebuild<br>`beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
-| 3 | `output-preview-full-unacknowledged` → `output-preview-full-ready` | Acknowledge real encodes | app-click | `1` | [desktop/src/routes/+page.svelte:5171:11](../desktop/src/routes/+page.svelte#L5171) |
-| 4 | `output-preview-full-ready` → `run-active` | Start full rebuild<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 2 | `run-page-ready` → `output-preview-full-unacknowledged` | Review and start full rebuild<br>`beginRun() → preview_queue_output_targets` | app-click | `1` | [desktop/src/lib/views/RunView.svelte:80:230](../desktop/src/lib/views/RunView.svelte#L80) |
+| 3 | `output-preview-full-unacknowledged` → `output-preview-full-ready` | Acknowledge real encodes | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:85:38](../desktop/src/lib/views/OutputPreviewDialog.svelte#L85) |
+| 4 | `output-preview-full-ready` → `run-active` | Start full rebuild<br>`confirmOutputPreview() → beginQueuedRun()` | app-click | `1` | [desktop/src/lib/views/OutputPreviewDialog.svelte:37:7](../desktop/src/lib/views/OutputPreviewDialog.svelte#L37) |
 | 5 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `4` total clicks = 4 app + 0 native-picker/system + variable picker clicks.
@@ -716,11 +716,11 @@ Assumptions:
 
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
-| 1 | `library-ready` → `metadata-organizer` | Organize titles<br>`openPage("metadata")` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:115:13](../desktop/src/lib/LibraryPosterGrid.svelte#L115) |
+| 1 | `library-ready` → `metadata-organizer` | Organize titles<br>`openPage("metadata")` | app-click | `1` | [desktop/src/lib/LibraryPosterGrid.svelte:116:13](../desktop/src/lib/LibraryPosterGrid.svelte#L116) |
 | 2 | `metadata-organizer` → `metadata-organizer` | Review or edit title fields | text-entry | `0` | `—` |
-| 3 | `metadata-organizer` → `metadata-organizer` | Preview before/after<br>`preview_library_rename` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) |
-| 4 | `metadata-organizer` → `metadata-organizer` | Apply reviewed rename<br>`show rename confirmation` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) |
-| 5 | `metadata-organizer` → `finished` | Confirm rename<br>`apply_library_rename and rescan queue` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:2744:170](../desktop/src/lib/MetadataWorkbench.svelte#L2744) |
+| 3 | `metadata-organizer` → `metadata-organizer` | Preview before/after<br>`preview_library_rename` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) |
+| 4 | `metadata-organizer` → `metadata-organizer` | Apply reviewed rename<br>`show rename confirmation` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) |
+| 5 | `metadata-organizer` → `finished` | Confirm rename<br>`apply_library_rename and rescan queue` | app-click | `1` | [desktop/src/lib/MetadataWorkbench.svelte:231:170](../desktop/src/lib/MetadataWorkbench.svelte#L231) |
 
 **Minimum formula:** `4` total clicks = 4 app + 0 native-picker/system + variable picker clicks.
 
@@ -745,7 +745,7 @@ Automatic/text-only steps: 0. App clicks: 1. Native/system clicks: 0.
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `run-active` → `stop-confirmation` | Stop now | app-click | `1` | [desktop/src/lib/RunProgress.svelte:46:15](../desktop/src/lib/RunProgress.svelte#L46) |
-| 2 | `stop-confirmation` → `finished` | Stop now<br>`request_abort; mark current file interrupted` | app-click | `1` | [desktop/src/routes/+page.svelte:5133:9](../desktop/src/routes/+page.svelte#L5133) |
+| 2 | `stop-confirmation` → `finished` | Stop now<br>`request_abort; mark current file interrupted` | app-click | `1` | [desktop/src/lib/views/StopNowDialog.svelte:19:3](../desktop/src/lib/views/StopNowDialog.svelte#L19) |
 
 **Minimum formula:** `2` total clicks = 2 app + 0 native-picker/system + variable picker clicks.
 

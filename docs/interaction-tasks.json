@@ -21,7 +21,7 @@
           "label": "Library empty state → Add folder",
           "steps": [
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/LibraryView.svelte",
               "label": "Add folder"
             }
           ]
@@ -71,7 +71,7 @@
           "label": "Library empty state → Add files",
           "steps": [
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/LibraryView.svelte",
               "label": "Add files"
             }
           ]
@@ -108,7 +108,7 @@
           "label": "Run page → Start quick integrity check",
           "steps": [
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/RunView.svelte",
               "handler": "beginRun"
             }
           ]
@@ -132,9 +132,9 @@
               "label": "Metadata-only MKV"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
               "labelIncludes": "Confirm",
-              "handler": "confirmOutputPreview"
+              "handler": "onConfirm"
             }
           ]
         },
@@ -147,12 +147,12 @@
               "handler": "onSelect"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/RunView.svelte",
               "handler": "beginRun"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
-              "handler": "confirmOutputPreview"
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
+              "handler": "onConfirm"
             }
           ]
         }
@@ -175,14 +175,14 @@
               "label": "Rebuild video"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
               "labelIncludes": "reviewed the destinations",
               "kind": "form-control",
               "clicks": 1
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
-              "handler": "confirmOutputPreview"
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
+              "handler": "onConfirm"
             }
           ]
         },
@@ -195,18 +195,18 @@
               "handler": "onSelect"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/RunView.svelte",
               "handler": "beginRun"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
               "labelIncludes": "reviewed the destinations",
               "kind": "form-control",
               "clicks": 1
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
-              "handler": "confirmOutputPreview"
+              "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
+              "handler": "onConfirm"
             }
           ]
         }
@@ -262,12 +262,12 @@
               "label": "Organize titles"
             },
             {
-              "file": "desktop/src/lib/MetadataWorkbench.svelte",
+              "file": "desktop/src/lib/views/WorkbenchDetailPanel.svelte",
               "label": "Preview before/after",
               "handler": "previewNames"
             },
             {
-              "file": "desktop/src/lib/MetadataWorkbench.svelte",
+              "file": "desktop/src/lib/views/WorkbenchDetailPanel.svelte",
               "label": "Apply reviewed rename"
             },
             {
@@ -301,13 +301,13 @@
           "label": "Active run → Stop now → confirmation Stop now",
           "steps": [
             {
-              "file": "desktop/src/routes/+page.svelte",
-              "sourceIncludes": "abortConfirmOpen"
+              "file": "desktop/src/lib/views/RunView.svelte",
+              "sourceIncludes": "onStopNow"
             },
             {
-              "file": "desktop/src/routes/+page.svelte",
+              "file": "desktop/src/lib/views/StopNowDialog.svelte",
               "label": "Stop now",
-              "handler": "confirmStopNow"
+              "handler": "onConfirm"
             }
           ]
         }

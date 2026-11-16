@@ -14,6 +14,7 @@
     "ui:check": "pnpm --dir desktop check",
     "ui:check:tsgo": "pnpm --dir desktop check:tsgo",
     "ui:tauri": "pnpm --dir desktop tauri",
+    "mcp:svelte": "pnpm --dir desktop mcp:svelte",
     "interaction-map": "node tools/interaction-map.mjs",
     "interaction-map:check": "node tools/interaction-map.mjs --check",
     "interaction-waterfall": "node tools/interaction-waterfall.mjs",

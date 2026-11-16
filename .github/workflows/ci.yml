@@ -54,6 +54,7 @@ jobs:
           pnpm test:report-view
           pnpm test:queue-paths
           pnpm test:youtube
+          pnpm test:route-golden
       - name: Check the architecture map is current
         working-directory: .
         run: |
@@ -84,6 +85,9 @@ jobs:
             librsvg2-dev \
             patchelf \
             xdg-utils
+      - name: Install media tools for the end-to-end tests
+        working-directory: .
+        run: sudo apt-get install -y ffmpeg mkvtoolnix mediainfo
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
           toolchain: stable
@@ -94,11 +98,47 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run Rust library tests
+        # The synthetic-clip tests (full rebuild, short test, metadata-only,
+        # YouTube) drive the real media tools. HEVC_REQUIRE_MEDIA_TOOLS turns a
+        # missing tool into a failure so they can never skip silently here.
+        env:
+          HEVC_REQUIRE_MEDIA_TOOLS: "1"
         run: cargo test --locked --lib
       - name: Check the native binary
         run: cargo check --locked --bin hevc-rebuild-studio
       - name: Run Clippy
         run: cargo clippy --all-targets --locked -- -D warnings
+
+  rust-tests-cross-platform:
+    # The native-build job below only compiles on Windows and macOS. This one
+    # also runs the unit tests there, covering the platform-specific no-overwrite
+    # rename and directory-sync code that the Linux job cannot execute. Media-tool
+    # integration tests skip when the tools are absent. Advisory until it has been
+    # green on both runners; then drop continue-on-error to make it a gate.
+    name: Rust unit tests (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+          - name: macOS Apple Silicon
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: desktop/src-tauri
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
+        with:
+          toolchain: stable
+      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: desktop/src-tauri -> target
+      - name: Run Rust library tests
+        run: cargo test --locked --lib
 
   linux-source-installer:
     name: Clean Linux source installer

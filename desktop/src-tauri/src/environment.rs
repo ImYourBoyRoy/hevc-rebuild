@@ -1359,11 +1359,20 @@ mod tests {
         }
     }
 
+    // Distro (apt) package advice exists only on Linux; other hosts get none.
+    #[cfg(target_os = "linux")]
     #[test]
     fn missing_ffprobe_uses_distro_package_even_with_custom_ffmpeg() {
         let checks = [tool_check("ffmpeg", true), tool_check("ffprobe", false)];
         let packages = missing_apt_packages(&checks, true);
         assert!(packages.iter().any(|package| package == "ffmpeg"));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    #[test]
+    fn no_distro_packages_are_suggested_off_linux() {
+        let checks = [tool_check("ffmpeg", true), tool_check("ffprobe", false)];
+        assert!(missing_apt_packages(&checks, true).is_empty());
     }
 
     #[test]

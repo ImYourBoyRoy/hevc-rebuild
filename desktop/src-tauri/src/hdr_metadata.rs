@@ -529,8 +529,8 @@ fn dolby_vision_facts_from_value(profile: &Value) -> Result<DolbyVisionFacts, St
     })
 }
 
-/// Verify HDR10+ on one encoded output video stream without returning to the
-/// Python compatibility engine. `video_ordinal` is the output's FFprobe `v:N`.
+/// Verify HDR10+ on one encoded output video stream. `video_ordinal` is the
+/// output's FFprobe `v:N`.
 pub(crate) fn verify_hdr10plus_output(
     ffmpeg: &str,
     hdr10plus_tool: &str,
@@ -1060,7 +1060,7 @@ mod tests {
     }
 
     #[test]
-    fn dolby_vision_safe_and_fallback_reasons_match_python_policy() {
+    fn dolby_vision_safe_and_fallback_reasons_follow_the_shared_policy() {
         let eligible = DolbyVisionFacts {
             dovi_profile: Some(8),
             dovi_rpu_present: true,
@@ -1095,7 +1095,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn hdr10plus_pipeline_verifies_and_extracts_with_fake_tools() {
-        use std::os::unix::fs::PermissionsExt;
         use std::sync::atomic::{AtomicU64, Ordering};
 
         static NEXT: AtomicU64 = AtomicU64::new(1);
@@ -1112,21 +1111,11 @@ mod tests {
         // Match real hdr10plus_tool --verify: print detection and exit without
         // draining stdin. Fake FFmpeg writes past a typical pipe buffer so a
         // missing producer-kill would deadlock the verify path.
-        std::fs::write(
+        crate::write_test_script(
             &ffmpeg,
             "#!/bin/sh\ndd if=/dev/zero bs=1024 count=256 2>/dev/null\n",
-        )
-        .unwrap();
-        std::fs::write(
-            &parser,
-            "#!/bin/sh\nif [ \"$1\" = \"--verify\" ]; then printf 'Dynamic HDR10+ metadata detected\\n'; exit 0; fi\nif [ \"$1\" = \"inject\" ]; then\n  out=\n  while [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\n  printf 'injected-hevc-annexb-bytes' > \"$out\"\n  exit 0\nfi\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; output=$1; fi; shift; done\ncat >/dev/null\nprintf '{\"metadata\":true,\"frames\":[]}' > \"$output\"\n",
-        )
-        .unwrap();
-        for path in [&ffmpeg, &parser] {
-            let mut permissions = std::fs::metadata(path).unwrap().permissions();
-            permissions.set_mode(0o700);
-            std::fs::set_permissions(path, permissions).unwrap();
-        }
+        );
+        crate::write_test_script(&parser, "#!/bin/sh\nif [ \"$1\" = \"--verify\" ]; then printf 'Dynamic HDR10+ metadata detected\\n'; exit 0; fi\nif [ \"$1\" = \"inject\" ]; then\n  out=\n  while [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\n  printf 'injected-hevc-annexb-bytes' > \"$out\"\n  exit 0\nfi\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; output=$1; fi; shift; done\ncat >/dev/null\nprintf '{\"metadata\":true,\"frames\":[]}' > \"$output\"\n");
         let request = Request {
             operation: "verify_hdr10plus".into(),
             tools: ToolPaths {
@@ -1181,20 +1170,12 @@ mod tests {
         let matroska = root.join("multi.mkv");
         std::fs::write(&matroska, b"fake-matroska-container").unwrap();
         let mkvmerge = root.join("mkvmerge");
-        std::fs::write(
-            &mkvmerge,
-            "#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\nprintf 'remuxed-matroska-bytes-here' > \"$out\"\n",
-        )
-        .unwrap();
-        let mut permissions = std::fs::metadata(&mkvmerge).unwrap().permissions();
-        permissions.set_mode(0o700);
-        std::fs::set_permissions(&mkvmerge, permissions).unwrap();
+        crate::write_test_script(&mkvmerge, "#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do if [ \"$1\" = \"-o\" ]; then shift; out=$1; fi; shift; done\nprintf 'remuxed-matroska-bytes-here' > \"$out\"\n");
         // FFmpeg demux: write enough bytes for each -map 0:v:N request.
-        std::fs::write(
+        crate::write_test_script(
             &ffmpeg,
             "#!/bin/sh\neval \"out=\\${$#}\"\nprintf 'demuxed-hevc-annexb-bytes' > \"$out\"\n",
-        )
-        .unwrap();
+        );
         let work = root.join("work");
         std::fs::create_dir(&work).unwrap();
         apply_hdr10plus_injections_to_matroska(

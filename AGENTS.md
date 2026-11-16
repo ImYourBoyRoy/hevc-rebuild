@@ -130,6 +130,37 @@ Routes should coordinate; reusable logic belongs in `desktop/src/lib/` or Rust
 modules with focused tests. Do not grow the already oversized route without a
 characterization test and an extraction plan.
 
+## Svelte MCP (agent tooling)
+
+The official Svelte MCP server is a dev dependency
+(`@sveltejs/mcp` in `desktop/package.json` with a `>=` floor, resolved to an
+exact version in `desktop/pnpm-lock.yaml`).
+It provides `svelte-autofixer`, `get-documentation`, `list-sections` and
+`playground-link`. Run `svelte-autofixer` on every edited `.svelte` file until
+it reports no issues; it complements, and never replaces, `pnpm check`,
+`pnpm check:tsgo` and `pnpm build`. `get-documentation` and `playground-link`
+contact svelte.dev, so they need network access.
+
+After `pnpm --dir desktop install --frozen-lockfile`, each client starts the
+same local copy (`pnpm --dir desktop exec svelte-mcp`, also `pnpm mcp:svelte`
+from the root or `desktop/`) from a committed, project-scoped file:
+
+| Client | File | Notes |
+|---|---|---|
+| Claude Code | `.mcp.json` | Prompts once to approve the project server. |
+| Cursor | `.cursor/mcp.json` | Uses `${workspaceFolder}`; enable the server under Settings > MCP. |
+| Codex (OpenAI) | `.codex/config.toml` | Read only after Codex trusts the project. |
+
+ChatGPT (web and desktop apps) can only attach remote MCP servers through its
+own connector settings; it cannot read repository files or start a local stdio
+server, so there is no repository file for it. Use Codex or another local
+client for this server.
+
+Keep the three files identical in behavior. The range floats upward, but the
+lockfile fixes what is installed: move it with `pnpm --dir desktop update
+@sveltejs/mcp`, re-check the tools still start, and record the new version in
+`MEMORY.md`. Fix the client files when a release changes the command or tools.
+
 ## Safety boundaries
 
 Use explicit dry-run/confirmation boundaries for package repair, media writes,

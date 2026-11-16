@@ -1,18 +1,16 @@
 //! ./desktop/src-tauri/src/matroska_tags.rs
-//! Native Matroska global-tag builder (migration slice T4.3a).
+//! Native Matroska global-tag builder.
 //!
-//! Ports the pure decision logic of `hevc_rebuild/metadata.py::build_tags` and
-//! `_scrub_tag_tree`: reviewed overrides, release-group and
+//! Pure decision logic: reviewed overrides, release-group and
 //! blacklist cleanup, merge with the source's existing global tags, and the
 //! merged `Tags` XML handed to `mkvpropedit`. It performs no media or file I/O,
-//! so the future mutating run coordinator can call it directly, and
-//! `internal metadata-tags` exposes it for Python/Rust parity fixtures.
+//! so run coordinators can call it directly, and `internal metadata-tags`
+//! exposes it for fixture-based diagnostics.
 //!
 //! Run: `echo '<request json>' | hevc-rebuild-studio internal metadata-tags`.
 //! Input: source stem, comment, blacklist, reviewed
 //! override object, and optional `mkvextract tags` XML. Output: title, expected
 //! tag values, change records, merged tag XML, and warnings.
-//! Python remains authoritative for production runs until parity is proven.
 
 use crate::metadata_text::{clean_batch, is_python_whitespace};
 use quick_xml::events::Event;

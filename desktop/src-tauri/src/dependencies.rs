@@ -159,7 +159,7 @@ pub(crate) fn install_latest_hdr10plus_tool() -> Result<String, String> {
 
     let (token, suffix) = hdr10plus_asset_selector()?;
     let client = reqwest::blocking::Client::builder()
-        .user_agent("hevc-rebuild-studio/1.3.0")
+        .user_agent(concat!("hevc-rebuild-studio/", env!("CARGO_PKG_VERSION")))
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|error| format!("Could not configure the HDR10+ helper download: {error}"))?;
@@ -829,7 +829,9 @@ mod hdr10plus_installer_tests {
         let temporary = TemporaryDirectory::create("hevc-rebuild-hdr-test").unwrap();
         let archive_path = temporary.0.join("helper.tar.gz");
         let output_path = temporary.0.join("extracted-tool");
-        create_archive(&archive_path, &["release/bin/hdr10plus_tool"]);
+        // The installer looks for the platform's name (hdr10plus_tool.exe on Windows).
+        let member = format!("release/bin/{}", super::managed_tool_name());
+        create_archive(&archive_path, &[member.as_str()]);
         extract_single_tool(&archive_path, &output_path).unwrap();
         assert_eq!(fs::read(output_path).unwrap(), b"verified fixture binary");
     }
@@ -854,8 +856,15 @@ mod hdr10plus_installer_tests {
         fs::write(&path, "#!/bin/sh\nprintf 'hdr10plus_tool 1.2.3\\n'\n").unwrap();
         set_executable_permissions(&path).unwrap();
         let staged = OpenOptions::new().write(true).open(&path).unwrap();
-        let busy = Command::new(&path).arg("--version").output().unwrap_err();
-        assert_eq!(busy.kind(), io::ErrorKind::ExecutableFileBusy);
+        // Only Linux refuses to execute a file that is still open for writing
+        // (ETXTBSY); macOS runs it. The rule under test, closing the file before
+        // the version check, is what keeps Linux working, so the refusal itself
+        // is asserted only where the kernel has it.
+        #[cfg(target_os = "linux")]
+        {
+            let busy = Command::new(&path).arg("--version").output().unwrap_err();
+            assert_eq!(busy.kind(), io::ErrorKind::ExecutableFileBusy);
+        }
         drop(staged);
         assert_eq!(tool_version(&path).unwrap(), "1.2.3");
     }

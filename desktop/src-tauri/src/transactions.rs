@@ -1,13 +1,33 @@
 //! No-overwrite file commit for validated media outputs.
 //!
-//! The Python compatibility engine still decides when an output has passed all
-//! checks, but Rust owns the destructive filesystem transition for runs started
-//! by the desktop/CLI/MCP executable.
+//! Callers decide when an output has passed all validation; this module owns the
+//! destructive filesystem transition for runs started by the desktop, CLI, and
+//! MCP interfaces.
 
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
+
+/// Result of a successful install. The output is already in place; a warning
+/// means a trailing durability step (the final directory sync) did not confirm.
+/// That is not a failed commit: the validated output and any original backup
+/// are both intact, so callers must not treat the file as an error output.
+#[derive(Debug, Default, PartialEq, Eq)]
+#[must_use = "an install can succeed with a durability warning that must be reported"]
+pub(crate) struct InstallOutcome {
+    pub(crate) warning: Option<String>,
+}
+
+impl InstallOutcome {
+    /// Append the warning, when present, to a user-facing message.
+    pub(crate) fn annotate(&self, message: String) -> String {
+        match &self.warning {
+            Some(warning) => format!("{message} Warning: {warning}"),
+            None => message,
+        }
+    }
+}
 
 pub(crate) fn cli_mode(args: Vec<OsString>) -> i32 {
     let parsed = match parse_arguments(args) {
@@ -23,7 +43,12 @@ pub(crate) fn cli_mode(args: Vec<OsString>) -> i32 {
         &parsed.final_output,
         &parsed.backup,
     ) {
-        Ok(()) => 0,
+        Ok(outcome) => {
+            if let Some(warning) = outcome.warning {
+                eprintln!("{warning}");
+            }
+            0
+        }
         Err(error) => {
             eprintln!("{error}");
             1
@@ -40,7 +65,12 @@ pub(crate) fn install_copy_cli_mode(args: Vec<OsString>) -> i32 {
         }
     };
     match install_export_output(&parsed.temporary, &parsed.final_output) {
-        Ok(()) => 0,
+        Ok(outcome) => {
+            if let Some(warning) = outcome.warning {
+                eprintln!("{warning}");
+            }
+            0
+        }
         Err(error) => {
             eprintln!("{error}");
             1
@@ -119,7 +149,7 @@ pub(crate) fn commit_output(
     temporary: &Path,
     final_output: &Path,
     backup: &Path,
-) -> Result<(), String> {
+) -> Result<InstallOutcome, String> {
     commit_output_with_sync(source, temporary, final_output, backup, sync_directory)
 }
 
@@ -129,7 +159,7 @@ fn commit_output_with_sync(
     final_output: &Path,
     backup: &Path,
     sync: impl Fn(&Path) -> io::Result<()>,
-) -> Result<(), String> {
+) -> Result<InstallOutcome, String> {
     let source_parent = source
         .parent()
         .ok_or("Source path has no parent directory.")?
@@ -163,15 +193,16 @@ fn commit_output_with_sync(
         return Err("Temporary output is not a regular file.".into());
     }
 
-    let old_directory = source_parent.join("old");
+    let old_directory = crate::backup_folder::backup_dir(&source_parent);
     match fs::symlink_metadata(&old_directory) {
         Ok(metadata) if !metadata.is_dir() || metadata.file_type().is_symlink() => {
-            return Err("The old backup path must be a real directory, not a symlink.".into());
+            return Err("The backup path must be a real directory, not a symlink.".into());
         }
         Ok(_) => {}
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             fs::create_dir(&old_directory)
                 .map_err(|error| format!("Could not create backup directory: {error}"))?;
+            crate::backup_folder::mark_hidden(&old_directory);
             sync(&source_parent)
                 .map_err(|error| format!("Could not sync source directory: {error}"))?;
         }
@@ -186,7 +217,9 @@ fn commit_output_with_sync(
         .canonicalize()
         .map_err(|error| format!("Could not resolve backup directory: {error}"))?;
     if backup_parent != expected_backup_parent {
-        return Err("Backup directory resolves outside the source folder's old directory.".into());
+        return Err(
+            "Backup directory resolves outside the source folder's backup directory.".into(),
+        );
     }
 
     sync_file(temporary)
@@ -219,14 +252,25 @@ fn commit_output_with_sync(
     if let Err(error) = rename_no_replace(temporary, final_output) {
         return rollback_source(source, backup, error, &sync);
     }
-    sync(&final_parent)
-        .map_err(|error| format!("Output was installed, but its directory could not be synced: {error}. The output and original backup were retained."))
+    // The rename already succeeded, so the validated output is installed and the
+    // original is safe in the backup. A failed directory sync only means the
+    // rename's durability is unconfirmed; report it without failing the commit.
+    Ok(InstallOutcome {
+        warning: sync(&final_parent).err().map(|error| {
+            format!(
+                "Output was installed, but its directory could not be synced: {error}. The output and original backup were retained."
+            )
+        }),
+    })
 }
 
 /// Install a validated export copy without moving or replacing its source.
 /// The temporary file and final output must be on the same volume so the final
 /// no-overwrite rename is atomic.
-pub(crate) fn install_export_output(temporary: &Path, final_output: &Path) -> Result<(), String> {
+pub(crate) fn install_export_output(
+    temporary: &Path,
+    final_output: &Path,
+) -> Result<InstallOutcome, String> {
     let temporary_parent = temporary
         .parent()
         .ok_or("Temporary export path has no parent directory.")?
@@ -270,11 +314,13 @@ pub(crate) fn install_export_output(temporary: &Path, final_output: &Path) -> Re
             final_output.display()
         )
     })?;
-    sync_directory(&final_parent).map_err(|error| {
-        format!(
-            "Export was installed, but its directory could not be synced: {error}. The validated copy was retained at {}.",
-            final_output.display()
-        )
+    Ok(InstallOutcome {
+        warning: sync_directory(&final_parent).err().map(|error| {
+            format!(
+                "Export was installed, but its directory could not be synced: {error}. The validated copy was retained at {}.",
+                final_output.display()
+            )
+        }),
     })
 }
 
@@ -283,7 +329,7 @@ fn rollback_source(
     backup: &Path,
     cause: io::Error,
     sync: &impl Fn(&Path) -> io::Result<()>,
-) -> Result<(), String> {
+) -> Result<InstallOutcome, String> {
     match rename_no_replace(backup, source) {
         Ok(()) => match source.parent().map(sync) {
             Some(Ok(())) => Err(format!(
@@ -315,7 +361,21 @@ fn path_exists(path: &Path) -> Result<bool, String> {
 }
 
 fn sync_file(path: &Path) -> io::Result<()> {
-    File::open(path)?.sync_all()
+    // Windows' FlushFileBuffers needs write access, so a read-only handle fails
+    // with "Access denied" and every output install would be refused. Unix fsync
+    // works on a read-only handle, and opening for write there could fail on a
+    // read-only file, so only Windows asks for write access.
+    #[cfg(windows)]
+    {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(path)?
+            .sync_all()
+    }
+    #[cfg(not(windows))]
+    {
+        File::open(path)?.sync_all()
+    }
 }
 
 #[cfg(unix)]
@@ -324,9 +384,19 @@ pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
 }
 
 #[cfg(not(unix))]
-pub(crate) fn sync_directory(_path: &Path) -> io::Result<()> {
-    // Unsupported targets have no directory durability confirmation.
-    Ok(())
+pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
+    // Windows cannot flush a directory handle (it will not even open one without
+    // special flags) and NTFS journals directory metadata, so there is nothing to
+    // confirm. The path must still be a real directory, so a wrong path is not
+    // silently accepted.
+    if fs::metadata(path)?.is_dir() {
+        Ok(())
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "path is not a directory",
+        ))
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -419,7 +489,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock is after epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
+        let path = crate::test_temp_base().join(format!(
             "hevc-rebuild-export-{}-{nonce}",
             std::process::id()
         ));
@@ -433,7 +503,8 @@ mod tests {
         let temporary = directory.join("temporary.mp4");
         let final_output = directory.join("final.mp4");
         fs::write(&temporary, b"validated output").expect("write temporary export");
-        install_export_output(&temporary, &final_output).expect("install export");
+        let outcome = install_export_output(&temporary, &final_output).expect("install export");
+        assert_eq!(outcome, InstallOutcome::default());
         assert!(!temporary.exists());
         assert_eq!(
             fs::read(&final_output).expect("read final output"),
@@ -461,24 +532,27 @@ mod tests {
             let directory = test_directory();
             let source = directory.join("source.mkv");
             let temporary = directory.join("temporary.mkv");
-            let backup = directory.join("old/original.mkv");
+            let backup = crate::backup_folder::backup_dir(&directory).join("original.mkv");
             fs::write(&source, b"original").unwrap();
             fs::write(&temporary, b"validated").unwrap();
             let count = Cell::new(0);
-            let error = commit_output_with_sync(&source, &temporary, &source, &backup, |_| {
+            let result = commit_output_with_sync(&source, &temporary, &source, &backup, |_| {
                 count.set(count.get() + 1);
                 if count.get() == fail_at {
                     Err(io::Error::other("injected sync failure"))
                 } else {
                     Ok(())
                 }
-            })
-            .unwrap_err();
+            });
             if fail_at == 4 {
-                assert!(error.contains("Output was installed"));
+                // The rename succeeded: the commit is a success with a warning,
+                // never an error that would make callers quarantine the output.
+                let outcome = result.expect("a post-install sync failure is not a failed commit");
+                assert!(outcome.warning.unwrap().contains("Output was installed"));
                 assert_eq!(fs::read(&source).unwrap(), b"validated");
                 assert_eq!(fs::read(&backup).unwrap(), b"original");
             } else {
+                result.unwrap_err();
                 assert_eq!(fs::read(&source).unwrap(), b"original");
                 assert_eq!(fs::read(&temporary).unwrap(), b"validated");
             }
@@ -493,12 +567,12 @@ mod tests {
             let source = directory.join("source.mkv");
             let temporary = directory.join("temporary.mkv");
             let final_output = directory.join("final.mkv");
-            let backup = directory.join("old/original.mkv");
+            let backup = crate::backup_folder::backup_dir(&directory).join("original.mkv");
             fs::write(&source, b"original").unwrap();
             fs::write(&temporary, b"validated").unwrap();
             let error =
                 commit_output_with_sync(&source, &temporary, &final_output, &backup, |path| {
-                    if path == directory.join("old") {
+                    if path == crate::backup_folder::backup_dir(&directory) {
                         fs::write(&final_output, b"competitor").unwrap();
                         if block_rollback {
                             fs::write(&source, b"new source occupant").unwrap();

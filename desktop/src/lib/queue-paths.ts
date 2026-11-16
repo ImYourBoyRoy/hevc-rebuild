@@ -19,11 +19,14 @@ export function fileName(path: string) {
   return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
 }
 
+/** Hidden folder beside each file that receives its original after a rebuild. Keep in sync with `BACKUP_FOLDER` in `backup_folder.rs`. */
+export const BACKUP_FOLDER = ".hevc-rebuild-originals";
+
 export function archivedOriginalPath(source: string): string {
   const parts = source.split(/[\\/]/);
   const name = parts.pop() || source;
   const slash = source.includes("\\") && !source.includes("/") ? "\\" : "/";
-  return [...parts, "old", name].join(slash);
+  return [...parts, BACKUP_FOLDER, name].join(slash);
 }
 
 export function pathIsWithin(directory: string, candidate: string): boolean {

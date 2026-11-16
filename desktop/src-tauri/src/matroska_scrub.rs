@@ -1,8 +1,7 @@
 //! ./desktop/src-tauri/src/matroska_scrub.rs
-//! Native output text scrub for Matroska files (migration slice T4.3b).
+//! Native output text scrub for Matroska files.
 //!
-//! Ports `hevc_rebuild/metadata.py::_scrub_chapter_tree` and
-//! `_scrub_output_text_metadata`: after a remux or encode, extract the output's
+//! After a remux or encode, extract the output's
 //! tags and chapters, clean every text value (blacklist globs and recognized
 //! release-group suffixes), and write the sanitized XML and track-header names
 //! back with `mkvpropedit`. Only metadata is edited, in place, on the file the
@@ -10,10 +9,9 @@
 //!
 //! Run: `echo '<request json>' | hevc-rebuild-studio internal metadata-scrub`.
 //! Input: tool paths, absolute `output` MKV, existing `work_dir`, blacklist.
-//! Output: change records and chapter-text edits (same shape as Python).
+//! Output: change records and chapter-text edits.
 //! Side effects: `mkvpropedit` rewrites tags/chapters/track names of `output`
-//! only when cleanup changed something. Python remains authoritative for
-//! production runs until parity is proven.
+//! only when cleanup changed something.
 
 use crate::matroska_tags::{node_at_mut, parse_xml, scrub_tag_tree, serialize_xml, XmlNode};
 use crate::metadata_text::clean_batch;

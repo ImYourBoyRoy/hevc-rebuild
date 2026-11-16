@@ -12,9 +12,7 @@
 //! per-file orchestration is in `youtube_run.rs`.
 
 use serde_json::Value;
-use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::process::{Command, Stdio};
 
 use crate::youtube;
 
@@ -617,22 +615,7 @@ pub(crate) fn sample_windows(duration: f64) -> Vec<(f64, f64)> {
         .collect()
 }
 
-/// Pull the `All:` value from an FFmpeg SSIM summary line.
-pub(crate) fn parse_ssim_all(line: &str) -> Option<f64> {
-    let rest = line.split("SSIM ").nth(1)?;
-    let value = rest.split("All:").nth(1)?;
-    value
-        .split(|character: char| character.is_whitespace() || character == '(')
-        .next()?
-        .parse::<f64>()
-        .ok()
-        .filter(|value| value.is_finite())
-}
-
-pub(crate) enum GateError {
-    Interrupted,
-    Failed(String),
-}
+pub(crate) use crate::quality_gate::GateError;
 
 /// Lowest SSIM across the sample windows of `source` versus `output`. Both are
 /// decoded at the same size and converted to the same 10-bit pixel format.
@@ -642,96 +625,31 @@ pub(crate) fn ssim_gate(
     output: &Path,
     source_stream_index: i64,
     duration: f64,
-    mut on_child: impl FnMut(Option<u32>),
+    on_child: impl FnMut(Option<u32>),
 ) -> Result<f64, GateError> {
-    let mut lowest: Option<f64> = None;
-    for (start, length) in sample_windows(duration) {
-        let filter = format!(
-            "[0:{source_stream_index}]format=yuv420p10le,setpts=PTS-STARTPTS[a];\
-             [1:v:0]format=yuv420p10le,setpts=PTS-STARTPTS[b];[a][b]ssim"
-        );
-        let mut command = Command::new(ffmpeg);
-        command
-            .args(["-hide_banner", "-nostdin", "-nostats", "-loglevel", "info"])
-            .args([
-                "-ss",
-                &format!("{start:.3}"),
-                "-t",
-                &format!("{length:.3}"),
-                "-i",
-            ])
-            .arg(source)
-            .args([
-                "-ss",
-                &format!("{start:.3}"),
-                "-t",
-                &format!("{length:.3}"),
-                "-i",
-            ])
-            .arg(output)
-            .args([
-                "-filter_complex",
-                &filter,
-                "-an",
-                "-sn",
-                "-dn",
-                "-f",
-                "null",
-                "-",
-            ])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped());
-        let mut child = crate::process_output::spawn_owned(&mut command).map_err(|error| {
-            GateError::Failed(format!("Could not start the SSIM check: {error}"))
-        })?;
-        on_child(Some(child.id()));
-        let stderr = child
-            .stderr
-            .take()
-            .ok_or_else(|| GateError::Failed("Could not read the SSIM check output.".into()))?;
-        let reader = std::thread::spawn(move || {
-            let mut ssim = None;
-            let mut tail: Vec<String> = Vec::new();
-            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                if let Some(value) = parse_ssim_all(&line) {
-                    ssim = Some(value);
-                }
-                tail.push(line);
-                if tail.len() > 12 {
-                    tail.remove(0);
-                }
-            }
-            (ssim, tail)
-        });
-        let status = child.wait();
-        on_child(None);
-        let (ssim, tail) = reader.join().map_err(|_| {
-            GateError::Failed("The SSIM output reader stopped unexpectedly.".into())
-        })?;
-        let status = status.map_err(|error| {
-            GateError::Failed(format!("The SSIM check did not finish: {error}"))
-        })?;
-        if status.code().is_none() {
-            return Err(GateError::Interrupted);
-        }
-        if !status.success() {
-            return Err(GateError::Failed(format!(
-                "The SSIM check failed: {}",
-                tail.join(" | ")
-            )));
-        }
-        let value = ssim.ok_or_else(|| {
-            GateError::Failed("The SSIM check produced no similarity score.".into())
-        })?;
-        lowest = Some(lowest.map_or(value, |current| current.min(value)));
-    }
-    lowest.ok_or_else(|| GateError::Failed("The SSIM check had nothing to compare.".into()))
+    let scores = crate::quality_gate::measure_windows(
+        ffmpeg,
+        &crate::quality_gate::Comparison {
+            source,
+            source_stream_index,
+            output,
+            output_video_ordinal: 0,
+            deinterlace: false,
+        },
+        &sample_windows(duration),
+        on_child,
+    )?;
+    scores
+        .iter()
+        .map(|score| score.ssim)
+        .reduce(f64::min)
+        .ok_or_else(|| GateError::Failed("The SSIM check had nothing to compare.".into()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::quality_gate::parse_ssim_all;
     use serde_json::json;
 
     fn profile(codec: &str, width: i64, height: i64, kbps: Option<i64>, audio: &str) -> Value {

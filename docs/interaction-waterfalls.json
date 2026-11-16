@@ -14,7 +14,7 @@
         "id": "primary-navigation",
         "label": "Library / Run / YouTube navigation",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellSidebar.svelte",
           "kind": "button"
         },
         "instances": 3,
@@ -25,7 +25,7 @@
         "id": "utility-navigation",
         "label": "Settings / Reports navigation",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellSidebar.svelte",
           "kind": "button"
         },
         "instances": 2,
@@ -36,7 +36,7 @@
         "id": "choose-media-folder-sidebar",
         "label": "Choose media folder",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellSidebar.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -45,7 +45,7 @@
         "id": "appearance",
         "label": "Appearance",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellHeader.svelte",
           "kind": "form-control"
         },
         "kind": "form-control",
@@ -56,7 +56,7 @@
         "id": "refresh-environment",
         "label": "Refresh environment",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellHeader.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -65,7 +65,7 @@
         "id": "help",
         "label": "Help and commands",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/ShellHeader.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -76,7 +76,7 @@
         "id": "scan-options",
         "label": "Scan options",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/LibraryView.svelte",
           "kind": "disclosure"
         },
         "kind": "app-click",
@@ -86,7 +86,7 @@
         "id": "add-folder",
         "label": "Add folder",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/LibraryView.svelte",
           "kind": "button",
           "label": "Add folder"
         },
@@ -96,7 +96,7 @@
         "id": "add-files",
         "label": "Add files",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/LibraryView.svelte",
           "kind": "button",
           "label": "Add files"
         },
@@ -206,7 +206,7 @@
         "id": "choose-rebuild-folder",
         "label": "Choose folder",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/RunView.svelte",
           "kind": "button",
           "label": "Choose folder"
         },
@@ -216,7 +216,7 @@
         "id": "use-default-location",
         "label": "Use default location",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/RunView.svelte",
           "kind": "button",
           "label": "Use default location"
         },
@@ -226,7 +226,7 @@
         "id": "review-run-files",
         "label": "Review selected run files",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/RunView.svelte",
           "kind": "disclosure",
           "occurrence": 1
         },
@@ -236,7 +236,7 @@
         "id": "stop-on-error",
         "label": "Stop queue on first error",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/RunView.svelte",
           "kind": "form-control"
         },
         "kind": "form-control",
@@ -246,7 +246,7 @@
         "id": "run-launch",
         "label": "Review and start selected task",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/RunView.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -257,7 +257,7 @@
         "id": "close-output-review",
         "label": "Close output review",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -266,7 +266,7 @@
         "id": "output-back",
         "label": "Back",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -275,7 +275,7 @@
         "id": "adjust-output-folders",
         "label": "Adjust output folders",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click",
@@ -286,7 +286,7 @@
         "id": "full-rebuild-ack",
         "label": "I reviewed the destinations and understand this starts real encodes.",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
           "kind": "form-control"
         },
         "kind": "form-control",
@@ -298,7 +298,7 @@
         "id": "output-confirm",
         "label": "Confirm destinations and start / Start full rebuild",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -338,7 +338,7 @@
         "id": "cancel-stop-now",
         "label": "Cancel stop now",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/StopNowDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -347,7 +347,7 @@
         "id": "keep-running",
         "label": "Keep running",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/StopNowDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -356,7 +356,7 @@
         "id": "confirm-stop-now",
         "label": "Stop now",
         "selector": {
-          "file": "desktop/src/routes/+page.svelte",
+          "file": "desktop/src/lib/views/StopNowDialog.svelte",
           "kind": "button"
         },
         "kind": "app-click"
@@ -379,7 +379,7 @@
       "disabledControls": [
         {
           "selector": {
-            "file": "desktop/src/routes/+page.svelte",
+            "file": "desktop/src/lib/views/ShellSidebar.svelte",
             "kind": "button"
           },
           "label": "Choose media folder",
@@ -388,7 +388,7 @@
         },
         {
           "selector": {
-            "file": "desktop/src/routes/+page.svelte",
+            "file": "desktop/src/lib/views/LibraryView.svelte",
             "kind": "button",
             "label": "Add folder"
           },
@@ -397,7 +397,7 @@
         },
         {
           "selector": {
-            "file": "desktop/src/routes/+page.svelte",
+            "file": "desktop/src/lib/views/LibraryView.svelte",
             "kind": "button",
             "label": "Add files"
           },
@@ -878,7 +878,7 @@
       "label": "YouTube navigation item",
       "state": "library-empty-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/ShellSidebar.svelte",
         "kind": "button"
       },
       "type": "app-click",
@@ -892,7 +892,7 @@
       "label": "Add folder",
       "state": "library-empty-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/LibraryView.svelte",
         "kind": "button",
         "label": "Add folder"
       },
@@ -906,7 +906,7 @@
       "label": "Add files",
       "state": "library-empty-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/LibraryView.svelte",
         "kind": "button",
         "label": "Add files"
       },
@@ -1002,7 +1002,7 @@
       "label": "Confirm destinations and start",
       "state": "output-preview-metadata",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
         "kind": "button"
       },
       "type": "app-click",
@@ -1016,7 +1016,7 @@
       "label": "Acknowledge real encodes",
       "state": "output-preview-full-unacknowledged",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
         "kind": "form-control"
       },
       "type": "app-click",
@@ -1029,7 +1029,7 @@
       "label": "Start full rebuild",
       "state": "output-preview-full-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/OutputPreviewDialog.svelte",
         "kind": "button"
       },
       "type": "app-click",
@@ -1162,7 +1162,7 @@
       "label": "Stop now",
       "state": "stop-confirmation",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/StopNowDialog.svelte",
         "kind": "button"
       },
       "type": "app-click",
@@ -1202,7 +1202,7 @@
       "label": "Review and create metadata MKVs",
       "state": "run-page-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/RunView.svelte",
         "kind": "button"
       },
       "type": "app-click",
@@ -1216,7 +1216,7 @@
       "label": "Review and start full rebuild",
       "state": "run-page-ready",
       "selector": {
-        "file": "desktop/src/routes/+page.svelte",
+        "file": "desktop/src/lib/views/RunView.svelte",
         "kind": "button"
       },
       "type": "app-click",

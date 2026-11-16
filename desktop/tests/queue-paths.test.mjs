@@ -29,10 +29,10 @@ test("fileName handles both separators and trailing separators", () => {
   assert.equal(fileName(""), "");
 });
 
-test("archivedOriginalPath puts the source in an old/ sibling folder using the source separator", () => {
-  assert.equal(archivedOriginalPath("/media/Film.mkv"), "/media/old/Film.mkv");
-  assert.equal(archivedOriginalPath("C:\\Media\\Film.mkv"), "C:\\Media\\old\\Film.mkv");
-  assert.equal(archivedOriginalPath("Film.mkv"), "old/Film.mkv");
+test("archivedOriginalPath puts the source in a hidden originals sibling folder using the source separator", () => {
+  assert.equal(archivedOriginalPath("/media/Film.mkv"), "/media/.hevc-rebuild-originals/Film.mkv");
+  assert.equal(archivedOriginalPath("C:\\Media\\Film.mkv"), "C:\\Media\\.hevc-rebuild-originals\\Film.mkv");
+  assert.equal(archivedOriginalPath("Film.mkv"), ".hevc-rebuild-originals/Film.mkv");
 });
 
 test("pathIsWithin matches the directory itself and descendants only", () => {

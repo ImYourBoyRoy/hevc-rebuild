@@ -26,7 +26,7 @@
     mediaTable, bytes, fileName, persistPreferences, browseFolder, browseFile, analyzeFolder, chooseYoutubeOutput, openPage, setFilteredSelection, stopAfterCurrent, stopNow, beginRun, onCancelScan,
   }: Props=$props();
 </script>
-<!-- Shared app.css scopes upload-profile, YouTube, source table and summary rules; instrument selectors retain their shared overrides. Native operations and per-file HDR consent remain owned by the route. -->
+<!-- Shared the app stylesheets (src/styles/app) scopes upload-profile, YouTube, source table and summary rules; instrument selectors retain their shared overrides. Native operations and per-file HDR consent remain owned by the route. -->
         <section class="page-heading">
           <div><div class="eyebrow">UPLOAD COPY WORKFLOW</div><h1>YouTube <em>prep.</em></h1><p>Set the upload profile, inspect every source, and create separate copies for YouTube.</p></div>
           <div class="heading-actions"><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFolder}><FolderOpen size={17} /> Add folder</button><button class="button secondary" disabled={!desktopShell || workflowBusy} onclick={browseFile}><Video size={17} /> Add files</button><button class="button primary" disabled={!desktopShell || workflowBusy || !root} onclick={analyzeFolder}>{#if scanning}<LoaderCircle class="spin" size={17} /> Scanning{:else}<ScanSearch size={17} /> Add path to queue{/if}</button></div>

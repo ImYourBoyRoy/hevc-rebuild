@@ -1,8 +1,8 @@
 //! Shared Rust profile-aware resource planning for preflight and engine runs.
 //!
-//! Rust-launched engine runs call the same planner used by native media scans.
-//! The Python compatibility engine still samples host resources and applies the
-//! resulting worker/thread values to FFmpeg. Keep direct-Python parity tests in sync.
+//! Engine runs call the same planner used by native media scans, so the
+//! preflight forecast and the worker/thread values applied to FFmpeg agree.
+//! `tests/fixtures/resource_plan_cases.json` pins the expected forecasts.
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -530,7 +530,7 @@ mod tests {
     }
 
     #[test]
-    fn resource_forecasts_match_shared_python_parity_cases() {
+    fn resource_forecasts_match_the_shared_fixture_cases() {
         let fixture: Value = serde_json::from_str(include_str!(
             "../../../tests/fixtures/resource_plan_cases.json"
         ))

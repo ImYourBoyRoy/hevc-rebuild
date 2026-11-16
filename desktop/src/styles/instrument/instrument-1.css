@@ -1,0 +1,350 @@
+/* ./desktop/src/instrument.css
+   Three extreme instrument skins share signal tokens but not the same frame language.
+   Phosphor = CRT terminal. Ion = cold radar console. Breach = hostile alarm.
+   Light and Dark stay on the calm rules in app.css.
+   Saved "hacker" preferences resolve to Phosphor before these selectors run.
+*/
+
+/* --- Shared signal tokens --- */
+html[data-instrument],
+html[data-instrument] .app-shell {
+  --signal: #39ff6a;
+  --theme-page: #030705;
+  --theme-surface: #07110c;
+  --theme-raised: #0c1a12;
+  --theme-text: #e7ffee;
+  --theme-muted: #8fbf9c;
+  --theme-line: #1f8a3e;
+  --theme-accent: var(--signal);
+  --theme-accent-strong: #b6ffc9;
+  --theme-accent-soft: #0c2416;
+  --theme-on-accent: #031208;
+  --theme-sidebar: #020504;
+  --theme-sidebar-raised: #07160e;
+  --theme-hero-start: #030705;
+  --theme-hero-end: #07140c;
+  --theme-warning-surface: #1a1306;
+  --theme-warning-text: #ffc14d;
+  --theme-danger-surface: #240e0c;
+  --theme-danger-text: #ffd2c4;
+  --theme-success-surface: #07180e;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 55%, transparent), 0 0 18px color-mix(in srgb, var(--signal) 28%, transparent);
+  --hero-step-bg: rgb(0 0 0 / 42%);
+  --hero-step-line: color-mix(in srgb, var(--signal) 45%, transparent);
+  --hero-step-text: var(--theme-text);
+  --hero-step-muted: var(--theme-muted);
+  --instrument-clip: none;
+  --instrument-font: "Ubuntu Mono", "DejaVu Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+html[data-instrument="ion"],
+html[data-instrument="ion"] .app-shell {
+  --signal: #3cefff;
+  --theme-page: #02070c;
+  --theme-surface: #06121a;
+  --theme-raised: #0a1c28;
+  --theme-text: #e8fbff;
+  --theme-muted: #7eb8cb;
+  --theme-line: #1a7f96;
+  --theme-accent-strong: #b8f7ff;
+  --theme-accent-soft: #062028;
+  --theme-on-accent: #021018;
+  --theme-sidebar: #01050a;
+  --theme-sidebar-raised: #071820;
+  --theme-hero-start: #02070c;
+  --theme-hero-end: #06141c;
+  --theme-success-surface: #052028;
+  --instrument-clip: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+  --instrument-font: "Ubuntu", "DejaVu Sans", "Segoe UI", system-ui, sans-serif;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 78%, transparent), 0 0 16px color-mix(in srgb, var(--signal) 48%, transparent), 0 0 34px color-mix(in srgb, var(--signal) 22%, transparent);
+}
+
+html[data-instrument="breach"],
+html[data-instrument="breach"] .app-shell {
+  --signal: #ff2d4a;
+  --theme-page: #0a0204;
+  --theme-surface: #16060a;
+  --theme-raised: #220a10;
+  --theme-text: #ffe8ea;
+  --theme-muted: #e098a0;
+  --theme-line: #a11d32;
+  --theme-accent-strong: #ffb3bc;
+  --theme-accent-soft: #2a080e;
+  --theme-on-accent: #1a0408;
+  --theme-sidebar: #070103;
+  --theme-sidebar-raised: #22060c;
+  --theme-hero-start: #0a0204;
+  --theme-hero-end: #1a060c;
+  --theme-success-surface: #2a0a10;
+  --instrument-clip: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  --instrument-font: "Ubuntu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+  --theme-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 55%, transparent), 0 0 18px color-mix(in srgb, var(--signal) 34%, transparent);
+}
+
+html[data-instrument] {
+  font-family: var(--instrument-font);
+  background: var(--theme-page);
+  color: var(--theme-text);
+}
+
+html[data-instrument] body { background: var(--theme-page); color: var(--theme-text); }
+html[data-instrument] ::selection { color: var(--theme-on-accent); background: var(--signal); }
+
+html[data-instrument] :is(.app-shell, .modal-backdrop, .confirm-modal) * { border-radius: 0; }
+
+html[data-instrument] .app-shell {
+  color: var(--theme-text);
+  background: var(--theme-page);
+}
+
+html[data-instrument] .app-shell :is(
+  .brand-name, .page-heading h1, .hero-copy h2, .metric-card strong, .setup-content h3,
+  .section-title-row h2, .table-header h2, .empty-state h2, .hardware-card h3,
+  .summary-tile strong, .mode-number, .mode-title, .confirm-modal h2, .report-heading h2
+) {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+html[data-instrument] .app-shell .sidebar {
+  color: var(--theme-text);
+  background: var(--theme-sidebar);
+  border-right: 1px solid var(--signal);
+  box-shadow: inset -20px 0 32px color-mix(in srgb, var(--signal) 14%, transparent);
+}
+html[data-instrument] .app-shell .brand-mark {
+  color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 14px color-mix(in srgb, var(--signal) 70%, transparent);
+}
+html[data-instrument] .app-shell .brand-name,
+html[data-instrument] .app-shell .brand-name span { color: var(--signal); }
+html[data-instrument] .app-shell .brand-edition,
+html[data-instrument] .app-shell .workspace-label,
+html[data-instrument] .app-shell .sidebar-library-copy span,
+html[data-instrument] .app-shell .sidebar-bottom,
+html[data-instrument] .app-shell .version-tag { color: var(--theme-muted); }
+html[data-instrument] .app-shell .nav-item { color: var(--theme-muted); }
+html[data-instrument] .app-shell .nav-item:hover,
+html[data-instrument] .app-shell .nav-item.active {
+  color: var(--signal);
+  background: transparent;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--signal) 70%, transparent);
+  box-shadow: inset 3px 0 0 var(--signal), 0 0 16px color-mix(in srgb, var(--signal) 18%, transparent);
+}
+html[data-instrument] .app-shell .sidebar-library {
+  border-color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal) 35%, transparent);
+}
+html[data-instrument] .app-shell .connection-dot.green,
+html[data-instrument] .app-shell .status-dot {
+  background: var(--signal);
+  box-shadow: 0 0 8px var(--signal);
+  animation: instrument-led 1.15s steps(2, end) infinite;
+}
+
+html[data-instrument] .app-shell .main-panel {
+  position: relative;
+  isolation: isolate;
+  color: var(--theme-text);
+  background-color: var(--theme-page);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 3px,
+    color-mix(in srgb, var(--signal) 8%, transparent) 3px 4px
+  );
+}
+html[data-instrument] .app-shell .main-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--signal) 16%, transparent), transparent);
+  background-repeat: no-repeat;
+  background-size: 100% 18%;
+  animation: instrument-drift 7.5s linear infinite;
+}
+html[data-instrument] .app-shell .topbar,
+html[data-instrument] .app-shell .page-wrap,
+html[data-instrument] .app-shell .page-footer { position: relative; z-index: 1; }
+html[data-instrument] .app-shell .topbar {
+  color: var(--theme-muted);
+  background: #000;
+  border-bottom: 1px solid var(--signal);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--signal) 16%, transparent);
+}
+html[data-instrument] .app-shell .breadcrumbs,
+html[data-instrument] .app-shell .breadcrumbs strong,
+html[data-instrument] .app-shell .eyebrow { letter-spacing: .08em; }
+html[data-instrument] .app-shell .breadcrumbs strong,
+html[data-instrument] .app-shell .page-heading h1,
+html[data-instrument] .app-shell .eyebrow { color: var(--theme-text); }
+html[data-instrument] .app-shell :is(.page-heading h1 em, .hero-copy h2 span) {
+  color: var(--signal);
+  font-style: normal;
+  text-shadow: 0 0 16px color-mix(in srgb, var(--signal) 80%, transparent);
+}
+
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button {
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.primary {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--signal) 62%, transparent);
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.primary:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  background: var(--signal);
+  box-shadow: 0 0 28px var(--signal);
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.secondary,
+html[data-instrument] :is(.app-shell, .modal-backdrop) .icon-button {
+  color: var(--signal);
+  border-color: var(--signal);
+  background: transparent;
+}
+html[data-instrument] :is(.app-shell, .modal-backdrop) .button.secondary:hover:not(:disabled),
+html[data-instrument] :is(.app-shell, .modal-backdrop) .icon-button:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+  box-shadow: 0 0 16px var(--signal);
+}
+html[data-instrument] .app-shell .text-button,
+html[data-instrument] .app-shell .hero-link,
+html[data-instrument] .app-shell .link-button { color: var(--signal); }
+html[data-instrument] .app-shell .link-button {
+  border-color: color-mix(in srgb, var(--signal) 70%, transparent);
+  background: transparent;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-instrument] .app-shell .link-button:hover:not(:disabled) {
+  color: var(--theme-on-accent);
+  border-color: var(--signal);
+  background: var(--signal);
+}
+
+html[data-instrument] .app-shell .status-pill {
+  letter-spacing: .06em;
+  background: transparent;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--signal) 28%, transparent);
+}
+html[data-instrument] .app-shell .status-pill.good,
+html[data-instrument] .app-shell .status-ready,
+html[data-instrument] .status-ready {
+  color: var(--signal) !important;
+  border-color: var(--signal) !important;
+  background: transparent !important;
+}
+html[data-instrument] .app-shell .status-pill.warning,
+html[data-instrument] .app-shell .status-warning,
+html[data-instrument] .status-warning {
+  color: #ffc14d !important;
+  border-color: #ffc14d !important;
+  background: #140f04 !important;
+  box-shadow: 0 0 12px rgb(255 193 77 / 35%);
+}
+html[data-instrument] .app-shell .status-error,
+html[data-instrument] .status-error {
+  color: #ffd2c4 !important;
+  border-color: #ffd2c4 !important;
+  background: #2a100e !important;
+}
+html[data-instrument] .app-shell .theme-control {
+  color: var(--signal);
+  border-color: var(--signal);
+  background: #000;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--signal) 25%, transparent);
+}
+html[data-instrument] .app-shell .theme-control select { max-width: 8.6rem; color: var(--theme-text); }
+
+html[data-instrument] .app-shell .hero-card {
+  border: 1px solid var(--signal);
+  background-color: #000;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--signal) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--signal) 18%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent), 0 0 36px color-mix(in srgb, var(--signal) 30%, transparent);
+}
+html[data-instrument] .app-shell .hero-card::before,
+html[data-instrument] .app-shell .hero-card::after,
+html[data-instrument] .app-shell .hero-grain { display: none; }
+html[data-instrument] .app-shell .hero-sweep {
+  display: block;
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 26%;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--signal), #fff, var(--signal), transparent);
+  box-shadow: 0 0 16px var(--signal);
+  animation: hero-sweep 2.2s linear infinite;
+}
+html[data-instrument] .app-shell .hero-kicker { color: var(--signal); letter-spacing: .08em; }
+html[data-instrument] .app-shell .hero-orbit {
+  color: var(--signal);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 10px var(--signal);
+}
+html[data-instrument] .app-shell .hero-copy h2,
+html[data-instrument] .app-shell .hero-copy p { color: var(--theme-text); }
+html[data-instrument] .app-shell .workflow-steps li {
+  border-color: color-mix(in srgb, var(--signal) 40%, transparent);
+  background: rgb(0 0 0 / 55%);
+}
+html[data-instrument] .app-shell .workflow-steps li.current {
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 8%, black);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--signal) 35%, transparent);
+}
+html[data-instrument] .app-shell .workflow-steps li.done .workflow-step-number,
+html[data-instrument] .app-shell .workflow-step-number {
+  color: var(--theme-on-accent);
+  background: var(--signal);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--signal) 55%, transparent);
+}
+html[data-instrument] .app-shell .workflow-step-copy strong { color: var(--theme-text); }
+html[data-instrument] .app-shell .workflow-step-copy small { color: var(--theme-muted); }
+
+html[data-instrument] .app-shell :is(
+  .metric-card, .table-card, .hardware-card, .tool-check-card, .card-surface, .mode-card,
+  .settings-card, .run-console-card, .report-list, .report-heading, .diagnostic-card,
+  .summary-tile, .report-count, .empty-state, .folder-field, .notice,
+  .inline-warning, .scan-next-step, .gpu-strip, .encoder-note, .library-chip, .report-item,
+  .hero-card, .setup-card, .confirm-modal, .workflow-steps li
+) {
+  clip-path: var(--instrument-clip);
+}
+
+html[data-instrument] .app-shell :is(
+  .metric-card, .table-card, .hardware-card, .tool-check-card, .card-surface, .mode-card,
+  .settings-card, .run-console-card, .report-list, .report-heading, .diagnostic-card,
+  .summary-tile, .report-count, .empty-state, .folder-field, .search-box, .notice,
+  .inline-warning, .scan-next-step, .gpu-strip, .encoder-note, .library-chip, .report-item
+) {
+  border: 1px solid color-mix(in srgb, var(--signal) 62%, transparent);
+  background: color-mix(in srgb, var(--theme-surface) 82%, black);
+  box-shadow: var(--theme-shadow);
+}
+html[data-instrument] .app-shell .empty-state { border-style: solid; }
+html[data-instrument] .app-shell .setup-card {
+  border: 1px solid #ffc14d;
+  background: var(--theme-warning-surface);
+  box-shadow: 0 0 18px rgb(255 193 77 / 28%);
+}
+html[data-instrument] .app-shell .mode-card:hover {
+  transform: none;
+  border-color: var(--signal);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--signal) 45%, transparent);
+}
+html[data-instrument] .app-shell .mode-card.selected,

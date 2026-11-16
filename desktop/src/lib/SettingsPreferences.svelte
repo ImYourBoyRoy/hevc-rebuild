@@ -108,7 +108,7 @@
     removeMetadataBlacklistPattern
   }: Props = $props();
 </script>
-<!-- app.css explicitly scopes settings/provider/credential/cache/filter families; draft bindings are owned by the route, which owns validation, secure storage and native effects. -->
+<!-- the app stylesheets (src/styles/app) explicitly scopes settings/provider/credential/cache/filter families; draft bindings are owned by the route, which owns validation, secure storage and native effects. -->
         <section class="page-heading settings-page-heading">
           <div><div class="eyebrow">APP-WIDE PREFERENCES</div><h1>Settings</h1><p>Choose the services and defaults the library tools use across the app.</p></div>
           <div class="heading-actions">

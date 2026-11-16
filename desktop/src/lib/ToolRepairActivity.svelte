@@ -21,7 +21,7 @@
   }
   let { showLogHistory, repairSummary, repairSummaryIsError, repairId, hdrInstalling, repairToolOutcomes, repairLogWarning, repairLines, toolSetupLogs, selectedToolSetupLog = $bindable(), toolSetupLogLoading, viewedToolSetupLog = $bindable(), toolSetupLogExporting, toolSetupLogError, openToolSetupLog, exportToolSetupLog }: Props = $props();
 </script>
-<!-- app.css scopes repair-activity, repair-tool, repair-output and repair-log families. -->
+<!-- the app stylesheets (src/styles/app) scopes repair-activity, repair-tool, repair-output and repair-log families. -->
   {#if repairSummary}
     <div class="repair-activity-summary" class:error={repairSummaryIsError} role="status" aria-live="polite">
       {#if repairId || hdrInstalling}<LoaderCircle size={16} class="spin" />{:else if repairSummaryIsError}<AlertTriangle size={16} />{:else}<CheckCircle2 size={16} />{/if}

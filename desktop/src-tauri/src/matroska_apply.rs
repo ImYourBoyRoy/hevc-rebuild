@@ -1,10 +1,8 @@
 //! ./desktop/src-tauri/src/matroska_apply.rs
-//! Native `apply_metadata`: reviewed tag merge, poster, and text scrub (T4.3e).
+//! Native `apply_metadata`: reviewed tag merge, poster, and text scrub.
 //!
 //! Composes `matroska_tags` (tag builder), `matroska_poster` (artwork), and
-//! `matroska_scrub` (post-write cleanup) in the same order as
-//! `hevc_rebuild/metadata.py::apply_metadata`, and ports the existing-global-tag
-//! extraction. Tag values come only from the reviewed `metadata_override`, the
+//! `matroska_scrub` (post-write cleanup), and extracts the existing global tags. Tag values come only from the reviewed `metadata_override`, the
 //! run comment, and the source's own global tags; sidecar `.nfo` files are not
 //! read. The only mutation is on `output`; the source media and library art are
 //! read-only.
@@ -13,12 +11,12 @@
 //! Input: absolute `media_path` (source naming and artwork anchor), absolute `output`
 //! (the file to edit in place), `work_dir`, tool paths, comment, text blacklist,
 //! optional reviewed `metadata_override`, `poster_override`, `embed_artwork`.
-//! Output: JSON mirroring Python's `MetadataResult` plus `warnings`.
-//! Python adapts to this helper when `HEVC_REBUILD_NATIVE_HELPER` is set and
-//! keeps its own implementation as the fallback.
+//! Output: JSON describing the applied metadata plus `warnings`.
 
 use crate::matroska_poster::{attach_cover, attachment_description, choose_poster, poster_to_jpeg};
-use crate::matroska_scrub::{checked, scrub_output_text_metadata, MatroskaTools, EDIT_TIMEOUT};
+use crate::matroska_scrub::{
+    checked, mkv_identify, scrub_output_text_metadata, MatroskaTools, EDIT_TIMEOUT,
+};
 use crate::matroska_tags::{build_tags, TagBuildRequest};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
@@ -47,6 +45,26 @@ struct ApplyRequest {
     poster_override: Option<PathBuf>,
     #[serde(default = "default_true")]
     embed_artwork: bool,
+    /// Re-attach the source's own cover when no other poster was chosen. A
+    /// re-encode does not carry an existing Matroska cover across (FFmpeg exposes
+    /// it as an attached-picture video stream and stream-copying that creates a
+    /// second video track), so rebuilds ask for it here. Remuxes that already copy
+    /// every attachment leave this off.
+    #[serde(default)]
+    carry_source_cover: bool,
+    /// The source's attached-picture video stream, when it has one. Used when the
+    /// source is not Matroska (an MP4 `covr` cover), where `mkvextract` cannot read it.
+    #[serde(default)]
+    source_cover_stream: Option<SourceCoverStream>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceCoverStream {
+    /// FFprobe stream index of the attached picture.
+    index: i64,
+    /// File extension for the extracted image: `jpg`, `png`, or `webp`.
+    extension: String,
 }
 
 fn default_true() -> bool {
@@ -144,11 +162,35 @@ fn apply_metadata(request: ApplyRequest) -> Result<Value, String> {
         .map_err(|error| format!("Could not write {}: {error}", xml_path.display()))?;
 
     // Everything that can fail on input is prepared before the output is touched.
-    let poster = if request.embed_artwork {
+    let mut warnings = built.warnings.clone();
+    let mut poster = if request.embed_artwork {
         choose_poster(&request.media_path, request.poster_override.as_deref())
     } else {
         None
     };
+    if poster.is_none() && request.carry_source_cover {
+        match extract_source_cover(&request.tools, &request.media_path, &request.work_dir) {
+            Ok(Some(carried)) => poster = Some(carried),
+            Ok(None) => {
+                if let Some(stream) = &request.source_cover_stream {
+                    match extract_cover_stream(
+                        &request.ffmpeg,
+                        &request.media_path,
+                        stream,
+                        &request.work_dir,
+                    ) {
+                        Ok(carried) => poster = Some(carried),
+                        Err(error) => warnings.push(format!(
+                            "The source's embedded cover could not be carried over: {error}"
+                        )),
+                    }
+                }
+            }
+            Err(error) => warnings.push(format!(
+                "The source's embedded cover could not be carried over: {error}"
+            )),
+        }
+    }
     let cover = match &poster {
         Some(poster) => {
             let description = attachment_description(poster)?;
@@ -192,8 +234,115 @@ fn apply_metadata(request: ApplyRequest) -> Result<Value, String> {
         "expected_global_tags": built.expected_tags,
         "scrubbed_text_values": changes,
         "chapter_text_edits": scrub.chapter_edits,
-        "warnings": built.warnings,
+        "warnings": warnings,
     }))
+}
+
+/// Copy a source's attached-picture stream out to an image file in the work folder.
+fn extract_cover_stream(
+    ffmpeg: &str,
+    media: &Path,
+    stream: &SourceCoverStream,
+    work_dir: &Path,
+) -> Result<PathBuf, String> {
+    if !matches!(stream.extension.as_str(), "jpg" | "png" | "webp") {
+        return Err(format!(
+            "unsupported cover image type .{}",
+            stream.extension
+        ));
+    }
+    let target = work_dir.join(format!("source-cover.{}", stream.extension));
+    checked(
+        ffmpeg,
+        vec![
+            "-v".into(),
+            "error".into(),
+            "-y".into(),
+            "-i".into(),
+            media.as_os_str().to_owned(),
+            "-map".into(),
+            format!("0:{}", stream.index).into(),
+            "-c".into(),
+            "copy".into(),
+            "-frames:v".into(),
+            "1".into(),
+            target.as_os_str().to_owned(),
+        ],
+        EDIT_TIMEOUT,
+    )?;
+    if target.is_file() {
+        Ok(target)
+    } else {
+        Err("FFmpeg wrote no cover image".into())
+    }
+}
+
+/// Extract the source's own cover image (a cover-like image attachment) into the
+/// work folder so it can be re-attached to the rebuilt output. `Ok(None)` means
+/// the source has no such cover or is not a Matroska file.
+fn extract_source_cover(
+    tools: &MatroskaTools,
+    media: &Path,
+    work_dir: &Path,
+) -> Result<Option<PathBuf>, String> {
+    let identify = mkv_identify(tools, media)?;
+    // mkvextract only reads Matroska; an MP4 cover is extracted through FFmpeg.
+    let is_matroska = identify
+        .pointer("/container/type")
+        .and_then(Value::as_str)
+        .is_some_and(|kind| kind.eq_ignore_ascii_case("matroska"));
+    if !is_matroska {
+        return Ok(None);
+    }
+    for attachment in identify
+        .get("attachments")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let name = attachment
+            .get("file_name")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_lowercase();
+        let extension = match attachment
+            .get("content_type")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_lowercase()
+            .as_str()
+        {
+            "image/jpeg" => "jpg",
+            "image/png" => "png",
+            "image/webp" => "webp",
+            _ => continue,
+        };
+        if !["cover", "poster", "folder", "front"]
+            .iter()
+            .any(|word| name.contains(word))
+        {
+            continue;
+        }
+        let Some(id) = attachment.get("id").and_then(|id| match id {
+            Value::Number(number) => number.as_i64(),
+            Value::String(text) => text.parse().ok(),
+            _ => None,
+        }) else {
+            continue;
+        };
+        let target = work_dir.join(format!("source-cover.{extension}"));
+        let mut spec = OsString::from(format!("{id}:"));
+        spec.push(&target);
+        checked(
+            &tools.mkvextract,
+            vec![media.as_os_str().to_owned(), "attachments".into(), spec],
+            EDIT_TIMEOUT,
+        )?;
+        if target.is_file() {
+            return Ok(Some(target));
+        }
+    }
+    Ok(None)
 }
 
 #[cfg(test)]
@@ -217,6 +366,8 @@ mod tests {
             metadata_override: None,
             poster_override: None,
             embed_artwork: true,
+            carry_source_cover: false,
+            source_cover_stream: None,
         };
         assert!(apply_metadata(request)
             .unwrap_err()

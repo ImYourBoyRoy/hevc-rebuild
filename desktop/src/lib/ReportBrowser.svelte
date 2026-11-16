@@ -27,7 +27,7 @@
   }
   let { repairId, hdrInstalling, reportDeleteBusy, reportDeleteConfirm = $bindable(), failedRows, loadReports, deleteReportHistory, reports, activeReport, logLoading, selectedLog, hasScan, fileName, bytes, isFailure, isSuccess, outcomeLabel, chooseReport, openLog, copyLog, openPage }: Props = $props();
 </script>
-<!-- app.css scopes report and diagnostic families. This view never scans, mutates a report, or resumes a job. -->
+<!-- the app stylesheets (src/styles/app) scopes report and diagnostic families. This view never scans, mutates a report, or resumes a job. -->
         <section class="page-heading">
           <div><div class="eyebrow">AUDIT TRAIL</div><h1>Reports & <em>errors.</em></h1><p>Review completed runs, per-file outcomes, and diagnostic logs from the media engine.</p></div>
           <div class="heading-actions">
