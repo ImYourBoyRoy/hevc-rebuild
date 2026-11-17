@@ -239,7 +239,7 @@ Native runs of both build configurations (window build and `--no-default-feature
 |---|---|---|---|
 | Linux laptop (Ubuntu 26.04) | 479 | 477 | media tools present (`HEVC_REQUIRE_MEDIA_TOOLS=1`) |
 | Ubuntu server (builder) | 479 | 477 | no ffmpeg; media tests skip; headless links 5 libs, 0 GUI |
-| macOS Tahoe SIP-off guest | 475 | 473 | no ffmpeg; headless links only system frameworks |
+| macOS Tahoe SIP-off guest | 475 (480 with ffmpeg) | 473 | headless links only system frameworks; ffmpeg/mediainfo installed there through the server |
 | Windows Server 2025 (native, GNU) | 468 | 466 | ffmpeg and mkvtoolnix present, media tests ran |
 
 Live `serve` smoke tests on macOS and Windows: token, shim, environment check, plan, path

@@ -927,7 +927,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/maintainer/`
 
-8 files · 801 lines · 43.1 KiB
+8 files · 801 lines · 43.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
