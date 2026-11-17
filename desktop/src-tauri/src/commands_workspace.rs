@@ -28,13 +28,77 @@ pub(crate) fn resolve_work_directory_command(
 
 #[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn default_media_root() -> Result<String, String> {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or("Could not locate the user's home folder.")?;
-    let videos = home.join("Videos");
-    Ok(if videos.is_dir() { videos } else { home }
-        .to_string_lossy()
-        .into_owned())
+    media_root_for(user_home_directory())
+}
+
+/// The folder the app starts in: the user's video folder (`Videos`, or `Movies` on macOS) when it exists,
+/// otherwise the home folder. The home folder comes from `user_home_directory`, which knows `USERPROFILE`
+/// on Windows, where `HOME` is normally not set.
+pub(crate) fn media_root_for(home: Option<PathBuf>) -> Result<String, String> {
+    let home = home.ok_or("Could not locate the user's home folder.")?;
+    let chosen = ["Videos", "Movies"]
+        .iter()
+        .map(|name| home.join(name))
+        .find(|candidate| candidate.is_dir())
+        .unwrap_or(home);
+    Ok(chosen.to_string_lossy().into_owned())
+}
+
+#[cfg(test)]
+mod media_root_tests {
+    use super::*;
+
+    #[test]
+    fn the_start_folder_is_the_video_folder_when_there_is_one() {
+        let home = crate::test_dir("media-root-videos");
+        std::fs::create_dir(home.join("Videos")).unwrap();
+        assert_eq!(
+            media_root_for(Some(home.clone())).unwrap(),
+            home.join("Videos").to_string_lossy()
+        );
+        std::fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
+    fn macos_style_movies_folders_are_used_and_videos_wins_when_both_exist() {
+        let home = crate::test_dir("media-root-movies");
+        std::fs::create_dir(home.join("Movies")).unwrap();
+        assert_eq!(
+            media_root_for(Some(home.clone())).unwrap(),
+            home.join("Movies").to_string_lossy()
+        );
+        std::fs::create_dir(home.join("Videos")).unwrap();
+        assert_eq!(
+            media_root_for(Some(home.clone())).unwrap(),
+            home.join("Videos").to_string_lossy()
+        );
+        std::fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
+    fn without_a_video_folder_it_is_the_home_folder_and_without_a_home_it_is_an_error() {
+        let home = crate::test_dir("media-root-bare");
+        assert_eq!(
+            media_root_for(Some(home.clone())).unwrap(),
+            home.to_string_lossy()
+        );
+        assert_eq!(
+            media_root_for(None).unwrap_err(),
+            "Could not locate the user's home folder."
+        );
+        std::fs::remove_dir_all(home).ok();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn on_windows_the_home_folder_comes_from_userprofile_not_home() {
+        // The regression: `HOME` is normally unset on Windows, so the command failed there.
+        assert!(
+            user_home_directory().is_some(),
+            "USERPROFILE must be enough"
+        );
+        assert!(default_media_root().is_ok());
+    }
 }
 
 #[derive(Deserialize)]

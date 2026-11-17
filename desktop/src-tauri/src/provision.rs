@@ -549,9 +549,39 @@ pub(crate) fn headless_route(is_root: bool, sudo_works: impl FnOnce() -> bool) -
     }
 }
 
-/// Look at this process: effective user id and whether `sudo -n true` succeeds (it never prompts).
+/// `whoami /groups` lists the token's mandatory integrity label; `S-1-16-12288` is High, an elevated
+/// administrator token, which can run the elevated winget step without a UAC prompt.
+#[cfg_attr(not(windows), allow(dead_code))] // read on Windows; tested everywhere
+pub(crate) fn groups_show_elevation(whoami_groups: &str) -> bool {
+    whoami_groups.contains("S-1-16-12288")
+}
+
+#[cfg(windows)]
+fn windows_token_is_elevated() -> bool {
+    Command::new("whoami")
+        .arg("/groups")
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+        .is_ok_and(|output| groups_show_elevation(&String::from_utf8_lossy(&output.stdout)))
+}
+
+#[cfg(not(windows))]
+fn windows_token_is_elevated() -> bool {
+    false
+}
+
+/// Whether this process already holds the rights the privileged step needs: root on Unix, an elevated
+/// token on Windows.
+fn process_is_elevated() -> bool {
+    let is_root = unsafe { libc_geteuid() } == 0;
+    is_root || windows_token_is_elevated()
+}
+
+/// Look at this process: root or an elevated Windows token, else whether `sudo -n true` succeeds (it never
+/// prompts).
 pub(crate) fn probe_headless_route() -> HeadlessRoute {
-    headless_route(unsafe { libc_geteuid() } == 0, || {
+    headless_route(process_is_elevated(), || {
         Command::new("sudo")
             .args(["-n", "true"])
             .stdin(Stdio::null())
@@ -725,6 +755,21 @@ mod tests {
     fn windows_env(winget: bool, missing: &[&str], ffmpeg_path: &str) -> Value {
         json!({"missing_packages": missing, "os": {"package_manager": "winget", "package_manager_available": winget},
                "checks": [{"key":"winget","available":winget},{"key":"ffmpeg","available":true,"path":ffmpeg_path}]})
+    }
+
+    const ELEVATED_GROUPS: &str = "GROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                                    Type             SID          Attributes\r\n============================================= ================ ============ ==================================================\r\nEveryone                                      Well-known group S-1-1-0      Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Administrators                        Alias            S-1-5-32-544 Mandatory group, Enabled by default, Enabled group, Group owner\r\nMandatory Label\\High Mandatory Level         Label            S-1-16-12288\r\n";
+
+    #[test]
+    fn a_windows_token_with_the_high_integrity_label_is_elevated() {
+        assert!(groups_show_elevation(ELEVATED_GROUPS));
+        let medium = ELEVATED_GROUPS
+            .replace("S-1-16-12288", "S-1-16-8192")
+            .replace("High Mandatory Level", "Medium Mandatory Level");
+        assert!(
+            !groups_show_elevation(&medium),
+            "an administrator who has not elevated still gets a UAC prompt"
+        );
+        assert!(!groups_show_elevation(""));
     }
 
     #[test]

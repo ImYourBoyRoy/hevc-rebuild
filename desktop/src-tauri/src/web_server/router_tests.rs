@@ -418,7 +418,14 @@ async fn a_path_outside_the_root_is_a_403() {
     std::fs::create_dir_all(base.join("media")).unwrap();
     let mut ctx = test_context(false);
     ctx.scope = super::scope::PathScope::new(&[base.join("media")]).unwrap();
-    let (status, body) = invoke(&ctx, "list_directory", json!({"path": "/etc"})).await;
+    std::fs::create_dir_all(base.join("elsewhere")).unwrap();
+    let outside = base.join("elsewhere");
+    let (status, body) = invoke(
+        &ctx,
+        "list_directory",
+        json!({"path": outside.to_str().unwrap()}),
+    )
+    .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert!(body["error"].as_str().unwrap().contains("--root"));
     let (status, _) = invoke(&ctx, "list_directory", json!({})).await;

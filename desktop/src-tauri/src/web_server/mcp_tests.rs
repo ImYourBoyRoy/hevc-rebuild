@@ -241,12 +241,21 @@ fn a_job_an_agent_starts_over_mcp_is_visible_on_the_shared_bus_and_slot() {
                 started_event.payload,
                 json!({"runId": job_id, "kind": "integrity_check"})
             );
-            assert!(
-                seen.iter()
-                    .any(|event| event.event == "run-line"
+            // With the media tools installed the run logs lines; without them (a bare CI or VM) it fails
+            // at once with a clear message. Either way the browser is told, on the same run id.
+            if finished.payload["error"].is_null() {
+                assert!(
+                    seen.iter().any(|event| event.event == "run-line"
                         && event.payload["runId"] == job_id.as_str()),
-                "the run's lines reach the browser"
-            );
+                    "the run's lines reach the browser"
+                );
+            } else {
+                let message = finished.payload["error"].as_str().unwrap_or_default();
+                assert!(
+                    message.contains("ffprobe") || message.contains("ffmpeg"),
+                    "an unexpected failure: {message}"
+                );
+            }
 
             for _ in 0..50 {
                 if crate::active_job_info(&ctx.run_state).is_none() {

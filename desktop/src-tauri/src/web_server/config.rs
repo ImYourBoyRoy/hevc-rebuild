@@ -542,8 +542,20 @@ mod tests {
         .err()
         .expect("nothing to serve");
         assert!(error.contains("--web-root"), "{error}");
-        assert!(error.contains("/nonexistent/bin/web"), "{error}");
-        assert!(error.contains("share/hevc-rebuild-studio/web"), "{error}");
+        // Paths print with the platform's own separator, so compare against the same joins.
+        let bin = Path::new("/nonexistent/bin");
+        assert!(
+            error.contains(&bin.join("web").display().to_string()),
+            "{error}"
+        );
+        assert!(
+            error.contains(
+                &bin.join("../share/hevc-rebuild-studio/web")
+                    .display()
+                    .to_string()
+            ),
+            "{error}"
+        );
     }
 
     #[test]
