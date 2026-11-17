@@ -25,7 +25,7 @@
     { id: "check", icon: ScanSearch, title: "Check", description: "Preview streams, HDR, and the memory plan. Nothing is written.", tag: "Read-only · native" },
     { id: "integrity", icon: FileSearch, title: "Integrity", description: "Find damaged containers or bitstreams. Quick inspects structure; Full decodes every frame. Nothing is written.", tag: "Read-only · native" },
     { id: "metadata", icon: FileText, title: "Metadata", description: "Copy every track into a new MKV with your reviewed title and poster. No re-encode.", tag: "New file · source kept" },
-    { id: "test", icon: Play, title: "Short test", description: "Encode a 5-second sample of each file to confirm tracks, HDR, and timing survive.", tag: "Sample · source kept" },
+    { id: "test", icon: Play, title: "Short test", description: "Encode a 5-second sample of each file at the full rebuild's quality settings to preview its size and confirm tracks, HDR, and timing survive.", tag: "Sample · source kept" },
     { id: "full", icon: Zap, title: "Rebuild", description: "Re-encode the real files to HEVC. A file is replaced only after its new copy passes validation.", tag: "Review before start" },
   ];
 

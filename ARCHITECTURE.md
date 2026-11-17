@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 583 |
-| Text lines | 229,090 |
-| Size on disk | 17060.4 KiB |
+| Files | 584 |
+| Text lines | 229,311 |
+| Size on disk | 17075.8 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,889 lines · 221.0 KiB
+15 files · 1,891 lines · 221.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -39,7 +39,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 873 | 180.7 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 875 | 181.6 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -65,11 +65,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `.github/workflows/`
 
-2 files · 454 lines · 17.1 KiB
+2 files · 455 lines · 17.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `ci.yml` | 247 | 8.5 KiB | CI: source gates (Rust fmt/clippy/tests, frontend check, browser contracts) on every push and pull request. |
+| `ci.yml` | 248 | 8.6 KiB | CI: source gates (Rust fmt/clippy/tests, frontend check, browser contracts) on every push and pull request. |
 | `release.yml` | 207 | 8.6 KiB | Release pipeline: builds, signs and publishes platform bundles and updater artifacts. |
 
 ### `App/`
@@ -82,13 +82,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/`
 
-9 files · 2,464 lines · 113.2 KiB
+9 files · 2,465 lines · 113.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitignore` | 10 | 132 B | Desktop-local ignore rules. |
 | `CSS_CONTRACT.md` | 47 | 14.9 KiB | Theme, cascade and responsive CSS contract. |
-| `package.json` | 116 | 7.6 KiB | Frontend manifest: dependencies, pinned package manager, build and test scripts. |
+| `package.json` | 117 | 7.7 KiB | Frontend manifest: dependencies, pinned package manager, build and test scripts. |
 | `pnpm-lock.yaml` | 2,058 | 65.5 KiB | Frontend lockfile (committed for reproducible installs). |
 | `pnpm-workspace.yaml` | 16 | 651 B | pnpm workspace and build-script allowlist. |
 | `README.md` | 115 | 7.4 KiB | Desktop app build, test and architecture guide. |
@@ -509,7 +509,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/lib/`
 
-87 files · 13,163 lines · 705.2 KiB
+87 files · 13,259 lines · 712.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -522,7 +522,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `browser-preferences.ts` | 110 | 8.6 KiB | Parser for the browser-preview preferences in localStorage (older shapes, per-field validation, legacy keys, never throws) extracted from the route; tested by test:browser-preferences. |
 | `credentials-controller.ts` | 190 | 7.2 KiB | TMDB token and TheTVDB key/PIN status, save, reveal, show/hide and remove extracted from the route; typed CredentialsHost, injected bridge. |
 | `entry-display.ts` | 82 | 3.8 KiB | Pure display helpers extracted from the route (profile and media-info lines, durations, HDR10+ signal and consent text, metadata value formatting, status labels, stream classification, animation hint); tested by test:entry-display. |
-| `explanations.ts` | 98 | 5.3 KiB | Plain-language help for the encoder settings, written for people who have never heard of CRF, presets or film grain. |
+| `explanations.ts` | 192 | 11.4 KiB | Plain-language help for the encoder settings, written for people who have never heard of CRF, presets or film grain. |
 | `file-pickers.ts` | 137 | 5.8 KiB | Native file and folder pickers extracted from the route (add folder or files to the queue, YouTube, default rebuild and per-file output folders, typed-path analyze, rescan, open file location, cancel scan); typed FilePickersHost, injected dialog and bridge. |
 | `file-settings.ts` | 249 | 12.6 KiB | Per-file run settings extracted from the route (YouTube estimates, resource forecasts, tune overrides, effective settings, default and chosen streams, run-settings editor, current-run overrides, HDR10+ loss approvals); typed FileSettingsHost. |
 | `filename-template.ts` | 133 | 5.6 KiB | Organizer filename templating ({token:02}, [[optional]] groups), proposed names and destination preview extracted from the route; tested by test:filename-template. |
@@ -574,9 +574,9 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `run-launch.ts` | 278 | 12.3 KiB | Run launch controller (pre-start checks, output-preview review, interrupted-file recovery review) extracted from the route; typed RunLaunchHost; tested by test:run-launch. |
 | `run-overrides.ts` | 111 | 6.0 KiB | Per-file poster and metadata overrides sent to the engine with start_run, extracted from the route; review state injected; tested by test:run-overrides. |
 | `RunConsole.svelte` | 13 | 1.1 KiB | Run activity console card. |
-| `RunModePicker.svelte` | 80 | 3.5 KiB | Segmented processing-task picker (check, test, metadata, rebuild). |
+| `RunModePicker.svelte` | 80 | 3.6 KiB | Segmented processing-task picker (check, test, metadata, rebuild). |
 | `RunProgress.svelte` | 56 | 4.4 KiB | Run progress bar, ETA and stage display. |
-| `RunSettingsEditor.svelte` | 230 | 14.0 KiB | Per-file tune and stream-selection override editor. |
+| `RunSettingsEditor.svelte` | 230 | 13.8 KiB | Per-file tune and stream-selection override editor. |
 | `ScanProgressBar.svelte` | 26 | 1.0 KiB | Scan progress bar with cancel. |
 | `search-panel.ts` | 174 | 6.7 KiB | Title search panel extracted from MetadataWorkbench (open a search for a movie or series record, run it with its guards and resets, close it, series year mismatch, collapsed candidate lists, reviewed series root); typed SearchPanelHost over the workbench state instances, injected provider calls; tested by test:search-panel. |
 | `settings-controller.ts` | 194 | 8.9 KiB | Effective-settings load/reset/save, work-directory preview, metadata language draft and provider toggles, title-cleanup blacklist and filename filters extracted from the route; typed SettingsHost, injected bridge and persistence. |
@@ -599,7 +599,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `WorkflowIllustration.svelte` | 194 | 14.4 KiB | Source-to-validated-copy illustration (calm plus HUD variants). |
 | `workspace-state.ts` | 105 | 4.7 KiB | Pure queue/run workspace state shape and transitions. |
 | `workspace.svelte.ts` | 3 | 253 B | Reactive owner of workspace state. |
-| `YouTubePreparation.svelte` | 89 | 17.7 KiB | YouTube prep view: Upscale/Optimize mode picker and tuning controls. |
+| `YouTubePreparation.svelte` | 91 | 18.6 KiB | YouTube prep view: Upscale/Optimize mode picker and tuning controls. |
 
 ### `desktop/src/lib/backdrop/`
 
@@ -660,7 +660,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/lib/views/`
 
-11 files · 1,797 lines · 180.9 KiB
+11 files · 1,797 lines · 182.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -669,7 +669,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `MediaTable.svelte` | 268 | 31.5 KiB | Paged media table (selection, profile, track choices, review, run state, YouTube estimates) extracted from the route snippet and rendered inside the YouTube page; pure view with route callbacks. |
 | `MetadataReviewDialog.svelte` | 203 | 14.6 KiB | Compact media-file/series/season/episode review dialog around the metadata workbench and LibraryTvReview, extracted from the route; every edit is a route callback. |
 | `OutputPreviewDialog.svelte` | 93 | 7.3 KiB | Review-before-start dialog (destinations, collisions, disk budget, rebuild acknowledgement) extracted from the route; the route owns the preview, flags and start action. |
-| `RunView.svelte` | 208 | 25.6 KiB | Run page view (task picker, output folder, per-file review, rebuild parameters, queue plan, launch card) extracted from the route; pure props and callbacks, state stays route-owned. |
+| `RunView.svelte` | 208 | 26.9 KiB | Run page view (task picker, output folder, per-file review, rebuild parameters, queue plan, launch card) extracted from the route; pure props and callbacks, state stays route-owned. |
 | `ShellHeader.svelte` | 65 | 4.0 KiB | Breadcrumb, appearance picker, engine status pill, refresh/help buttons and the dismissible notice extracted from the route; pure view with route callbacks. |
 | `ShellSidebar.svelte` | 72 | 3.7 KiB | Brand lockup, main/utility navigation, active-library chip and engine status extracted from the route; navigation and the folder picker are route callbacks. |
 | `StopNowDialog.svelte` | 28 | 1.6 KiB | Stop-now confirmation dialog extracted from the route; the route owns the open flag and the stop action. |
@@ -708,12 +708,12 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/styles/components/`
 
-8 files · 1,235 lines · 28.4 KiB
+8 files · 1,239 lines · 28.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `home.css` | 245 | 4.2 KiB | Home actions for the library, organizer, rebuild, and YouTube prep. |
-| `info-tip.css` | 15 | 2.4 KiB | Plain-language "i" help beside settings. |
+| `info-tip.css` | 19 | 3.0 KiB | Plain-language "i" help beside settings. |
 | `library-poster-grid-1.css` | 282 | 5.1 KiB | Library poster grid CSS, part 1 of 2 (imported by the grid, queue status and rename dialog): grid, cards and badges. |
 | `library-poster-grid-2.css` | 280 | 4.9 KiB | Library poster grid CSS, part 2 of 2: browse bars, selection controls and responsive rules. |
 | `metadata-review.css` | 124 | 5.8 KiB | Poster-first review used when a library card opens one film. |
@@ -763,7 +763,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-79 files · 10,650 lines · 715.7 KiB
+80 files · 10,766 lines · 722.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -779,12 +779,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `browser-server.mjs` | 18 | 904 B | Isolated browser fixtures; native IPC, user profiles and media are never mounted. |
 | `credentials-controller.test.mjs` | 201 | 14.3 KiB | Node tests for credentials-controller.ts with fake invoke and host drafts. |
 | `entry-display.test.mjs` | 102 | 6.1 KiB | Node tests for entry-display.ts. |
-| `explanations.test.mjs` | 56 | 2.6 KiB | Plain-language help for encoder settings and the advisories shown beside them. |
+| `explanations.test.mjs` | 126 | 6.7 KiB | Plain-language help for encoder settings and the advisories shown beside them. |
 | `file-pickers.test.mjs` | 175 | 9.8 KiB | Node tests for file-pickers.ts with fake dialog, invoke, host and actions. |
 | `file-settings.test.mjs` | 227 | 15.5 KiB | Node tests for file-settings.ts with a fake host. |
 | `filename-template.test.mjs` | 127 | 8.9 KiB | Node characterization tests for filename-template.ts, including pinned quirks. |
 | `format.test.mjs` | 48 | 1.7 KiB | Node characterization tests for format.ts (unit and hour rollover boundaries). |
 | `home-help-contract.mjs` | 28 | 2.2 KiB | Browser contract: Home and Help. |
+| `info-tip-css.test.mjs` | 46 | 2.4 KiB | Static test that the help popover is hidden with visibility (row styles override display) and opens only on hover, focus or pin. |
 | `latest-outcomes.test.mjs` | 79 | 5.2 KiB | Contract for which failures still count (src/lib/latest-outcomes.ts): a file is failed only when its most recent decisive outcome is a failure. |
 | `library-actions.test.mjs` | 201 | 15.2 KiB | Node tests for library-actions.ts with a fake host and actions. |
 | `library-cards.test.mjs` | 299 | 22.3 KiB | Node tests for library-cards.ts with injected getters (card fields, match states, poster precedence, browse views, crumbs). |
@@ -907,13 +908,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,404 lines · 2653.3 KiB
+13 files · 78,405 lines · 2652.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `architecture-descriptions.json` | 320 | 48.9 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
-| `interaction-map.json` | 63,496 | 1930.4 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
-| `interaction-map.md` | 851 | 180.3 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
+| `architecture-descriptions.json` | 321 | 49.1 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
+| `interaction-map.json` | 63,496 | 1930.1 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
+| `interaction-map.md` | 851 | 179.4 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
 | `interaction-tasks.json` | 320 | 9.8 KiB | Reviewed task journey selectors used to compute shortest click paths and over-tap deltas. |
 | `interaction-waterfall.json` | 10,299 | 334.5 KiB | Generated machine-readable state inventories, source-resolved waterfall steps, click formulas and native/system boundaries. |
 | `interaction-waterfall.md` | 767 | 67.8 KiB | Generated human-readable multiflow waterfall map with active controls, transitions and minimum click formulas. |

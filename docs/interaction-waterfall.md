@@ -219,7 +219,7 @@ Active source templates: **10** · estimated runtime controls: **17** · disable
 | Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:50:7](../desktop/src/lib/views/ShellHeader.svelte#L50) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Check / Integrity / Metadata / Short test / Rebuild | app-click | [desktop/src/lib/RunModePicker.svelte:61:7](../desktop/src/lib/RunModePicker.svelte#L61) | callback:onSelect (boundary)<br>callback:onTabKeydown (boundary) | Each(options); One Svelte template control renders five runtime radio buttons. |
 | Review selected run files | app-click | [desktop/src/lib/views/RunView.svelte:125:3](../desktop/src/lib/views/RunView.svelte#L125) | — | settings && (mode === "full" \|\| mode === "test") |
-| Stop queue on first error | form-control | [desktop/src/lib/views/RunView.svelte:129:279](../desktop/src/lib/views/RunView.svelte#L129) | — | settings && (mode === "full" \|\| mode === "test") |
+| Stop queue on first error | form-control | [desktop/src/lib/views/RunView.svelte:129:349](../desktop/src/lib/views/RunView.svelte#L129) | — | settings && (mode === "full" \|\| mode === "test") |
 | Review and start selected task | app-click | [desktop/src/lib/views/RunView.svelte:82:230](../desktop/src/lib/views/RunView.svelte#L82) | page:library | !scanResult |
 
 ### Conditional / data-dependent controls
@@ -358,28 +358,28 @@ Active source templates: **12** · estimated runtime controls: **15** · disable
 | Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:41:7](../desktop/src/lib/views/ShellHeader.svelte#L41) | — | A select action is available but is not a click in the task budgets. |
 | Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:50:7](../desktop/src/lib/views/ShellHeader.svelte#L50) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:50:7](../desktop/src/lib/views/ShellHeader.svelte#L50) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Add folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary) | always |
-| Add files | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:181](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFile (boundary) | always |
-| Upscale | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:100](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary) | always |
-| Optimize | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:410](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary) | always |
-| Choose folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary) | always |
-| Create upload copies | app-click | [desktop/src/lib/YouTubePreparation.svelte:84:322](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:beginRun (boundary) | else(run.id) |
+| Add folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:34:40](../desktop/src/lib/YouTubePreparation.svelte#L34) | callback:browseFolder (boundary) | always |
+| Add files | app-click | [desktop/src/lib/YouTubePreparation.svelte:34:181](../desktop/src/lib/YouTubePreparation.svelte#L34) | callback:browseFile (boundary) | always |
+| Upscale | app-click | [desktop/src/lib/YouTubePreparation.svelte:49:100](../desktop/src/lib/YouTubePreparation.svelte#L49) | callback:persistPreferences (boundary) | always |
+| Optimize | app-click | [desktop/src/lib/YouTubePreparation.svelte:49:410](../desktop/src/lib/YouTubePreparation.svelte#L49) | callback:persistPreferences (boundary) | always |
+| Choose folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:34:40](../desktop/src/lib/YouTubePreparation.svelte#L34) | callback:browseFolder (boundary) | always |
+| Create upload copies | app-click | [desktop/src/lib/YouTubePreparation.svelte:86:322](../desktop/src/lib/YouTubePreparation.svelte#L86) | callback:beginRun (boundary) | else(run.id) |
 
 ### Conditional / data-dependent controls
 
 | Control | Kind | Source | Destination | Guards / notes |
 |---|---|---|---|---|
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:32:314](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:analyzeFolder (boundary) | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:36:260](../desktop/src/lib/YouTubePreparation.svelte#L36) | callback:browseFolder (boundary) | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:230](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:chooseYoutubeOutput (boundary) | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:59:351](../desktop/src/lib/YouTubePreparation.svelte#L59) | callback:persistPreferences (boundary) | always |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:66:412](../desktop/src/lib/YouTubePreparation.svelte#L66) | page:settings | !modeToolsReady |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:434](../desktop/src/lib/YouTubePreparation.svelte#L79) | callback:setFilteredSelection (boundary) | scanResult; visibleEntries.length > mediaPageSize |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:738](../desktop/src/lib/YouTubePreparation.svelte#L79) | — | scanResult |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:79:886](../desktop/src/lib/YouTubePreparation.svelte#L79) | page:library | scanResult |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:333](../desktop/src/lib/YouTubePreparation.svelte#L81) | callback:analyzeFolder (boundary) | else(scanResult); !scanning |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:84:50](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:stopAfterCurrent (boundary) | run.id |
-| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:84:178](../desktop/src/lib/YouTubePreparation.svelte#L84) | callback:stopNow (boundary) | run.id; stopNow |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:34:314](../desktop/src/lib/YouTubePreparation.svelte#L34) | callback:analyzeFolder (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:38:260](../desktop/src/lib/YouTubePreparation.svelte#L38) | callback:browseFolder (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:61:230](../desktop/src/lib/YouTubePreparation.svelte#L61) | callback:chooseYoutubeOutput (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:61:351](../desktop/src/lib/YouTubePreparation.svelte#L61) | callback:persistPreferences (boundary) | always |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:68:412](../desktop/src/lib/YouTubePreparation.svelte#L68) | page:settings | !modeToolsReady |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:434](../desktop/src/lib/YouTubePreparation.svelte#L81) | callback:setFilteredSelection (boundary) | scanResult; visibleEntries.length > mediaPageSize |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:738](../desktop/src/lib/YouTubePreparation.svelte#L81) | — | scanResult |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:81:886](../desktop/src/lib/YouTubePreparation.svelte#L81) | page:library | scanResult |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:83:333](../desktop/src/lib/YouTubePreparation.svelte#L83) | callback:analyzeFolder (boundary) | else(scanResult); !scanning |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:86:50](../desktop/src/lib/YouTubePreparation.svelte#L86) | callback:stopAfterCurrent (boundary) | run.id |
+| Conditional source, selection, pagination and run controls | button | [desktop/src/lib/YouTubePreparation.svelte:86:178](../desktop/src/lib/YouTubePreparation.svelte#L86) | callback:stopNow (boundary) | run.id; stopNow |
 
 ### Metadata organizer rename review
 
@@ -633,7 +633,7 @@ Assumptions:
 
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
-| 1 | `youtube-ready` → `run-active` | Create upload copies<br>`beginRun() → beginQueuedRun() for youtube mode` | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:84:322](../desktop/src/lib/YouTubePreparation.svelte#L84) |
+| 1 | `youtube-ready` → `run-active` | Create upload copies<br>`beginRun() → beginQueuedRun() for youtube mode` | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:86:322](../desktop/src/lib/YouTubePreparation.svelte#L86) |
 | 2 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `1` total clicks = 1 app + 0 native-picker/system + variable picker clicks.
@@ -653,11 +653,11 @@ Assumptions:
 | # | State transition | User/system action | Type | Click cost | Evidence |
 |---:|---|---|---|---:|---|
 | 1 | `library-empty-ready` → `youtube-ready` | YouTube navigation item | app-click | `1` | [desktop/src/lib/views/ShellSidebar.svelte:43:7](../desktop/src/lib/views/ShellSidebar.svelte#L43) |
-| 2 | `youtube-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) |
+| 2 | `youtube-ready` → `native-folder-picker` | Add folder | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:34:40](../desktop/src/lib/YouTubePreparation.svelte#L34) |
 | 3 | `native-folder-picker` → `native-folder-picker` | Navigate and select source | native-navigation | `x` | `—` |
 | 4 | `native-folder-picker` → `library-ready` | Confirm native picker selection | native-confirm | `1` | `—` |
 | 5 | `library-ready` → `youtube-ready` | Scan source and populate YouTube queue | automatic | `0` | `—` |
-| 6 | `youtube-ready` → `run-active` | Create upload copies<br>`beginRun() → beginQueuedRun() for youtube mode` | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:84:322](../desktop/src/lib/YouTubePreparation.svelte#L84) |
+| 6 | `youtube-ready` → `run-active` | Create upload copies<br>`beginRun() → beginQueuedRun() for youtube mode` | app-click | `1` | [desktop/src/lib/YouTubePreparation.svelte:86:322](../desktop/src/lib/YouTubePreparation.svelte#L86) |
 | 7 | `run-active` → `finished` | Encode/check, validate, write report and finish | automatic | `0` | `—` |
 
 **Minimum formula:** `x + 4` total clicks = 3 app + 1 native-picker/system + variable picker clicks.

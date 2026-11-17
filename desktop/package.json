@@ -29,6 +29,7 @@
     "test:credentials-controller": "node --experimental-strip-types --test tests/credentials-controller.test.mjs",
     "test:settings-controller": "node --experimental-strip-types --test tests/settings-controller.test.mjs",
     "test:web-shim": "node --experimental-strip-types --test tests/web-shim.test.mjs",
+    "test:info-tip-css": "node --experimental-strip-types --test tests/info-tip-css.test.mjs",
     "test:app-boot": "node --experimental-strip-types --test tests/app-boot.test.mjs",
     "test:app-input": "node --experimental-strip-types --test tests/app-input.test.mjs",
     "test:library-rename": "node --experimental-strip-types --test tests/library-rename.test.mjs",

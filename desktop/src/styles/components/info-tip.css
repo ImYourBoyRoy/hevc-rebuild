@@ -4,8 +4,8 @@
 .info-tip { position: relative; display: inline-flex; vertical-align: middle; margin-left: 6px; }
 .info-tip-button { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid var(--theme-line-strong, currentColor); background: transparent; color: var(--theme-muted, inherit); cursor: help; }
 .info-tip-button:hover, .info-tip-button:focus-visible, .info-tip.pinned .info-tip-button { color: var(--theme-text, inherit); border-color: var(--theme-accent, currentColor); }
-.info-tip-popover { position: absolute; z-index: 40; left: 50%; top: calc(100% + 8px); transform: translateX(-30%); width: min(340px, 78vw); display: none; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--theme-radius-sm, 9px); border: 1px solid var(--theme-line-strong, currentColor); background: var(--theme-raised, Canvas); color: var(--theme-text, CanvasText); box-shadow: var(--theme-elev-2, 0 8px 24px rgb(0 0 0 / 28%)); font: 400 12.5px/1.45 var(--font-ui, system-ui, sans-serif); text-align: left; text-transform: none; letter-spacing: 0; white-space: normal; }
-.info-tip:hover .info-tip-popover, .info-tip:focus-within .info-tip-popover, .info-tip.pinned .info-tip-popover { display: flex; }
+.info-tip-popover { position: absolute; z-index: 40; left: 50%; top: calc(100% + 8px); transform: translateX(-30%); width: min(340px, 78vw); display: flex; flex-direction: column; visibility: hidden; opacity: 0; pointer-events: none; gap: 4px; padding: 10px 12px; border-radius: var(--theme-radius-sm, 9px); border: 1px solid var(--theme-line-strong, currentColor); background: var(--theme-raised, Canvas); color: var(--theme-text, CanvasText); box-shadow: var(--theme-elev-2, 0 8px 24px rgb(0 0 0 / 28%)); font: 400 12.5px/1.45 var(--font-ui, system-ui, sans-serif); text-align: left; text-transform: none; letter-spacing: 0; white-space: normal; }
+.info-tip:hover .info-tip-popover, .info-tip:focus-within .info-tip-popover, .info-tip.pinned .info-tip-popover { visibility: visible; opacity: 1; pointer-events: auto; }
 .info-tip-popover strong { font-weight: 700; }
 .crf-scale { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--theme-muted); }
 .crf-scale li[data-active="true"] { color: var(--theme-text); font-weight: 700; }
@@ -13,3 +13,7 @@
 .encoder-advisory { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--theme-radius-sm, 9px); background: var(--theme-warning-surface); color: var(--theme-warning-text); font-size: 12.5px; line-height: 1.45; }
 .encoder-advisory[data-level="info"] { background: var(--theme-accent-soft); color: var(--theme-text); }
 .repair-command { display: block; margin-top: 6px; padding: 8px 10px; border-radius: var(--theme-radius-sm, 9px); background: var(--theme-accent-soft); color: var(--theme-text); font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; user-select: all; }
+/* In settings rows the label's <span> is a grid that stacks its children, which left the "i" button alone on
+   its own line. Put it beside the title instead; the description lines keep their full width below. */
+.form-row span:has(> .info-tip), .toggle-row span:has(> .info-tip) { grid-template-columns: max-content 1fr; align-items: center; column-gap: 0; }
+.form-row span:has(> .info-tip) > small, .toggle-row span:has(> .info-tip) > small { grid-column: 1 / -1; }

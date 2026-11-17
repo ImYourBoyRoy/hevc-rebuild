@@ -2,7 +2,7 @@
   import { Film, Info, Layers, ShieldCheck, SlidersHorizontal, X } from "@lucide/svelte";
   import InfoTip from "./InfoTip.svelte";
   import Modal from "./Modal.svelte";
-  import { CRF_EXPLANATION, crfBand, encoderAdvisories, presetHelp, tuneHelp } from "./explanations.js";
+  import { CRF_EXPLANATION, crfBand, encoderAdvisories, presetHelp, settingHelp, tuneHelp } from "./explanations.js";
   import type { FileRunSettingsOverride, MediaEntry, Settings } from "./types.js";
 
   interface Props {
@@ -183,12 +183,12 @@
   <section class="run-settings-group">
     <div class="run-settings-group-heading"><ShieldCheck size={17} /><div><h3>HDR handling</h3><p>Static HDR signaling stays source-aware; these controls cover dynamic metadata and Dolby Vision policy.</p></div></div>
     <div class="run-settings-fields">
-      <label class="run-override-field run-override-toggle" title="When on, HDR10+ is kept automatically: encode-time dhdr10-info if libx265 has HDR10_PLUS, otherwise post-encode hdr10plus_tool inject + remux, then verify. Off deliberately omits dynamic metadata; static HDR signaling stays source-aware.">
-        <span><input type="checkbox" bind:checked={hdrSet} /> <strong>HDR10+ dynamic metadata</strong><small>encode-time or post-inject, then verify</small></span>
+      <label class="run-override-field run-override-toggle">
+        <span><input type="checkbox" bind:checked={hdrSet} /> <strong>HDR10+ dynamic metadata</strong><InfoTip label="About HDR10+" title={settingHelp("hdr10plus").title} text={settingHelp("hdr10plus").text} /><small>keep the per-scene brightness data, then verify</small></span>
         <input type="checkbox" bind:checked={preserveHdr10plus} disabled={!hdrSet} aria-label="Preserve HDR10+ for this file" />
       </label>
-      <label class="run-override-field" title="Safe preservation keeps verified Dolby Vision. Verified HDR10 fallback removes Dolby Vision only when the source has a safe HDR10 base. Skip file leaves the source untouched and marks it skipped.">
-        <span><strong>Dolby Vision</strong><small>choose preservation or a verified fallback</small></span>
+      <label class="run-override-field">
+        <span><strong>Dolby Vision</strong><InfoTip label="About Dolby Vision handling" title={settingHelp("dolbyVision").title} text={settingHelp("dolbyVision").text} /><small>choose preservation or a verified fallback</small></span>
         <select bind:value={dolby} aria-label="Per-file Dolby Vision policy"><option value="inherit">Use current setting</option><option value="safe">Safe preservation</option><option value="hdr10-fallback">Verified HDR10 fallback</option><option value="skip">Skip this file</option></select>
       </label>
     </div>

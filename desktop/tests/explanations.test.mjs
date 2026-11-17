@@ -3,7 +3,9 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crfBand, encoderAdvisories, presetHelp, tuneHelp, CRF_DEFAULT } from "../src/lib/explanations.ts";
+import {
+  crfBand, crfSizeHint, crfSizeRatio, encoderAdvisories, presetHelp, tuneHelp, settingHelp, SETTING_HELP_KEYS, SHORT_TEST_HELP, CRF_DEFAULT,
+} from "../src/lib/explanations.ts";
 
 test("every CRF from 0 to 51 maps to exactly one named band, and the default is the recommended one", () => {
   const labels = new Set();
@@ -53,4 +55,72 @@ test("extreme CRF values get an advisory in both directions", () => {
   assert.match(encoderAdvisories({ tune: "none", crf: 28 })[0].text, /soft|banding|detail/i);
   const both = encoderAdvisories({ tune: "grain", crf: 16 });
   assert.equal(both.length, 2);
+});
+
+test("the CRF size guide is relative to the default, falls as CRF rises, and is honest that it is rough", () => {
+  assert.equal(crfSizeRatio(CRF_DEFAULT), 1);
+  assert.ok(Math.abs(crfSizeRatio(27) - 0.5) < 0.01, "about every +6 halves the size");
+  assert.ok(Math.abs(crfSizeRatio(15) - 2) < 0.01, "and every -6 doubles it");
+  for (let crf = 1; crf <= 51; crf += 1) assert.ok(crfSizeRatio(crf) < crfSizeRatio(crf - 1), `CRF ${crf} is smaller than ${crf - 1}`);
+  assert.equal(crfSizeRatio(-9), crfSizeRatio(0), "out-of-range values clamp");
+  assert.match(crfSizeHint(CRF_DEFAULT), /default/i);
+  assert.match(crfSizeHint(22), /close to/i, "a one-step change is not presented as a big difference");
+  assert.match(crfSizeHint(27), /50%/);
+  assert.match(crfSizeHint(15), /2×/);
+  for (const crf of [0, 15, 21, 27, 40, 51]) assert.match(crfSizeHint(crf), /rough/i, `CRF ${crf} says it is only a guide`);
+});
+
+test("the top CRF band no longer claims to be for short tests, which now follow the run's CRF", () => {
+  assert.doesNotMatch(crfBand(40).summary, /preview|test/i);
+  assert.match(crfBand(40).summary, /loss|small/i);
+  assert.match(SHORT_TEST_HELP, /5-second/);
+  assert.match(SHORT_TEST_HELP, /same (quality|settings|CRF)/i);
+  assert.match(SHORT_TEST_HELP, /original/i);
+});
+
+const REQUIRED_HELP = ["libx265", "detectAnimation", "hdr10plus", "dolbyVision", "secondaryVideo", "dataStreams", "copyVerification", "qualityCheck", "minSsim",
+  "youtubeBitrateProfile", "youtubeSizeTarget", "youtubeShrink", "youtubeQualityCheck", "youtubeSdrCodec"];
+
+test("every setting that had only jargon now has a titled plain-language explanation", () => {
+  assert.deepEqual([...SETTING_HELP_KEYS].sort(), [...REQUIRED_HELP].sort());
+  for (const key of REQUIRED_HELP) {
+    const help = settingHelp(key);
+    assert.ok(help.title.length > 3, `${key} has a title`);
+    assert.ok(help.text.length >= 60 && help.text.length <= 520, `${key} is a short paragraph, not a stub or an essay (${help.text.length})`);
+    assert.doesNotMatch(help.text, /dhdr10|hdr10plus_tool|HDR10_PLUS|\binject\b|\bremux\b|\bffprobe\b/i, `${key} avoids internal tool names`);
+  }
+});
+
+test("technical terms are explained where they are used", () => {
+  assert.match(settingHelp("hdr10plus").text, /brightness/i);
+  assert.match(settingHelp("hdr10plus").text, /scene/i);
+  for (const word of ["Safe", "Skip", "HDR10"]) assert.match(settingHelp("dolbyVision").text, new RegExp(word));
+  assert.match(settingHelp("dolbyVision").text, /Dolby Vision/);
+  assert.match(settingHelp("secondaryVideo").text, /Encode/);
+  assert.match(settingHelp("secondaryVideo").text, /Copy/);
+  assert.match(settingHelp("copyVerification").text, /fingerprint/i);
+  assert.match(settingHelp("copyVerification").text, /never re-?encoded|copied/i);
+  for (const key of ["qualityCheck", "minSsim", "youtubeQualityCheck"]) {
+    assert.match(settingHelp(key).text, /score/i, `${key} says what the score is`);
+    assert.match(settingHelp(key).text, /SSIM/, `${key} names the measure once so it can be looked up`);
+  }
+  assert.match(settingHelp("libx265").text, /encoder/i);
+  assert.match(settingHelp("libx265").text, /HEVC/);
+  assert.match(settingHelp("minSsim").text, /grain/i, "the grainy-film caveat is kept");
+  assert.match(settingHelp("qualityCheck").text, /Enforce/);
+  assert.match(settingHelp("qualityCheck").text, /original/i);
+});
+
+test("the YouTube options say what each choice does to the file", () => {
+  assert.match(settingHelp("youtubeBitrateProfile").text, /Balanced/);
+  assert.match(settingHelp("youtubeBitrateProfile").text, /YouTube/);
+  assert.match(settingHelp("youtubeSizeTarget").text, /not a strict/i);
+  for (const word of ["Auto", "Off", "Aggressive"]) assert.match(settingHelp("youtubeShrink").text, new RegExp(word));
+  assert.match(settingHelp("youtubeSdrCodec").text, /H\.264/);
+  assert.match(settingHelp("youtubeSdrCodec").text, /HEVC/);
+});
+
+test("an unknown help key reads as a harmless generic note instead of throwing", () => {
+  const help = settingHelp("not-a-setting");
+  assert.ok(help.title && help.text);
 });

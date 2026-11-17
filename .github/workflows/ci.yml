@@ -43,6 +43,7 @@ jobs:
         run: |
           pnpm test:metadata-matching
           pnpm test:web-shim
+          pnpm test:info-tip-css
           pnpm test:modal
           pnpm test:home-help
           pnpm test:library

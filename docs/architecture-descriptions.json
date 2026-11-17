@@ -64,6 +64,7 @@
     "desktop/src-tauri/src/web_server/fs_browse.rs": "Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers.",
     "desktop/src-tauri/src/web_server/router_tests.rs": "In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving.",
     "desktop/src-tauri/src/web_server/web_shim.js": "Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab.",
+    "desktop/tests/info-tip-css.test.mjs": "Static test that the help popover is hidden with visibility (row styles override display) and opens only on hover, focus or pin.",
     "desktop/tests/web-shim.test.mjs": "Contract tests running the real @tauri-apps/api modules against the web shim.",
     "docs/maintainer/SERVE_MODE.md": "Design and safety model of the headless server mode, with stages and open owner questions.",
     "desktop/src-tauri/src/mcp_server/shared.rs": "Shares the MCP server with the web server: one job slot with the browser (claim/release, stop file) and a bridge that turns MCP job-registry changes into the desktop events the GUI renders.",

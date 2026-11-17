@@ -3052,11 +3052,11 @@
           "kind": "form-control",
           "clicks": 0,
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:form-control:129:279",
+            "id": "desktop/src/lib/views/RunView.svelte:form-control:129:349",
             "file": "desktop/src/lib/views/RunView.svelte",
             "line": 129,
-            "column": 279,
-            "source": "desktop/src/lib/views/RunView.svelte:129:279",
+            "column": 349,
+            "source": "desktop/src/lib/views/RunView.svelte:129:349",
             "kind": "form-control",
             "label": "Stop queue on first error",
             "guards": [
@@ -3070,11 +3070,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:form-control:129:279",
+              "id": "desktop/src/lib/views/RunView.svelte:form-control:129:349",
               "file": "desktop/src/lib/views/RunView.svelte",
               "line": 129,
-              "column": 279,
-              "source": "desktop/src/lib/views/RunView.svelte:129:279",
+              "column": 349,
+              "source": "desktop/src/lib/views/RunView.svelte:129:349",
               "kind": "form-control",
               "label": "Stop queue on first error",
               "guards": [
@@ -4911,11 +4911,11 @@
           "label": "Add folder",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 32,
+            "line": 34,
             "column": 40,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
             "kind": "app-click",
             "label": "Add folder",
             "guards": [],
@@ -4936,11 +4936,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 32,
+              "line": 34,
               "column": 40,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
               "kind": "app-click",
               "label": "Add folder",
               "guards": [],
@@ -4970,11 +4970,11 @@
           "label": "Add files",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:181",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:181",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 32,
+            "line": 34,
             "column": 181,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:32:181",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:34:181",
             "kind": "app-click",
             "label": "Add files",
             "guards": [],
@@ -4995,11 +4995,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:181",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:181",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 32,
+              "line": 34,
               "column": 181,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:32:181",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:34:181",
               "kind": "app-click",
               "label": "Add files",
               "guards": [],
@@ -5029,11 +5029,11 @@
           "label": "Upscale",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:47:100",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:49:100",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 47,
+            "line": 49,
             "column": 100,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:47:100",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:49:100",
             "kind": "app-click",
             "label": "Upscale",
             "guards": [],
@@ -5054,11 +5054,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:47:100",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:49:100",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 47,
+              "line": 49,
               "column": 100,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:47:100",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:49:100",
               "kind": "app-click",
               "label": "Upscale",
               "guards": [],
@@ -5088,11 +5088,11 @@
           "label": "Optimize",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:47:410",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:49:410",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 47,
+            "line": 49,
             "column": 410,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:47:410",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:49:410",
             "kind": "app-click",
             "label": "Optimize",
             "guards": [],
@@ -5113,11 +5113,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:47:410",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:49:410",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 47,
+              "line": 49,
               "column": 410,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:47:410",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:49:410",
               "kind": "app-click",
               "label": "Optimize",
               "guards": [],
@@ -5147,11 +5147,11 @@
           "label": "Choose folder",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 32,
+            "line": 34,
             "column": 40,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
             "kind": "app-click",
             "label": "Choose folder",
             "guards": [],
@@ -5172,11 +5172,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 32,
+              "line": 34,
               "column": 40,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
               "kind": "app-click",
               "label": "Choose folder",
               "guards": [],
@@ -5206,11 +5206,11 @@
           "label": "Create upload copies",
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:322",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:322",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 84,
+            "line": 86,
             "column": 322,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
             "kind": "app-click",
             "label": "Create upload copies",
             "guards": [
@@ -5233,11 +5233,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:322",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:322",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 84,
+              "line": 86,
               "column": 322,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
               "kind": "app-click",
               "label": "Create upload copies",
               "guards": [
@@ -5270,11 +5270,11 @@
           "all": true,
           "label": "Conditional source, selection, pagination and run controls",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 32,
+            "line": 34,
             "column": 40,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
             "kind": "button",
             "label": "Conditional source, selection, pagination and run controls",
             "guards": [],
@@ -5295,11 +5295,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:314",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:314",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 32,
+              "line": 34,
               "column": 314,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:32:314",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:34:314",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [],
@@ -5319,11 +5319,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:36:260",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:38:260",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 36,
+              "line": 38,
               "column": 260,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:36:260",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:38:260",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [],
@@ -5343,11 +5343,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:59:230",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:61:230",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 59,
+              "line": 61,
               "column": 230,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:59:230",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:61:230",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [],
@@ -5367,11 +5367,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:59:351",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:61:351",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 59,
+              "line": 61,
               "column": 351,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:59:351",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:61:351",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [],
@@ -5391,11 +5391,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:66:412",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:68:412",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 66,
+              "line": 68,
               "column": 412,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:66:412",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:68:412",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5417,11 +5417,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:79:434",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:81:434",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 79,
+              "line": 81,
               "column": 434,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:79:434",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:81:434",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5444,11 +5444,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:79:738",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:81:738",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 79,
+              "line": 81,
               "column": 738,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:79:738",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:81:738",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5461,11 +5461,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:79:886",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:81:886",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 79,
+              "line": 81,
               "column": 886,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:79:886",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:81:886",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5487,11 +5487,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:81:333",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:83:333",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 81,
+              "line": 83,
               "column": 333,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:81:333",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:83:333",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5514,11 +5514,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:50",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:50",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 84,
+              "line": 86,
               "column": 50,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:84:50",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:86:50",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -5540,11 +5540,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:178",
+              "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:178",
               "file": "desktop/src/lib/YouTubePreparation.svelte",
-              "line": 84,
+              "line": 86,
               "column": 178,
-              "source": "desktop/src/lib/YouTubePreparation.svelte:84:178",
+              "source": "desktop/src/lib/YouTubePreparation.svelte:86:178",
               "kind": "button",
               "label": "Conditional source, selection, pagination and run controls",
               "guards": [
@@ -9237,13 +9237,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+          "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:322",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:322",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 84,
+            "line": 86,
             "column": 322,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
             "kind": "button",
             "label": "Create upload copies",
             "guards": [
@@ -9363,13 +9363,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+          "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:32:40",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:34:40",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 32,
+            "line": 34,
             "column": 40,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:32:40",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:34:40",
             "kind": "button",
             "label": "Add folder",
             "guards": [],
@@ -9460,13 +9460,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+          "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
           "control": {
-            "id": "desktop/src/lib/YouTubePreparation.svelte:button:84:322",
+            "id": "desktop/src/lib/YouTubePreparation.svelte:button:86:322",
             "file": "desktop/src/lib/YouTubePreparation.svelte",
-            "line": 84,
+            "line": 86,
             "column": 322,
-            "source": "desktop/src/lib/YouTubePreparation.svelte:84:322",
+            "source": "desktop/src/lib/YouTubePreparation.svelte:86:322",
             "kind": "button",
             "label": "Create upload copies",
             "guards": [
