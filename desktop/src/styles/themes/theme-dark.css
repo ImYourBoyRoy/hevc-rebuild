@@ -1,0 +1,48 @@
+/* ./desktop/src/styles/themes/theme-dark.css
+   Dark: "Midnight studio". A four-step cool charcoal ramp (page < surface < raised < line) so
+   cards separate without heavy borders, visible secondary buttons, and a mint accent with a soft
+   glow. AA contrast of all shell-chrome text is enforced by `pnpm test:theme-contrast`. */
+.app-shell[data-theme="dark"] {
+  --theme-page: #0e1415;
+  --theme-surface: #162022;
+  --theme-raised: #1e2a2d;
+  --theme-text: #e6efec;
+  --theme-muted: #a2b2ad;
+  --theme-line: #2a3a3d;
+  --theme-line-strong: #3f5256;
+  --theme-accent: #6dcfa0;
+  --theme-accent-strong: #8ce2b8;
+  --theme-accent-soft: #1b3a30;
+  --theme-on-accent: #0a1813;
+  --theme-focus: #6dcfa0;
+  --theme-sidebar: #0a1012;
+  --theme-sidebar-raised: #1a2a2c;
+  --theme-sidebar-fill: linear-gradient(180deg, #0c1416 0%, #080e10 100%);
+  --theme-topbar-fill: color-mix(in srgb, #162022 82%, transparent);
+  --theme-primary-fill: linear-gradient(180deg, #79d8aa 0%, #55b98a 100%);
+  --theme-primary-fill-hover: linear-gradient(180deg, #8ce2b8 0%, #62c696 100%);
+  --theme-primary-edge: #3f9c72;
+  --theme-sidebar-muted: #7f9992;
+  --theme-eyebrow: #7fd9ae;
+  --theme-brand-fill: linear-gradient(145deg, #86e0b5, #3fa77c);
+  --theme-brand-glow: 0 0 0 1px rgb(255 255 255 / 18%) inset, 0 0 22px color-mix(in srgb, var(--theme-accent) 30%, transparent);
+  --theme-hero-start: #18282a;
+  --theme-hero-end: #112022;
+  --theme-warning-surface: #33291a;
+  --theme-warning-text: #f2d48f;
+  --theme-danger-surface: #34201f;
+  --theme-danger-text: #f3b4ad;
+  --theme-success-surface: #17332a;
+  --theme-shadow: 0 1px 0 rgb(255 255 255 / 3%) inset, 0 10px 26px rgb(0 0 0 / 28%);
+  --theme-elev-2: 0 1px 0 rgb(255 255 255 / 5%) inset, 0 16px 36px rgb(0 0 0 / 40%);
+}
+.app-shell[data-theme="dark"] .topbar { backdrop-filter: saturate(1.2) blur(12px); border-bottom-color: var(--theme-line); }
+.app-shell[data-theme="dark"] .button.primary { color: var(--theme-on-accent); box-shadow: 0 1px 0 rgb(255 255 255 / 25%) inset, 0 6px 16px color-mix(in srgb, var(--theme-accent) 18%, transparent); }
+.app-shell[data-theme="dark"] .button.secondary { background: var(--theme-raised); color: var(--theme-text); }
+.app-shell[data-theme="dark"] .button.secondary:hover:not(:disabled) { background: var(--theme-accent-soft); border-color: var(--theme-accent); }
+.app-shell[data-theme="dark"] .nav-item.active { background: linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), color-mix(in srgb, var(--theme-accent) 5%, transparent)); box-shadow: inset 3px 0 var(--theme-accent); }
+.app-shell[data-theme="dark"] .home-action-primary { border-color: color-mix(in srgb, var(--theme-accent) 45%, var(--theme-line)); box-shadow: var(--theme-elev-1), 0 0 0 1px color-mix(in srgb, var(--theme-accent) 10%, transparent), 0 0 28px color-mix(in srgb, var(--theme-accent) 8%, transparent); }
+.app-shell[data-theme="dark"] input, .app-shell[data-theme="dark"] select { border-color: var(--theme-line-strong); background: var(--theme-raised); color: var(--theme-text); }
+.app-shell[data-theme="dark"] input:focus, .app-shell[data-theme="dark"] select:focus { border-color: var(--theme-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent) 22%, transparent); outline: none; }
+.app-shell[data-theme="dark"] ::selection { color: #07140e; background: #7fdcb0; }
+html[data-theme="dark"], html[data-theme="dark"] body { background: #0e1415; }

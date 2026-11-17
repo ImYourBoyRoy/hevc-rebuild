@@ -15,6 +15,7 @@ use std::time::Duration;
 const MAX_PROGRESS_LINE_BYTES: usize = 64 * 1024;
 const PROGRESS_QUEUE_CAPACITY: usize = 16;
 const STDERR_TAIL_BYTES: usize = 16 * 1024;
+#[cfg(unix)]
 const CHILD_SIGNAL_MARKER: &str = "__HEVC_NATIVE_CHILD_SIGNAL__=";
 
 enum ProgressMessage {
@@ -41,6 +42,7 @@ fn supervise(args: &[OsString]) -> i32 {
         return 2;
     };
 
+    #[cfg(target_os = "linux")]
     let parent_pid = std::process::id();
     let mut command = Command::new(program);
     command

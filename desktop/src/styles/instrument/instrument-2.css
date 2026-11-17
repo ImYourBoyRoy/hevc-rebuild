@@ -68,15 +68,6 @@ html[data-instrument="ion"] .app-shell .brand-name {
   letter-spacing: .08em;
   font-weight: 700;
 }
-html[data-instrument="ion"] .app-shell .main-panel {
-  background-image:
-    radial-gradient(ellipse 78% 62% at 20% 80%, color-mix(in srgb, var(--signal) 18%, transparent), transparent 62%),
-    radial-gradient(ellipse 64% 52% at 86% 16%, color-mix(in srgb, var(--signal) 12%, transparent), transparent 58%),
-    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--signal) 10%, transparent), transparent 42%);
-  background-size: 165% 165%, 150% 150%, min(520px, 46vw) min(520px, 46vw);
-  background-repeat: no-repeat;
-  animation: ion-field 28s ease-in-out infinite alternate;
-}
 html[data-instrument="ion"] .app-shell .sidebar::after {
   content: "";
   position: absolute;
@@ -100,19 +91,6 @@ html[data-instrument="ion"] .app-shell .topbar::after {
   pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--signal) 30%, #f7feff 50%, var(--signal) 70%, transparent);
   animation: ion-rail 11s ease-in-out infinite alternate;
-}
-html[data-instrument="ion"] .app-shell .main-panel::after {
-  inset: auto;
-  right: 28px;
-  bottom: 28px;
-  width: min(240px, 22vw);
-  height: min(240px, 22vw);
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0 78%, color-mix(in srgb, var(--signal) 42%, transparent) 92%, transparent 100%);
-  mask: radial-gradient(circle, transparent 58%, #000 60% 78%, transparent 80%);
-  opacity: .7;
-  animation: ion-radar 18s linear infinite;
-  box-shadow: none;
 }
 html[data-instrument="ion"] .app-shell .sidebar {
   position: relative;
@@ -150,7 +128,7 @@ html[data-instrument="ion"] .app-shell .hero-sweep {
   background: linear-gradient(115deg, transparent 0 40%, color-mix(in srgb, var(--signal) 35%, transparent) 50%, transparent 60%);
   background-size: 220% 100%;
   box-shadow: none;
-  animation: ion-slash 2.8s linear infinite;
+  animation: ion-slash 3.2s ease-in-out infinite;
   opacity: .55;
 }
 html[data-instrument="ion"] .app-shell .brand-mark,
@@ -193,14 +171,6 @@ html[data-instrument="ion"] .app-shell :is(.library-poster-card.selected, .libra
 html[data-instrument="breach"] .app-shell :is(.page-heading h1 em, .hero-copy h2 span, .brand-name) {
   text-shadow: 0 0 12px color-mix(in srgb, var(--signal) 55%, transparent);
 }
-html[data-instrument="breach"] .app-shell .main-panel {
-  background-image:
-    repeating-linear-gradient(-32deg, transparent 0 22px, color-mix(in srgb, var(--signal) 11%, transparent) 22px 23px),
-    repeating-linear-gradient(58deg, transparent 0 26px, color-mix(in srgb, #ffc14d 16%, transparent) 26px 27px),
-    repeating-linear-gradient(to bottom, transparent 0 3px, color-mix(in srgb, #000 42%, transparent) 3px 4px);
-  background-repeat: repeat;
-  animation: breach-hatch 16s linear infinite;
-}
 html[data-instrument="breach"] .app-shell .main-panel::after {
   background:
     radial-gradient(ellipse 70% 90% at 0% 40%, color-mix(in srgb, var(--signal) 28%, transparent), transparent 68%),
@@ -242,7 +212,7 @@ html[data-instrument="breach"] .app-shell .hero-sweep {
   width: 40%;
   height: 4px;
   background: linear-gradient(90deg, transparent, #ffc14d, var(--signal), #fff, transparent);
-  animation: breach-sweep 1.15s steps(4, end) infinite;
+  animation: breach-sweep 2.4s ease-in-out infinite;
   filter: drop-shadow(0 0 8px var(--signal));
 }
 html[data-instrument="breach"] .app-shell :is(.library-poster-card, .library-source-chip, .library-toolbar, .search-box, .folder-field) {
@@ -263,24 +233,21 @@ html[data-instrument="breach"] .app-shell .button.primary {
 }
 html[data-instrument="breach"] .app-shell .connection-dot.green,
 html[data-instrument="breach"] .app-shell .status-dot {
-  animation: breach-strobe .55s steps(2, end) infinite;
+  animation: breach-beacon 2.2s ease-in-out infinite;
 }
 
 @keyframes hero-sweep {
-  from { transform: translateX(-30%); }
-  to { transform: translateX(420%); }
+  from { transform: translateX(-30%); opacity: 0; }
+  12%, 88% { opacity: 1; }
+  to { transform: translateX(420%); opacity: 0; }
 }
 @keyframes instrument-drift {
   from { background-position: 0 -20%; }
   to { background-position: 0 130%; }
 }
 @keyframes instrument-led {
-  0%, 45% { opacity: 1; }
-  50%, 100% { opacity: .28; }
-}
-@keyframes ion-field {
-  from { background-position: 8% 72%, 100% 0%, right bottom; }
-  to { background-position: 78% 8%, 12% 86%, right bottom; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
 }
 @keyframes ion-edge {
   from { transform: translateY(-100%); }
@@ -290,37 +257,27 @@ html[data-instrument="breach"] .app-shell .status-dot {
   from { transform: translateX(-100%); }
   to { transform: translateX(460%); }
 }
-@keyframes ion-radar { to { transform: rotate(360deg); } }
 @keyframes ion-slash {
-  from { background-position: 120% 0; }
-  to { background-position: -40% 0; }
+  from { background-position: 120% 0; opacity: 0; }
+  15%, 85% { opacity: .55; }
+  to { background-position: -40% 0; opacity: 0; }
 }
 @keyframes ion-pulse {
   0%, 100% { opacity: .45; }
   50% { opacity: 1; }
 }
 @keyframes breach-sweep {
-  0% { transform: translateX(-40%) translateY(0); opacity: .2; }
-  40% { transform: translateX(80%) translateY(2px); opacity: 1; }
-  70% { transform: translateX(180%) translateY(-1px); opacity: .7; }
-  100% { transform: translateX(320%) translateY(0); opacity: 0; }
-}
-@keyframes breach-hatch {
-  from { background-position: 0 0, 0 0, 0 0; }
-  to { background-position: -24.38px -39px, 45.8px -28.62px, 0 8px; }
+  from { transform: translateX(-40%); opacity: 0; }
+  14%, 86% { opacity: 1; }
+  to { transform: translateX(380%); opacity: 0; }
 }
 @keyframes breach-wash {
   from { background-position: -30% 10%, -40% 0; opacity: .38; }
   to { background-position: 85% 70%, 130% 0; opacity: .72; }
 }
-@keyframes breach-jitter {
-  0%, 90%, 100% { transform: translate(0); }
-  92% { transform: translate(-1px, 1px); }
-  96% { transform: translate(1px, -1px); }
-}
-@keyframes breach-strobe {
-  0%, 40% { opacity: 1; }
-  50%, 100% { opacity: .15; }
+@keyframes breach-beacon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
 }
 
 @media (max-width: 1080px) {

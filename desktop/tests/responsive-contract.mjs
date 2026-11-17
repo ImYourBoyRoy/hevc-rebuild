@@ -1,10 +1,10 @@
 import {runBrowserContract} from './browser-contract-runner.mjs';
 async function contract(page){
   const baseUrl=new URL(page.url()).origin;
-  const widths=[360,390,620,800,1024,1440],themes=['light','dark','phosphor','ion','breach'];
+  const widths=[360,390,620,800,1024,1440],themes=['light','dark','cinema','oled','dos','phosphor','ion','breach'];
   const results=[];
   for(const fixture of ['home','help','library','run','youtube','support','settings','repair','recovery','rename']){
-    await page.goto(baseUrl+'/?fixture='+(['settings','repair','recovery'].includes(fixture)?'support':fixture==='help'?'home':fixture));await page.locator('main').waitFor();
+    await page.goto(baseUrl+'/?fixture='+(['settings','repair','recovery'].includes(fixture)?'support':fixture==='help'?'home':fixture));await page.locator('main').waitFor();await page.addStyleTag({content:'*,*::before,*::after{transition:none !important;animation:none !important}'});
     if(fixture==='home')await page.getByRole('checkbox',{name:'Populated queue'}).check();
     if(fixture==='help')await page.getByRole('button',{name:'Toggle Home/Help'}).click();
     if(['settings','repair','recovery'].includes(fixture)){await page.getByRole('combobox',{name:'Support view'}).selectOption(fixture);if(fixture!=='settings')await page.getByRole('button',{name:'Open support review'}).click();}
@@ -14,7 +14,7 @@ async function contract(page){
       await page.setViewportSize({width,height:1000});
       for(const theme of themes){
         if(fixture==='home')await page.getByRole('combobox',{name:'Fixture theme'}).selectOption(theme);
-        await page.evaluate(theme=>{for(const e of [document.documentElement,document.querySelector('.app-shell')]){e.dataset.theme=theme;if(['phosphor','ion','breach'].includes(theme))e.dataset.instrument=theme;else delete e.dataset.instrument;}const m=document.querySelector('main');m.style.overflow='auto';m.style.maxHeight='100vh';},theme);
+        await page.evaluate(theme=>{for(const e of [document.documentElement,document.querySelector('.app-shell')]){e.dataset.theme=theme==='cinema'||theme==='oled'||theme==='dos'?'dark':theme;e.dataset.palette=theme;if(['phosphor','ion','breach'].includes(theme))e.dataset.instrument=theme;else delete e.dataset.instrument;}const m=document.querySelector('main');m.style.overflow='auto';m.style.maxHeight='100vh';},theme);
         await page.evaluate(()=>document.fonts.ready);
         const metrics=await page.evaluate(()=>{
           // Page-level width checks miss text that spills out of its own box onto a neighbour.

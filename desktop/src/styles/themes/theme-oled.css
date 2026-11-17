@@ -1,0 +1,80 @@
+/* ./desktop/src/styles/themes/theme-oled.css
+   OLED: true black. The page is #000 so OLED pixels switch off; surfaces are barely lifted grays
+   separated by hairline borders instead of shadows (shadows are invisible on black), with an
+   ice-blue accent. Extends the Dark family. AA contrast of all shell-chrome text is enforced by `pnpm test:theme-contrast`. */
+.app-shell[data-palette="oled"] {
+  --theme-page: #000000;
+  --theme-surface: #0a0b0d;
+  --theme-raised: #121418;
+  --theme-text: #e9ecf0;
+  --theme-muted: #9ba3ad;
+  --theme-line: #1e2127;
+  --theme-line-strong: #353a43;
+  --theme-accent: #6cb6ff;
+  --theme-accent-strong: #9fd0ff;
+  --theme-accent-soft: #0d2036;
+  --theme-on-accent: #001224;
+  --theme-focus: #6cb6ff;
+  --theme-sidebar: #000000;
+  --theme-sidebar-raised: #14171c;
+  --theme-sidebar-fill: #000000;
+  --theme-sidebar-muted: #7f8893;
+  --theme-eyebrow: #8cc7ff;
+  --theme-topbar-fill: #000000;
+  --theme-primary-fill: #6cb6ff;
+  --theme-primary-fill-hover: #9fd0ff;
+  --theme-primary-edge: #6cb6ff;
+  --theme-brand-fill: linear-gradient(145deg, #9fd0ff, #3f8fe0);
+  --theme-brand-glow: 0 0 0 1px rgb(255 255 255 / 16%) inset;
+  --theme-radius: 10px;
+  --theme-hero-start: #0b0d10;
+  --theme-hero-end: #040506;
+  --theme-hero-text: #f0f3f6;
+  --theme-hero-muted: #b2bac4;
+  --theme-hero-kicker: #8cc7ff;
+  --theme-hero-accent: #9fd0ff;
+  --theme-hero-line: #232830;
+  --theme-warning-surface: #1c1708;
+  --theme-warning-text: #f0d48a;
+  --theme-danger-surface: #1f0f10;
+  --theme-danger-text: #f3b1ab;
+  --theme-success-surface: #0b1d14;
+  --theme-shadow: 0 0 0 1px #1e2127;
+  --theme-elev-2: 0 0 0 1px #353a43, 0 0 24px rgb(108 182 255 / 8%);
+  --theme-icon-violet: #c4b6f0; --theme-icon-violet-bg: #181530;
+  --theme-icon-green: #8fdcb0; --theme-icon-green-bg: #0d2218;
+  --theme-icon-amber: #e8c27c; --theme-icon-amber-bg: #231b0a;
+  --theme-icon-blue: #9fd0ff; --theme-icon-blue-bg: #0d2036;
+  --theme-icon-danger: #f3b1ab; --theme-icon-danger-bg: #2a1213;
+  --workflow-art-start: #0b0d10; --workflow-art-end: #050608;
+  --workflow-art-frame-start: #5a7a99; --workflow-art-frame-end: #34506b; --workflow-art-frame: #d8e4f0;
+  --workflow-art-grid: #3d4a58; --workflow-art-outline: #55708a; --workflow-art-label: #b9cde0;
+  --workflow-art-copy: #eef3f8; --workflow-art-muted: #a9b9c8; --workflow-art-path: #7fc0ff;
+  --workflow-art-accent: #9fd0ff; --workflow-art-pill: #151a21; --workflow-art-sprocket: #3f5a75;
+  --workflow-art-hole: #b8cce0; --workflow-art-land: #5f7c98; --workflow-art-sun: #d9c58a;
+  --workflow-art-badge: #d5e2ef; --workflow-art-check: #2c6aa8; --workflow-art-glow: #3d6a94;
+  --hero-step-bg: rgb(255 255 255 / 3%); --hero-step-line: rgb(220 232 245 / 12%);
+  --hero-step-text: #e3e8ee; --hero-step-muted: #a9b2bd;
+  --hero-step-current-bg: rgb(160 205 255 / 7%); --hero-step-current-line: #5f8fc2;
+  --hero-step-current-shadow: inset 0 0 0 1px rgb(160 205 255 / 8%);
+  --hero-step-number-bg: #1a1e25; --hero-step-number-text: #dde6ef;
+  --hero-step-done-bg: #6cb6ff; --hero-step-done-text: #001224;
+}
+html[data-palette="oled"], html[data-palette="oled"] body { background: #000; }
+.app-shell[data-palette="oled"] .sidebar { border-right: 1px solid var(--theme-line); }
+.app-shell[data-palette="oled"] .topbar { backdrop-filter: none; border-bottom-color: var(--theme-line); }
+.app-shell[data-palette="oled"] :is(.home-panel, .home-action) { background: var(--theme-surface); border: 1px solid var(--theme-line); }
+.app-shell[data-palette="oled"] .home-action-primary { border-color: color-mix(in srgb, var(--theme-accent) 55%, var(--theme-line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 22%, transparent), 0 0 30px rgb(108 182 255 / 8%); }
+.app-shell[data-palette="oled"] .button.primary { color: var(--theme-on-accent); box-shadow: none; }
+.app-shell[data-palette="oled"] .button.secondary { background: transparent; color: var(--theme-text); }
+.app-shell[data-palette="oled"] .button.secondary:hover:not(:disabled) { background: var(--theme-accent-soft); border-color: var(--theme-accent); }
+.app-shell[data-palette="oled"] .nav-item.active { background: var(--theme-raised); box-shadow: inset 3px 0 var(--theme-accent); }
+.app-shell[data-palette="oled"] .hero-card { background-image: linear-gradient(112deg, #0b0d10 0%, #0f141b 58%, #121c28 100%); }
+.app-shell[data-palette="oled"] .hero-link { color: #bcdcff; }
+.app-shell[data-palette="oled"] .status-pill.good { color: #8fdcb0; border-color: #1c4a33; background: #0b1d14; }
+.app-shell[data-palette="oled"] .status-pill.warning { color: #f0d48a; border-color: #4f4118; background: #1c1708; }
+.app-shell[data-palette="oled"] .status-dot, .app-shell[data-palette="oled"] .connection-dot.green { background: #5fd49a; box-shadow: 0 0 0 3px rgb(95 212 154 / 16%); }
+.app-shell[data-palette="oled"] .notice.success { color: #8fdcb0; border-color: #1c4a33; background: #0b1d14; }
+.app-shell[data-palette="oled"] .error-summary { color: #f0d48a; border-color: #4f4118; background: #1c1708; }
+.app-shell[data-palette="oled"] input:focus, .app-shell[data-palette="oled"] select:focus { box-shadow: 0 0 0 3px rgb(108 182 255 / 24%); }
+.app-shell[data-palette="oled"] ::selection { color: #001224; background: #9fd0ff; }

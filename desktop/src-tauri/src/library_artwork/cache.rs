@@ -454,6 +454,8 @@ pub(super) fn prepare_private_artwork_cache() -> Result<PathBuf, String> {
 }
 
 pub(super) fn make_cached_files_private(files: &[SavedArtworkFile]) -> Result<(), String> {
+    #[cfg(not(unix))]
+    let _ = files;
     #[cfg(unix)]
     for path in files
         .iter()

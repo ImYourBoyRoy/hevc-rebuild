@@ -88,6 +88,7 @@ fn cache_identity(path: &Path) -> Option<Value> {
         .duration_since(std::time::UNIX_EPOCH)
         .ok()?
         .as_nanos();
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut identity = json!({"path": canonical, "size": metadata.len(), "mtime_ns": modified});
     #[cfg(unix)]
     {

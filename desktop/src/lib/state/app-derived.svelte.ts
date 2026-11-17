@@ -20,7 +20,7 @@ import { queuePathKey } from "../queue-paths.js";
 import { runProgressStatus } from "../queue-run-state.js";
 import type { SourceRunBatch } from "../run-controller.js";
 import { groupLibraryEntries } from "../library-browse.js";
-import { isFailure } from "../outcomes.js";
+import { latestFailureRows } from "../latest-outcomes.js";
 import { finiteNumber } from "../telemetry-format.js";
 
 export interface AppDerivedSources {
@@ -275,7 +275,9 @@ export class AppDerived {
 
   constrainedMemoryEntries = $derived.by(() => ((this.scanState.scanResult?.entries ?? []).filter((entry) => entry.resource_forecast?.level === "constrained")));
 
-  failedRows = $derived.by(() => ((this.reportsState.reports.flatMap((report) => report.rows)).filter((row) => isFailure(row.status))));
+  // Only a file's most recent decisive outcome counts, so a failure that a later run fixed (or repeated attempts at
+  // one file) does not stay on the Reports screen and the sidebar badge forever. See lib/latest-outcomes.ts.
+  failedRows = $derived.by(() => latestFailureRows(this.reportsState.reports));
 
   activeReport = $derived.by(() => (this.reportsState.reports.find((report) => report.csv_path === this.reportsState.selectedReportPath) ?? this.reportsState.reports[0] ?? null));
 

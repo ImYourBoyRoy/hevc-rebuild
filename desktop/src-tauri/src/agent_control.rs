@@ -370,6 +370,7 @@ pub(crate) fn start_server(app: AppHandle, state: AgentControlState) -> Result<(
         .as_str()
         .to_fs_name::<GenericFilePath>()
         .map_err(|error| format!("Could not create the agent-control socket name: {error}"))?;
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut options = ListenerOptions::new()
         .name(name)
         .reclaim_name(true)

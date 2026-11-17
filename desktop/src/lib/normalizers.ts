@@ -4,6 +4,7 @@
 
 import type { Page, ToolPaths } from './types.js';
 import type { Theme } from './ui-contracts.js';
+import { isTheme } from './themes.ts';
 
 export type ToolPathKey = keyof ToolPaths;
 
@@ -11,7 +12,8 @@ export const workspacePages: Page[] = ["home", "library", "metadata", "youtube",
 
 export function normalizeTheme(value: unknown): Theme {
   if (value === "hacker") return "phosphor";
-  if (value === "light" || value === "dark" || value === "phosphor" || value === "ion" || value === "breach") return value;
+  if (value === "contrast") return "light"; // retired high-contrast theme, replaced by DOS
+  if (isTheme(value)) return value;
   return "light";
 }
 

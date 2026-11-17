@@ -81,6 +81,8 @@ pub(crate) fn read_process_lines(
     process_id: u32,
     mut emit: impl FnMut(String),
 ) -> Result<(), String> {
+    #[cfg(not(unix))]
+    let _ = process_id;
     match read_lines(BufReader::new(reader), &mut emit) {
         Ok(()) => Ok(()),
         Err(error) => {

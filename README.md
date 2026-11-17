@@ -163,8 +163,9 @@ If an automatic source-adjacent folder cannot be created, the app-state
 
 ## Themes
 
-Choose Light, Dark, Phosphor, Ion, or Breach from the app's global appearance
-control. These captures were made from the native app after it reached
+Choose Light, Dark, Cinema, OLED, DOS, Phosphor, Ion, or Breach from
+the app's global appearance control (Cinema, OLED and DOS have no
+native captures yet; `?fixture=themes` on the UI fixture server shows all eight). These captures were made from the native app after it reached
 `SYSTEM READY`, using isolated profiles so existing user settings were not
 changed.
 

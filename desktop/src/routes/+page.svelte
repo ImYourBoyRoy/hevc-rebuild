@@ -66,6 +66,9 @@
   import { createRunController, type RunHost } from "#lib/run-controller.js";
   import { isFailure, isSuccess, outcomeLabel } from "#lib/outcomes.js";
   import { pageLabel } from "#lib/normalizers.js";
+  import { themeAttributes } from "#lib/themes.js";
+  import { createThemeTransition } from "#lib/theme-transition.js";
+  import ThemeBackdrop from "#lib/ThemeBackdrop.svelte";
   import { queueRunStatusLabel } from "#lib/queue-run-state.js";
   import { createReviewFactories } from "#lib/review-factories.js";
   import { createPosterResolvers, providerPosterUrl, remoteArtworkUrl } from "#lib/poster-urls.js";
@@ -155,6 +158,13 @@
     storage: { setItem: (key, value) => localStorage.setItem(key, value) },
     browserPreferencesKey,
     root: document.documentElement,
+    themeTransition: createThemeTransition({
+      document,
+      prefersReducedMotion: () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      settle: () => tick(),
+      setTimeout: (callback, ms) => window.setTimeout(callback, ms),
+      clearTimeout: (id) => window.clearTimeout(id),
+    }),
   });
   const {
     refreshTmdbCredentialStatus, refreshTvdbCredentialStatus, saveTmdbCredential, revealTmdbCredential, toggleTmdbCredentialVisibility, removeTmdbCredential,
@@ -396,10 +406,11 @@
 
 
 
-<div class="app-shell" data-theme={appState.theme} data-instrument={derived.instrumentTheme ? appState.theme : undefined}>
+<div class="app-shell" data-theme={themeAttributes(appState.theme).theme} data-palette={appState.theme} data-instrument={derived.instrumentTheme ? appState.theme : undefined}>
   <ShellSidebar environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} booting={appState.booting} root={appState.root} failedCount={derived.failedRows.length} {navItemActive} {openPage} {browseFolder} {fileName} />
 
   <main class="main-panel">
+    <ThemeBackdrop theme={appState.theme} />
     <ShellHeader page={appState.page} theme={appState.theme} environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} booting={appState.booting} setupGapDetail={derived.setupGapDetail} setupGapLabel={derived.setupGapLabel} notice={workspace.notice} {applyTheme} {openPage} {openToolchainSettings} {loadEnvironment} dismissNotice={() => (workspace.notice.message = "")} />
 
     <UpdateBanner blocked={derived.workflowBusy} />

@@ -43,6 +43,7 @@
         {#if failedRows.length}
           <section class="report-failures" aria-label="Failed results">
             <h2>{failedRows.length} failed result{failedRows.length === 1 ? "" : "s"}</h2>
+            <p class="report-failures-note">Each file shows its most recent outcome. A later successful run clears an earlier failure.</p>
             <ul>
               {#each failedRows as row, index (`${row.input}:${index}`)}
                 <li>

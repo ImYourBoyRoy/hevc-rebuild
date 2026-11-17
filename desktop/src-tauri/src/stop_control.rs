@@ -20,6 +20,7 @@ impl StopToken {
                 "hevc-rebuild-control-{}-{nonce}-{attempt}",
                 std::process::id()
             ));
+            #[cfg_attr(not(unix), allow(unused_mut))]
             let mut builder = fs::DirBuilder::new();
             #[cfg(unix)]
             builder.mode(0o700);

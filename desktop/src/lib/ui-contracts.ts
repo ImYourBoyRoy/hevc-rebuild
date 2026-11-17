@@ -1,6 +1,7 @@
 import type { MediaEntry, MediaQueueRunState, Page, ReportRow, Settings, ToolPaths, OrganizerTemplates, YoutubeMode, YoutubeSdrCodec, YoutubePreset, YoutubeShrink, YoutubeQualityCheck } from './types.js';
 
-export type Theme = "light" | "dark" | "phosphor" | "ion" | "breach";
+export type { Theme } from "./themes.js";
+import type { Theme } from "./themes.js";
 
 export type MetadataSources = { tmdb: boolean; wikidata: boolean; tvmaze: boolean; tvdb: boolean };
 

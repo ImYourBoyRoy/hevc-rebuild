@@ -37,8 +37,9 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, and `.native-smoke` (retained browser-contract
+      // evidence: hundreds of runs, each with its own dependency cache, exhaust the OS file watchers)
+      ignored: ["**/src-tauri/**", "**/.native-smoke/**"],
     },
   },
 }));

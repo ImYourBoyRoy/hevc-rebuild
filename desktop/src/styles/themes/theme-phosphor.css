@@ -1,0 +1,90 @@
+/* ./desktop/src/styles/themes/theme-phosphor.css
+   Phosphor: a toxic hacker terminal. Acid-green on near-black, falling matrix rain behind the work
+   area (canvas backdrop, see lib/backdrop), a CRT vignette with a barely-there flicker, terminal-window
+   panels with corner ticks on every screen's surfaces, a prompt in the breadcrumb and navigation, a
+   softly blinking cursor, and scanline-overlaid posters. Panels stay 86-90% opaque so text sits on a
+   near-solid ground and the rain only breathes through the gaps. AA contrast of the shell chrome is
+   enforced by `pnpm test:theme-contrast`. `.app-shell.app-shell` outranks the shared instrument rules. */
+html[data-instrument="phosphor"] .app-shell.app-shell {
+  --signal: #19ff4d;
+  --acid: #b6ff00;
+  --phosphor-dim: #159e39;
+  --phosphor-glow: 0 0 8px color-mix(in srgb, var(--signal) 60%, transparent);
+  --backdrop-opacity: .9;
+  --theme-page: #010402;
+  --theme-surface: #031008;
+  --theme-raised: #071c0e;
+  --theme-text: #d6ffe0;
+  --theme-muted: #84d498;
+  --theme-line: #127a2c;
+  --theme-line-strong: #22d24f;
+  --theme-accent: var(--signal);
+  --theme-accent-strong: #c9ffd6;
+  --theme-accent-soft: #08301a;
+  --theme-warning-text: #ffd24d;
+  --theme-warning-surface: #1d1604;
+  --tick: linear-gradient(var(--signal), var(--signal));
+  --q-frame: rgb(25 255 77 / 45%); --q-frame-bg: rgb(3 14 7 / 90%); --q-row-line: rgb(25 255 77 / 20%); --q-row-hover: rgb(25 255 77 / 9%); --q-row-active: rgb(25 255 77 / 14%);
+  --q-accent: #b6ff00; --q-muted: #84d498; --q-radius: 2px; --q-head-bg: rgb(25 255 77 / 14%); --q-head-fg: #d6ffe0;
+}
+html[data-instrument="phosphor"] .app-shell.app-shell, html[data-instrument="phosphor"] .app-shell.app-shell :is(button, input, select, textarea, h1, h2, h3, h4, strong, .brand-name) { font-family: var(--instrument-font); }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(h1, h2, h3, .brand-name) { text-shadow: var(--phosphor-glow); }
+
+/* No static bars: the shared drift bar is replaced by rain, and a CRT vignette takes its layer. */
+html[data-instrument="phosphor"] .app-shell.app-shell .main-panel::after { content: none; animation: none; }
+html[data-instrument="phosphor"] .app-shell.app-shell .main-panel::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgb(0 0 0 / 55%) 100%), repeating-linear-gradient(0deg, rgb(0 0 0 / 14%) 0 1px, transparent 1px 3px);
+  animation: crt-breathe 6s ease-in-out infinite alternate;
+}
+@keyframes crt-breathe { from { opacity: .82; } to { opacity: 1; } }
+
+/* Terminal-window panels on every screen: translucent ground, glowing hairline, corner ticks. */
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.library-poster-card, .run-console-card, .settings-card, .metadata-provider-card, .metadata-credential-card, .card-surface, .table-card, .diagnostic-card, .report-item, .report-scrub-card, .hardware-card, .setup-card, .metric-card, .mode-card, .home-panel, .home-action, .empty-state, .run-mode-picker) {
+  position: relative; border-radius: 2px; border: 1px solid color-mix(in srgb, var(--signal) 48%, transparent);
+  background: linear-gradient(180deg, rgb(4 18 9 / 88%), rgb(2 10 5 / 92%));
+  box-shadow: 0 0 0 1px rgb(25 255 77 / 7%), 0 0 22px rgb(25 255 77 / 7%), inset 0 0 26px rgb(25 255 77 / 4%);
+}
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.library-poster-card, .settings-card, .home-panel, .home-action, .table-card, .metric-card, .mode-card, .setup-card, .run-console-card)::before {
+  content: ""; position: absolute; inset: -1px; pointer-events: none; border-radius: inherit;
+  background: var(--tick) top left / 10px 2px no-repeat, var(--tick) top left / 2px 10px no-repeat, var(--tick) top right / 10px 2px no-repeat, var(--tick) top right / 2px 10px no-repeat,
+    var(--tick) bottom left / 10px 2px no-repeat, var(--tick) bottom left / 2px 10px no-repeat, var(--tick) bottom right / 10px 2px no-repeat, var(--tick) bottom right / 2px 10px no-repeat;
+  filter: drop-shadow(0 0 4px var(--signal));
+}
+html[data-instrument="phosphor"] .app-shell.app-shell .library-poster-card.selected, html[data-instrument="phosphor"] .app-shell.app-shell .home-action-primary { border-color: var(--acid); box-shadow: 0 0 0 1px rgb(182 255 0 / 25%), 0 0 28px rgb(182 255 0 / 14%), inset 0 0 26px rgb(182 255 0 / 5%); }
+html[data-instrument="phosphor"] .app-shell.app-shell .home-action:hover, html[data-instrument="phosphor"] .app-shell.app-shell .library-poster-card:hover { transform: none; border-color: var(--signal); box-shadow: 0 0 0 1px rgb(25 255 77 / 25%), 0 0 30px rgb(25 255 77 / 16%), inset 0 0 26px rgb(25 255 77 / 6%); }
+
+/* Posters read as phosphor screens: a fine scan grid over the art. */
+html[data-instrument="phosphor"] .app-shell.app-shell .library-poster-frame { position: relative; overflow: hidden; }
+html[data-instrument="phosphor"] .app-shell.app-shell .library-poster-frame::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgb(0 12 2 / 30%) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; box-shadow: inset 0 0 0 1px rgb(25 255 77 / 35%); }
+html[data-instrument="phosphor"] .app-shell.app-shell .library-poster-frame img { filter: contrast(1.08) saturate(.9) hue-rotate(-4deg); }
+
+/* Commands: bracketed uppercase with an inverse-video pressed state. */
+html[data-instrument="phosphor"] .app-shell.app-shell .button { max-width: 100%; white-space: normal; text-align: center; border-radius: 0; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+html[data-instrument="phosphor"] .app-shell.app-shell .button:not(.primary)::before { content: "["; margin-right: 3px; color: var(--phosphor-dim); }
+html[data-instrument="phosphor"] .app-shell.app-shell .button:not(.primary)::after { content: "]"; margin-left: 3px; color: var(--phosphor-dim); }
+html[data-instrument="phosphor"] .app-shell.app-shell .button.secondary:hover:not(:disabled), html[data-instrument="phosphor"] .app-shell.app-shell .button:active:not(:disabled) { color: var(--theme-on-accent); background: var(--signal); border-color: var(--signal); box-shadow: var(--phosphor-glow); }
+html[data-instrument="phosphor"] .app-shell.app-shell .button.secondary:hover:not(:disabled)::before, html[data-instrument="phosphor"] .app-shell.app-shell .button.secondary:hover:not(:disabled)::after { color: var(--theme-on-accent); }
+html[data-instrument="phosphor"] .app-shell.app-shell .button.primary { background: linear-gradient(180deg, #5bff7e, #19ff4d); box-shadow: 0 0 0 1px var(--signal), 0 0 20px color-mix(in srgb, var(--signal) 50%, transparent); text-shadow: none; }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.icon-button, .status-pill, input, select) { border-radius: 0; }
+
+/* Prompt glyphs, section slashes and a softly blinking cursor on the page title. */
+html[data-instrument="phosphor"] .app-shell.app-shell .breadcrumbs > span:first-child::before { content: "$ "; color: var(--signal); }
+html[data-instrument="phosphor"] .app-shell.app-shell .nav-item.active > span:nth-child(2)::before { content: "> "; color: var(--signal); }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2)::before { content: "// "; color: var(--phosphor-dim); }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1)::after { content: "_"; margin-left: 4px; color: var(--signal); animation: phosphor-cursor 1.3s ease-in-out infinite; }
+@keyframes phosphor-cursor { 0%, 45% { opacity: 1; } 65%, 85% { opacity: 0; } 100% { opacity: 1; } }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(.home-kicker, .eyebrow, .workspace-label) { color: var(--acid); letter-spacing: .2em; opacity: .9; }
+html[data-instrument="phosphor"] .app-shell.app-shell .notice { border-left: 3px solid var(--acid); border-radius: 0; background: var(--theme-accent-soft); }
+html[data-instrument="phosphor"] .app-shell.app-shell .notice.error { border-left-color: var(--theme-danger-text); }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(input, select) { background: #010402; color: var(--theme-text); border: 1px solid var(--theme-line-strong); caret-color: var(--signal); }
+html[data-instrument="phosphor"] .app-shell.app-shell :is(input, select):focus { border-color: var(--acid); box-shadow: 0 0 10px rgb(182 255 0 / 45%); outline: none; }
+
+/* Pages assemble with a smooth left-to-right wipe rather than appearing at once. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-instrument="phosphor"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1) { animation: terminal-wipe 900ms cubic-bezier(.16, 1, .3, 1) backwards; }
+}
+@keyframes terminal-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -8px 0 0); } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-instrument="phosphor"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1)::after, html[data-instrument="phosphor"] .app-shell.app-shell .main-panel::before { animation: none; }
+}

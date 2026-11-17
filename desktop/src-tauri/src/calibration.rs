@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     ffi::OsString,
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::{self, Read, Write},
     path::PathBuf,
     process::{Child, Command, Stdio},
@@ -434,6 +434,11 @@ fn run_fingerprint_command(executable: &PathBuf, args: &[&str]) -> String {
 
 fn cpu_identity() -> &'static str {
     CPU_IDENTITY.get_or_init(|| {
+        // Only Linux and Windows append a CPU model; elsewhere the list stays one item.
+        #[cfg_attr(
+            not(any(target_os = "linux", target_os = "windows")),
+            allow(unused_mut, clippy::useless_vec)
+        )]
         let mut identity = vec![std::env::consts::ARCH.to_string()];
         #[cfg(target_os = "linux")]
         if let Ok(cpuinfo) = fs::read_to_string("/proc/cpuinfo") {
@@ -1265,7 +1270,7 @@ fn save_cache(path: &PathBuf, data: &Value) -> Result<(), String> {
         fs::rename(&temporary, path)
             .map_err(|error| format!("Could not atomically replace calibration cache: {error}"))?;
         #[cfg(unix)]
-        File::open(parent)
+        fs::File::open(parent)
             .and_then(|directory| directory.sync_all())
             .map_err(|error| format!("Could not sync calibration cache directory: {error}"))?;
         Ok(())

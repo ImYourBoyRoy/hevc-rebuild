@@ -5,8 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{BTreeMap, VecDeque},
-    fs,
+    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -18,6 +17,9 @@ use std::{
 
 mod portable;
 
+#[cfg(target_os = "linux")]
+use std::{collections::VecDeque, fs};
+
 /// What the sampler keeps between readings. Linux reads `/proc` fresh every
 /// time and needs nothing; macOS and Windows keep one `sysinfo` handle so CPU
 /// usage (a delta between readings) works.
@@ -27,6 +29,7 @@ struct Probe;
 #[cfg(not(target_os = "linux"))]
 use portable::Probe;
 
+#[cfg(target_os = "linux")]
 const GIB: f64 = 1024.0 * 1024.0 * 1024.0;
 const MAX_PROCESS_TREE: usize = 256;
 
@@ -253,6 +256,7 @@ fn memory_stats(probe: &mut Probe) -> (Option<f64>, Option<f64>, Option<f64>, Op
     }
 }
 
+#[cfg(target_os = "linux")]
 fn min_available(left: Option<f64>, right: Option<f64>) -> Option<f64> {
     match (left, right) {
         (Some(left), Some(right)) => Some(left.min(right)),
@@ -261,6 +265,7 @@ fn min_available(left: Option<f64>, right: Option<f64>) -> Option<f64> {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn parse_meminfo(input: &str) -> BTreeMap<String, u64> {
     input
         .lines()
@@ -301,11 +306,6 @@ fn cgroup_memory_gib() -> (Option<f64>, Option<f64>) {
         Some(limit as f64 / GIB),
         Some(limit.saturating_sub(current) as f64 / GIB),
     )
-}
-
-#[cfg(not(target_os = "linux"))]
-fn cgroup_memory_gib() -> (Option<f64>, Option<f64>) {
-    (None, None)
 }
 
 #[cfg(target_os = "linux")]
@@ -403,6 +403,7 @@ fn read_psi(_resource: &str) -> BTreeMap<String, f64> {
     BTreeMap::new()
 }
 
+#[cfg(target_os = "linux")]
 fn parse_psi(input: &str) -> BTreeMap<String, f64> {
     input
         .lines()

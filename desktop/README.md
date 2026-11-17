@@ -89,7 +89,7 @@ The app provides:
 - read-only media analysis before any output is written;
 - title, poster, TV episode, rename, and metadata review workflows;
 - Check only, Metadata-only MKV, Short test, Full rebuild, and YouTube prep;
-- Light, Dark, Phosphor, Ion, and Breach appearances;
+- Light, Dark, Cinema, OLED, DOS, Phosphor, Ion, and Breach appearances;
 - reports, bounded diagnostics, safe stop, retry review, and retained failed outputs;
 - a signed in-app update banner for published Tauri updater releases.
 

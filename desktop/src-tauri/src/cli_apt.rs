@@ -87,6 +87,8 @@ fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
 }
 
 fn forward_command_output(mut reader: impl Read, process_id: u32) -> Result<(), String> {
+    #[cfg(not(unix))]
+    let _ = process_id;
     // Preserve raw CLI bytes and interactive sudo's foreground-terminal group.
     // Unlike noninteractive GUI/MCP jobs, this command must not create a group.
     let result = (|| {

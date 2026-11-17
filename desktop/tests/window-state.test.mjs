@@ -10,7 +10,7 @@ import { createWindowStateController } from "../src/lib/window-state-controller.
 
 const saved = (extra = {}) => ({ width: 1600, height: 1000, maximized: false, ...extra });
 
-function harness({ desktop = true, monitor = null, windowScale = 1, maximized = false, inner = { width: 1600, height: 1000 }, invokeImpl, windowErrors = {}, appPreferences } = {}) {
+function harness({ desktop = true, monitor = null, windowScale = 1, maximized = false, inner = { width: 1600, height: 1000 }, invokeImpl, windowErrors = {}, appPreferences, themeTransition } = {}) {
   const calls = [];
   const dataset = {};
   const stored = [];
@@ -33,7 +33,7 @@ function harness({ desktop = true, monitor = null, windowScale = 1, maximized = 
     return { saved: true, preferences: args.preferences };
   };
   const controller = createWindowStateController({
-    invoke, isDesktop: () => desktop, host,
+    invoke, isDesktop: () => desktop, host, themeTransition,
     windowApi: { currentWindow: () => windowLike, currentMonitor: async () => monitor, logicalSize: (width, height) => ({ width, height }) },
     storage: { setItem: (key, value) => stored.push([key, value]) }, browserPreferencesKey: "browser-prefs", root: { dataset },
   });
@@ -45,13 +45,17 @@ const monitorOf = (logicalWidth, logicalHeight, scaleFactor = 2) => ({
   workArea: { size: { toLogical: (factor) => ({ width: (logicalWidth * scaleFactor) / factor, height: (logicalHeight * scaleFactor) / factor }) } },
 });
 
-test("publishTheme sets the data attributes and only instrument skins get a data-instrument", () => {
+test("publishTheme publishes the base family, the exact palette and only instrument skins get a data-instrument", () => {
   const h = harness();
   h.controller.publishTheme("dark");
-  assert.deepEqual([h.host.theme, h.dataset.theme, h.dataset.instrument], ["dark", "dark", undefined]);
+  assert.deepEqual([h.host.theme, h.dataset.theme, h.dataset.palette, h.dataset.instrument], ["dark", "dark", "dark", undefined]);
+  for (const [theme, family] of [["cinema", "dark"], ["oled", "dark"], ["dos", "dark"]]) {
+    h.controller.publishTheme(theme);
+    assert.deepEqual([h.host.theme, h.dataset.theme, h.dataset.palette, h.dataset.instrument], [theme, family, theme, undefined], theme);
+  }
   for (const skin of ["phosphor", "ion", "breach"]) {
     h.controller.publishTheme(skin);
-    assert.deepEqual([h.dataset.theme, h.dataset.instrument], [skin, skin]);
+    assert.deepEqual([h.dataset.theme, h.dataset.palette, h.dataset.instrument], [skin, skin, skin]);
   }
   h.controller.publishTheme("light");
   assert.equal("instrument" in h.dataset, false);
@@ -65,6 +69,27 @@ test("applyTheme normalizes the value, publishes it and saves it", async () => {
   assert.equal(h.invokes[0].args.preferences.theme, "phosphor");
   h.controller.applyTheme("nonsense");
   assert.equal(h.host.theme, "light");
+});
+
+test("a saved retired high-contrast theme is applied and saved as light", async () => {
+  const h = harness();
+  h.controller.applyTheme("contrast");
+  assert.deepEqual([h.host.theme, h.dataset.theme, h.dataset.palette], ["light", "light", "light"]);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.invokes[0].args.preferences.theme, "light");
+});
+
+test("applyTheme hands the visible switch to the transition and still saves the chosen theme at once", async () => {
+  const pending = [];
+  const h = harness({ themeTransition: (update) => pending.push(update) });
+  h.controller.applyTheme("cinema");
+  assert.equal(h.host.theme, "light");
+  assert.equal(h.dataset.theme, undefined);
+  assert.equal(pending.length, 1);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.invokes[0].args.preferences.theme, "cinema");
+  pending[0]();
+  assert.deepEqual([h.host.theme, h.dataset.theme, h.dataset.palette], ["cinema", "dark", "cinema"]);
 });
 
 test("persistPreferences merges at once and saves a deep copy, storing the returned payload", async () => {

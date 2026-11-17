@@ -142,7 +142,7 @@ html[data-instrument] .app-shell .connection-dot.green,
 html[data-instrument] .app-shell .status-dot {
   background: var(--signal);
   box-shadow: 0 0 8px var(--signal);
-  animation: instrument-led 1.15s steps(2, end) infinite;
+  animation: instrument-led 2.4s ease-in-out infinite;
 }
 
 html[data-instrument] .app-shell .main-panel {
@@ -288,7 +288,7 @@ html[data-instrument] .app-shell .hero-sweep {
   pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--signal), #fff, var(--signal), transparent);
   box-shadow: 0 0 16px var(--signal);
-  animation: hero-sweep 2.2s linear infinite;
+  animation: hero-sweep 2.8s ease-in-out infinite;
 }
 html[data-instrument] .app-shell .hero-kicker { color: var(--signal); letter-spacing: .08em; }
 html[data-instrument] .app-shell .hero-orbit {

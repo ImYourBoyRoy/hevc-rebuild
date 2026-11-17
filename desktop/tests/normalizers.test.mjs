@@ -6,9 +6,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizePage, normalizeTheme, normalizeToolPaths, pageLabel } from "../src/lib/normalizers.ts";
 
-test("normalizeTheme keeps the five skins, upgrades the legacy hacker skin and defaults to light", () => {
-  for (const theme of ["light", "dark", "phosphor", "ion", "breach"]) assert.equal(normalizeTheme(theme), theme);
+test("normalizeTheme keeps all eight themes, upgrades the legacy hacker skin and defaults to light", () => {
+  for (const theme of ["light", "dark", "cinema", "oled", "dos", "phosphor", "ion", "breach"]) assert.equal(normalizeTheme(theme), theme);
   assert.equal(normalizeTheme("hacker"), "phosphor");
+  assert.equal(normalizeTheme("contrast"), "light", "the retired high-contrast theme falls back to light");
   for (const bad of ["", "Dark", "neon", null, undefined, 3, {}]) assert.equal(normalizeTheme(bad), "light", String(bad));
 });
 

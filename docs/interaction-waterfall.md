@@ -42,9 +42,9 @@ Active source templates: **5** · estimated runtime controls: **8** · disabled 
 |---|---|---|---|---|
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Visible but disabled during this state
 
@@ -78,9 +78,9 @@ Active source templates: **9** · estimated runtime controls: **12** · disabled
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Scan options | app-click | [desktop/src/lib/views/LibraryView.svelte:119:3](../desktop/src/lib/views/LibraryView.svelte#L119) | — | Opening the disclosure exposes Add path and scan filters; it is not part of the folder-picker happy path. |
 | Add folder | app-click | [desktop/src/lib/views/LibraryView.svelte:178:462](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFolder (boundary) | else(scanResult); !scanning |
 | Add files | app-click | [desktop/src/lib/views/LibraryView.svelte:178:578](../desktop/src/lib/views/LibraryView.svelte#L178) | callback:browseFile (boundary) | else(scanResult); !scanning |
@@ -164,9 +164,9 @@ Active source templates: **15** · estimated runtime controls: **18** · disable
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Add folder | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder |
 | Add files | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder |
 | Refresh source | app-click | [desktop/src/lib/LibraryQueueStatus.svelte:123:26](../desktop/src/lib/LibraryQueueStatus.svelte#L123) | callback:onAddFolder (boundary)<br>callback:browseFolder (boundary) | queue.sources.length \|\| scanning; onAddFolder; One runtime button per queued source. |
@@ -214,9 +214,9 @@ Active source templates: **10** · estimated runtime controls: **17** · disable
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Check / Integrity / Metadata / Short test / Rebuild | app-click | [desktop/src/lib/RunModePicker.svelte:61:7](../desktop/src/lib/RunModePicker.svelte#L61) | callback:onSelect (boundary)<br>callback:onTabKeydown (boundary) | Each(options); One Svelte template control renders five runtime radio buttons. |
 | Review selected run files | app-click | [desktop/src/lib/views/RunView.svelte:123:3](../desktop/src/lib/views/RunView.svelte#L123) | — | settings && (mode === "full" \|\| mode === "test") |
 | Stop queue on first error | form-control | [desktop/src/lib/views/RunView.svelte:127:158](../desktop/src/lib/views/RunView.svelte#L127) | — | settings && (mode === "full" \|\| mode === "test") |
@@ -355,9 +355,9 @@ Active source templates: **12** · estimated runtime controls: **15** · disable
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Add folder | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:40](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFolder (boundary) | always |
 | Add files | app-click | [desktop/src/lib/YouTubePreparation.svelte:32:181](../desktop/src/lib/YouTubePreparation.svelte#L32) | callback:browseFile (boundary) | always |
 | Upscale | app-click | [desktop/src/lib/YouTubePreparation.svelte:47:100](../desktop/src/lib/YouTubePreparation.svelte#L47) | callback:persistPreferences (boundary) | always |
@@ -414,9 +414,9 @@ Active source templates: **17** · estimated runtime controls: **20** · disable
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:151:52](../desktop/src/lib/HelpCenter.svelte#L151) | — | always |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:154:114](../desktop/src/lib/HelpCenter.svelte#L154) | — | always |
 | Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:155:76](../desktop/src/lib/HelpCenter.svelte#L155) | — | always |
@@ -443,9 +443,9 @@ Active source templates: **6** · estimated runtime controls: **9** · disabled 
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Conditional / data-dependent controls
 
@@ -497,9 +497,9 @@ Active source templates: **6** · estimated runtime controls: **9** · disabled 
 | Library / Run / YouTube navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders three runtime buttons from primaryNavigation. |
 | Settings / Reports navigation | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation); One Svelte template control renders two runtime buttons from utilityNavigation. |
 | Choose media folder | app-click | [desktop/src/lib/views/ShellSidebar.svelte:42:7](../desktop/src/lib/views/ShellSidebar.svelte#L42) | page:dynamic:item.id (dynamic) | Each(primaryNavigation) |
-| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:35:7](../desktop/src/lib/views/ShellHeader.svelte#L35) | — | A select action is available but is not a click in the task budgets. |
-| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:48:7](../desktop/src/lib/views/ShellHeader.svelte#L48) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:37:7](../desktop/src/lib/views/ShellHeader.svelte#L37) | — | A select action is available but is not a click in the task budgets. |
+| Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:46:7](../desktop/src/lib/views/ShellHeader.svelte#L46) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 
 ### Conditional / data-dependent controls
 
@@ -509,10 +509,10 @@ Active source templates: **6** · estimated runtime controls: **9** · disabled 
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:36:15](../desktop/src/lib/ReportBrowser.svelte#L36) | callback:deleteReportHistory (boundary) | reportDeleteConfirm |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:37:15](../desktop/src/lib/ReportBrowser.svelte#L37) | — | reportDeleteConfirm |
 | Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:39:15](../desktop/src/lib/ReportBrowser.svelte#L39) | — | else(reportDeleteConfirm) |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:62:17](../desktop/src/lib/ReportBrowser.svelte#L62) | callback:chooseReport (boundary) | reports.length; Each(reports) |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:67:234](../desktop/src/lib/ReportBrowser.svelte#L67) | callback:openLog (boundary) | reports.length; activeReport |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:94:156](../desktop/src/lib/ReportBrowser.svelte#L94) | callback:copyLog (boundary) | reports.length; activeReport |
-| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:99:310](../desktop/src/lib/ReportBrowser.svelte#L99) | page:dynamic:hasScan ? "run" : "library" (dynamic) | else(reports.length) |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:63:17](../desktop/src/lib/ReportBrowser.svelte#L63) | callback:chooseReport (boundary) | reports.length; Each(reports) |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:68:234](../desktop/src/lib/ReportBrowser.svelte#L68) | callback:openLog (boundary) | reports.length; activeReport |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:95:156](../desktop/src/lib/ReportBrowser.svelte#L95) | callback:copyLog (boundary) | reports.length; activeReport |
+| Report controls (source-conditional) | button | [desktop/src/lib/ReportBrowser.svelte:100:310](../desktop/src/lib/ReportBrowser.svelte#L100) | page:dynamic:hasScan ? "run" : "library" (dynamic) | else(reports.length) |
 
 ## Waterfall flows
 

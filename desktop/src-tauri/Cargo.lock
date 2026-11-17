@@ -1655,6 +1655,7 @@ checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 name = "hevc-rebuild-studio"
 version = "1.4.1"
 dependencies = [
+ "embed-resource",
  "flate2",
  "interprocess",
  "keyring",

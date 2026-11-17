@@ -48,7 +48,7 @@ pub(crate) fn executable_in_path(program: &str) -> bool {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

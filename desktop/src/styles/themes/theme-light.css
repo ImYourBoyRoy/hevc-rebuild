@@ -1,0 +1,46 @@
+/* ./desktop/src/styles/themes/theme-light.css
+   Light: "Studio paper". Warm paper surfaces instead of cool grey, a deeper brand green,
+   layered elevation and a forest sidebar. AA contrast of all shell-chrome text is enforced by `pnpm test:theme-contrast`. */
+.app-shell[data-theme="light"] {
+  --theme-page: #f4f1ea;
+  --theme-surface: #fffdf9;
+  --theme-raised: #f8f5ee;
+  --theme-text: #1d2623;
+  --theme-muted: #5c6862;
+  --theme-line: #e4ded0;
+  --theme-line-strong: #cfc7b4;
+  --theme-accent: #1f7552;
+  --theme-accent-strong: #175c40;
+  --theme-accent-soft: #e3f0e8;
+  --theme-focus: #2f9a70;
+  --theme-sidebar: #17251f;
+  --theme-sidebar-raised: #243a31;
+  --theme-sidebar-fill: linear-gradient(180deg, #1a2a23 0%, #14201b 100%);
+  --theme-topbar-fill: color-mix(in srgb, #fffdf9 86%, transparent);
+  --theme-primary-fill: linear-gradient(180deg, #248059 0%, #1c6a4a 100%);
+  --theme-primary-fill-hover: linear-gradient(180deg, #1f7a57 0%, #165a3f 100%);
+  --theme-primary-edge: #155238;
+  --theme-sidebar-muted: #93ab9f;
+  --theme-eyebrow: #3f6b55;
+  --theme-brand-fill: linear-gradient(145deg, #3aa97b, #1d6a4a);
+  --theme-on-accent-brand: #fff;
+  --theme-hero-start: #f3efe3;
+  --theme-hero-end: #e4eedf;
+  --theme-warning-surface: #fff6e1;
+  --theme-warning-text: #75531a;
+  --theme-danger-surface: #fff0ec;
+  --theme-danger-text: #8f3f37;
+  --theme-success-surface: #e6f3e9;
+  --theme-shadow: 0 1px 2px rgb(52 42 20 / 6%), 0 8px 22px rgb(52 42 20 / 6%);
+  --theme-elev-2: 0 2px 4px rgb(52 42 20 / 8%), 0 14px 30px rgb(52 42 20 / 10%);
+}
+.app-shell[data-theme="light"] .topbar { backdrop-filter: saturate(1.3) blur(10px); border-bottom-color: var(--theme-line); }
+.app-shell[data-theme="light"] .button.primary { box-shadow: 0 1px 0 rgb(255 255 255 / 18%) inset, 0 4px 10px rgb(21 82 56 / 22%); }
+.app-shell[data-theme="light"] .button.secondary { background: var(--theme-surface); box-shadow: 0 1px 0 rgb(255 255 255 / 80%) inset; }
+.app-shell[data-theme="light"] .nav-item.active { background: linear-gradient(90deg, rgb(95 190 145 / 22%), rgb(95 190 145 / 8%)); box-shadow: inset 3px 0 #6fd0a0; }
+.app-shell[data-theme="light"] .nav-item:hover:not(.active) { background: rgb(255 255 255 / 6%); }
+.app-shell[data-theme="light"] .home-action-primary { border-color: color-mix(in srgb, var(--theme-accent) 55%, var(--theme-line)); box-shadow: var(--theme-elev-1), 0 -3px 0 var(--theme-accent) inset; }
+.app-shell[data-theme="light"] .status-pill.good { border-color: #c4e0cf; }
+.app-shell[data-theme="light"] input, .app-shell[data-theme="light"] select { border-color: var(--theme-line-strong); background: var(--theme-surface); }
+.app-shell[data-theme="light"] input:focus, .app-shell[data-theme="light"] select:focus { border-color: var(--theme-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus) 22%, transparent); outline: none; }
+.app-shell[data-theme="light"] ::selection { color: #0f3626; background: #bfe6cf; }

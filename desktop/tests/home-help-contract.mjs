@@ -14,7 +14,7 @@ async function contract(page) {
   await page.getByRole('button', { name: /run.*1 OK/ }).click();
   if (await last.textContent() !== '/synthetic/run.csv') throw new Error('Exact report reference lost');
   if (!await page.getByText('Package or helper setup', { exact: true }).isVisible()) throw new Error('Setup log lost');
-  for (const theme of ['light','dark','phosphor','ion','breach']) {
+  for (const theme of ['light','dark','cinema','oled','dos','phosphor','ion','breach']) {
     await page.getByRole('combobox', { name: 'Fixture theme' }).selectOption(theme);
     const illustration = page.getByRole('figure', { name: 'Local rebuild workflow illustration' });
     if (!await illustration.isVisible() || await illustration.locator('svg').count() !== 1) throw new Error(`${theme} illustration missing`);
@@ -23,6 +23,6 @@ async function contract(page) {
   for (const phrase of ['metadata-only', 'HDR10+', '--mcp', 'Stop safely']) {
     if (!(await page.locator('.help-page').textContent()).includes(phrase)) throw new Error(`Help lost ${phrase}`);
   }
-  return { emptyAndPopulated: true, toolsMissingReady: true, actions: 8, recentReport: true, setupLog: true, skins: 5, helpModes: true };
+  return { emptyAndPopulated: true, toolsMissingReady: true, actions: 8, recentReport: true, setupLog: true, skins: 8, helpModes: true };
 }
 await runBrowserContract('home', contract);

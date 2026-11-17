@@ -3,7 +3,7 @@
   "sourceRoot": "desktop/src",
   "tasksFile": "docs/interaction-tasks.json",
   "summary": {
-    "files": 35,
+    "files": 36,
     "controls": 472,
     "buttons": 270,
     "clickable": 327,
@@ -14632,7 +14632,7 @@
               "name": "openMetadataProviderSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 385,
+              "line": 395,
               "via": "bound-callback"
             }
           ]
@@ -16634,7 +16634,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 385,
+              "line": 395,
               "via": "bound-callback"
             }
           ]
@@ -16786,7 +16786,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 385,
+              "line": 395,
               "via": "bound-callback"
             }
           ]
@@ -16909,7 +16909,7 @@
               "name": "openMetadataProviderSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 385,
+              "line": 395,
               "via": "bound-callback"
             }
           ]
@@ -18165,7 +18165,7 @@
               "name": "inspectRecoveryTarget",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 463,
+              "line": 474,
               "via": "bound-callback"
             }
           ]
@@ -18397,7 +18397,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 463,
+              "line": 474,
               "via": "bound-callback"
             }
           ]
@@ -18538,7 +18538,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 463,
+              "line": 474,
               "via": "bound-callback"
             }
           ]
@@ -18612,7 +18612,7 @@
               "name": "loadReports",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -18688,7 +18688,7 @@
               "name": "deleteReportHistory",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -18907,11 +18907,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ReportBrowser.svelte:button:62:17",
+      "id": "desktop/src/lib/ReportBrowser.svelte:button:63:17",
       "ordinal": 5,
       "kind": "button",
       "file": "desktop/src/lib/ReportBrowser.svelte",
-      "line": 62,
+      "line": 63,
       "column": 17,
       "label": "{reportName} {new Date(report.created * 1000).toLocaleString()}",
       "role": null,
@@ -18929,15 +18929,15 @@
           "expression": "() => chooseReport(report.csv_path)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 3690,
-            "end": 3725,
+            "start": 3829,
+            "end": 3864,
             "loc": {
               "start": {
-                "line": 62,
+                "line": 63,
                 "column": 111
               },
               "end": {
-                "line": 62,
+                "line": 63,
                 "column": 146
               }
             },
@@ -18948,29 +18948,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 3696,
-              "end": 3725,
+              "start": 3835,
+              "end": 3864,
               "loc": {
                 "start": {
-                  "line": 62,
+                  "line": 63,
                   "column": 117
                 },
                 "end": {
-                  "line": 62,
+                  "line": 63,
                   "column": 146
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 3696,
-                "end": 3708,
+                "start": 3835,
+                "end": 3847,
                 "loc": {
                   "start": {
-                    "line": 62,
+                    "line": 63,
                     "column": 117
                   },
                   "end": {
-                    "line": 62,
+                    "line": 63,
                     "column": 129
                   }
                 },
@@ -18979,29 +18979,29 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 3709,
-                  "end": 3724,
+                  "start": 3848,
+                  "end": 3863,
                   "loc": {
                     "start": {
-                      "line": 62,
+                      "line": 63,
                       "column": 130
                     },
                     "end": {
-                      "line": 62,
+                      "line": 63,
                       "column": 145
                     }
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 3709,
-                    "end": 3715,
+                    "start": 3848,
+                    "end": 3854,
                     "loc": {
                       "start": {
-                        "line": 62,
+                        "line": 63,
                         "column": 130
                       },
                       "end": {
-                        "line": 62,
+                        "line": 63,
                         "column": 136
                       }
                     },
@@ -19009,15 +19009,15 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 3716,
-                    "end": 3724,
+                    "start": 3855,
+                    "end": 3863,
                     "loc": {
                       "start": {
-                        "line": 62,
+                        "line": 63,
                         "column": 137
                       },
                       "end": {
-                        "line": 62,
+                        "line": 63,
                         "column": 145
                       }
                     },
@@ -19048,7 +19048,7 @@
                 }
               ],
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 62,
+              "line": 63,
               "via": "handler"
             },
             {
@@ -19060,7 +19060,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -19081,11 +19081,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ReportBrowser.svelte:button:67:234",
+      "id": "desktop/src/lib/ReportBrowser.svelte:button:68:234",
       "ordinal": 6,
       "kind": "button",
       "file": "desktop/src/lib/ReportBrowser.svelte",
-      "line": 67,
+      "line": 68,
       "column": 234,
       "label": "{logLoading ? \"Loading…\" : \"Open diagnostics\"}",
       "role": null,
@@ -19103,15 +19103,15 @@
           "expression": "() => openLog(activeReport.log_path)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 4459,
-            "end": 4495,
+            "start": 4598,
+            "end": 4634,
             "loc": {
               "start": {
-                "line": 67,
+                "line": 68,
                 "column": 275
               },
               "end": {
-                "line": 67,
+                "line": 68,
                 "column": 311
               }
             },
@@ -19122,29 +19122,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 4465,
-              "end": 4495,
+              "start": 4604,
+              "end": 4634,
               "loc": {
                 "start": {
-                  "line": 67,
+                  "line": 68,
                   "column": 281
                 },
                 "end": {
-                  "line": 67,
+                  "line": 68,
                   "column": 311
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 4465,
-                "end": 4472,
+                "start": 4604,
+                "end": 4611,
                 "loc": {
                   "start": {
-                    "line": 67,
+                    "line": 68,
                     "column": 281
                   },
                   "end": {
-                    "line": 67,
+                    "line": 68,
                     "column": 288
                   }
                 },
@@ -19153,29 +19153,29 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 4473,
-                  "end": 4494,
+                  "start": 4612,
+                  "end": 4633,
                   "loc": {
                     "start": {
-                      "line": 67,
+                      "line": 68,
                       "column": 289
                     },
                     "end": {
-                      "line": 67,
+                      "line": 68,
                       "column": 310
                     }
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 4473,
-                    "end": 4485,
+                    "start": 4612,
+                    "end": 4624,
                     "loc": {
                       "start": {
-                        "line": 67,
+                        "line": 68,
                         "column": 289
                       },
                       "end": {
-                        "line": 67,
+                        "line": 68,
                         "column": 301
                       }
                     },
@@ -19183,15 +19183,15 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 4486,
-                    "end": 4494,
+                    "start": 4625,
+                    "end": 4633,
                     "loc": {
                       "start": {
-                        "line": 67,
+                        "line": 68,
                         "column": 302
                       },
                       "end": {
-                        "line": 67,
+                        "line": 68,
                         "column": 310
                       }
                     },
@@ -19222,7 +19222,7 @@
                 }
               ],
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 67,
+              "line": 68,
               "via": "handler"
             },
             {
@@ -19234,7 +19234,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -19255,11 +19255,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ReportBrowser.svelte:disclosure:84:25",
+      "id": "desktop/src/lib/ReportBrowser.svelte:disclosure:85:25",
       "ordinal": 7,
       "kind": "disclosure",
       "file": "desktop/src/lib/ReportBrowser.svelte",
-      "line": 84,
+      "line": 85,
       "column": 25,
       "label": "{fileName(row.input)} {row.metadata_text_scrub_count ?? row.release_group_scrub_count} field(s)",
       "role": null,
@@ -19280,11 +19280,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ReportBrowser.svelte:button:94:156",
+      "id": "desktop/src/lib/ReportBrowser.svelte:button:95:156",
       "ordinal": 8,
       "kind": "button",
       "file": "desktop/src/lib/ReportBrowser.svelte",
-      "line": 94,
+      "line": 95,
       "column": 156,
       "label": "Copy excerpt",
       "role": null,
@@ -19302,15 +19302,15 @@
           "expression": "copyLog",
           "expressionNode": {
             "type": "Identifier",
-            "start": 11746,
-            "end": 11753,
+            "start": 11885,
+            "end": 11892,
             "loc": {
               "start": {
-                "line": 94,
+                "line": 95,
                 "column": 216
               },
               "end": {
-                "line": 94,
+                "line": 95,
                 "column": 223
               }
             },
@@ -19329,14 +19329,14 @@
               "name": "copyLog",
               "args": [],
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 94,
+              "line": 95,
               "via": "callback"
             },
             {
               "name": "copyLog",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -19357,11 +19357,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ReportBrowser.svelte:button:99:310",
+      "id": "desktop/src/lib/ReportBrowser.svelte:button:100:310",
       "ordinal": 9,
       "kind": "button",
       "file": "desktop/src/lib/ReportBrowser.svelte",
-      "line": 99,
+      "line": 100,
       "column": 310,
       "label": "Go to workflow",
       "role": null,
@@ -19378,15 +19378,15 @@
           "expression": "() => openPage(hasScan ? \"run\" : \"library\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 12344,
-            "end": 12387,
+            "start": 12483,
+            "end": 12526,
             "loc": {
               "start": {
-                "line": 99,
+                "line": 100,
                 "column": 349
               },
               "end": {
-                "line": 99,
+                "line": 100,
                 "column": 392
               }
             },
@@ -19397,29 +19397,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 12350,
-              "end": 12387,
+              "start": 12489,
+              "end": 12526,
               "loc": {
                 "start": {
-                  "line": 99,
+                  "line": 100,
                   "column": 355
                 },
                 "end": {
-                  "line": 99,
+                  "line": 100,
                   "column": 392
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 12350,
-                "end": 12358,
+                "start": 12489,
+                "end": 12497,
                 "loc": {
                   "start": {
-                    "line": 99,
+                    "line": 100,
                     "column": 355
                   },
                   "end": {
-                    "line": 99,
+                    "line": 100,
                     "column": 363
                   }
                 },
@@ -19428,29 +19428,29 @@
               "arguments": [
                 {
                   "type": "ConditionalExpression",
-                  "start": 12359,
-                  "end": 12386,
+                  "start": 12498,
+                  "end": 12525,
                   "loc": {
                     "start": {
-                      "line": 99,
+                      "line": 100,
                       "column": 364
                     },
                     "end": {
-                      "line": 99,
+                      "line": 100,
                       "column": 391
                     }
                   },
                   "test": {
                     "type": "Identifier",
-                    "start": 12359,
-                    "end": 12366,
+                    "start": 12498,
+                    "end": 12505,
                     "loc": {
                       "start": {
-                        "line": 99,
+                        "line": 100,
                         "column": 364
                       },
                       "end": {
-                        "line": 99,
+                        "line": 100,
                         "column": 371
                       }
                     },
@@ -19458,15 +19458,15 @@
                   },
                   "consequent": {
                     "type": "Literal",
-                    "start": 12369,
-                    "end": 12374,
+                    "start": 12508,
+                    "end": 12513,
                     "loc": {
                       "start": {
-                        "line": 99,
+                        "line": 100,
                         "column": 374
                       },
                       "end": {
-                        "line": 99,
+                        "line": 100,
                         "column": 379
                       }
                     },
@@ -19475,15 +19475,15 @@
                   },
                   "alternate": {
                     "type": "Literal",
-                    "start": 12377,
-                    "end": 12386,
+                    "start": 12516,
+                    "end": 12525,
                     "loc": {
                       "start": {
-                        "line": 99,
+                        "line": 100,
                         "column": 382
                       },
                       "end": {
-                        "line": 99,
+                        "line": 100,
                         "column": 391
                       }
                     },
@@ -19513,7 +19513,7 @@
                 }
               ],
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 99,
+              "line": 100,
               "via": "handler"
             },
             {
@@ -19525,7 +19525,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 438,
+              "line": 449,
               "via": "bound-callback"
             }
           ]
@@ -19613,7 +19613,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             },
             {
@@ -20020,7 +20020,7 @@
               "name": "openProgressDetails",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 407,
+              "line": 418,
               "via": "bound-callback"
             }
           ]
@@ -20097,7 +20097,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 407,
+              "line": 418,
               "via": "bound-callback"
             }
           ]
@@ -20825,7 +20825,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 475,
+              "line": 486,
               "via": "bound-callback"
             },
             {
@@ -21019,7 +21019,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 474,
+              "line": 485,
               "via": "bound-callback"
             },
             {
@@ -21144,7 +21144,7 @@
               "name": "cancelScan",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -21233,7 +21233,7 @@
               "name": "saveSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -21679,7 +21679,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -21911,7 +21911,7 @@
               "name": "saveMetadataLanguageDraft",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -22237,7 +22237,7 @@
               "name": "saveMetadataLanguageDraft",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -22512,7 +22512,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -22670,7 +22670,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -22943,7 +22943,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23216,7 +23216,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23489,7 +23489,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23647,7 +23647,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23769,7 +23769,7 @@
               "name": "toggleTmdbCredentialVisibility",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23843,7 +23843,7 @@
               "name": "saveTmdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -23919,7 +23919,7 @@
               "name": "removeTmdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -24107,7 +24107,7 @@
               "name": "toggleTvdbCredentialVisibility",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -24181,7 +24181,7 @@
               "name": "saveTvdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -24257,7 +24257,7 @@
               "name": "removeTvdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -24567,7 +24567,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -25306,7 +25306,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -25434,7 +25434,7 @@
               "name": "refreshArtworkCache",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -25663,7 +25663,7 @@
               "name": "purgeUnusedArtworkCache",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -26486,7 +26486,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -26626,7 +26626,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -26767,7 +26767,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -26933,7 +26933,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -27291,7 +27291,7 @@
               "name": "addMetadataBlacklistPattern",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -27367,7 +27367,7 @@
               "name": "addMetadataBlacklistPattern",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -27444,7 +27444,7 @@
               "name": "clearMetadataBlacklist",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -27586,7 +27586,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 416,
+              "line": 427,
               "via": "bound-callback"
             }
           ]
@@ -28155,7 +28155,7 @@
               "name": "confirmAptRepair",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 479,
+              "line": 490,
               "via": "bound-callback"
             }
           ]
@@ -40448,11 +40448,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:35:7",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
       "ordinal": 1,
       "kind": "form-control",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 35,
+      "line": 37,
       "column": 7,
       "label": "Appearance",
       "role": null,
@@ -40467,15 +40467,15 @@
           "expression": "(event) => applyTheme(event.currentTarget.value)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 1807,
-            "end": 1855,
+            "start": 2032,
+            "end": 2080,
             "loc": {
               "start": {
-                "line": 35,
+                "line": 37,
                 "column": 62
               },
               "end": {
-                "line": 35,
+                "line": 37,
                 "column": 110
               }
             },
@@ -40486,15 +40486,15 @@
             "params": [
               {
                 "type": "Identifier",
-                "start": 1808,
-                "end": 1813,
+                "start": 2033,
+                "end": 2038,
                 "loc": {
                   "start": {
-                    "line": 35,
+                    "line": 37,
                     "column": 63
                   },
                   "end": {
-                    "line": 35,
+                    "line": 37,
                     "column": 68
                   }
                 },
@@ -40503,29 +40503,29 @@
             ],
             "body": {
               "type": "CallExpression",
-              "start": 1818,
-              "end": 1855,
+              "start": 2043,
+              "end": 2080,
               "loc": {
                 "start": {
-                  "line": 35,
+                  "line": 37,
                   "column": 73
                 },
                 "end": {
-                  "line": 35,
+                  "line": 37,
                   "column": 110
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 1818,
-                "end": 1828,
+                "start": 2043,
+                "end": 2053,
                 "loc": {
                   "start": {
-                    "line": 35,
+                    "line": 37,
                     "column": 73
                   },
                   "end": {
-                    "line": 35,
+                    "line": 37,
                     "column": 83
                   }
                 },
@@ -40534,43 +40534,43 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 1829,
-                  "end": 1854,
+                  "start": 2054,
+                  "end": 2079,
                   "loc": {
                     "start": {
-                      "line": 35,
+                      "line": 37,
                       "column": 84
                     },
                     "end": {
-                      "line": 35,
+                      "line": 37,
                       "column": 109
                     }
                   },
                   "object": {
                     "type": "MemberExpression",
-                    "start": 1829,
-                    "end": 1848,
+                    "start": 2054,
+                    "end": 2073,
                     "loc": {
                       "start": {
-                        "line": 35,
+                        "line": 37,
                         "column": 84
                       },
                       "end": {
-                        "line": 35,
+                        "line": 37,
                         "column": 103
                       }
                     },
                     "object": {
                       "type": "Identifier",
-                      "start": 1829,
-                      "end": 1834,
+                      "start": 2054,
+                      "end": 2059,
                       "loc": {
                         "start": {
-                          "line": 35,
+                          "line": 37,
                           "column": 84
                         },
                         "end": {
-                          "line": 35,
+                          "line": 37,
                           "column": 89
                         }
                       },
@@ -40578,15 +40578,15 @@
                     },
                     "property": {
                       "type": "Identifier",
-                      "start": 1835,
-                      "end": 1848,
+                      "start": 2060,
+                      "end": 2073,
                       "loc": {
                         "start": {
-                          "line": 35,
+                          "line": 37,
                           "column": 90
                         },
                         "end": {
-                          "line": 35,
+                          "line": 37,
                           "column": 103
                         }
                       },
@@ -40597,15 +40597,15 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 1849,
-                    "end": 1854,
+                    "start": 2074,
+                    "end": 2079,
                     "loc": {
                       "start": {
-                        "line": 35,
+                        "line": 37,
                         "column": 104
                       },
                       "end": {
-                        "line": 35,
+                        "line": 37,
                         "column": 109
                       }
                     },
@@ -40630,13 +40630,13 @@
                 }
               ],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 35,
+              "line": 37,
               "via": "handler"
             }
           ]
         }
       ],
-      "source": "<select aria-label=\"Appearance\" value={theme} onchange={(event) => applyTheme(event.currentTarget.value)}>\n        <option value=\"light\">Light</option>\n        <option value=\"dark\">Dark</option>\n        <option value=\"phosphor\">Phosphor</option>\n        <option value=\"ion\">Ion</option>\n        <option value=\"breach\">Breach</option>\n      </select>",
+      "source": "<select aria-label=\"Appearance\" value={theme} onchange={(event) => applyTheme(event.currentTarget.value)}>\n        {#each themeOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}\n      </select>",
       "targets": [],
       "trace": [
         "applyTheme(event.currentTarget.value)"
@@ -40644,11 +40644,11 @@
       "clickable": false
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:48:7",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
       "ordinal": 2,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 48,
+      "line": 46,
       "column": 7,
       "label": "{setupGapDetail}",
       "role": null,
@@ -40666,15 +40666,15 @@
           "expression": "openToolchainSettings",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2488,
-            "end": 2509,
+            "start": 2599,
+            "end": 2620,
             "loc": {
               "start": {
-                "line": 48,
+                "line": 46,
                 "column": 102
               },
               "end": {
-                "line": 48,
+                "line": 46,
                 "column": 123
               }
             },
@@ -40693,7 +40693,7 @@
               "name": "openToolchainSettings",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 48,
+              "line": 46,
               "via": "callback"
             }
           ]
@@ -40713,11 +40713,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:5",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:48:5",
       "ordinal": 3,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 50,
+      "line": 48,
       "column": 5,
       "label": "Refresh environment",
       "role": null,
@@ -40732,15 +40732,15 @@
           "expression": "loadEnvironment",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2718,
-            "end": 2733,
+            "start": 2829,
+            "end": 2844,
             "loc": {
               "start": {
-                "line": 50,
+                "line": 48,
                 "column": 132
               },
               "end": {
-                "line": 50,
+                "line": 48,
                 "column": 147
               }
             },
@@ -40759,7 +40759,7 @@
               "name": "loadEnvironment",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 50,
+              "line": 48,
               "via": "callback"
             }
           ]
@@ -40779,11 +40779,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:51:5",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:49:5",
       "ordinal": 4,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 51,
+      "line": 49,
       "column": 5,
       "label": "Help and commands",
       "role": null,
@@ -40798,15 +40798,15 @@
           "expression": "() => openPage(\"help\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 2995,
-            "end": 3017,
+            "start": 3106,
+            "end": 3128,
             "loc": {
               "start": {
-                "line": 51,
+                "line": 49,
                 "column": 186
               },
               "end": {
-                "line": 51,
+                "line": 49,
                 "column": 208
               }
             },
@@ -40817,29 +40817,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 3001,
-              "end": 3017,
+              "start": 3112,
+              "end": 3128,
               "loc": {
                 "start": {
-                  "line": 51,
+                  "line": 49,
                   "column": 192
                 },
                 "end": {
-                  "line": 51,
+                  "line": 49,
                   "column": 208
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 3001,
-                "end": 3009,
+                "start": 3112,
+                "end": 3120,
                 "loc": {
                   "start": {
-                    "line": 51,
+                    "line": 49,
                     "column": 192
                   },
                   "end": {
-                    "line": 51,
+                    "line": 49,
                     "column": 200
                   }
                 },
@@ -40848,15 +40848,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 3010,
-                  "end": 3016,
+                  "start": 3121,
+                  "end": 3127,
                   "loc": {
                     "start": {
-                      "line": 51,
+                      "line": 49,
                       "column": 201
                     },
                     "end": {
-                      "line": 51,
+                      "line": 49,
                       "column": 207
                     }
                   },
@@ -40885,7 +40885,7 @@
                 }
               ],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 51,
+              "line": 49,
               "via": "handler"
             }
           ]
@@ -40905,11 +40905,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:58:34",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:56:34",
       "ordinal": 5,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 58,
+      "line": 56,
       "column": 34,
       "label": "Dismiss notification",
       "role": null,
@@ -40926,15 +40926,15 @@
           "expression": "dismissNotice",
           "expressionNode": {
             "type": "Identifier",
-            "start": 3469,
-            "end": 3482,
+            "start": 3580,
+            "end": 3593,
             "loc": {
               "start": {
-                "line": 58,
+                "line": 56,
                 "column": 105
               },
               "end": {
-                "line": 58,
+                "line": 56,
                 "column": 118
               }
             },
@@ -40953,7 +40953,7 @@
               "name": "dismissNotice",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 58,
+              "line": 56,
               "via": "callback"
             }
           ]
@@ -56460,7 +56460,7 @@
               "name": "browseFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -56534,7 +56534,7 @@
               "name": "browseFile",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -56608,7 +56608,7 @@
               "name": "analyzeFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -56815,7 +56815,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -56889,7 +56889,7 @@
               "name": "browseFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -57096,7 +57096,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -57303,7 +57303,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -57658,7 +57658,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -57961,7 +57961,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -58170,7 +58170,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -58379,7 +58379,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -58812,7 +58812,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -59021,7 +59021,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -59230,7 +59230,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -59437,7 +59437,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -59644,7 +59644,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -59718,7 +59718,7 @@
               "name": "chooseYoutubeOutput",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -60022,7 +60022,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -60163,7 +60163,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -60369,7 +60369,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -60641,7 +60641,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -60995,7 +60995,7 @@
               "name": "analyzeFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -61071,7 +61071,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -61216,7 +61216,7 @@
               "name": "beginRun",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 428,
+              "line": 439,
               "via": "bound-callback"
             }
           ]
@@ -62445,7 +62445,7 @@
       "controls": [
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:67:189",
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:113:394",
-        "desktop/src/lib/views/ShellHeader.svelte:button:50:5"
+        "desktop/src/lib/views/ShellHeader.svelte:button:48:5"
       ]
     },
     {
@@ -62801,7 +62801,7 @@
       "controls": [
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:67:189",
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:113:394",
-        "desktop/src/lib/views/ShellHeader.svelte:button:50:5"
+        "desktop/src/lib/views/ShellHeader.svelte:button:48:5"
       ]
     },
     {

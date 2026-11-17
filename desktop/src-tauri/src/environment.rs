@@ -986,9 +986,6 @@ fn terminate_process_group(pid: u32) {
     }
 }
 
-#[cfg(not(unix))]
-fn terminate_process_group(_pid: u32) {}
-
 fn command_text(stdout: &[u8], stderr: &[u8]) -> String {
     format!(
         "{}\n{}",
@@ -1081,26 +1078,15 @@ fn os_details() -> Value {
 
 fn host_platform_version() -> String {
     #[cfg(target_os = "windows")]
-    {
-        return Command::new("cmd")
-            .args(["/C", "ver"])
-            .output()
-            .ok()
-            .map(|output| command_text(&output.stdout, &output.stderr))
-            .and_then(|text| preferred_version_line(&text))
-            .unwrap_or_else(|| "unknown".into());
-    }
+    let output = Command::new("cmd").args(["/C", "ver"]).output().ok();
     #[cfg(target_os = "macos")]
-    {
-        return Command::new("sw_vers")
-            .arg("-productVersion")
-            .output()
-            .ok()
-            .map(|output| command_text(&output.stdout, &output.stderr))
-            .and_then(|text| preferred_version_line(&text))
-            .unwrap_or_else(|| "unknown".into());
-    }
-    "unknown".into()
+    let output = Command::new("sw_vers").arg("-productVersion").output().ok();
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let output: Option<std::process::Output> = None;
+    output
+        .map(|output| command_text(&output.stdout, &output.stderr))
+        .and_then(|text| preferred_version_line(&text))
+        .unwrap_or_else(|| "unknown".into())
 }
 
 fn parse_os_release(text: &str) -> BTreeMap<String, String> {

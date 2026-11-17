@@ -74,6 +74,17 @@ fn default_app_preferences() -> Value {
     })
 }
 
+/// Every saved appearance, in the order the picker shows them. Keep in step with
+/// `desktop/src/lib/themes.ts` (the frontend registry).
+const APP_THEMES: [&str; 8] = [
+    "light", "dark", "cinema", "oled", "dos", "phosphor", "ion", "breach",
+];
+
+fn appearance_error() -> String {
+    let (last, rest) = APP_THEMES.split_last().expect("themes are listed");
+    format!("Appearance must be {}, or {last}.", rest.join(", "))
+}
+
 fn normalize_app_preferences(value: Value) -> Result<Value, String> {
     let object = value
         .as_object()
@@ -84,13 +95,13 @@ fn normalize_app_preferences(value: Value) -> Result<Value, String> {
         .expect("default preferences are an object");
 
     if let Some(theme) = object.get("theme") {
-        let theme = theme
-            .as_str()
-            .ok_or("Appearance must be light, dark, phosphor, ion, or breach.")?;
+        let theme = theme.as_str().ok_or_else(appearance_error)?;
         let theme = match theme {
             "hacker" => "phosphor",
-            "light" | "dark" | "phosphor" | "ion" | "breach" => theme,
-            _ => return Err("Appearance must be light, dark, phosphor, ion, or breach.".into()),
+            // The short-lived high-contrast theme was replaced by DOS; fall back to the calm light theme.
+            "contrast" => "light",
+            known if APP_THEMES.contains(&known) => known,
+            _ => return Err(appearance_error()),
         };
         result.insert("theme".into(), json!(theme));
     }
@@ -462,6 +473,41 @@ pub(crate) fn save_app_preferences(preferences: Value) -> Result<AppPreferencesP
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_theme_is_accepted_and_the_legacy_hacker_skin_upgrades() {
+        for theme in [
+            "light", "dark", "cinema", "oled", "dos", "phosphor", "ion", "breach",
+        ] {
+            let preferences = normalize_app_preferences(json!({ "theme": theme }))
+                .unwrap_or_else(|error| panic!("{theme} must be accepted: {error}"));
+            assert_eq!(preferences["theme"], theme);
+        }
+        let legacy = normalize_app_preferences(json!({ "theme": "hacker" })).expect("legacy skin");
+        assert_eq!(legacy["theme"], "phosphor");
+        let retired =
+            normalize_app_preferences(json!({ "theme": "contrast" })).expect("retired theme");
+        assert_eq!(retired["theme"], "light");
+    }
+
+    #[test]
+    fn unknown_or_non_text_themes_are_rejected_with_the_full_list() {
+        for bad in [
+            json!("neon"),
+            json!("Dark"),
+            json!(""),
+            json!(3),
+            json!(null),
+        ] {
+            let error = normalize_app_preferences(json!({ "theme": bad }))
+                .expect_err("unknown theme must be rejected");
+            for theme in [
+                "light", "dark", "cinema", "oled", "dos", "phosphor", "ion", "breach",
+            ] {
+                assert!(error.contains(theme), "{error:?} must list {theme}");
+            }
+        }
+    }
 
     #[test]
     fn organizer_templates_are_saved_and_missing_values_keep_defaults() {

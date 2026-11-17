@@ -5,7 +5,7 @@
 //! MCP interfaces.
 
 use std::ffi::OsString;
-use std::fs::{self, File};
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -374,13 +374,13 @@ fn sync_file(path: &Path) -> io::Result<()> {
     }
     #[cfg(not(windows))]
     {
-        File::open(path)?.sync_all()
+        fs::File::open(path)?.sync_all()
     }
 }
 
 #[cfg(unix)]
 pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
-    File::open(path)?.sync_all()
+    fs::File::open(path)?.sync_all()
 }
 
 #[cfg(not(unix))]

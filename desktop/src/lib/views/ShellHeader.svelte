@@ -2,9 +2,10 @@
      Breadcrumb, appearance picker, engine status, refresh/help buttons and the
      dismissible notice. Pure view; every action is a route callback. -->
 <script lang="ts">
-  import { AlertTriangle, CheckCircle2, ChevronRight, HelpCircle, Info, LoaderCircle, Moon, RefreshCw, Sun, Terminal, X } from "@lucide/svelte";
+  import { AlertTriangle, CheckCircle2, ChevronRight, HelpCircle, Info, LoaderCircle, Monitor, Moon, RefreshCw, Sun, Terminal, X } from "@lucide/svelte";
   import type { Environment, Page } from "../types.js";
   import type { Theme } from "../ui-contracts.js";
+  import { themeOptions, themes } from "../themes.js";
   import type { createWorkspaceState } from "../workspace.svelte.js";
   import { pageLabel } from "../normalizers.js";
 
@@ -24,20 +25,17 @@
     dismissNotice: () => void;
   }
   let { page, theme, environment, environmentLoading, booting, setupGapDetail, setupGapLabel, notice, applyTheme, openPage, openToolchainSettings, loadEnvironment, dismissNotice }: Props = $props();
+  const current = $derived(themes.find((item) => item.id === theme));
 </script>
 
 <header class="topbar">
   <div class="breadcrumbs"><span>HEVC REBUILD</span><ChevronRight size={14} /><strong>{pageLabel(page)}</strong></div>
   <div class="top-actions">
     <label class="theme-control" title="Choose the application appearance">
-      {#if theme === "light"}<Sun size={15} aria-hidden="true" />{:else if theme === "dark"}<Moon size={15} aria-hidden="true" />{:else}<Terminal size={15} aria-hidden="true" />{/if}
+      {#if theme === "dos"}<Monitor size={15} aria-hidden="true" />{:else if current?.family === "instrument"}<Terminal size={15} aria-hidden="true" />{:else if current?.scheme === "dark"}<Moon size={15} aria-hidden="true" />{:else}<Sun size={15} aria-hidden="true" />{/if}
       <span class="appearance-label">Appearance</span>
       <select aria-label="Appearance" value={theme} onchange={(event) => applyTheme(event.currentTarget.value)}>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-        <option value="phosphor">Phosphor</option>
-        <option value="ion">Ion</option>
-        <option value="breach">Breach</option>
+        {#each themeOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
       </select>
     </label>
     {#if environment?.ready}

@@ -11,7 +11,7 @@ Static wiring is evidence of the path in source. It is not proof that a native p
 
 | Measure | Count |
 |---|---:|
-| Svelte files scanned | 35 |
+| Svelte files scanned | 36 |
 | Template controls | 472 |
 | Buttons | 270 |
 | Clickable controls | 327 |
@@ -135,7 +135,7 @@ Persistence, readback, and internal callback plumbing are retained in the JSON r
 | `callback:updateMetadataSources` | 4 | [SettingsPreferences.svelte:153 TMDB](../desktop/src/lib/SettingsPreferences.svelte#L153)<br>[SettingsPreferences.svelte:162 Wikidata](../desktop/src/lib/SettingsPreferences.svelte#L162)<br>[SettingsPreferences.svelte:170 TVmaze](../desktop/src/lib/SettingsPreferences.svelte#L170)<br>[SettingsPreferences.svelte:178 TheTVDB](../desktop/src/lib/SettingsPreferences.svelte#L178) |
 | `callback:analyzeFolder` | 3 | [LibraryView.svelte:120 {scanning ? "Scanning" : "Add path"}](../desktop/src/lib/views/LibraryView.svelte#L120)<br>[YouTubePreparation.svelte:32 Scanning Add path to queue](../desktop/src/lib/YouTubePreparation.svelte#L32)<br>[YouTubePreparation.svelte:81 Add path to queue](../desktop/src/lib/YouTubePreparation.svelte#L81) |
 | `callback:browseFile` | 3 | [LibraryQueueStatus.svelte:124 Add files](../desktop/src/lib/LibraryQueueStatus.svelte#L124)<br>[LibraryView.svelte:178 Add files](../desktop/src/lib/views/LibraryView.svelte#L178)<br>[YouTubePreparation.svelte:32 Add files](../desktop/src/lib/YouTubePreparation.svelte#L32) |
-| `callback:loadEnvironment` | 3 | [EnvironmentPanel.svelte:67 Recheck](../desktop/src/lib/views/EnvironmentPanel.svelte#L67)<br>[EnvironmentPanel.svelte:113 Retry check](../desktop/src/lib/views/EnvironmentPanel.svelte#L113)<br>[ShellHeader.svelte:50 Refresh environment](../desktop/src/lib/views/ShellHeader.svelte#L50) |
+| `callback:loadEnvironment` | 3 | [EnvironmentPanel.svelte:67 Recheck](../desktop/src/lib/views/EnvironmentPanel.svelte#L67)<br>[EnvironmentPanel.svelte:113 Retry check](../desktop/src/lib/views/EnvironmentPanel.svelte#L113)<br>[ShellHeader.svelte:48 Refresh environment](../desktop/src/lib/views/ShellHeader.svelte#L48) |
 | `callback:onAddFolder` | 3 | [HomeDashboard.svelte:127 Add folder](../desktop/src/lib/HomeDashboard.svelte#L127)<br>[HomeDashboard.svelte:129 Add folder](../desktop/src/lib/HomeDashboard.svelte#L129)<br>[LibraryQueueStatus.svelte:123 Add folder](../desktop/src/lib/LibraryQueueStatus.svelte#L123) |
 | `callback:setPathsAnimated` | 3 | [LibraryPosterGrid.svelte:128 Animated encode for everything shown](../desktop/src/lib/LibraryPosterGrid.svelte#L128)<br>[LibraryPosterGrid.svelte:224 {card.kind === "media" ? `Animated encode for ${card.filename}` : `An…](../desktop/src/lib/LibraryPosterGrid.svelte#L224)<br>[LibraryTvReview.svelte:175 {level === "episode" ? "Animated encode for this episode" : "Animated…](../desktop/src/lib/LibraryTvReview.svelte#L175) |
 | `callback:addFilenamePattern` | 2 | [SettingsPreferences.svelte:310 {`New ${filter.title.toLowerCase()} pattern`}](../desktop/src/lib/SettingsPreferences.svelte#L310)<br>[SettingsPreferences.svelte:310 Add](../desktop/src/lib/SettingsPreferences.svelte#L310) |
@@ -385,11 +385,11 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 | [L36](../desktop/src/lib/ReportBrowser.svelte#L36) | button | {reportDeleteBusy ? "Deleting…" : "Delete permanently"} | click: `deleteReportHistory`<br>`deleteReportHistory` → `deleteReportHistory` | callback:deleteReportHistory (boundary) | reportDeleteConfirm |
 | [L37](../desktop/src/lib/ReportBrowser.svelte#L37) | button | Cancel | click: `() => (reportDeleteConfirm = false)` | — | reportDeleteConfirm |
 | [L39](../desktop/src/lib/ReportBrowser.svelte#L39) | button | Delete history | click: `() => (reportDeleteConfirm = true)` | — | else(reportDeleteConfirm) |
-| [L62](../desktop/src/lib/ReportBrowser.svelte#L62) | button | {reportName} {new Date(report.created * 1000).toLocaleString()} | click: `() => chooseReport(report.csv_path)`<br>`chooseReport(report.csv_path)` → `chooseReport(report.csv_path)` | callback:chooseReport (boundary) | reports.length; Each(reports) |
-| [L67](../desktop/src/lib/ReportBrowser.svelte#L67) | button | {logLoading ? "Loading…" : "Open diagnostics"} | click: `() => openLog(activeReport.log_path)`<br>`openLog(activeReport.log_path)` → `openLog(activeReport.log_path)` | callback:openLog (boundary) | reports.length; activeReport |
-| [L84](../desktop/src/lib/ReportBrowser.svelte#L84) | disclosure | {fileName(row.input)} {row.metadata_text_scrub_count ?? row.release_group_scrub_count} field(s) | (implicit disclosure) | — | reports.length; activeReport; activeReport.rows.some((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0); Each(activeReport.rows.filter((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0)) |
-| [L94](../desktop/src/lib/ReportBrowser.svelte#L94) | button | Copy excerpt | click: `copyLog`<br>`copyLog` → `copyLog` | callback:copyLog (boundary) | reports.length; activeReport |
-| [L99](../desktop/src/lib/ReportBrowser.svelte#L99) | button | Go to workflow | click: `() => openPage(hasScan ? "run" : "library")`<br>`openPage(hasScan ? "run" : "library")` → `openPage(hasScan ? "run" : "library")` | page:dynamic:hasScan ? "run" : "library" (dynamic) | else(reports.length) |
+| [L63](../desktop/src/lib/ReportBrowser.svelte#L63) | button | {reportName} {new Date(report.created * 1000).toLocaleString()} | click: `() => chooseReport(report.csv_path)`<br>`chooseReport(report.csv_path)` → `chooseReport(report.csv_path)` | callback:chooseReport (boundary) | reports.length; Each(reports) |
+| [L68](../desktop/src/lib/ReportBrowser.svelte#L68) | button | {logLoading ? "Loading…" : "Open diagnostics"} | click: `() => openLog(activeReport.log_path)`<br>`openLog(activeReport.log_path)` → `openLog(activeReport.log_path)` | callback:openLog (boundary) | reports.length; activeReport |
+| [L85](../desktop/src/lib/ReportBrowser.svelte#L85) | disclosure | {fileName(row.input)} {row.metadata_text_scrub_count ?? row.release_group_scrub_count} field(s) | (implicit disclosure) | — | reports.length; activeReport; activeReport.rows.some((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0); Each(activeReport.rows.filter((row) => Number(row.metadata_text_scrub_count ?? row.release_group_scrub_count) > 0)) |
+| [L95](../desktop/src/lib/ReportBrowser.svelte#L95) | button | Copy excerpt | click: `copyLog`<br>`copyLog` → `copyLog` | callback:copyLog (boundary) | reports.length; activeReport |
+| [L100](../desktop/src/lib/ReportBrowser.svelte#L100) | button | Go to workflow | click: `() => openPage(hasScan ? "run" : "library")`<br>`openPage(hasScan ? "run" : "library")` → `openPage(hasScan ? "run" : "library")` | page:dynamic:hasScan ? "run" : "library" (dynamic) | else(reports.length) |
 
 ### `desktop/src/lib/RunConsole.svelte`
 
@@ -670,11 +670,11 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 
 | Source | Kind | Label | Event / trace | Destination | Guards |
 |---|---|---|---|---|---|
-| [L35](../desktop/src/lib/views/ShellHeader.svelte#L35) | form-control | Appearance | change: `(event) => applyTheme(event.currentTarget.value)`<br>`applyTheme(event.currentTarget.value)` | — | always |
-| [L48](../desktop/src/lib/views/ShellHeader.svelte#L48) | button | {setupGapDetail} | click: `openToolchainSettings`<br>`openToolchainSettings` | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| [L50](../desktop/src/lib/views/ShellHeader.svelte#L50) | button | Refresh environment | click: `loadEnvironment`<br>`loadEnvironment` | callback:loadEnvironment (boundary) | always |
-| [L51](../desktop/src/lib/views/ShellHeader.svelte#L51) | button | Help and commands | click: `() => openPage("help")`<br>`openPage("help")` | page:help | always |
-| [L58](../desktop/src/lib/views/ShellHeader.svelte#L58) | button | Dismiss notification | click: `dismissNotice`<br>`dismissNotice` | callback:dismissNotice (boundary) | notice.message |
+| [L37](../desktop/src/lib/views/ShellHeader.svelte#L37) | form-control | Appearance | change: `(event) => applyTheme(event.currentTarget.value)`<br>`applyTheme(event.currentTarget.value)` | — | always |
+| [L46](../desktop/src/lib/views/ShellHeader.svelte#L46) | button | {setupGapDetail} | click: `openToolchainSettings`<br>`openToolchainSettings` | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| [L48](../desktop/src/lib/views/ShellHeader.svelte#L48) | button | Refresh environment | click: `loadEnvironment`<br>`loadEnvironment` | callback:loadEnvironment (boundary) | always |
+| [L49](../desktop/src/lib/views/ShellHeader.svelte#L49) | button | Help and commands | click: `() => openPage("help")`<br>`openPage("help")` | page:help | always |
+| [L56](../desktop/src/lib/views/ShellHeader.svelte#L56) | button | Dismiss notification | click: `dismissNotice`<br>`dismissNotice` | callback:dismissNotice (boundary) | notice.message |
 
 ### `desktop/src/lib/views/ShellSidebar.svelte`
 

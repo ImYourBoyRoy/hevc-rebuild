@@ -6,6 +6,7 @@
 // (pnpm test:window-state-controller). No direct DOM or Tauri imports.
 
 import { normalizeTheme } from './normalizers.ts';
+import { themeAttributes } from './themes.ts';
 import type { AppPreferences, PreferencesPayload, Theme } from './ui-contracts.js';
 
 export interface WindowStateHost {
@@ -33,6 +34,8 @@ export interface WindowStateDeps {
   invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
   isDesktop: () => boolean;
   host: WindowStateHost;
+  /** Wraps the visible theme switch (cross-fade). Defaults to switching immediately. */
+  themeTransition?: (update: () => void) => void;
   windowApi: {
     currentWindow(): WindowLike;
     currentMonitor(): Promise<MonitorLike | null>;
@@ -45,15 +48,18 @@ export interface WindowStateDeps {
 
 export function createWindowStateController(deps: WindowStateDeps) {
   const { invoke, host: h, windowApi, storage, browserPreferencesKey, root } = deps;
+  const runThemeTransition = deps.themeTransition ?? ((update: () => void) => update());
   let preferenceSaveQueue: Promise<void> = Promise.resolve();
   let windowStateSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let windowPreferencesReady = false;
   let restoringWindowState = false;
 
   function publishTheme(value: Theme) {
+    const attributes = themeAttributes(value);
     h.theme = value;
-    root.dataset.theme = value;
-    if (value === "phosphor" || value === "ion" || value === "breach") root.dataset.instrument = value;
+    root.dataset.theme = attributes.theme;
+    root.dataset.palette = attributes.palette;
+    if (attributes.instrument) root.dataset.instrument = attributes.instrument;
     else delete root.dataset.instrument;
   }
 
@@ -77,8 +83,10 @@ export function createWindowStateController(deps: WindowStateDeps) {
   }
 
   function applyTheme(value: string) {
-    publishTheme(normalizeTheme(value));
-    void persistPreferences({ theme: h.theme });
+    const theme = normalizeTheme(value);
+    // The switch may be deferred by the cross-fade, so persist the chosen value, not h.theme.
+    runThemeTransition(() => publishTheme(theme));
+    void persistPreferences({ theme });
   }
 
   async function restoreWindowState(saved: AppPreferences["windowState"]) {

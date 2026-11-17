@@ -1,0 +1,66 @@
+/* ./desktop/src/styles/themes/theme-ion.css
+   Ion: ionised plasma. Deep navy with electric cyan and violet, a drifting field of charged particles
+   leaving light trails behind the work area (canvas backdrop, see lib/backdrop), and frosted-glass
+   panels with a luminous cyan-to-violet edge on every screen's surfaces. No radar, no rings: soft
+   rounded glass, light type and glow. The selected card breathes. The sidebar edge and top-bar rail
+   glints from the shared instrument layer are kept. AA contrast of the shell chrome is enforced by
+   `pnpm test:theme-contrast`. `.app-shell.app-shell` outranks the shared instrument rules. */
+html[data-instrument="ion"] .app-shell.app-shell {
+  --signal: #36e4ff;
+  --ion-violet: #8a6bff;
+  --ion-ice: #c9f8ff;
+  --ion-glow: 0 0 12px color-mix(in srgb, var(--signal) 45%, transparent);
+  --backdrop-opacity: .85;
+  --theme-page: #030612;
+  --theme-surface: #060d20;
+  --theme-raised: #0b1630;
+  --theme-text: #e6f6ff;
+  --theme-muted: #8fb8d6;
+  --theme-line: #1c6f95;
+  --theme-line-strong: #36a8d6;
+  --theme-accent-strong: #c9f8ff;
+  --theme-accent-soft: #0a2440;
+  --q-frame: rgb(54 228 255 / 30%); --q-frame-bg: rgb(5 11 28 / 84%); --q-row-line: rgb(54 228 255 / 14%); --q-row-hover: rgb(54 228 255 / 8%); --q-row-active: rgb(138 107 255 / 16%);
+  --q-accent: #36e4ff; --q-muted: #8fb8d6; --q-radius: 14px; --q-head-bg: rgb(54 228 255 / 10%); --q-head-fg: #c9f8ff;
+}
+/* The shared instrument layer's drift bar and the radar are gone; plasma takes that layer. */
+html[data-instrument="ion"] .app-shell.app-shell .main-panel::after { content: none; animation: none; }
+html[data-instrument="ion"] .app-shell.app-shell .main-panel { background-image: none; background-color: var(--theme-page); }
+
+html[data-instrument="ion"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1, .hero-copy h2) { font-weight: 300; text-transform: uppercase; letter-spacing: .2em; color: var(--ion-ice); text-shadow: var(--ion-glow); }
+html[data-instrument="ion"] .app-shell.app-shell :is(.section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2) { font-weight: 500; letter-spacing: .06em; color: var(--ion-ice); }
+html[data-instrument="ion"] .app-shell.app-shell :is(.home-kicker, .eyebrow, .workspace-label) { color: color-mix(in srgb, var(--signal) 85%, #fff); letter-spacing: .24em; }
+html[data-instrument="ion"] .app-shell.app-shell :is(.home-kicker, .eyebrow)::before { content: "\25C6"; margin-right: 8px; font-size: .78em; color: var(--ion-violet); }
+html[data-instrument="ion"] .app-shell.app-shell :is(.status-pill, .nav-count, .metric-card strong, .home-action p, table, .library-poster-copy) { font-variant-numeric: tabular-nums; }
+
+/* Frosted glass with a luminous cyan-to-violet edge. */
+html[data-instrument="ion"] .app-shell.app-shell :is(.library-poster-card, .run-console-card, .settings-card, .metadata-provider-card, .metadata-credential-card, .card-surface, .table-card, .diagnostic-card, .report-item, .report-scrub-card, .hardware-card, .setup-card, .metric-card, .mode-card, .home-panel, .home-action, .empty-state, .run-mode-picker) {
+  position: relative; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--signal) 30%, transparent);
+  background: linear-gradient(150deg, rgb(54 160 255 / 11%), rgb(138 107 255 / 7%) 55%, rgb(54 228 255 / 4%)), rgb(5 11 28 / 82%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%), 0 12px 32px rgb(0 0 0 / 35%);
+}
+html[data-instrument="ion"] .app-shell.app-shell :is(.library-poster-card, .settings-card, .home-panel, .home-action, .table-card, .metric-card, .mode-card, .setup-card, .run-console-card)::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
+  background: linear-gradient(135deg, rgb(54 228 255 / 85%), rgb(138 107 255 / 25%) 38%, rgb(138 107 255 / 8%) 62%, rgb(54 228 255 / 55%));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: .75; transition: opacity var(--dur-base, 260ms) var(--ease-out, ease-out);
+}
+html[data-instrument="ion"] .app-shell.app-shell :is(.library-poster-card, .home-action):hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--signal) 55%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%), 0 18px 40px rgb(0 0 0 / 40%), 0 0 30px rgb(54 228 255 / 14%); }
+html[data-instrument="ion"] .app-shell.app-shell :is(.library-poster-card, .home-action):hover::before { opacity: 1; }
+html[data-instrument="ion"] .app-shell.app-shell :is(.library-poster-card.selected, .home-action-primary) { animation: ion-select 3.6s ease-in-out infinite alternate; }
+@keyframes ion-select { from { box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 12px 32px rgb(0 0 0 / 35%), 0 0 10px rgb(54 228 255 / 18%); } to { box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 12px 32px rgb(0 0 0 / 35%), 0 0 34px rgb(138 107 255 / 38%); } }
+html[data-instrument="ion"] .app-shell.app-shell .library-poster-frame { border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgb(54 228 255 / 25%), 0 8px 22px rgb(0 0 0 / 45%); }
+
+/* Controls: light glass rings; the primary is a charged gradient. */
+html[data-instrument="ion"] .app-shell.app-shell .button { letter-spacing: .14em; font-weight: 600; }
+html[data-instrument="ion"] .app-shell.app-shell .button.secondary { background: color-mix(in srgb, var(--signal) 7%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal) 24%, transparent); }
+html[data-instrument="ion"] .app-shell.app-shell .button.secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--signal) 18%, transparent); border-color: var(--signal); box-shadow: var(--ion-glow); color: var(--ion-ice); }
+html[data-instrument="ion"] .app-shell.app-shell .button.primary { color: var(--theme-on-accent); border-color: var(--ion-ice); background: linear-gradient(120deg, #a4f8ff 0%, #36e4ff 45%, #8a9bff 100%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--signal) 60%, transparent), 0 0 26px color-mix(in srgb, var(--signal) 42%, transparent); }
+html[data-instrument="ion"] .app-shell.app-shell .button.primary:hover:not(:disabled) { background: linear-gradient(120deg, #d4fcff 0%, #6ae6f7 45%, #aab6ff 100%); }
+html[data-instrument="ion"] .app-shell.app-shell .button:focus-visible { outline: 2px solid var(--ion-ice); outline-offset: 3px; }
+
+html[data-instrument="ion"] .app-shell.app-shell .notice { border-radius: 12px; border-left: 3px solid var(--signal); background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 14%, transparent), color-mix(in srgb, var(--ion-violet) 5%, transparent)); }
+html[data-instrument="ion"] .app-shell.app-shell .notice.error { border-left-color: var(--theme-danger-text); }
+html[data-instrument="ion"] .app-shell.app-shell :is(input, select) { background: #040b1c; border: 1px solid var(--theme-line-strong); border-bottom: 2px solid var(--signal); caret-color: var(--signal); }
+html[data-instrument="ion"] .app-shell.app-shell :is(input, select):focus { box-shadow: var(--ion-glow); outline: none; }
+html[data-instrument="ion"] .app-shell.app-shell * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--signal) 55%, transparent) transparent; }

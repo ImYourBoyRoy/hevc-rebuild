@@ -1,0 +1,142 @@
+/* ./desktop/src/styles/themes/theme-cinema.css
+   Cinema: a luxurious old movie palace. Crushed crimson velvet (a procedural SVG-lit texture, so the
+   folds and sheen are organic) on the walls and sidebar, black lacquer panels piped in gold with
+   art-deco corners, a gold-braided sidebar edge, a tassel fringe swaying under the top bar, and
+   theatre curtains that part when the theme starts. Behind the content a canvas runs an old reel
+   projector in the top-right corner: two turning reels, film marching through the gate, a lens that
+   throws a flickering volumetric beam through drifting dust, with scratches, live grain and a warm
+   spotlight following the cursor (lib/backdrop). Cards lean toward the pointer. Extends the Dark family.
+   AA contrast of the shell chrome is enforced by `pnpm test:theme-contrast`. */
+.app-shell[data-palette="cinema"] {
+  --backdrop-opacity: 1;
+  --gold: #d8b25a;
+  --gold-bright: #f2d98a;
+  --velvet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='900'%3E%3Cfilter id='v' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0058 0.00022' numOctaves='3' seed='9' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23ffffff' surfaceScale='20' diffuseConstant='1.0' result='d'%3E%3CfeDistantLight azimuth='180' elevation='40'/%3E%3C/feDiffuseLighting%3E%3CfeSpecularLighting in='n' lighting-color='%23ff9fb0' surfaceScale='20' specularConstant='0.55' specularExponent='44' result='s'%3E%3CfeDistantLight azimuth='180' elevation='40'/%3E%3C/feSpecularLighting%3E%3CfeColorMatrix in='d' type='matrix' values='0.185 0.185 0.185 0 0  0.006 0.006 0.006 0 0  0.024 0.024 0.024 0 0  0 0 0 1 0' result='base'/%3E%3CfeComposite in='base' in2='s' operator='arithmetic' k1='0' k2='1' k3='1' k4='0' result='lit'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='3' result='f'/%3E%3CfeColorMatrix in='f' type='matrix' values='0 0 0 0 0.2  0 0 0 0 0  0 0 0 0 0.02  0.07 0 0 0 0' result='fuzz'/%3E%3CfeComposite in='fuzz' in2='lit' operator='over'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23v)'/%3E%3C/svg%3E");
+  --cine-ease: cubic-bezier(.16, 1, .3, 1);
+  --q-frame: rgb(201 164 92 / 42%); --q-frame-bg: rgb(22 5 11 / 78%); --q-frame-shadow: inset 0 1px 0 rgb(255 232 190 / 8%), 0 14px 32px rgb(0 0 0 / 45%); --q-row-line: rgb(216 178 90 / 18%); --q-row-hover: rgb(216 178 90 / 9%); --q-row-active: rgb(216 178 90 / 14%);
+  --q-accent: #f2d98a; --q-muted: #dcc5aa; --q-radius: 6px; --q-head-bg: rgb(216 178 90 / 12%); --q-head-fg: #f2d98a;
+  --theme-page: #2a050d;
+  --theme-surface: #0f0508;
+  --theme-raised: #1b0a0e;
+  --theme-text: #f6ead2;
+  --theme-muted: #dcc5aa;
+  --theme-line: #5a1f2a;
+  --theme-line-strong: #9a6a42;
+  --theme-accent: #d8b25a;
+  --theme-accent-strong: #f2d98a;
+  --theme-accent-soft: #3a2410;
+  --theme-on-accent: #1a1004;
+  --theme-focus: #f2d98a;
+  --theme-sidebar: #1a0409;
+  --theme-sidebar-raised: #3a0f18;
+  --theme-sidebar-fill: transparent;
+  --theme-sidebar-muted: #d6bd9c;
+  --theme-eyebrow: #d8b25a;
+  --theme-topbar-fill: rgb(26 5 10 / 80%);
+  --theme-primary-fill: linear-gradient(180deg, #f2d98a 0%, #d8b25a 55%, #b08a3a 100%);
+  --theme-primary-fill-hover: linear-gradient(180deg, #fae6a8 0%, #e4c06c 55%, #bf9a48 100%);
+  --theme-primary-edge: #8f6e2c;
+  --theme-brand-fill: linear-gradient(145deg, #f2d98a, #9a7330);
+  --theme-brand-glow: 0 0 0 1px rgb(255 240 200 / 25%) inset, 0 0 26px rgb(216 178 90 / 32%);
+  --theme-card-lift: none;
+  --theme-hero-start: #3a0a14; --theme-hero-end: #1a0409; --theme-hero-text: #f8eedb; --theme-hero-muted: #dcc5aa;
+  --theme-hero-kicker: #d8b25a; --theme-hero-accent: #f2d98a; --theme-hero-line: #6a2a2a;
+  --theme-warning-surface: #3a2a10; --theme-warning-text: #ffd98f;
+  --theme-danger-surface: #4a1218; --theme-danger-text: #ffbdb4;
+  --theme-success-surface: #1f2a16;
+  --theme-shadow: 0 1px 0 rgb(255 240 210 / 5%) inset, 0 22px 46px rgb(0 0 0 / 60%);
+  --theme-elev-1: var(--theme-shadow); --theme-elev-2: 0 1px 0 rgb(255 240 210 / 7%) inset, 0 30px 64px rgb(0 0 0 / 70%);
+  --theme-icon-violet: #d9c4e8; --theme-icon-violet-bg: #2c1f33;
+  --theme-icon-green: #cfe09f; --theme-icon-green-bg: #233019;
+  --theme-icon-amber: #f2d98a; --theme-icon-amber-bg: #3a2810;
+  --theme-icon-blue: #bcd2e6; --theme-icon-blue-bg: #1f2833;
+  --theme-icon-danger: #ffbdb4; --theme-icon-danger-bg: #4a1a1e;
+  --workflow-art-start: #3a0a14; --workflow-art-end: #1a0409;
+  --workflow-art-frame-start: #8f6e47; --workflow-art-frame-end: #5c432b; --workflow-art-frame: #efdcc2;
+  --workflow-art-grid: #7c5448; --workflow-art-outline: #b08a3a; --workflow-art-label: #dcc3a1;
+  --workflow-art-copy: #f6ead9; --workflow-art-muted: #cbb298; --workflow-art-path: #d8b25a;
+  --workflow-art-accent: #f2d98a; --workflow-art-pill: #3a1018; --workflow-art-sprocket: #8c6a42;
+  --workflow-art-hole: #dcc6a5; --workflow-art-land: #92764f; --workflow-art-sun: #f2d98a;
+  --workflow-art-badge: #ecd9be; --workflow-art-check: #8a5a14; --workflow-art-glow: #8c4a3a;
+  --hero-step-bg: rgb(255 240 220 / 5%); --hero-step-line: rgb(255 226 190 / 16%);
+  --hero-step-text: #eddcc8; --hero-step-muted: #d0b89c;
+  --hero-step-current-bg: rgb(242 217 138 / 9%); --hero-step-current-line: #b08a3a;
+  --hero-step-current-shadow: inset 0 0 0 1px rgb(242 217 138 / 9%);
+  --hero-step-number-bg: #3a1a20; --hero-step-number-text: #f0dfca;
+  --hero-step-done-bg: #d8b25a; --hero-step-done-text: #1a1004;
+}
+html[data-palette="cinema"], html[data-palette="cinema"] body { background: #2a050d; }
+
+/* The walls: crushed crimson velvet with soft drapery folds, darkening toward the top like a valance. */
+.app-shell[data-palette="cinema"] .main-panel { background-color: #2a050d; background-image: linear-gradient(180deg, rgb(0 0 0 / 38%), transparent 160px), var(--velvet); background-size: auto, 1280px 900px; box-shadow: inset 0 0 180px rgb(0 0 0 / 55%); }
+.app-shell[data-palette="cinema"] .sidebar { background-color: #1a0409; background-image: linear-gradient(180deg, rgb(0 0 0 / 42%), rgb(0 0 0 / 66%)), var(--velvet); background-size: auto, 1280px 900px; border-right: 3px solid rgb(216 178 90 / 70%); box-shadow: inset -4px 0 0 #14060a, inset -5px 0 0 rgb(216 178 90 / 35%), 8px 0 30px rgb(0 0 0 / 50%); }
+
+/* Type: a display serif for titles, wide-tracked gold small caps for labels, a gold rule under page titles. */
+.app-shell[data-palette="cinema"] :is(.page-heading h1, .home-heading h1, .hero-copy h2, .section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2, .library-poster-copy h3) { font-family: "Playfair Display", "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-weight: 600; letter-spacing: .01em; }
+.app-shell[data-palette="cinema"] :is(.page-heading h1, .home-heading h1) { font-size: 36px; color: var(--gold-bright); text-shadow: 0 2px 14px rgb(0 0 0 / 60%); }
+.app-shell[data-palette="cinema"] :is(.home-kicker, .eyebrow, .workspace-label) { color: var(--gold); letter-spacing: .3em; font-weight: 700; }
+.app-shell[data-palette="cinema"] :is(.page-heading, .home-heading) { padding-bottom: 14px; border-bottom: 1px solid; border-image: linear-gradient(90deg, rgb(216 178 90 / 0%), #d8b25a 18%, #d8b25a 82%, rgb(216 178 90 / 0%)) 1; }
+
+/* The top bar: dark velvet glass under a gold braid, with a scalloped velvet valance hanging below it. */
+.app-shell[data-palette="cinema"] .topbar { border-bottom: 2px solid #b8924a; box-shadow: 0 1px 0 rgb(255 232 190 / 25%) inset; backdrop-filter: blur(10px); }
+.app-shell[data-palette="cinema"] .topbar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 30px; pointer-events: none; z-index: -1; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='30' viewBox='0 0 64 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235a1424'/%3E%3Cstop offset='1' stop-color='%232a0610'/%3E%3C/linearGradient%3E%3ClinearGradient id='h' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.28'/%3E%3Cstop offset='.5' stop-color='%23fff' stop-opacity='.08'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='.28'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 0H64V8Q64 28 32 28Q0 28 0 8Z' fill='url(%23g)'/%3E%3Cpath d='M0 0H64V8Q64 28 32 28Q0 28 0 8Z' fill='url(%23h)'/%3E%3Cpath d='M0.8 8Q0.8 27 32 27Q63.2 27 63.2 8' fill='none' stroke='%23d8b25a' stroke-width='1.6'/%3E%3Ccircle cx='0' cy='9' r='2.4' fill='%23f2d98a'/%3E%3Ccircle cx='32' cy='28' r='2.2' fill='%23f2d98a'/%3E%3C/svg%3E") repeat-x left top / 64px 30px; filter: drop-shadow(0 6px 6px rgb(0 0 0 / 45%)); }
+
+/* The curtains part when the theme starts, revealing the screen. */
+.app-shell[data-palette="cinema"] .main-panel::before, .app-shell[data-palette="cinema"] .main-panel::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50.5%; z-index: 7; pointer-events: none; background-color: #2a050d; background-image: var(--velvet); background-size: 1280px 900px; }
+.app-shell[data-palette="cinema"] .main-panel::before { left: 0; border-right: 5px double #d8b25a; box-shadow: inset -40px 0 50px rgb(0 0 0 / 50%), 10px 0 40px rgb(0 0 0 / 60%); }
+.app-shell[data-palette="cinema"] .main-panel::after { right: 0; border-left: 5px double #d8b25a; box-shadow: inset 40px 0 50px rgb(0 0 0 / 50%), -10px 0 40px rgb(0 0 0 / 60%); }
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell[data-palette="cinema"] .main-panel::before { animation: curtain-left 2600ms cubic-bezier(.7, 0, .2, 1) 250ms both; }
+  .app-shell[data-palette="cinema"] .main-panel::after { animation: curtain-right 2600ms cubic-bezier(.7, 0, .2, 1) 250ms both; }
+}
+@media (prefers-reduced-motion: reduce) { .app-shell[data-palette="cinema"] .main-panel::before, .app-shell[data-palette="cinema"] .main-panel::after { display: none; } }
+@keyframes curtain-left { from { transform: translateX(0); } to { transform: translateX(-102%); } }
+@keyframes curtain-right { from { transform: translateX(0); } to { transform: translateX(102%); } }
+
+/* Wine-tinted glass panels with a single gold hairline: restraint, so the velvet stays the star. */
+.app-shell[data-palette="cinema"] :is(.library-poster-card, .run-console-card, .settings-card, .metadata-provider-card, .metadata-credential-card, .card-surface, .table-card, .diagnostic-card, .report-item, .report-scrub-card, .hardware-card, .setup-card, .metric-card, .mode-card, .home-panel, .home-action, .empty-state, .run-mode-picker) {
+  position: relative; border-radius: 10px; border: 1px solid rgb(201 164 92 / 42%);
+  background: linear-gradient(180deg, rgb(36 8 16 / 84%), rgb(16 4 9 / 90%));
+  box-shadow: inset 0 1px 0 rgb(255 232 190 / 9%), 0 18px 40px rgb(0 0 0 / 55%);
+}
+.app-shell[data-palette="cinema"] :is(.home-panel, .library-poster-toolbar, .settings-card, .table-card, .library-queue-manager, .library-toolbar) { backdrop-filter: blur(12px) saturate(1.05); }
+
+/* Cards lean toward the cursor (the component sets --tilt and --sheen) and catch a travelling light. */
+.app-shell[data-palette="cinema"] :is(.library-poster-card, .home-action) { --lift: 0px; transform: perspective(1100px) translateY(var(--lift)) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); transition: transform 460ms var(--cine-ease), border-color 300ms, box-shadow 300ms; }
+.app-shell[data-palette="cinema"] :is(.library-poster-card, .home-action):hover { --lift: -5px; border-color: var(--gold-bright); }
+.app-shell[data-palette="cinema"] :is(.library-poster-card, .home-action)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 360ms ease; background: radial-gradient(circle at var(--sheen-x, 50%) var(--sheen-y, 0%), rgb(255 240 210 / 22%), transparent 56%); mix-blend-mode: screen; }
+.app-shell[data-palette="cinema"] :is(.library-poster-card, .home-action)[data-leaning]::after { opacity: 1; }
+.app-shell[data-palette="cinema"] .library-poster-card.selected, .app-shell[data-palette="cinema"] .home-action-primary { border-color: var(--gold-bright); animation: cine-glow 4.5s ease-in-out infinite alternate; }
+@keyframes cine-glow { from { box-shadow: inset 0 1px 0 rgb(255 232 190 / 9%), 0 18px 40px rgb(0 0 0 / 55%), 0 0 0 rgb(216 178 90 / 0%); } to { box-shadow: inset 0 1px 0 rgb(255 232 190 / 12%), 0 18px 40px rgb(0 0 0 / 55%), 0 0 34px rgb(216 178 90 / 26%); } }
+.app-shell[data-palette="cinema"] .library-poster-frame { border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px rgb(201 164 92 / 55%), 0 14px 30px rgb(0 0 0 / 60%); }
+
+/* The camera: titles pull focus, content rolls in with a soft focus. */
+@keyframes rack-focus { from { opacity: 0; filter: blur(14px); letter-spacing: .12em; transform: scale(1.035); } to { opacity: 1; filter: blur(0); letter-spacing: .01em; transform: none; } }
+@keyframes cine-in { from { opacity: 0; filter: blur(9px); transform: translateY(16px) scale(1.012); } to { opacity: 1; filter: blur(0); transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell[data-palette="cinema"] :is(.page-heading h1, .home-heading h1) { animation: rack-focus 1300ms var(--cine-ease) 1500ms backwards; }
+  .app-shell[data-palette="cinema"] .page-wrap > * { animation-name: cine-in; animation-duration: 950ms; animation-timing-function: var(--cine-ease); }
+  .app-shell[data-palette="cinema"] .home-actions > .home-action { animation-name: cine-in; animation-duration: 950ms; animation-timing-function: var(--cine-ease); }
+}
+
+/* Controls: gold, with a gloss that sweeps across the primary action. */
+.app-shell[data-palette="cinema"] .button { border-radius: 6px; letter-spacing: .04em; }
+.app-shell[data-palette="cinema"] .button.primary { position: relative; overflow: hidden; color: var(--theme-on-accent); box-shadow: 0 1px 0 rgb(255 255 255 / 40%) inset, 0 8px 22px rgb(216 178 90 / 26%); }
+.app-shell[data-palette="cinema"] .button.primary::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 50%) 50%, transparent 62%); transform: translateX(-130%); }
+.app-shell[data-palette="cinema"] .button.primary:hover:not(:disabled)::after { transform: translateX(130%); transition: transform 800ms var(--cine-ease); }
+.app-shell[data-palette="cinema"] .button.secondary { background: rgb(10 4 6 / 70%); color: var(--gold-bright); border-color: rgb(216 178 90 / 60%); }
+.app-shell[data-palette="cinema"] .button.secondary:hover:not(:disabled) { background: rgb(216 178 90 / 16%); border-color: var(--gold-bright); color: #fff3cc; }
+.app-shell[data-palette="cinema"] .nav-item.active { background: linear-gradient(90deg, rgb(216 178 90 / 24%), rgb(216 178 90 / 4%)); box-shadow: inset 3px 0 var(--gold); }
+.app-shell[data-palette="cinema"] .hero-card { background-image: linear-gradient(112deg, #3a0a14 0%, #2a0810 58%, #1a0409 100%); }
+.app-shell[data-palette="cinema"] .hero-link { color: var(--gold-bright); }
+.app-shell[data-palette="cinema"] .status-pill.good { color: #d3e6a2; border-color: #4b5a2c; background: #1d2814; }
+.app-shell[data-palette="cinema"] .status-pill.warning { color: #ffd98f; border-color: #6c4f22; background: #3a2a10; }
+.app-shell[data-palette="cinema"] .status-dot, .app-shell[data-palette="cinema"] .connection-dot.green { background: #b6d36a; box-shadow: 0 0 0 3px rgb(182 211 106 / 16%); }
+.app-shell[data-palette="cinema"] .notice.success { color: #d3e6a2; border-color: #4b5a2c; background: #1d2814; }
+.app-shell[data-palette="cinema"] .error-summary { color: #ffd98f; border-color: #6c4f22; background: #342510; }
+.app-shell[data-palette="cinema"] input:focus, .app-shell[data-palette="cinema"] select:focus { box-shadow: 0 0 0 3px rgb(216 178 90 / 28%); }
+.app-shell[data-palette="cinema"] ::selection { color: #1a1004; background: #f2d98a; }
+.app-shell[data-palette="cinema"] * { scrollbar-width: thin; scrollbar-color: rgb(216 178 90 / 55%) transparent; }
+
+/* Notices always sit above the valance that hangs from the top bar (the bar's backdrop blur makes it its own layer). */
+.app-shell[data-palette="cinema"] .notice { position: relative; z-index: 4; }

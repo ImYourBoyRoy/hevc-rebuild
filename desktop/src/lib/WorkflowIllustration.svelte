@@ -60,7 +60,7 @@
   <svg class="hud-art breach" viewBox="0 0 520 280" fill="none" aria-hidden="true" focusable="false">
     <rect class="breach-frame offset" x="24" y="28" width="180" height="150" />
     <rect class="breach-frame" x="18" y="22" width="180" height="150" />
-    <text class="hud-label glitch" x="30" y="48">SOURCE</text>
+    <text class="hud-label" x="30" y="48">SOURCE</text>
     <path class="breach-slash" d="M34 70 H178 M34 88 H150 M34 106 H166 M34 124 H140" />
     <text class="hud-meta" x="30" y="156">UNTRUSTED INPUT</text>
     <path class="breach-wire" d="M204 96 H248 L268 116 H316" />
@@ -69,11 +69,11 @@
     <text class="hud-label" x="276" y="96" text-anchor="middle">X265</text>
     <rect class="breach-frame offset" x="330" y="34" width="168" height="150" />
     <rect class="breach-frame" x="324" y="28" width="168" height="150" />
-    <text class="hud-label glitch" x="336" y="54">VERIFIED</text>
+    <text class="hud-label" x="336" y="54">VERIFIED</text>
     <path class="hud-check breach-check" d="M372 96 l14 16 34-36" />
     <path class="breach-crack" d="M360 130 H460 M380 148 H440" />
     <text class="hud-crc hud-crc-a" x="408" y="168" text-anchor="middle">A3F09C1E</text>
-    <text class="hud-crc hud-crc-b glitch" x="410" y="170" text-anchor="middle">!!FAILSAFE</text>
+    <text class="hud-crc hud-crc-b" x="410" y="170" text-anchor="middle">!!FAILSAFE</text>
     <text class="hud-meta" x="260" y="232" text-anchor="middle">ORIGINALS HOLD · COMMIT AFTER CHECK</text>
     <path class="breach-hazard" d="M40 214 H480" />
   </svg>
@@ -141,14 +141,14 @@
   .phosphor .hud-cell { fill: var(--signal); opacity: .15; animation: hud-cell 1.6s ease-in-out infinite; }
   .phosphor .hud-cell.late { animation-delay: .4s; }
   .phosphor .hud-cell.later { animation-delay: .9s; }
-  .phosphor .hud-stream { stroke: var(--signal); stroke-width: 2; stroke-dasharray: 7 9; stroke-linecap: square; animation: hud-stream .7s linear infinite; }
+  .phosphor .hud-stream { stroke: var(--signal); stroke-width: 2; stroke-dasharray: 7 9; stroke-linecap: square; --dash-period: 48; animation: hud-stream 1.2s linear infinite; }
   .phosphor .hud-packet { fill: var(--signal); offset-path: path("M206 156 H314"); offset-rotate: 0deg; animation: hud-packet 1.35s linear infinite; }
   .phosphor .hud-packet.delay { animation-delay: .55s; opacity: .7; }
   .phosphor .hud-ring { stroke: var(--signal); stroke-width: 2; stroke-dasharray: 10 8; animation: hud-ring 6s linear infinite; transform-origin: 412px 132px; }
   .phosphor .hud-check { stroke: var(--signal); stroke-width: 4; stroke-linecap: square; stroke-linejoin: miter; stroke-dasharray: 52; stroke-dashoffset: 52; filter: drop-shadow(0 0 5px var(--signal)); animation: hud-check 2.8s ease-in-out infinite; }
   .phosphor .hud-crc { fill: var(--signal); font-size: 13px; font-weight: 700; letter-spacing: .18em; }
-  .phosphor .hud-crc-a, .phosphor .hud-crc-b { animation: hud-crc 2.2s step-end infinite; }
-  .phosphor .hud-crc-b { animation-delay: 1.1s; }
+  .phosphor .hud-crc-a, .phosphor .hud-crc-b { animation: hud-crc 2.2s ease-in-out infinite; }
+  .phosphor .hud-crc-b { animation-delay: -1.1s; }
 
   .ion text { font-family: "Ubuntu", "DejaVu Sans", system-ui, sans-serif; letter-spacing: .18em; }
   .ion .ion-ring { stroke: var(--signal); stroke-width: 1.2; stroke-opacity: .35; fill: none; }
@@ -165,34 +165,28 @@
 
   .breach .breach-frame { stroke: var(--signal); stroke-width: 2; fill: color-mix(in srgb, var(--signal) 6%, transparent); }
   .breach .breach-frame.offset { stroke: #4d1020; transform: translate(5px, 4px); }
-  .breach .breach-slash { stroke: var(--signal); stroke-width: 2; stroke-dasharray: 18 8; animation: hud-stream .55s linear infinite; }
+  .breach .breach-slash { stroke: var(--signal); stroke-width: 2; stroke-dasharray: 18 8; --dash-period: 78; animation: hud-stream 1.6s linear infinite; }
   .breach .breach-wire { stroke: var(--signal); stroke-width: 2; fill: none; }
   .breach .breach-wire.ghost { stroke: #00e5ff; stroke-opacity: .55; transform: translate(2px, 2px); }
   .breach .breach-chip { fill: #120306; stroke: var(--signal); stroke-width: 2; filter: drop-shadow(3px 3px 0 #4d1020); }
   .breach .breach-check { stroke: var(--signal); stroke-width: 5; stroke-linecap: square; fill: none; filter: drop-shadow(0 0 6px var(--signal)); animation: hud-check 1.8s ease-in-out infinite; stroke-dasharray: 70; stroke-dashoffset: 70; }
   .breach .breach-crack { stroke: #ffc14d; stroke-width: 2; }
-  .breach .breach-hazard { stroke: var(--signal); stroke-width: 3; stroke-dasharray: 10 8; animation: hud-stream .4s linear infinite; }
+  .breach .breach-hazard { stroke: var(--signal); stroke-width: 3; stroke-dasharray: 10 8; --dash-period: 54; animation: hud-stream 1.4s linear infinite; }
   .breach .hud-crc { fill: var(--signal); font-size: 13px; font-weight: 700; letter-spacing: .16em; }
-  .breach .hud-crc-a, .breach .hud-crc-b { animation: hud-crc 1.4s step-end infinite; }
-  .breach .hud-crc-b { animation-delay: .7s; fill: #ffc14d; }
-  .breach .glitch { animation: breach-art-glitch 1.6s steps(2, end) infinite; }
+  .breach .hud-crc-a, .breach .hud-crc-b { animation: hud-crc 2.4s ease-in-out infinite; }
+  .breach .hud-crc-b { animation-delay: -1.2s; fill: #ffc14d; }
 
   @keyframes hud-orbit { to { stroke-dashoffset: -1500; } }
-  @keyframes hud-scan { from { transform: translateY(0); } to { transform: translateY(105px); } }
+  @keyframes hud-scan { from { transform: translateY(0); opacity: 0; } 12%, 88% { opacity: 1; } to { transform: translateY(105px); opacity: 0; } }
   @keyframes hud-cell { 0%, 100% { opacity: .12; } 50% { opacity: .9; } }
-  @keyframes hud-stream { to { stroke-dashoffset: -32; } }
-  @keyframes hud-packet { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+  @keyframes hud-stream { to { stroke-dashoffset: calc(var(--dash-period) * -1); } }
+  @keyframes hud-packet { from { offset-distance: 0%; opacity: 0; } 15%, 85% { opacity: 1; } to { offset-distance: 100%; opacity: 0; } }
   @keyframes hud-ring { to { transform: rotate(360deg); } }
-  @keyframes hud-check { 0% { stroke-dashoffset: 70; } 42%, 100% { stroke-dashoffset: 0; } }
-  @keyframes hud-crc { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
-  @keyframes breach-art-glitch {
-    0%, 84%, 100% { transform: translate(0); }
-    88% { transform: translate(-2px, 1px); }
-    92% { transform: translate(2px, -1px); }
-  }
+  @keyframes hud-check { 0% { stroke-dashoffset: 70; opacity: 0; } 6% { opacity: 1; } 42%, 84% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+  @keyframes hud-crc { 0%, 30% { opacity: 1; } 50%, 80% { opacity: 0; } 100% { opacity: 1; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .hud-art :is(.hud-orbit, .hud-scan, .hud-cell, .hud-stream, .hud-packet, .hud-ring, .hud-check, .hud-crc-a, .hud-crc-b, .ion-sweep, .ion-beam, .breach-slash, .breach-hazard, .breach-check, .glitch) { animation: none; }
+    .hud-art :is(.hud-orbit, .hud-scan, .hud-cell, .hud-stream, .hud-packet, .hud-ring, .hud-check, .hud-crc-a, .hud-crc-b, .ion-sweep, .ion-beam, .breach-slash, .breach-hazard, .breach-check) { animation: none; }
     .hud-check, .breach-check { stroke-dashoffset: 0; }
     .hud-crc-b { opacity: 0; }
     .hud-cell, .ion-beam { opacity: .55; }

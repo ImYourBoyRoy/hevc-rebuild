@@ -659,11 +659,11 @@ fn extract_single_tool_zip(archive_path: &Path, destination: &Path) -> Result<()
 }
 
 fn managed_tool_name() -> &'static str {
-    #[cfg(target_os = "windows")]
-    {
-        return "hdr10plus_tool.exe";
+    if cfg!(target_os = "windows") {
+        "hdr10plus_tool.exe"
+    } else {
+        "hdr10plus_tool"
     }
-    "hdr10plus_tool"
 }
 
 fn create_unique_file(directory: &Path, prefix: &str) -> Result<(PathBuf, File), String> {
@@ -683,6 +683,8 @@ fn create_unique_file(directory: &Path, prefix: &str) -> Result<(PathBuf, File),
 }
 
 fn set_executable_permissions(path: &Path) -> Result<(), String> {
+    #[cfg(not(unix))]
+    let _ = path;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -758,15 +760,20 @@ fn parse_tool_version(text: &str) -> Option<String> {
 #[cfg(test)]
 mod hdr10plus_installer_tests {
     use super::{
-        extract_single_tool, find_sha256, normalize_sha256, parse_tool_version,
-        set_executable_permissions, tool_version, trusted_url, TemporaryDirectory,
+        extract_single_tool, find_sha256, normalize_sha256, parse_tool_version, trusted_url,
+        TemporaryDirectory,
     };
     use flate2::write::GzEncoder;
     use flate2::Compression;
-    use std::fs::{self, File, OpenOptions};
-    use std::io;
+    use std::fs::{self, File};
     use std::path::Path;
-    use std::process::Command;
+    // The staged-file busy check below only runs on Unix.
+    #[cfg(unix)]
+    use super::{set_executable_permissions, tool_version};
+    #[cfg(unix)]
+    use std::fs::OpenOptions;
+    #[cfg(target_os = "linux")]
+    use std::{io, process::Command};
 
     fn append_tool(builder: &mut tar::Builder<GzEncoder<File>>, name: &str, bytes: &[u8]) {
         let mut header = tar::Header::new_gnu();

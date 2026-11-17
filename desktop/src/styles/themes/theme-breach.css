@@ -1,0 +1,78 @@
+/* ./desktop/src/styles/themes/theme-breach.css
+   Breach: a containment-breach alarm. Black-red with amber hazard markings, a slow searchlight pass of
+   red light, hazard tape crawling under the top bar, chamfered caution panels with an amber edge line
+   on every screen's surfaces, heavy uppercase type with a static chromatic split, and rising sparks
+   with occasional eased glitch slices (canvas backdrop, see lib/backdrop). "Ready" stays mint so
+   success never reads as an alarm. AA contrast of the shell chrome is enforced by
+   `pnpm test:theme-contrast`. `.app-shell.app-shell` outranks the shared instrument rules. */
+html[data-instrument="breach"] .app-shell.app-shell {
+  --alarm-amber: #ffc14d;
+  --breach-ok: #3dffb0;
+  --backdrop-opacity: .95;
+  --chamfer: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  --theme-line-strong: #d93450;
+  --theme-muted: #eba9b0;
+  --q-frame: rgb(255 45 74 / 45%); --q-frame-bg: rgb(22 5 9 / 92%); --q-frame-shadow: inset 4px 0 0 #ff2d4a; --q-row-line: rgb(255 45 74 / 22%); --q-row-hover: rgb(255 45 74 / 10%); --q-row-active: rgb(255 45 74 / 18%);
+  --q-accent: #ffc14d; --q-muted: #eba9b0; --q-radius: 0px; --q-head-bg: rgb(255 45 74 / 14%); --q-head-fg: #ffe8ea;
+}
+html[data-instrument="breach"] .app-shell.app-shell .main-panel { background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / 30%) 0 1px, transparent 1px 3px); }
+
+/* A searchlight of red light passes slowly across the work area. */
+html[data-instrument="breach"] .app-shell.app-shell .main-panel::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 260%; z-index: 0; pointer-events: none; will-change: transform;
+  background: linear-gradient(104deg, transparent 38%, rgb(255 45 74 / 13%) 47%, rgb(255 90 70 / 17%) 50%, rgb(255 45 74 / 13%) 53%, transparent 62%);
+  animation: alarm-pass 9s ease-in-out infinite alternate;
+}
+@keyframes alarm-pass { from { transform: translate3d(-62%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+
+/* Hazard tape crawls along the bottom of the top bar. */
+html[data-instrument="breach"] .app-shell.app-shell .topbar { position: relative; }
+html[data-instrument="breach"] .app-shell.app-shell .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 6px; pointer-events: none;
+  background: repeating-linear-gradient(135deg, var(--alarm-amber) 0 8px, #110306 8px 16px); background-size: 22.627px 22.627px;
+  animation: hazard-tape 2.4s linear infinite;
+}
+@keyframes hazard-tape { from { background-position: 0 0; } to { background-position: 22.627px 0; } }
+
+html[data-instrument="breach"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1, .hero-copy h2) { font-weight: 800; text-transform: uppercase; letter-spacing: .04em; text-shadow: 2px 0 rgb(255 45 74 / 55%), -2px 0 rgb(60 239 255 / 28%); }
+html[data-instrument="breach"] .app-shell.app-shell :is(.page-heading h1, .home-heading h1)::before { content: "\258C"; margin-right: 10px; color: var(--signal); text-shadow: none; }
+html[data-instrument="breach"] .app-shell.app-shell :is(.section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2) { text-transform: uppercase; letter-spacing: .08em; }
+html[data-instrument="breach"] .app-shell.app-shell :is(.section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2)::before { content: "\25B2"; margin-right: 8px; font-size: .7em; color: var(--alarm-amber); vertical-align: .12em; }
+html[data-instrument="breach"] .app-shell.app-shell :is(.home-kicker, .eyebrow) { color: var(--alarm-amber); letter-spacing: .2em; }
+html[data-instrument="breach"] .app-shell.app-shell .workspace-label { color: color-mix(in srgb, var(--signal) 75%, #fff); letter-spacing: .22em; }
+
+/* Chamfered caution panels with a thick alarm rail and an amber line on each cut corner. */
+html[data-instrument="breach"] .app-shell.app-shell :is(.library-poster-card, .run-console-card, .settings-card, .metadata-provider-card, .metadata-credential-card, .card-surface, .table-card, .diagnostic-card, .report-item, .report-scrub-card, .hardware-card, .setup-card, .metric-card, .mode-card, .home-panel, .home-action, .empty-state, .run-mode-picker) {
+  position: relative; border-radius: 0; clip-path: var(--chamfer); border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent); border-left: 4px solid var(--signal);
+  background: linear-gradient(180deg, rgb(40 8 14 / 90%), rgb(14 3 6 / 94%)); box-shadow: inset 0 0 40px rgb(255 45 74 / 6%);
+}
+html[data-instrument="breach"] .app-shell.app-shell :is(.library-poster-card, .settings-card, .home-panel, .home-action, .table-card, .metric-card, .mode-card, .setup-card, .run-console-card)::before {
+  content: ""; position: absolute; top: 0; right: 0; width: 14px; height: 14px; pointer-events: none;
+  background: linear-gradient(225deg, transparent 0 46%, var(--alarm-amber) 46% 60%, transparent 60%);
+}
+html[data-instrument="breach"] .app-shell.app-shell :is(.library-poster-card, .settings-card, .home-panel, .home-action, .table-card, .metric-card, .mode-card, .setup-card, .run-console-card)::after {
+  content: ""; position: absolute; bottom: 0; left: 0; width: 14px; height: 14px; pointer-events: none;
+  background: linear-gradient(45deg, transparent 0 46%, var(--alarm-amber) 46% 60%, transparent 60%);
+}
+html[data-instrument="breach"] .app-shell.app-shell .library-poster-card.selected { border-color: var(--signal); box-shadow: inset 0 0 0 2px var(--signal), inset 0 0 40px rgb(255 45 74 / 14%); animation: breach-select 1.8s ease-in-out infinite alternate; }
+@keyframes breach-select { from { box-shadow: inset 0 0 0 2px rgb(255 45 74 / 55%), inset 0 0 30px rgb(255 45 74 / 8%); } to { box-shadow: inset 0 0 0 2px #ff2d4a, inset 0 0 52px rgb(255 45 74 / 24%); } }
+html[data-instrument="breach"] .app-shell.app-shell .home-action:hover, html[data-instrument="breach"] .app-shell.app-shell .library-poster-card:hover { transform: translate(-2px, -2px); box-shadow: inset 0 0 40px rgb(255 45 74 / 12%); border-color: var(--signal); }
+html[data-instrument="breach"] .app-shell.app-shell .library-poster-frame { position: relative; overflow: hidden; border-radius: 0; }
+html[data-instrument="breach"] .app-shell.app-shell .library-poster-frame::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 55%, rgb(255 45 74 / 38%)), repeating-linear-gradient(0deg, rgb(0 0 0 / 22%) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
+html[data-instrument="breach"] .app-shell.app-shell .library-poster-frame img { filter: saturate(.88) contrast(1.1); }
+
+/* Chamfered, square, heavy controls; hover floods with alarm colour and caution stripes. */
+html[data-instrument="breach"] .app-shell.app-shell .button { border-radius: 0; clip-path: var(--chamfer); text-transform: uppercase; letter-spacing: .1em; font-weight: 800; box-shadow: none; }
+html[data-instrument="breach"] .app-shell.app-shell .button.secondary { border-width: 2px; background: color-mix(in srgb, var(--signal) 8%, transparent); }
+html[data-instrument="breach"] .app-shell.app-shell .button.secondary:hover:not(:disabled) { color: var(--theme-on-accent); background: var(--signal) repeating-linear-gradient(135deg, rgb(0 0 0 / 16%) 0 6px, transparent 6px 12px); border-color: var(--signal); }
+html[data-instrument="breach"] .app-shell.app-shell .button.primary { color: #1a0408; background: var(--signal); border-color: var(--signal); }
+html[data-instrument="breach"] .app-shell.app-shell .button.primary:hover:not(:disabled) { background: var(--alarm-amber) repeating-linear-gradient(135deg, rgb(0 0 0 / 14%) 0 6px, transparent 6px 12px); border-color: var(--alarm-amber); }
+html[data-instrument="breach"] .app-shell.app-shell .button:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--alarm-amber); }
+html[data-instrument="breach"] .app-shell.app-shell :is(.icon-button, .status-pill, input, select) { border-radius: 0; }
+html[data-instrument="breach"] .app-shell.app-shell .status-pill { text-transform: uppercase; letter-spacing: .12em; }
+html[data-instrument="breach"] .app-shell.app-shell .status-pill.good { color: var(--breach-ok); border-color: color-mix(in srgb, var(--breach-ok) 55%, transparent); background: color-mix(in srgb, var(--breach-ok) 10%, transparent); }
+html[data-instrument="breach"] .app-shell.app-shell .status-pill.good .status-dot { background: var(--breach-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--breach-ok) 22%, transparent); }
+html[data-instrument="breach"] .app-shell.app-shell .notice { border-radius: 0; border-left: 4px solid var(--alarm-amber); background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 16%, transparent), color-mix(in srgb, var(--signal) 4%, transparent)); }
+html[data-instrument="breach"] .app-shell.app-shell :is(input, select) { background: #0b0306; border: 2px solid var(--theme-line-strong); caret-color: var(--alarm-amber); }
+html[data-instrument="breach"] .app-shell.app-shell :is(input, select):focus { border-color: var(--alarm-amber); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--alarm-amber) 30%, transparent); }
+html[data-instrument="breach"] .app-shell.app-shell * { scrollbar-width: thin; scrollbar-color: var(--theme-line-strong) transparent; }

@@ -1,11 +1,12 @@
 <script lang="ts">
   import HomeDashboard from '../../src/lib/HomeDashboard.svelte';
   import HelpCenter from '../../src/lib/HelpCenter.svelte';
+  import { themeAttributes } from '../../src/lib/themes.js';
   import { createWorkspaceState } from '../../src/lib/workspace.svelte.js';
   import type { Environment, RunReport } from '../../src/lib/types.js';
   const workspace = createWorkspaceState();
   let theme = $state('light');
-  $effect(() => { document.documentElement.dataset.theme = theme; if (['phosphor','ion','breach'].includes(theme)) document.documentElement.dataset.instrument = theme; else delete document.documentElement.dataset.instrument; });
+  $effect(() => { const attributes = themeAttributes(theme as never); document.documentElement.dataset.theme = attributes.theme; document.documentElement.dataset.palette = attributes.palette; if (attributes.instrument) document.documentElement.dataset.instrument = attributes.instrument; else delete document.documentElement.dataset.instrument; });
   let toolState = $state('missing');
   let view = $state('home');
   let populated = $state(false);
@@ -17,9 +18,9 @@
     x265_pixel_formats: [], dolby_vision_x265: false, can_analyze: toolState === 'ready', youtube_ready: toolState === 'ready', ready: toolState === 'ready', missing_apt_packages: toolState === 'ready' ? [] : ['ffmpeg'],
   });
 </script>
-<div class="app-shell" data-theme={theme} data-instrument={['phosphor', 'ion', 'breach'].includes(theme) ? theme : undefined}>
+<div class="app-shell" data-theme={themeAttributes(theme as never).theme} data-palette={theme} data-instrument={['phosphor', 'ion', 'breach'].includes(theme) ? theme : undefined}>
   <main style="padding: 24px; width: 100%; min-width: 0">
-    <label>Theme<select aria-label="Fixture theme" bind:value={theme}>{#each ['light','dark','phosphor','ion','breach'] as item}<option>{item}</option>{/each}</select></label>
+    <label>Theme<select aria-label="Fixture theme" bind:value={theme}>{#each ['light','dark','cinema','oled','dos','phosphor','ion','breach'] as item}<option>{item}</option>{/each}</select></label>
     <label>Tools<select aria-label="Fixture tools" bind:value={toolState}>{#each ['unknown','loading','missing','ready'] as item}<option>{item}</option>{/each}</select></label>
     <label><input type="checkbox" bind:checked={populated} /> Populated queue</label>
     <button onclick={() => view = view === 'home' ? 'help' : 'home'}>Toggle Home/Help</button>

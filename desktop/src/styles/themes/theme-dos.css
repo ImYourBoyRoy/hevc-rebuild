@@ -1,0 +1,171 @@
+/* ./desktop/src/styles/themes/theme-dos.css
+   DOS: a blue DOS text-mode interface in the spirit of Norton Commander and DOS Edit. VGA colours
+   (white, cyan and yellow on classic blue), double-line frames, hard block shadows, a gray menu bar
+   with black text, black-on-cyan selection bars, [X] checkboxes, a block cursor and screens that paint
+   in from the top. Purely visual: it has no command line and shows no key hints. Flat blocks only:
+   no radius, gradients or glass. Extends the Dark family. Colour pairs were chosen for AA (text
+   #d0d0d0 on #0000aa about 8.6:1); AA contrast of the shell chrome is enforced by
+   `pnpm test:theme-contrast`. Hover and press states are instant on purpose, like text mode. */
+.app-shell[data-palette="dos"] {
+  --dos-blue: #0000aa;
+  --dos-deep: #000088;
+  --dos-gray: #aaaaaa;
+  --dos-cyan: #55ffff;
+  --dos-teal: #00aaaa;
+  --dos-yellow: #ffff55;
+  --dos-font: "Perfect DOS VGA 437", "Px437 IBM VGA 9x16", "Ubuntu Mono", "DejaVu Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+  --theme-page: #0000aa;
+  --q-frame: #55ffff; --q-frame-bg: #0000aa; --q-row-line: #4a4ae0; --q-row-hover: #0000cc; --q-row-active: #000088; --q-accent: #ffff55; --q-muted: #a0a0ff; --q-radius: 0px;
+  --q-head-bg: #aaaaaa; --q-head-fg: #000000; --q-border-width: 3px; --q-border-style: double; --q-ok: #55ff55; --q-warn: #ffff55; --q-bad: #ffb0b0;
+  --theme-surface: #0000aa;
+  --theme-raised: #000088;
+  --theme-text: #d0d0d0;
+  --theme-muted: #a0a0ff;
+  --theme-line: #55ffff;
+  --theme-line-strong: #ffffff;
+  --theme-accent: #55ffff;
+  --theme-accent-strong: #ffffff;
+  --theme-accent-soft: #000088;
+  --theme-on-accent: #000000;
+  --theme-focus: #ffff55;
+  --theme-sidebar: #000088;
+  --theme-sidebar-raised: #0000aa;
+  --theme-sidebar-fill: #000088;
+  --theme-sidebar-muted: #a0a0ff;
+  --theme-sidebar-text: #ffffff;
+  --theme-eyebrow: #ffff55;
+  --theme-topbar-fill: #aaaaaa;
+  --theme-primary-fill: #55ff55;
+  --theme-primary-fill-hover: #ffffff;
+  --theme-primary-edge: #000000;
+  --theme-brand-fill: #ffff55;
+  --theme-brand-glow: none;
+  --theme-radius: 0px;
+  --theme-radius-sm: 0px;
+  --theme-card-lift: none;
+  --theme-motion: 0ms linear;
+  --theme-hero-start: #0000aa; --theme-hero-end: #0000aa; --theme-hero-text: #ffffff; --theme-hero-muted: #d0d0d0;
+  --theme-hero-kicker: #ffff55; --theme-hero-accent: #55ffff; --theme-hero-line: #55ffff;
+  --theme-warning-surface: #7a4a00; --theme-warning-text: #ffff55;
+  --theme-danger-surface: #6a0000; --theme-danger-text: #ffb0b0;
+  --theme-success-surface: #005500;
+  --theme-shadow: 6px 6px 0 #000000;
+  --theme-elev-1: 6px 6px 0 #000000;
+  --theme-elev-2: 6px 6px 0 #000000;
+  --theme-icon-violet: #ffffff; --theme-icon-violet-bg: #000088;
+  --theme-icon-green: #55ff55; --theme-icon-green-bg: #000088;
+  --theme-icon-amber: #ffff55; --theme-icon-amber-bg: #000088;
+  --theme-icon-blue: #55ffff; --theme-icon-blue-bg: #000088;
+  --theme-icon-danger: #ffb0b0; --theme-icon-danger-bg: #000088;
+  --workflow-art-start: #0000aa; --workflow-art-end: #0000aa;
+  --workflow-art-frame-start: #aaaaaa; --workflow-art-frame-end: #aaaaaa; --workflow-art-frame: #ffffff;
+  --workflow-art-grid: #5555ff; --workflow-art-outline: #55ffff; --workflow-art-label: #ffff55;
+  --workflow-art-copy: #ffffff; --workflow-art-muted: #d0d0d0; --workflow-art-path: #55ffff;
+  --workflow-art-accent: #ffff55; --workflow-art-pill: #000088; --workflow-art-sprocket: #55ffff;
+  --workflow-art-hole: #0000aa; --workflow-art-land: #00aaaa; --workflow-art-sun: #ffff55;
+  --workflow-art-badge: #ffffff; --workflow-art-check: #00aa00; --workflow-art-glow: #0000aa;
+  --hero-step-bg: #0000aa; --hero-step-line: #55ffff; --hero-step-text: #ffffff; --hero-step-muted: #d0d0d0;
+  --hero-step-current-bg: #00aaaa; --hero-step-current-line: #ffffff; --hero-step-current-shadow: none;
+  --hero-step-number-bg: #aaaaaa; --hero-step-number-text: #000000;
+  --hero-step-done-bg: #55ff55; --hero-step-done-text: #000000;
+}
+html[data-palette="dos"], html[data-palette="dos"] body { background: #0000aa; }
+
+/* Text mode: one font, sharp edges, no gradients, shadows or glass, and instant states. */
+.app-shell[data-palette="dos"], .app-shell[data-palette="dos"] :is(button, input, select, textarea, h1, h2, h3, h4, strong, .brand-name) { font-family: var(--dos-font); -webkit-font-smoothing: none; text-rendering: optimizeSpeed; }
+.app-shell[data-palette="dos"] * { border-radius: 0 !important; text-shadow: none !important; scrollbar-width: auto; scrollbar-color: #aaaaaa #0000aa; }
+.app-shell[data-palette="dos"] :focus-visible { outline: 3px solid #ffff55; outline-offset: 1px; box-shadow: none; }
+.app-shell[data-palette="dos"] ::selection { color: #000; background: #aaaaaa; }
+
+/* The menu bar: gray with black text, like DOS Edit. */
+.app-shell[data-palette="dos"] .topbar { background: #aaaaaa; color: #000; border-bottom: 2px solid #000; backdrop-filter: none; }
+.app-shell[data-palette="dos"] .topbar :is(.breadcrumbs, .breadcrumbs strong, .breadcrumbs span, .appearance-label, .theme-control) { color: #000; font-weight: 700; }
+.app-shell[data-palette="dos"] .topbar .breadcrumbs svg { color: #000; }
+.app-shell[data-palette="dos"] .theme-control { background: transparent; border: 0; }
+.app-shell[data-palette="dos"] .topbar :is(select, .theme-control select) { background: #000; color: #55ffff; border: 2px solid #000; }
+.app-shell[data-palette="dos"] .topbar .status-pill.good { background: #000; color: #55ff55; border: 2px solid #000; }
+.app-shell[data-palette="dos"] .topbar .status-pill.good .status-dot { background: #55ff55; box-shadow: none; animation: none; }
+.app-shell[data-palette="dos"] .topbar .status-pill.warning { background: #ffff55; color: #000; border: 2px solid #000; }
+
+/* The sidebar: a deep-blue list box with a double cyan edge. */
+.app-shell[data-palette="dos"] .sidebar { background: #000088; border-right: 4px double #55ffff; }
+.app-shell[data-palette="dos"] .brand-mark { color: #000; background: #ffff55; border: 2px solid #fff; box-shadow: 3px 3px 0 #000; }
+.app-shell[data-palette="dos"] .brand-name { color: #fff; letter-spacing: .06em; }
+.app-shell[data-palette="dos"] :is(.workspace-label, .sidebar .workspace-label) { color: #ffff55; letter-spacing: .12em; }
+html[data-palette="dos"] .app-shell[data-palette="dos"] .nav-item { color: #d0d0d0; background: transparent; box-shadow: none; border: 0; }
+html[data-palette="dos"] .app-shell[data-palette="dos"] .nav-item:hover:not(.active) { background: #0000aa; color: #fff; }
+html[data-palette="dos"] .app-shell[data-palette="dos"] .nav-item.active { background: #00aaaa; color: #000; font-weight: 700; box-shadow: none; }
+html[data-palette="dos"] .app-shell[data-palette="dos"] .nav-item.active svg { color: #000; }
+.app-shell[data-palette="dos"] .nav-count { background: #aa0000; color: #fff; }
+.app-shell[data-palette="dos"] .sidebar-library { background: #0000aa; border: 3px double #55ffff; box-shadow: 4px 4px 0 #000; }
+.app-shell[data-palette="dos"] .sidebar-library-icon { background: #ffff55; color: #000; border: 0; }
+.app-shell[data-palette="dos"] .sidebar-library-copy strong { color: #fff; }
+
+/* Windows: a double cyan frame and a hard black block shadow on every surface of every screen. */
+.app-shell[data-palette="dos"] :is(.library-poster-card, .run-console-card, .settings-card, .metadata-provider-card, .metadata-credential-card, .card-surface, .table-card, .diagnostic-card, .report-item, .report-scrub-card, .hardware-card, .setup-card, .metric-card, .mode-card, .home-panel, .home-action, .empty-state, .run-mode-picker, .hero-card) {
+  background: #0000aa; border: 3px double #55ffff; box-shadow: 6px 6px 0 #000; color: #d0d0d0;
+}
+.app-shell[data-palette="dos"] .library-poster-card.selected, .app-shell[data-palette="dos"] .home-action-primary { border-color: #ffff55; }
+.app-shell[data-palette="dos"] :is(.library-poster-card, .home-action):hover { transform: none; border-color: #ffffff; box-shadow: 6px 6px 0 #000; }
+.app-shell[data-palette="dos"] .hero-card { background-image: none; }
+.app-shell[data-palette="dos"] .library-poster-frame { position: relative; overflow: hidden; border: 3px double #ffffff; background: #000; }
+.app-shell[data-palette="dos"] .library-poster-frame img { filter: contrast(1.3) saturate(.8); }
+.app-shell[data-palette="dos"] .library-poster-frame::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-conic-gradient(rgb(0 0 0 / 24%) 0 25%, transparent 0 50%) 0 0 / 4px 4px; mix-blend-mode: multiply; }
+
+/* Window titles are gray title tabs with black text; page titles end in a double rule and a block cursor. */
+.app-shell[data-palette="dos"] :is(.section-title-row h2, .table-header h2, .settings-card-heading h2, .library-queue-heading h2, .report-heading h2) { display: inline-block; background: #aaaaaa; color: #000; padding: 0 10px; font-weight: 700; letter-spacing: .04em; }
+.app-shell[data-palette="dos"] :is(.page-heading h1, .home-heading h1, .hero-copy h2) { color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.app-shell[data-palette="dos"] :is(.page-heading h1, .home-heading h1)::after { content: "\2588"; margin-left: 8px; color: #55ff55; animation: dos-cursor 1.2s ease-in-out infinite; }
+@keyframes dos-cursor { 0%, 45% { opacity: 1; } 65%, 85% { opacity: 0; } 100% { opacity: 1; } }
+.app-shell[data-palette="dos"] .page-heading, .app-shell[data-palette="dos"] .home-heading { padding-bottom: 10px; border-bottom: 4px double #55ffff; }
+.app-shell[data-palette="dos"] :is(.home-kicker, .eyebrow) { color: #ffff55; letter-spacing: .14em; text-transform: uppercase; }
+.app-shell[data-palette="dos"] :is(.home-kicker, .eyebrow)::before { content: "\00BB  "; }
+.app-shell[data-palette="dos"] :is(.breadcrumbs strong) { text-transform: uppercase; }
+
+/* Buttons: gray DOS buttons with a bevel and a block shadow; the default action is bright green. */
+.app-shell[data-palette="dos"] :is(.button, .icon-button) { background: #aaaaaa; color: #000; font-weight: 700; border: 2px solid; border-color: #ffffff #555555 #555555 #ffffff; box-shadow: 4px 4px 0 #000; min-height: 36px; }
+.app-shell[data-palette="dos"] :is(.button, .icon-button):hover:not(:disabled) { background: #ffffff; color: #000; transform: none; }
+.app-shell[data-palette="dos"] :is(.button, .icon-button):active:not(:disabled) { transform: translate(4px, 4px); box-shadow: none; border-color: #555555 #ffffff #ffffff #555555; }
+.app-shell[data-palette="dos"] .button.primary { background: #55ff55; color: #000; border-color: #ffffff #006600 #006600 #ffffff; }
+.app-shell[data-palette="dos"] .button.primary:hover:not(:disabled) { background: #ffffff; }
+.app-shell[data-palette="dos"] .button.danger-outline { background: #aa0000; color: #fff; border-color: #ff8080 #550000 #550000 #ff8080; }
+.app-shell[data-palette="dos"] .button:disabled { background: transparent; color: #a0a0ff; border: 2px dashed #a0a0ff; box-shadow: none; opacity: 1; cursor: not-allowed; }
+.app-shell[data-palette="dos"] :is(.text-button, .link-button) { color: #55ffff; background: transparent; box-shadow: none; text-decoration: underline; }
+.app-shell[data-palette="dos"] :is(.text-button, .link-button):hover:not(:disabled) { color: #000; background: #55ffff; }
+.app-shell[data-palette="dos"] .topbar :is(.icon-button) { background: #aaaaaa; box-shadow: 3px 3px 0 #000; }
+
+/* Fields and [X] checkboxes. */
+.app-shell[data-palette="dos"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { background: #000088; color: #fff; border: 3px double #55ffff; caret-color: #ffff55; min-height: 34px; }
+.app-shell[data-palette="dos"] :is(input, select, textarea):focus { border-color: #ffff55; box-shadow: none; }
+.app-shell[data-palette="dos"] input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; display: inline-grid; place-items: center; background: #000088; border: 2px solid #ffffff; color: #ffff55; cursor: pointer; vertical-align: middle; }
+.app-shell[data-palette="dos"] input[type="checkbox"]:checked::after { content: "X"; font: 700 16px/1 var(--dos-font); }
+.app-shell[data-palette="dos"] input[type="checkbox"]:indeterminate::after { content: "-"; font: 700 18px/1 var(--dos-font); }
+
+/* Message boxes and statuses. */
+.app-shell[data-palette="dos"] .notice { background: #00aaaa; color: #000; border: 3px double #000; box-shadow: 5px 5px 0 #000; font-weight: 700; }
+.app-shell[data-palette="dos"] .notice svg, .app-shell[data-palette="dos"] .notice .notice-close { color: #000; }
+.app-shell[data-palette="dos"] .notice.error { background: #aa0000; color: #fff; border-color: #fff; }
+.app-shell[data-palette="dos"] .notice.error svg, .app-shell[data-palette="dos"] .notice.error .notice-close { color: #fff; }
+.app-shell[data-palette="dos"] .notice.success { background: #55ff55; color: #000; border-color: #000; }
+.app-shell[data-palette="dos"] .status-pill { font-weight: 700; border: 2px solid currentColor; letter-spacing: .06em; box-shadow: none; }
+.app-shell[data-palette="dos"] .status-pill.good { background: #005500; color: #55ff55; }
+.app-shell[data-palette="dos"] .status-pill.warning { background: #7a4a00; color: #ffff55; }
+.app-shell[data-palette="dos"] .status-pill.neutral { background: #000088; color: #d0d0d0; }
+.app-shell[data-palette="dos"] .status-dot, .app-shell[data-palette="dos"] .connection-dot.green { background: #55ff55; box-shadow: none; animation: none; }
+.app-shell[data-palette="dos"] .error-summary { background: #6a0000; color: #ffb0b0; border: 3px double #ff8080; }
+
+/* Tables: an inverse header bar and single cyan rules. */
+.app-shell[data-palette="dos"] :is(table thead, .table-header) { background: #aaaaaa; color: #000; }
+.app-shell[data-palette="dos"] :is(table thead th) { color: #000; font-weight: 700; }
+.app-shell[data-palette="dos"] :is(td, th) { border-bottom: 1px solid #55ffff; }
+
+/* Windows: dialogs get the same frame and a deeper block shadow. */
+.app-shell[data-palette="dos"] dialog, dialog:is([class*="modal"], [class*="dialog"]) { border: 4px double #ffffff; box-shadow: 10px 10px 0 rgb(0 0 0 / 85%); }
+
+/* Screens paint in from the top, like a text-mode redraw; nothing else moves. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell[data-palette="dos"] .page-wrap > * { animation: dos-paint 420ms var(--ease-out, ease-out) backwards; }
+  .app-shell[data-palette="dos"] .home-actions > .home-action, .app-shell[data-palette="dos"] .library-poster-grid > * { animation: none; }
+}
+@keyframes dos-paint { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 -12px -12px); } }
+@media (prefers-reduced-motion: reduce) { .app-shell[data-palette="dos"] :is(.page-heading h1, .home-heading h1)::after { animation: none; } }

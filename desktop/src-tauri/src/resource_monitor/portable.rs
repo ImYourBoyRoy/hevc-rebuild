@@ -82,6 +82,8 @@ pub(crate) fn tree_memory(rows: &[ProcessRow], root: u32, limit: usize) -> TreeM
 /// Whole-machine CPU percent between two readings of cumulative `(total, idle)`
 /// time. `None` when no time passed (or the counters went backwards), so a
 /// stalled clock never reads as "0% busy" or "100% busy".
+// Only the Windows sampler calls this outside the tests.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub(crate) fn cpu_percent_between(previous: (u64, u64), current: (u64, u64)) -> Option<f64> {
     let total = current.0.checked_sub(previous.0)?;
     let idle = current.1.checked_sub(previous.1)?;

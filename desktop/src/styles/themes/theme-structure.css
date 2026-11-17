@@ -1,0 +1,103 @@
+/* ./desktop/src/styles/themes/theme-structure.css
+   The structure of the library's queue, toolbar, source rows, file lists, search box and tables for the
+   skinned themes (Phosphor, Ion, Breach, Cinema, DOS). Those elements are layout wrappers in the base
+   theme (no padding, no frame); the skins give them a frame, so they also need real padding, rows
+   divided by hairlines instead of boxes inside boxes, one compact style for the drag and arrow buttons,
+   and proper table headers and rows. Each skin only supplies the `--q-*` tokens; the layout is shared
+   here so every skin stays consistent. Loaded after the skin parts. */
+/* Zero-specificity defaults (:where) so every skin's own --q-* tokens win regardless of how heavy its selector is. */
+.app-shell:where([data-palette="cinema"], [data-palette="dos"], [data-instrument]) {
+  --q-frame: rgb(255 255 255 / 24%);
+  --q-frame-bg: rgb(0 0 0 / 70%);
+  --q-frame-shadow: none;
+  --q-row-bg: transparent;
+  --q-row-line: rgb(255 255 255 / 14%);
+  --q-row-hover: rgb(255 255 255 / 7%);
+  --q-row-active: rgb(255 255 255 / 12%);
+  --q-accent: currentColor;
+  --q-muted: currentColor;
+  --q-radius: 8px;
+  --q-head-bg: rgb(255 255 255 / 10%);
+  --q-head-fg: inherit;
+  --q-border-width: 1px;
+  --q-border-style: solid;
+  --q-ok: #6fdc8c;
+  --q-warn: #f2c867;
+  --q-bad: #ff8f86;
+}
+
+/* Framed containers: real padding, so nothing touches the border. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.library-queue-manager, .library-toolbar, .library-poster-toolbar) {
+  padding: 16px 20px; border: var(--q-border-width) var(--q-border-style) var(--q-frame); border-radius: var(--q-radius);
+  background: var(--q-frame-bg); box-shadow: var(--q-frame-shadow); clip-path: none;
+}
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-poster-toolbar { padding: 9px 16px; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-heading { padding-bottom: 16px; border-bottom: 1px solid var(--q-row-line); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-heading .eyebrow { display: block; margin-bottom: 6px; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-heading h2 { margin: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-scan-options > summary { padding: 4px 2px; cursor: pointer; font-weight: 600; letter-spacing: .03em; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-scan-options .folder-field { margin-top: 16px; }
+
+/* Source rows: a light row with a hairline, not a heavy box. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-chip {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border: 1px solid var(--q-row-line); border-radius: calc(var(--q-radius) * .6);
+  background: var(--q-row-bg); box-shadow: none; clip-path: none; transition: background 160ms ease, border-color 160ms ease;
+}
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-chip:hover { background: var(--q-row-hover); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-chip.active { background: var(--q-row-active); border-color: var(--q-accent); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-name { padding: 4px 8px; font-weight: 600; }
+
+/* The "Manage queue" disclosure and its file list read as a table of rows. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-files { padding-top: 16px; border-top: 1px solid var(--q-row-line); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-files > summary { padding: 4px 2px; cursor: pointer; font-weight: 600; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file-list { margin: 12px 0 0; padding: 0; list-style: none; border: 1px solid var(--q-row-line); border-radius: calc(var(--q-radius) * .6); overflow: hidden; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border: 0; border-bottom: 1px solid var(--q-row-line); border-radius: 0; background: var(--q-row-bg); box-shadow: none; clip-path: none; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file:last-child { border-bottom: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file:hover { background: var(--q-row-hover); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-empty { padding: 12px 4px; margin: 0; }
+
+/* The drag handle and the arrow buttons: one compact, quiet style that lights up on hover. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.queue-drag-handle, .queue-move) {
+  width: 28px; height: 28px; min-width: 28px; min-height: 28px; padding: 0; display: inline-grid; place-items: center; border: 1px solid transparent;
+  border-radius: calc(var(--q-radius) * .5); background: transparent; color: var(--q-muted); box-shadow: none; clip-path: none; text-transform: none; letter-spacing: 0; cursor: pointer;
+}
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.queue-drag-handle, .queue-move):hover:not(:disabled) { background: var(--q-row-hover); color: var(--q-accent); border-color: var(--q-row-line); transform: none; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.queue-drag-handle, .queue-move):disabled { opacity: .35; cursor: default; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.queue-drag-handle, .queue-move)::before, .app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.queue-drag-handle, .queue-move)::after { content: none; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-source-chip .text-button, .app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .library-queue-file .text-button { padding: 4px 8px; }
+
+/* Search: one frame, the field fills it, and the text is never clipped. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .search-box { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: var(--q-border-width) var(--q-border-style) var(--q-frame); border-radius: var(--q-radius); background: var(--q-frame-bg); box-shadow: none; clip-path: none; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .search-box input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; box-shadow: none; outline: 0; color: inherit; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .search-box:focus-within { border-color: var(--q-accent); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .folder-field { border: 1px solid var(--q-row-line); border-radius: calc(var(--q-radius) * .6); background: var(--q-row-bg); box-shadow: none; clip-path: none; }
+
+/* Real tables: a distinct header band, hairline rows, a hover tint. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) thead th { padding: 11px 16px; text-align: left; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; color: var(--q-head-fg); background: var(--q-head-bg); border-bottom: 1px solid var(--q-frame); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) tbody td { padding: 11px 16px; border-bottom: 1px solid var(--q-row-line); vertical-align: middle; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) tbody tr:last-child td { border-bottom: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) tbody tr { transition: background 160ms ease; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) tbody tr:hover td { background: var(--q-row-hover); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .table-card { overflow: hidden; padding: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .table-card .table-header { padding: 14px 18px; border-bottom: 1px solid var(--q-row-line); }
+
+/* An input that sits inside a framed field (path field, search box) must not draw a second frame. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.folder-field, .search-box) input { border: 0 !important; background: transparent !important; box-shadow: none !important; min-height: 0 !important; height: 100%; padding-left: 0; padding-right: 0; outline: 0; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .folder-field { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 14px; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .folder-field:focus-within { border-color: var(--q-accent); }
+
+/* Status tags: skin-coloured pills, with semantic green, amber and red variants. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .status-tag { padding: 5px 10px; border: 1px solid var(--q-row-line); border-radius: calc(var(--q-radius) * .5); background: var(--q-row-active); color: var(--q-accent); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; box-shadow: none; clip-path: none; }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .status-tag.status-ready { color: var(--q-ok); border-color: color-mix(in srgb, var(--q-ok) 45%, transparent); background: color-mix(in srgb, var(--q-ok) 12%, transparent); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .status-tag.status-warning { color: var(--q-warn); border-color: color-mix(in srgb, var(--q-warn) 45%, transparent); background: color-mix(in srgb, var(--q-warn) 12%, transparent); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .status-tag.status-error { color: var(--q-bad); border-color: color-mix(in srgb, var(--q-bad) 45%, transparent); background: color-mix(in srgb, var(--q-bad) 12%, transparent); }
+
+/* Option labels (checkboxes in scan options) use the skin's muted text colour, never a hard-coded grey. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) .check-label { color: var(--q-muted); }
+
+/* Row actions (Refresh, Remove) use the skin's accent: always readable on the row, and the same in every skin. */
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.library-source-chip, .library-queue-file) .text-button { color: var(--q-accent); }
+.app-shell.app-shell:is([data-palette="cinema"], [data-palette="dos"], [data-instrument]) :is(.library-source-chip, .library-queue-file) .text-button:hover:not(:disabled) { color: var(--q-head-fg); text-decoration: underline; }

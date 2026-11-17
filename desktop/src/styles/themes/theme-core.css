@@ -1,0 +1,93 @@
+/* ./desktop/src/styles/themes/theme-core.css
+   Shared theme mechanics. Palettes stay canonical in app-design-system-1.css (`--theme-*`);
+   this part adds the shape, depth and focus tokens every theme can tune, and the rules that
+   consume them. Per-theme parts (theme-light/dark/...) only set tokens and add identity. */
+.app-shell {
+  --theme-line-strong: var(--theme-line);
+  --theme-radius: 12px;
+  --theme-radius-sm: 9px;
+  --theme-focus: var(--theme-accent);
+  --theme-elev-1: var(--theme-shadow);
+  --theme-elev-2: var(--theme-shadow);
+  --theme-sidebar-fill: var(--theme-sidebar);
+  --theme-topbar-fill: var(--theme-surface);
+  --theme-primary-fill: var(--theme-accent);
+  --theme-primary-fill-hover: var(--theme-accent-strong);
+  --theme-primary-edge: var(--theme-accent-strong);
+  --theme-card-lift: translateY(-2px);
+  --theme-motion: var(--dur-base, 260ms) var(--ease-out, cubic-bezier(.16, 1, .3, 1));
+  --theme-sidebar-muted: #8fa69c;
+  --theme-sidebar-text: #eaf4ef;
+  --theme-eyebrow: var(--theme-accent);
+  --theme-brand-fill: linear-gradient(145deg, var(--theme-accent), var(--theme-accent-strong));
+  --theme-brand-glow: 0 0 0 1px rgb(255 255 255 / 12%) inset;
+  --theme-scroll-thumb: var(--theme-line-strong);
+  --theme-notice-edge: var(--theme-accent);
+}
+
+html:not([data-instrument]) .app-shell :focus-visible { outline: 3px solid color-mix(in srgb, var(--theme-focus) 70%, transparent); outline-offset: 2px; }
+html:not([data-instrument]) .app-shell .sidebar { background: var(--theme-sidebar-fill); }
+html:not([data-instrument]) .app-shell .topbar { background: var(--theme-topbar-fill); }
+html:not([data-instrument]) .app-shell .button.primary { background: var(--theme-primary-fill); border-color: var(--theme-primary-edge); color: var(--theme-on-accent); }
+html:not([data-instrument]) .app-shell .button.primary:hover:not(:disabled) { background: var(--theme-primary-fill-hover); }
+html:not([data-instrument]) .app-shell .button.secondary, html:not([data-instrument]) .app-shell .icon-button { border-color: var(--theme-line-strong); }
+html:not([data-instrument]) .app-shell .button, html:not([data-instrument]) .app-shell .icon-button, html:not([data-instrument]) .app-shell .nav-item { transition: transform var(--theme-motion), background var(--theme-motion), border-color var(--theme-motion), box-shadow var(--theme-motion), color var(--theme-motion); }
+html:not([data-instrument]) .app-shell .button:active:not(:disabled) { transform: translateY(0) scale(.985); }
+html:not([data-instrument]) .app-shell .home-panel, html:not([data-instrument]) .app-shell .home-action { border-radius: var(--theme-radius); box-shadow: var(--theme-elev-1); transition: transform var(--theme-motion), box-shadow var(--theme-motion), border-color var(--theme-motion); }
+html:not([data-instrument]) .app-shell .home-action:hover { transform: var(--theme-card-lift); box-shadow: var(--theme-elev-2); border-color: var(--theme-line-strong); }
+html:not([data-instrument]) .app-shell .workspace-label, html:not([data-instrument]) .app-shell .sidebar-bottom, html:not([data-instrument]) .app-shell .version-tag, html:not([data-instrument]) .app-shell .sidebar-library-copy span { color: var(--theme-sidebar-muted); }
+html:not([data-instrument]) .app-shell .nav-item { color: color-mix(in srgb, var(--theme-sidebar-text) 72%, transparent); }
+html:not([data-instrument]) .app-shell .nav-item.active, html:not([data-instrument]) .app-shell .nav-item:hover { color: var(--theme-sidebar-text); }
+html:not([data-instrument]) .app-shell .brand-mark { color: var(--theme-on-accent); background: var(--theme-brand-fill); box-shadow: var(--theme-brand-glow), 0 6px 16px rgb(0 0 0 / 22%); }
+html:not([data-instrument]) .app-shell .home-kicker, html:not([data-instrument]) .app-shell .eyebrow { color: var(--theme-eyebrow); letter-spacing: .14em; }
+html:not([data-instrument]) .app-shell .page-heading h1, html:not([data-instrument]) .app-shell .home-heading h1 { letter-spacing: -.035em; }
+html:not([data-instrument]) .app-shell .notice { border-radius: var(--theme-radius-sm); border-left: 3px solid var(--theme-notice-edge); margin-inline: 0; box-shadow: var(--theme-elev-1); }
+html:not([data-instrument]) .app-shell .notice.error { --theme-notice-edge: var(--theme-danger-text); }
+html:not([data-instrument]) .app-shell .sidebar-library { border-color: color-mix(in srgb, var(--theme-sidebar-muted) 28%, transparent); background: linear-gradient(160deg, var(--theme-sidebar-raised), color-mix(in srgb, var(--theme-sidebar-raised) 55%, var(--theme-sidebar))); }
+html:not([data-instrument]) .app-shell .sidebar-library-icon { color: var(--theme-accent-strong); background: color-mix(in srgb, var(--theme-accent) 18%, var(--theme-sidebar-raised)); }
+/* The neutral status tag used a hard-coded grey on a hard-coded light ground (4.3:1, and light in Dark); the theme's own tokens fix both. Green, amber and red variants are untouched. */
+html:not([data-instrument]) .app-shell .status-tag:not(.status-ready):not(.status-warning):not(.status-error) { color: var(--theme-text); background: var(--theme-raised); border-color: var(--theme-line); }
+html:not([data-instrument]) .app-shell .check-label { color: var(--theme-muted); }
+html:not([data-instrument]) .app-shell .breadcrumbs { color: var(--theme-muted); }
+html:not([data-instrument]) .app-shell .theme-control select { min-width: 9.5em; }
+html:not([data-instrument]) .app-shell .status-pill { box-shadow: 0 1px 0 rgb(255 255 255 / 40%) inset; }
+html:not([data-instrument]) .app-shell * { scrollbar-width: thin; scrollbar-color: var(--theme-scroll-thumb) transparent; }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-instrument]) .app-shell .button, html:not([data-instrument]) .app-shell .icon-button, html:not([data-instrument]) .app-shell .nav-item, html:not([data-instrument]) .app-shell .home-panel, html:not([data-instrument]) .app-shell .home-action { transition: none; }
+  html:not([data-instrument]) .app-shell .home-action:hover { transform: none; }
+}
+
+/* Spacing scale for the Library screen (every theme). The base sheets gave each block its own margin (15px, 14px,
+   8px, 12px...), so the page had no rhythm. One 20px gap separates the page's blocks, 16px separates the parts
+   of the queue panel, and the search box is wide enough that its placeholder is never clipped. */
+.app-shell .page-wrap-library { display: flex; flex-direction: column; gap: 20px; }
+.app-shell .page-wrap-library > * { flex: none; margin: 0; }
+.app-shell .library-queue-manager { display: flex; flex-direction: column; gap: 16px; }
+.app-shell .library-queue-manager > * { margin: 0; }
+.app-shell .library-queue-heading { align-items: flex-start; gap: 16px; }
+.app-shell .library-source-strip { gap: 12px; }
+.app-shell .library-queue-files > summary { padding: 6px 2px; }
+.app-shell .library-poster-search .search-box { width: min(340px, 100%); min-width: 240px; }
+
+/* The status column carries information (upload estimate, subtitle notes), so its sub-lines wrap instead of being cut
+   to "345...". File names and paths in the other columns keep their single-line ellipsis. */
+.app-shell tbody td:last-child .file-cell-sub { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+
+/* The explanatory line under the Reports failure banner: the banner's own text colour, a little smaller. */
+.app-shell .report-failures-note { margin: 2px 0 12px; color: inherit; font-size: 12px; }
+
+/* Source chips are pills (999px radius): they need padding that follows the curve, a name that never shrinks into
+   its neighbours, compact arrow buttons and a clear gap before the Refresh and Remove actions. */
+.app-shell .library-source-chip { align-items: center; gap: 8px; min-height: 46px; padding: 6px 22px 6px 10px; }
+.app-shell .library-source-chip { max-width: 100%; }
+.app-shell .library-source-chip .library-source-name { flex: 0 1 auto; min-width: 5.5rem; padding: 4px 6px 4px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .library-source-chip .text-button { flex: 0 0 auto; padding: 4px 8px; white-space: nowrap; }
+.app-shell :is(.library-source-chip, .library-queue-file) :is(.queue-drag-handle, .queue-move) { flex: 0 0 auto; width: 28px; height: 28px; min-width: 28px; min-height: 28px; padding: 0; }
+
+/* The search field fills its (now wider) box, so there is no seam between the wrapper and the input. */
+.app-shell .search-box { display: flex; align-items: center; }
+.app-shell .search-box input { flex: 1 1 auto; width: 100%; min-width: 0; }
+
+/* An input inside a framed field (search box, path field) is transparent, so the field is one box, not a box in a box. */
+.app-shell.app-shell :is(.search-box, .folder-field) input { background: transparent; border: 0; box-shadow: none; outline: 0; }
+.app-shell.app-shell :is(.search-box, .folder-field):focus-within { border-color: var(--theme-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus) 22%, transparent); }
