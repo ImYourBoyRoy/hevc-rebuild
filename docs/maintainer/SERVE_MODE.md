@@ -239,7 +239,7 @@ Native runs of both build configurations (window build and `--no-default-feature
 |---|---|---|---|
 | Linux laptop (Ubuntu 26.04) | 479 | 477 | media tools present (`HEVC_REQUIRE_MEDIA_TOOLS=1`) |
 | Ubuntu server (builder) | 479 | 477 | no ffmpeg; media tests skip; headless links 5 libs, 0 GUI |
-| macOS Tahoe SIP-off guest | 475 (480 with ffmpeg) | 473 | headless links only system frameworks; ffmpeg/mediainfo installed there through the server |
+| macOS Tahoe SIP-off guest | 480 | 478 | all media tools installed there through the server (Homebrew), `HEVC_REQUIRE_MEDIA_TOOLS=1`; headless links only system frameworks |
 | Windows Server 2025 (native, GNU) | 468 | 466 | ffmpeg and mkvtoolnix present, media tests ran |
 
 Live `serve` smoke tests on macOS and Windows: token, shim, environment check, plan, path
@@ -251,7 +251,7 @@ now gets the `root` route; on Windows without elevation the plan still reports a
 Real privileged runs: Linux apt catalog refresh as namespace root
 (`tools/serve-setup-sandbox.sh`), Windows helper install through the server
 (`hdr10plus_tool` 1.7.2), Homebrew provisioning through the server on the disposable
-macOS guest. Not covered: apt package installs (the sandbox cannot write `/usr`), winget
+macOS guest (ffmpeg, mediainfo, mkvtoolnix and the HDR10+ helper; re-plan `nothing_to_do`). Not covered: apt package installs (the sandbox cannot write `/usr`), winget
 package installs (winget is per-user and absent for SYSTEM), the `sudo -n` route on a host
 with passwordless sudo.
 

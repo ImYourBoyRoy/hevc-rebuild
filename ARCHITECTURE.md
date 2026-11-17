@@ -11,7 +11,7 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 |---|---|
 | Files | 583 |
 | Text lines | 229,050 |
-| Size on disk | 17058.1 KiB |
+| Size on disk | 17058.3 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,887 lines · 220.4 KiB
+15 files · 1,887 lines · 220.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -39,7 +39,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 871 | 180.1 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 871 | 180.2 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -927,7 +927,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/maintainer/`
 
-8 files · 801 lines · 43.2 KiB
+8 files · 801 lines · 43.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -937,7 +937,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `README.md` | 15 | 654 B | Maintainer notes |
 | `REVIEW.md` | 93 | 3.8 KiB | Review and release evidence |
 | `RUST_MIGRATION.md` | 92 | 4.8 KiB | Native Rust architecture record |
-| `SERVE_MODE.md` | 263 | 16.3 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
+| `SERVE_MODE.md` | 263 | 16.4 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
 | `TECHNICAL.md` | 178 | 9.0 KiB | Technical architecture |
 
 ### `docs/screenshots/`
