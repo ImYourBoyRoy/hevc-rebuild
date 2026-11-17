@@ -88,7 +88,7 @@ impl RebuildRunOptions {
             minimum_size_mib: 5,
             embed_artwork: true,
             crf: crate::settings::DEFAULT_CRF,
-            test_crf: 30,
+            test_crf: crate::settings::DEFAULT_CRF,
             preset: "slow".into(),
             tune: "auto".into(),
             detect_animation: true,
@@ -134,6 +134,8 @@ impl RebuildRunOptions {
         let mut explicit_exclusions = false;
         let mut quality_gate_flag: Option<crate::quality_gate::GateMode> = None;
         let mut quality_min_flag: Option<f64> = None;
+        // The short test previews the real encode, so it follows `--crf` unless `--test-crf` says otherwise.
+        let mut test_crf_given = false;
         while index < args.len() {
             let name = args[index].as_str();
             let value = || -> Result<String, String> {
@@ -263,7 +265,10 @@ impl RebuildRunOptions {
                 "--comment" => comment = Some(value()?),
                 "--metadata-text-blacklist" => blacklist.push(value()?),
                 "--crf" => options.crf = parse_crf(&value()?)?,
-                "--test-crf" => options.test_crf = parse_crf(&value()?)?,
+                "--test-crf" => {
+                    options.test_crf = parse_crf(&value()?)?;
+                    test_crf_given = true;
+                }
                 "--preset" => {
                     options.preset = parse_choice(
                         &value()?,
@@ -467,6 +472,9 @@ impl RebuildRunOptions {
         options.file_stream_overrides = parse_stream_overrides(stream_json)?;
         options.file_settings_overrides = parse_settings_overrides(settings_json)?;
         crate::backup_folder::apply_default_exclusions(&mut options.exclude, explicit_exclusions);
+        if !test_crf_given {
+            options.test_crf = options.crf;
+        }
         Ok(options)
     }
 }

@@ -818,6 +818,35 @@ fn parses_short_test_mode() {
 }
 
 #[test]
+fn the_short_test_encodes_at_the_runs_crf_not_a_separate_fixed_one() {
+    // It was a fixed 30, so a "preview" looked far worse than the rebuild it previews.
+    let follows = RebuildRunOptions::from_engine_args(&base_args(&["--test"])).unwrap();
+    assert_eq!(follows.crf, 22, "base_args sets --crf 22");
+    assert_eq!(follows.test_crf, 22, "the short test follows the run's CRF");
+    let bare = RebuildRunOptions::from_engine_args(&[
+        std::env::temp_dir().to_string_lossy().into_owned(),
+        "--test".into(),
+    ])
+    .unwrap();
+    assert_eq!(
+        bare.test_crf,
+        crate::settings::DEFAULT_CRF,
+        "with no CRF given it is the documented default"
+    );
+    assert_eq!(bare.test_crf, 21);
+}
+
+#[test]
+fn an_explicit_test_crf_still_wins_wherever_it_is_given() {
+    let before =
+        RebuildRunOptions::from_engine_args(&base_args(&["--test-crf", "26", "--test"])).unwrap();
+    assert_eq!((before.crf, before.test_crf), (22, 26));
+    let after =
+        RebuildRunOptions::from_engine_args(&base_args(&["--test", "--test-crf", "26"])).unwrap();
+    assert_eq!((after.crf, after.test_crf), (22, 26));
+}
+
+#[test]
 fn rejects_youtube_flags() {
     assert!(RebuildRunOptions::from_engine_args(&base_args(&["--youtube-upload"])).is_err());
 }

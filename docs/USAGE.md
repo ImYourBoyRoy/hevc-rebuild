@@ -281,7 +281,8 @@ This build has no window, so run it with `serve`, `--mcp`, `cli` or `json`.
 - **Integrity check** inspects container structure (Quick) or decodes every
   stream (Full) without writing output. It is native.
 - **Metadata-only MKV** remuxes tracks into a new MKV without video encoding.
-- **Short test** performs a bounded test encode.
+- **Short test** performs a bounded test encode at the same CRF as the full run (21 by default, or your
+  setting), so it previews the real result; `--test-crf` overrides it for the CLI.
 - **Full rebuild** encodes selected video tracks and copies audio, subtitles,
   attachments, chapters, and other selected streams according to the reviewed
   plan.

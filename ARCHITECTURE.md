@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 583 |
-| Text lines | 229,050 |
-| Size on disk | 17058.3 KiB |
+| Text lines | 229,090 |
+| Size on disk | 17060.4 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,887 lines · 220.5 KiB
+15 files · 1,889 lines · 221.0 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -39,7 +39,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 871 | 180.2 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 873 | 180.7 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -435,7 +435,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/rebuild_run/`
 
-14 files · 4,913 lines · 171.6 KiB
+14 files · 4,950 lines · 173.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -446,13 +446,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `finalize.rs` | 422 | 14.0 KiB | After the encode: metadata embedding, output validation and the durable install. |
 | `hdr10plus.rs` | 145 | 5.0 KiB | HDR10+ dynamic-metadata extraction from the source and injection into the new output. |
 | `model.rs` | 230 | 7.0 KiB | Per-run and per-file working state: tools, context, stream references, resource and file plans. |
-| `options.rs` | 746 | 29.6 KiB | Parses the engine-style argument vector into `RebuildRunOptions` and resolves per-file effective settings. |
+| `options.rs` | 754 | 29.9 KiB | Parses the engine-style argument vector into `RebuildRunOptions` and resolves per-file effective settings. |
 | `output.rs` | 354 | 12.1 KiB | Output and backup paths, destination checks, work directories and the storage preflight. |
 | `progress.rs` | 91 | 2.6 KiB | Live progress events and the closing summary lines. |
 | `resources.rs` | 162 | 5.6 KiB | Memory and thread planning for an encode, and tool resolution. |
 | `status.rs` | 216 | 6.9 KiB | File phases, run and batch status, the failure-streak halt policy, and progress and result records. |
 | `streams.rs` | 295 | 11.9 KiB | Source stream inventory, primary-video choice, per-file stream selection and plan-profile conversion. |
-| `tests.rs` | 956 | 31.6 KiB | Tests for rebuild option parsing, halt policy, stream selection and the end-to-end short test and full rebuild. |
+| `tests.rs` | 985 | 32.7 KiB | Tests for rebuild option parsing, halt policy, stream selection and the end-to-end short test and full rebuild. |
 
 ### `desktop/src-tauri/src/resource_monitor/`
 
@@ -907,7 +907,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,403 lines · 2653.1 KiB
+13 files · 78,404 lines · 2653.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -923,7 +923,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 149 | 7.4 KiB | Installation and external tools |
-| `USAGE.md` | 344 | 17.2 KiB | Human usage guide |
+| `USAGE.md` | 345 | 17.3 KiB | Human usage guide |
 
 ### `docs/maintainer/`
 

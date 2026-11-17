@@ -127,7 +127,7 @@ acceptance evidence.
 | --- | --- |
 | **Check only** | Reads the media and reports compatibility. Writes no output. |
 | **Metadata-only MKV** | Creates a new MKV without re-encoding video. |
-| **Short test** | Produces a bounded test encode before a full run. |
+| **Short test** | Produces a bounded test encode before a full run, at the same CRF (21 by default). |
 | **Full rebuild** | Encodes selected video tracks to HEVC and validates the result. |
 | **YouTube prep** | Creates a separate upload copy and leaves the source in place. **Upscale** lifts 720p/1080p sources to 1440p or 4K so YouTube gives them its higher bitrate tier; **Optimize** keeps 1440p/4K/8K sources at their size, stream-copies healthy video with YouTube container tags (faststart, `hvc1`, BT.709 backfill), and re-encodes only oversized files when a sampled SSIM check passes. SDR codec (H.264 default or HEVC), encoder preset, shrink policy, and quality check are selectable. HDR10+ is preserved on re-encode via the same `hdr10plus_tool` inject path as rebuilds when the helper is installed; otherwise per-file loss consent is required. |
 | **HDR10+ preserve** | Autonomous: encode-time `dhdr10-info` when libx265 has `HDR10_PLUS`, otherwise post-encode inject + remux, then verify. Work dirs default to a source-adjacent `.hevc-rebuild-work/` folder; `HEVC_REBUILD_WORK_ROOT` overrides it, with app-state fallback if the source folder is not writable. Never uses `/tmp`. See [TOOLS.md](docs/TOOLS.md). |
