@@ -45,6 +45,23 @@ fn start_directory(requested: Option<&str>, scope: &PathScope) -> Result<PathBuf
         .map_err(|error| format!("Could not open {}: {error}", directory.display()))
 }
 
+/// A path as people should see it. Windows canonicalisation returns verbatim paths (`\\?\C:\...`); these
+/// are shown as ordinary drive or UNC paths, which Windows accepts back unchanged.
+pub(crate) fn display_path(path: &str) -> String {
+    if let Some(rest) = path.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{rest}");
+    }
+    if let Some(rest) = path.strip_prefix(r"\\?\") {
+        let mut chars = rest.chars();
+        if let (Some(letter), Some(':')) = (chars.next(), chars.next()) {
+            if letter.is_ascii_alphabetic() {
+                return rest.to_string();
+            }
+        }
+    }
+    path.to_string()
+}
+
 pub(crate) fn list_directory(
     path: Option<&str>,
     show_hidden: bool,
@@ -75,7 +92,7 @@ pub(crate) fn list_directory(
         let is_dir = item.path().is_dir();
         entries.push(DirectoryEntry {
             name,
-            path: item.path().to_string_lossy().into_owned(),
+            path: display_path(&item.path().to_string_lossy()),
             is_dir,
             size: if is_dir {
                 None
@@ -90,11 +107,11 @@ pub(crate) fn list_directory(
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
     Ok(DirectoryListing {
-        path: directory.to_string_lossy().into_owned(),
+        path: display_path(&directory.to_string_lossy()),
         parent: directory
             .parent()
             .filter(|parent| scope.contains(parent))
-            .map(|parent| parent.to_string_lossy().into_owned()),
+            .map(|parent| display_path(&parent.to_string_lossy())),
         entries,
         truncated,
     })
@@ -103,6 +120,23 @@ pub(crate) fn list_directory(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn windows_verbatim_prefixes_are_not_shown_to_people() {
+        assert_eq!(display_path(r"\\?\C:\Media\Films"), r"C:\Media\Films");
+        assert_eq!(display_path(r"\\?\C:\"), r"C:\");
+        assert_eq!(
+            display_path(r"\\?\UNC\server\share\films"),
+            r"\\server\share\films"
+        );
+        assert_eq!(display_path("/srv/media"), "/srv/media");
+        assert_eq!(display_path(r"C:\Media"), r"C:\Media");
+        assert_eq!(
+            display_path(r"\\?\Volume{1234}\x"),
+            r"\\?\Volume{1234}\x",
+            "other verbatim forms are left alone"
+        );
+    }
 
     #[test]
     fn lists_folders_first_then_files_and_hides_dotfiles_by_default() {

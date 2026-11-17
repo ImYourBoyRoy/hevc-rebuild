@@ -549,11 +549,12 @@ pub(crate) fn headless_route(is_root: bool, sudo_works: impl FnOnce() -> bool) -
     }
 }
 
-/// `whoami /groups` lists the token's mandatory integrity label; `S-1-16-12288` is High, an elevated
-/// administrator token, which can run the elevated winget step without a UAC prompt.
+/// `whoami /groups` lists the token's mandatory integrity label; `S-1-16-12288` is High (an elevated
+/// administrator) and `S-1-16-16384` is System (a service account). Either can run the elevated winget
+/// step without a UAC prompt.
 #[cfg_attr(not(windows), allow(dead_code))] // read on Windows; tested everywhere
 pub(crate) fn groups_show_elevation(whoami_groups: &str) -> bool {
-    whoami_groups.contains("S-1-16-12288")
+    whoami_groups.contains("S-1-16-12288") || whoami_groups.contains("S-1-16-16384")
 }
 
 #[cfg(windows)]
@@ -770,6 +771,17 @@ mod tests {
             "an administrator who has not elevated still gets a UAC prompt"
         );
         assert!(!groups_show_elevation(""));
+        let system = ELEVATED_GROUPS
+            .replace("S-1-16-12288", "S-1-16-16384")
+            .replace("High Mandatory Level", "System Mandatory Level");
+        assert!(
+            groups_show_elevation(&system),
+            "a service running as SYSTEM can run the elevated step too"
+        );
+        let low = ELEVATED_GROUPS
+            .replace("S-1-16-12288", "S-1-16-4096")
+            .replace("High Mandatory Level", "Low Mandatory Level");
+        assert!(!groups_show_elevation(&low));
     }
 
     #[test]
