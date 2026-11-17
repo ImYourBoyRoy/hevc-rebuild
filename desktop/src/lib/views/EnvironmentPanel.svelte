@@ -48,7 +48,7 @@
     loadEnvironment: ToolSetup["loadEnvironment"];
     checkUbuntuPackageUpdates: ToolSetup["checkUbuntuPackageUpdates"];
     refreshUbuntuPackageCatalog: ToolSetup["refreshUbuntuPackageCatalog"];
-    repairApt: ToolSetup["repairApt"];
+    reviewSetup: ToolSetup["reviewSetup"];
     packageUpdateForTool: ToolSetup["packageUpdateForTool"];
     openToolSetupLog: ToolSetup["openToolSetupLog"];
     exportToolSetupLog: ToolSetup["exportToolSetupLog"];
@@ -59,7 +59,7 @@
     environment, environmentLoading, environmentError, booting, desktopShell, workflowBusy, settings, aptHost, aptChecking, aptUpdates, packageManagerLabel,
     hostSetupShell, hostSetupCommand, repairId, hdrInstalling, repairSummary, repairSummaryIsError, repairLogWarning, repairLines, repairToolOutcomes, toolSetupLogs,
     selectedToolSetupLog = $bindable(), viewedToolSetupLog = $bindable(), toolSetupLogLoading, toolSetupLogError, toolSetupLogExporting, toolPathOptions, toolPathValue,
-    setToolPathValue, chooseToolPath, clearToolPath, saveToolPaths, loadEnvironment, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, repairApt,
+    setToolPathValue, chooseToolPath, clearToolPath, saveToolPaths, loadEnvironment, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, reviewSetup,
     packageUpdateForTool, openToolSetupLog, exportToolSetupLog, copyHostSetupCommand, openPage,
   }: Props = $props();
 </script>
@@ -83,11 +83,11 @@
     </div>
     <section class="apt-update-panel">
       {#if aptHost}
-      <div class="section-title-row"><div><div class="eyebrow">SYSTEM TOOL SETUP</div><h3>Installed versions and updates</h3><p>Versions are checked at launch against the enabled Ubuntu APT sources. Package changes always require review and administrator authentication; repository versions may lag upstream.</p></div><div class="apt-action-buttons"><button class="button secondary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => checkUbuntuPackageUpdates()}>{#if aptChecking}<LoaderCircle class="spin" size={15} /> Checking…{:else}<RefreshCw size={15} /> Check versions{/if}</button><button class="button primary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => repairApt()}><Wrench size={15} /> Review setup & updates</button></div></div>
+      <div class="section-title-row"><div><div class="eyebrow">SYSTEM TOOL SETUP</div><h3>Installed versions and updates</h3><p>Versions are checked at launch against the enabled Ubuntu APT sources. One button installs and updates everything, including the HDR10+ helper, and asks for your password at most once. Repository versions may lag upstream.</p></div><div class="apt-action-buttons"><button class="button secondary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => checkUbuntuPackageUpdates()}>{#if aptChecking}<LoaderCircle class="spin" size={15} /> Checking…{:else}<RefreshCw size={15} /> Check versions{/if}</button><button class="button primary" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => reviewSetup()}><Wrench size={15} /> Install & update everything</button></div></div>
       {#if aptUpdates}
         <div class="apt-update-status"><span class="status-tag" class:status-warning={aptUpdates.catalog_stale} class:status-ready={!aptUpdates.catalog_stale}>{aptUpdates.catalog_stale ? "CATALOG NEEDS REFRESH" : `${aptUpdates.packages.length} UPDATE${aptUpdates.packages.length === 1 ? "" : "S"}`}</span><small>Catalog last updated: {aptUpdates.catalog_updated_at ? new Date(aptUpdates.catalog_updated_at * 1000).toLocaleString() : "unknown"} · checked {new Date(aptUpdates.checked_at * 1000).toLocaleString()}</small></div>
         {#if aptUpdates.catalog_stale}
-          <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Review setup refreshes the configured APT catalog first, then shows the package list before installing. Refreshing downloads package-index metadata; it does not install software.</span></div><button class="button secondary" disabled={!desktopShell || workflowBusy || !environment.checks.some((check) => check.key === "pkexec" && check.available)} onclick={() => refreshUbuntuPackageCatalog()}><RefreshCw size={15} /> Refresh catalog</button></div>
+          <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Install & update everything refreshes the package catalog and applies the plan in one authenticated step, after showing you the list. Refreshing downloads package-index metadata; it does not install software.</span></div><button class="button secondary" disabled={!desktopShell || workflowBusy || !environment.checks.some((check) => check.key === "pkexec" && check.available)} onclick={() => refreshUbuntuPackageCatalog()}><RefreshCw size={15} /> Refresh catalog</button></div>
         {:else if aptUpdates.packages.length}
           <div class="apt-update-section-label"><strong>Updates available</strong><small>Installed version → enabled repository version</small></div>
           <div class="apt-update-list">{#each aptUpdates.packages as update (update.name)}<div><code>{update.name}</code><span>{update.installed_version}</span><ArrowRight size={13} /><strong>{update.candidate_version}</strong></div>{/each}</div>

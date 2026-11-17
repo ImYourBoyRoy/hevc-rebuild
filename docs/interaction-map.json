@@ -4,13 +4,13 @@
   "tasksFile": "docs/interaction-tasks.json",
   "summary": {
     "files": 36,
-    "controls": 472,
-    "buttons": 270,
-    "clickable": 327,
+    "controls": 473,
+    "buttons": 271,
+    "clickable": 328,
     "links": 23,
     "formControls": 146,
     "disclosures": 33,
-    "clickEvents": 269,
+    "clickEvents": 270,
     "duplicateDestinations": 46,
     "duplicateUserFacingDestinations": 44,
     "duplicateLabels": 43
@@ -14632,7 +14632,7 @@
               "name": "openMetadataProviderSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 395,
+              "line": 400,
               "via": "bound-callback"
             }
           ]
@@ -16634,7 +16634,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 395,
+              "line": 400,
               "via": "bound-callback"
             }
           ]
@@ -16786,7 +16786,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 395,
+              "line": 400,
               "via": "bound-callback"
             }
           ]
@@ -16909,7 +16909,7 @@
               "name": "openMetadataProviderSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 395,
+              "line": 400,
               "via": "bound-callback"
             }
           ]
@@ -18165,7 +18165,7 @@
               "name": "inspectRecoveryTarget",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 474,
+              "line": 479,
               "via": "bound-callback"
             }
           ]
@@ -18397,7 +18397,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 474,
+              "line": 479,
               "via": "bound-callback"
             }
           ]
@@ -18538,7 +18538,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 474,
+              "line": 479,
               "via": "bound-callback"
             }
           ]
@@ -18612,7 +18612,7 @@
               "name": "loadReports",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -18688,7 +18688,7 @@
               "name": "deleteReportHistory",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -19060,7 +19060,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -19234,7 +19234,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -19336,7 +19336,7 @@
               "name": "copyLog",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -19525,7 +19525,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 449,
+              "line": 454,
               "via": "bound-callback"
             }
           ]
@@ -19613,7 +19613,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             },
             {
@@ -20020,7 +20020,7 @@
               "name": "openProgressDetails",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 418,
+              "line": 423,
               "via": "bound-callback"
             }
           ]
@@ -20097,7 +20097,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 418,
+              "line": 423,
               "via": "bound-callback"
             }
           ]
@@ -20825,7 +20825,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 486,
+              "line": 491,
               "via": "bound-callback"
             },
             {
@@ -21019,7 +21019,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 485,
+              "line": 490,
               "via": "bound-callback"
             },
             {
@@ -21144,7 +21144,7 @@
               "name": "cancelScan",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -21233,7 +21233,7 @@
               "name": "saveSettings",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -21679,7 +21679,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -21911,7 +21911,7 @@
               "name": "saveMetadataLanguageDraft",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -22237,7 +22237,7 @@
               "name": "saveMetadataLanguageDraft",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -22512,7 +22512,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -22670,7 +22670,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -22943,7 +22943,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23216,7 +23216,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23489,7 +23489,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23647,7 +23647,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23769,7 +23769,7 @@
               "name": "toggleTmdbCredentialVisibility",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23843,7 +23843,7 @@
               "name": "saveTmdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -23919,7 +23919,7 @@
               "name": "removeTmdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -24107,7 +24107,7 @@
               "name": "toggleTvdbCredentialVisibility",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -24181,7 +24181,7 @@
               "name": "saveTvdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -24257,7 +24257,7 @@
               "name": "removeTvdbCredential",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -24567,7 +24567,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -25306,7 +25306,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -25434,7 +25434,7 @@
               "name": "refreshArtworkCache",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -25663,7 +25663,7 @@
               "name": "purgeUnusedArtworkCache",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -26486,7 +26486,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -26626,7 +26626,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -26767,7 +26767,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -26933,7 +26933,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -27291,7 +27291,7 @@
               "name": "addMetadataBlacklistPattern",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -27367,7 +27367,7 @@
               "name": "addMetadataBlacklistPattern",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -27444,7 +27444,7 @@
               "name": "clearMetadataBlacklist",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -27586,7 +27586,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 427,
+              "line": 432,
               "via": "bound-callback"
             }
           ]
@@ -27964,18 +27964,18 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:11:75",
+      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:12:75",
       "ordinal": 1,
       "kind": "button",
       "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-      "line": 11,
+      "line": 12,
       "column": 75,
       "label": "Close confirmation",
       "role": null,
       "region": "Close confirmation",
       "heading": null,
       "guards": [
-        "repairConfirmOpen && environment && aptUpdates"
+        "open && plan"
       ],
       "disabled": null,
       "href": null,
@@ -27985,15 +27985,15 @@
           "expression": "onClose",
           "expressionNode": {
             "type": "Identifier",
-            "start": 959,
-            "end": 966,
+            "start": 1032,
+            "end": 1039,
             "loc": {
               "start": {
-                "line": 11,
+                "line": 12,
                 "column": 155
               },
               "end": {
-                "line": 11,
+                "line": 12,
                 "column": 162
               }
             },
@@ -28012,7 +28012,7 @@
               "name": "onClose",
               "args": [],
               "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-              "line": 11,
+              "line": 12,
               "via": "callback"
             }
           ]
@@ -28032,18 +28032,18 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:17:34",
+      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:25:34",
       "ordinal": 2,
       "kind": "button",
       "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-      "line": 17,
+      "line": 25,
       "column": 34,
       "label": "Cancel",
       "role": null,
       "region": null,
-      "heading": "Install or update these tools?",
+      "heading": "Install and update everything?",
       "guards": [
-        "repairConfirmOpen && environment && aptUpdates"
+        "open && plan"
       ],
       "disabled": null,
       "href": null,
@@ -28053,15 +28053,15 @@
           "expression": "onClose",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2562,
-            "end": 2569,
+            "start": 2758,
+            "end": 2765,
             "loc": {
               "start": {
-                "line": 17,
+                "line": 25,
                 "column": 75
               },
               "end": {
-                "line": 17,
+                "line": 25,
                 "column": 82
               }
             },
@@ -28080,7 +28080,7 @@
               "name": "onClose",
               "args": [],
               "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-              "line": 17,
+              "line": 25,
               "via": "callback"
             }
           ]
@@ -28100,78 +28100,78 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:17:100",
+      "id": "desktop/src/lib/ToolRepairConfirmation.svelte:button:25:100",
       "ordinal": 3,
       "kind": "button",
       "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-      "line": 17,
+      "line": 25,
       "column": 100,
-      "label": "Continue to authentication",
+      "label": "Authenticate once & install Install & update",
       "role": null,
       "region": null,
-      "heading": "Install or update these tools?",
+      "heading": "Install and update everything?",
       "guards": [
-        "repairConfirmOpen && environment && aptUpdates"
+        "open && plan"
       ],
-      "disabled": "{workflowBusy || aptUpdates.catalog_stale}",
+      "disabled": "{workflowBusy}",
       "href": null,
       "events": [
         {
           "name": "click",
-          "expression": "confirmAptRepair",
+          "expression": "confirmSetup",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2678,
-            "end": 2694,
+            "start": 2846,
+            "end": 2858,
             "loc": {
               "start": {
-                "line": 17,
-                "column": 191
+                "line": 25,
+                "column": 163
               },
               "end": {
-                "line": 17,
-                "column": 207
+                "line": 25,
+                "column": 175
               }
             },
-            "name": "confirmAptRepair"
+            "name": "confirmSetup"
           },
           "targets": [
             {
               "kind": "callback",
-              "value": "confirmAptRepair",
+              "value": "confirmSetup",
               "confidence": "boundary"
             }
           ],
           "callCount": 2,
           "calls": [
             {
-              "name": "confirmAptRepair",
+              "name": "confirmSetup",
               "args": [],
               "file": "desktop/src/lib/ToolRepairConfirmation.svelte",
-              "line": 17,
+              "line": 25,
               "via": "callback"
             },
             {
-              "name": "confirmAptRepair",
+              "name": "confirmSetup",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 490,
+              "line": 495,
               "via": "bound-callback"
             }
           ]
         }
       ],
-      "source": "<button class=\"button primary\" disabled={workflowBusy || aptUpdates.catalog_stale} onclick={confirmAptRepair}><Wrench size={16} /> Continue to authentication</button>",
+      "source": "<button class=\"button primary\" disabled={workflowBusy} onclick={confirmSetup}>{#if plan.needs_password}<KeyRound size={16} /> Authenticate once & install{:else}<Wrench size={16} /> Install & update{/if}</button>",
       "targets": [
         {
           "kind": "callback",
-          "value": "confirmAptRepair",
+          "value": "confirmSetup",
           "confidence": "boundary"
         }
       ],
       "trace": [
-        "confirmAptRepair",
-        "confirmAptRepair"
+        "confirmSetup",
+        "confirmSetup"
       ],
       "clickable": true
     },
@@ -28424,8 +28424,8 @@
           "expression": "loadEnvironment",
           "expressionNode": {
             "type": "Identifier",
-            "start": 3663,
-            "end": 3678,
+            "start": 3669,
+            "end": 3684,
             "loc": {
               "start": {
                 "line": 67,
@@ -28492,8 +28492,8 @@
           "expression": "() => saveToolPaths()",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 7420,
-            "end": 7441,
+            "start": 7426,
+            "end": 7447,
             "loc": {
               "start": {
                 "line": 77,
@@ -28511,8 +28511,8 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 7426,
-              "end": 7441,
+              "start": 7432,
+              "end": 7447,
               "loc": {
                 "start": {
                   "line": 77,
@@ -28525,8 +28525,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 7426,
-                "end": 7439,
+                "start": 7432,
+                "end": 7445,
                 "loc": {
                   "start": {
                     "line": 77,
@@ -28586,8 +28586,8 @@
           "expression": "(event) => setToolPathValue(tool.key, event.currentTarget.value)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 7945,
-            "end": 8009,
+            "start": 7951,
+            "end": 8015,
             "loc": {
               "start": {
                 "line": 80,
@@ -28605,8 +28605,8 @@
             "params": [
               {
                 "type": "Identifier",
-                "start": 7946,
-                "end": 7951,
+                "start": 7952,
+                "end": 7957,
                 "loc": {
                   "start": {
                     "line": 80,
@@ -28622,8 +28622,8 @@
             ],
             "body": {
               "type": "CallExpression",
-              "start": 7956,
-              "end": 8009,
+              "start": 7962,
+              "end": 8015,
               "loc": {
                 "start": {
                   "line": 80,
@@ -28636,8 +28636,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 7956,
-                "end": 7972,
+                "start": 7962,
+                "end": 7978,
                 "loc": {
                   "start": {
                     "line": 80,
@@ -28653,8 +28653,8 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 7973,
-                  "end": 7981,
+                  "start": 7979,
+                  "end": 7987,
                   "loc": {
                     "start": {
                       "line": 80,
@@ -28667,8 +28667,8 @@
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 7973,
-                    "end": 7977,
+                    "start": 7979,
+                    "end": 7983,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28683,8 +28683,8 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 7978,
-                    "end": 7981,
+                    "start": 7984,
+                    "end": 7987,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28702,8 +28702,8 @@
                 },
                 {
                   "type": "MemberExpression",
-                  "start": 7983,
-                  "end": 8008,
+                  "start": 7989,
+                  "end": 8014,
                   "loc": {
                     "start": {
                       "line": 80,
@@ -28716,8 +28716,8 @@
                   },
                   "object": {
                     "type": "MemberExpression",
-                    "start": 7983,
-                    "end": 8002,
+                    "start": 7989,
+                    "end": 8008,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28730,8 +28730,8 @@
                     },
                     "object": {
                       "type": "Identifier",
-                      "start": 7983,
-                      "end": 7988,
+                      "start": 7989,
+                      "end": 7994,
                       "loc": {
                         "start": {
                           "line": 80,
@@ -28746,8 +28746,8 @@
                     },
                     "property": {
                       "type": "Identifier",
-                      "start": 7989,
-                      "end": 8002,
+                      "start": 7995,
+                      "end": 8008,
                       "loc": {
                         "start": {
                           "line": 80,
@@ -28765,8 +28765,8 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 8003,
-                    "end": 8008,
+                    "start": 8009,
+                    "end": 8014,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28838,8 +28838,8 @@
           "expression": "() => chooseToolPath(tool.key, tool.label)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 8113,
-            "end": 8155,
+            "start": 8119,
+            "end": 8161,
             "loc": {
               "start": {
                 "line": 80,
@@ -28857,8 +28857,8 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 8119,
-              "end": 8155,
+              "start": 8125,
+              "end": 8161,
               "loc": {
                 "start": {
                   "line": 80,
@@ -28871,8 +28871,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 8119,
-                "end": 8133,
+                "start": 8125,
+                "end": 8139,
                 "loc": {
                   "start": {
                     "line": 80,
@@ -28888,8 +28888,8 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 8134,
-                  "end": 8142,
+                  "start": 8140,
+                  "end": 8148,
                   "loc": {
                     "start": {
                       "line": 80,
@@ -28902,8 +28902,8 @@
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 8134,
-                    "end": 8138,
+                    "start": 8140,
+                    "end": 8144,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28918,8 +28918,8 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 8139,
-                    "end": 8142,
+                    "start": 8145,
+                    "end": 8148,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28937,8 +28937,8 @@
                 },
                 {
                   "type": "MemberExpression",
-                  "start": 8144,
-                  "end": 8154,
+                  "start": 8150,
+                  "end": 8160,
                   "loc": {
                     "start": {
                       "line": 80,
@@ -28951,8 +28951,8 @@
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 8144,
-                    "end": 8148,
+                    "start": 8150,
+                    "end": 8154,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -28967,8 +28967,8 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 8149,
-                    "end": 8154,
+                    "start": 8155,
+                    "end": 8160,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -29041,8 +29041,8 @@
           "expression": "() => clearToolPath(tool.key)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 8284,
-            "end": 8313,
+            "start": 8290,
+            "end": 8319,
             "loc": {
               "start": {
                 "line": 80,
@@ -29060,8 +29060,8 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 8290,
-              "end": 8313,
+              "start": 8296,
+              "end": 8319,
               "loc": {
                 "start": {
                   "line": 80,
@@ -29074,8 +29074,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 8290,
-                "end": 8303,
+                "start": 8296,
+                "end": 8309,
                 "loc": {
                   "start": {
                     "line": 80,
@@ -29091,8 +29091,8 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 8304,
-                  "end": 8312,
+                  "start": 8310,
+                  "end": 8318,
                   "loc": {
                     "start": {
                       "line": 80,
@@ -29105,8 +29105,8 @@
                   },
                   "object": {
                     "type": "Identifier",
-                    "start": 8304,
-                    "end": 8308,
+                    "start": 8310,
+                    "end": 8314,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -29121,8 +29121,8 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 8309,
-                    "end": 8312,
+                    "start": 8315,
+                    "end": 8318,
                     "loc": {
                       "start": {
                         "line": 80,
@@ -29168,12 +29168,12 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:86:351",
+      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:86:393",
       "ordinal": 6,
       "kind": "button",
       "file": "desktop/src/lib/views/EnvironmentPanel.svelte",
       "line": 86,
-      "column": 351,
+      "column": 393,
       "label": "Checking… Check versions",
       "role": null,
       "region": null,
@@ -29190,16 +29190,16 @@
           "expression": "() => checkUbuntuPackageUpdates()",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 8893,
-            "end": 8926,
+            "start": 8941,
+            "end": 8974,
             "loc": {
               "start": {
                 "line": 86,
-                "column": 448
+                "column": 490
               },
               "end": {
                 "line": 86,
-                "column": 481
+                "column": 523
               }
             },
             "id": null,
@@ -29209,30 +29209,30 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 8899,
-              "end": 8926,
+              "start": 8947,
+              "end": 8974,
               "loc": {
                 "start": {
                   "line": 86,
-                  "column": 454
+                  "column": 496
                 },
                 "end": {
                   "line": 86,
-                  "column": 481
+                  "column": 523
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 8899,
-                "end": 8924,
+                "start": 8947,
+                "end": 8972,
                 "loc": {
                   "start": {
                     "line": 86,
-                    "column": 454
+                    "column": 496
                   },
                   "end": {
                     "line": 86,
-                    "column": 479
+                    "column": 521
                   }
                 },
                 "name": "checkUbuntuPackageUpdates"
@@ -29252,13 +29252,13 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:86:609",
+      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:86:651",
       "ordinal": 7,
       "kind": "button",
       "file": "desktop/src/lib/views/EnvironmentPanel.svelte",
       "line": 86,
-      "column": 609,
-      "label": "Review setup & updates",
+      "column": 651,
+      "label": "Install & update everything",
       "role": null,
       "region": null,
       "heading": null,
@@ -29271,19 +29271,19 @@
       "events": [
         {
           "name": "click",
-          "expression": "() => repairApt()",
+          "expression": "() => reviewSetup()",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 9149,
-            "end": 9166,
+            "start": 9197,
+            "end": 9216,
             "loc": {
               "start": {
                 "line": 86,
-                "column": 704
+                "column": 746
               },
               "end": {
                 "line": 86,
-                "column": 721
+                "column": 765
               }
             },
             "id": null,
@@ -29293,33 +29293,33 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 9155,
-              "end": 9166,
+              "start": 9203,
+              "end": 9216,
               "loc": {
                 "start": {
                   "line": 86,
-                  "column": 710
+                  "column": 752
                 },
                 "end": {
                   "line": 86,
-                  "column": 721
+                  "column": 765
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 9155,
-                "end": 9164,
+                "start": 9203,
+                "end": 9214,
                 "loc": {
                   "start": {
                     "line": 86,
-                    "column": 710
+                    "column": 752
                   },
                   "end": {
                     "line": 86,
-                    "column": 719
+                    "column": 763
                   }
                 },
-                "name": "repairApt"
+                "name": "reviewSetup"
               },
               "arguments": [],
               "optional": false
@@ -29327,31 +29327,21 @@
           },
           "targets": [],
           "callCount": 1,
-          "calls": [
-            {
-              "name": "repairApt",
-              "args": [],
-              "file": "desktop/src/lib/views/EnvironmentPanel.svelte",
-              "line": 86,
-              "via": "handler"
-            }
-          ]
+          "calls": []
         }
       ],
-      "source": "<button class=\"button primary\" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => repairApt()}><Wrench size={15} /> Review setup & updates</button>",
+      "source": "<button class=\"button primary\" disabled={!desktopShell || workflowBusy || aptChecking} onclick={() => reviewSetup()}><Wrench size={15} /> Install & update everything</button>",
       "targets": [],
-      "trace": [
-        "repairApt"
-      ],
+      "trace": [],
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:90:329",
+      "id": "desktop/src/lib/views/EnvironmentPanel.svelte:button:90:359",
       "ordinal": 8,
       "kind": "button",
       "file": "desktop/src/lib/views/EnvironmentPanel.svelte",
       "line": 90,
-      "column": 329,
+      "column": 359,
       "label": "Refresh catalog",
       "role": null,
       "region": null,
@@ -29370,16 +29360,16 @@
           "expression": "() => refreshUbuntuPackageCatalog()",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 10314,
-            "end": 10349,
+            "start": 10399,
+            "end": 10434,
             "loc": {
               "start": {
                 "line": 90,
-                "column": 493
+                "column": 523
               },
               "end": {
                 "line": 90,
-                "column": 528
+                "column": 558
               }
             },
             "id": null,
@@ -29389,30 +29379,30 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 10320,
-              "end": 10349,
+              "start": 10405,
+              "end": 10434,
               "loc": {
                 "start": {
                   "line": 90,
-                  "column": 499
+                  "column": 529
                 },
                 "end": {
                   "line": 90,
-                  "column": 528
+                  "column": 558
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 10320,
-                "end": 10347,
+                "start": 10405,
+                "end": 10432,
                 "loc": {
                   "start": {
                     "line": 90,
-                    "column": 499
+                    "column": 529
                   },
                   "end": {
                     "line": 90,
-                    "column": 526
+                    "column": 556
                   }
                 },
                 "name": "refreshUbuntuPackageCatalog"
@@ -29465,8 +29455,8 @@
           "expression": "() => copyHostSetupCommand()",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 12356,
-            "end": 12384,
+            "start": 12441,
+            "end": 12469,
             "loc": {
               "start": {
                 "line": 105,
@@ -29484,8 +29474,8 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 12362,
-              "end": 12384,
+              "start": 12447,
+              "end": 12469,
               "loc": {
                 "start": {
                   "line": 105,
@@ -29498,8 +29488,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 12362,
-                "end": 12382,
+                "start": 12447,
+                "end": 12467,
                 "loc": {
                   "start": {
                     "line": 105,
@@ -29588,8 +29578,8 @@
           "expression": "() => openPage(\"run\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 13759,
-            "end": 13780,
+            "start": 13844,
+            "end": 13865,
             "loc": {
               "start": {
                 "line": 112,
@@ -29607,8 +29597,8 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 13765,
-              "end": 13780,
+              "start": 13850,
+              "end": 13865,
               "loc": {
                 "start": {
                   "line": 112,
@@ -29621,8 +29611,8 @@
               },
               "callee": {
                 "type": "Identifier",
-                "start": 13765,
-                "end": 13773,
+                "start": 13850,
+                "end": 13858,
                 "loc": {
                   "start": {
                     "line": 112,
@@ -29638,8 +29628,8 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 13774,
-                  "end": 13779,
+                  "start": 13859,
+                  "end": 13864,
                   "loc": {
                     "start": {
                       "line": 112,
@@ -29717,8 +29707,8 @@
           "expression": "loadEnvironment",
           "expressionNode": {
             "type": "Identifier",
-            "start": 14275,
-            "end": 14290,
+            "start": 14360,
+            "end": 14375,
             "loc": {
               "start": {
                 "line": 113,
@@ -40448,11 +40438,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
       "ordinal": 1,
       "kind": "form-control",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 37,
+      "line": 41,
       "column": 7,
       "label": "Appearance",
       "role": null,
@@ -40467,15 +40457,15 @@
           "expression": "(event) => applyTheme(event.currentTarget.value)",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 2032,
-            "end": 2080,
+            "start": 2273,
+            "end": 2321,
             "loc": {
               "start": {
-                "line": 37,
+                "line": 41,
                 "column": 62
               },
               "end": {
-                "line": 37,
+                "line": 41,
                 "column": 110
               }
             },
@@ -40486,15 +40476,15 @@
             "params": [
               {
                 "type": "Identifier",
-                "start": 2033,
-                "end": 2038,
+                "start": 2274,
+                "end": 2279,
                 "loc": {
                   "start": {
-                    "line": 37,
+                    "line": 41,
                     "column": 63
                   },
                   "end": {
-                    "line": 37,
+                    "line": 41,
                     "column": 68
                   }
                 },
@@ -40503,29 +40493,29 @@
             ],
             "body": {
               "type": "CallExpression",
-              "start": 2043,
-              "end": 2080,
+              "start": 2284,
+              "end": 2321,
               "loc": {
                 "start": {
-                  "line": 37,
+                  "line": 41,
                   "column": 73
                 },
                 "end": {
-                  "line": 37,
+                  "line": 41,
                   "column": 110
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 2043,
-                "end": 2053,
+                "start": 2284,
+                "end": 2294,
                 "loc": {
                   "start": {
-                    "line": 37,
+                    "line": 41,
                     "column": 73
                   },
                   "end": {
-                    "line": 37,
+                    "line": 41,
                     "column": 83
                   }
                 },
@@ -40534,43 +40524,43 @@
               "arguments": [
                 {
                   "type": "MemberExpression",
-                  "start": 2054,
-                  "end": 2079,
+                  "start": 2295,
+                  "end": 2320,
                   "loc": {
                     "start": {
-                      "line": 37,
+                      "line": 41,
                       "column": 84
                     },
                     "end": {
-                      "line": 37,
+                      "line": 41,
                       "column": 109
                     }
                   },
                   "object": {
                     "type": "MemberExpression",
-                    "start": 2054,
-                    "end": 2073,
+                    "start": 2295,
+                    "end": 2314,
                     "loc": {
                       "start": {
-                        "line": 37,
+                        "line": 41,
                         "column": 84
                       },
                       "end": {
-                        "line": 37,
+                        "line": 41,
                         "column": 103
                       }
                     },
                     "object": {
                       "type": "Identifier",
-                      "start": 2054,
-                      "end": 2059,
+                      "start": 2295,
+                      "end": 2300,
                       "loc": {
                         "start": {
-                          "line": 37,
+                          "line": 41,
                           "column": 84
                         },
                         "end": {
-                          "line": 37,
+                          "line": 41,
                           "column": 89
                         }
                       },
@@ -40578,15 +40568,15 @@
                     },
                     "property": {
                       "type": "Identifier",
-                      "start": 2060,
-                      "end": 2073,
+                      "start": 2301,
+                      "end": 2314,
                       "loc": {
                         "start": {
-                          "line": 37,
+                          "line": 41,
                           "column": 90
                         },
                         "end": {
-                          "line": 37,
+                          "line": 41,
                           "column": 103
                         }
                       },
@@ -40597,15 +40587,15 @@
                   },
                   "property": {
                     "type": "Identifier",
-                    "start": 2074,
-                    "end": 2079,
+                    "start": 2315,
+                    "end": 2320,
                     "loc": {
                       "start": {
-                        "line": 37,
+                        "line": 41,
                         "column": 104
                       },
                       "end": {
-                        "line": 37,
+                        "line": 41,
                         "column": 109
                       }
                     },
@@ -40630,7 +40620,7 @@
                 }
               ],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "via": "handler"
             }
           ]
@@ -40644,11 +40634,11 @@
       "clickable": false
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
       "ordinal": 2,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 46,
+      "line": 50,
       "column": 7,
       "label": "{setupGapDetail}",
       "role": null,
@@ -40666,15 +40656,15 @@
           "expression": "openToolchainSettings",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2599,
-            "end": 2620,
+            "start": 2840,
+            "end": 2861,
             "loc": {
               "start": {
-                "line": 46,
+                "line": 50,
                 "column": 102
               },
               "end": {
-                "line": 46,
+                "line": 50,
                 "column": 123
               }
             },
@@ -40693,7 +40683,7 @@
               "name": "openToolchainSettings",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "via": "callback"
             }
           ]
@@ -40713,11 +40703,79 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:48:5",
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:53:7",
       "ordinal": 3,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 48,
+      "line": 53,
+      "column": 7,
+      "label": "{updateDetail}",
+      "role": null,
+      "region": "{updateDetail}",
+      "heading": null,
+      "guards": [
+        "updateLabel"
+      ],
+      "disabled": null,
+      "href": null,
+      "events": [
+        {
+          "name": "click",
+          "expression": "reviewUpdates",
+          "expressionNode": {
+            "type": "Identifier",
+            "start": 3058,
+            "end": 3071,
+            "loc": {
+              "start": {
+                "line": 53,
+                "column": 98
+              },
+              "end": {
+                "line": 53,
+                "column": 111
+              }
+            },
+            "name": "reviewUpdates"
+          },
+          "targets": [
+            {
+              "kind": "callback",
+              "value": "reviewUpdates",
+              "confidence": "boundary"
+            }
+          ],
+          "callCount": 1,
+          "calls": [
+            {
+              "name": "reviewUpdates",
+              "args": [],
+              "file": "desktop/src/lib/views/ShellHeader.svelte",
+              "line": 53,
+              "via": "callback"
+            }
+          ]
+        }
+      ],
+      "source": "<button class=\"status-pill warning\" aria-label={updateDetail} title={updateDetail} onclick={reviewUpdates}><AlertTriangle size={14} /><span>{updateLabel}</span></button>",
+      "targets": [
+        {
+          "kind": "callback",
+          "value": "reviewUpdates",
+          "confidence": "boundary"
+        }
+      ],
+      "trace": [
+        "reviewUpdates"
+      ],
+      "clickable": true
+    },
+    {
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:55:5",
+      "ordinal": 4,
+      "kind": "button",
+      "file": "desktop/src/lib/views/ShellHeader.svelte",
+      "line": 55,
       "column": 5,
       "label": "Refresh environment",
       "role": null,
@@ -40732,15 +40790,15 @@
           "expression": "loadEnvironment",
           "expressionNode": {
             "type": "Identifier",
-            "start": 2829,
-            "end": 2844,
+            "start": 3278,
+            "end": 3293,
             "loc": {
               "start": {
-                "line": 48,
+                "line": 55,
                 "column": 132
               },
               "end": {
-                "line": 48,
+                "line": 55,
                 "column": 147
               }
             },
@@ -40759,7 +40817,7 @@
               "name": "loadEnvironment",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 48,
+              "line": 55,
               "via": "callback"
             }
           ]
@@ -40779,11 +40837,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:49:5",
-      "ordinal": 4,
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:56:5",
+      "ordinal": 5,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 49,
+      "line": 56,
       "column": 5,
       "label": "Help and commands",
       "role": null,
@@ -40798,15 +40856,15 @@
           "expression": "() => openPage(\"help\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 3106,
-            "end": 3128,
+            "start": 3555,
+            "end": 3577,
             "loc": {
               "start": {
-                "line": 49,
+                "line": 56,
                 "column": 186
               },
               "end": {
-                "line": 49,
+                "line": 56,
                 "column": 208
               }
             },
@@ -40817,29 +40875,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 3112,
-              "end": 3128,
+              "start": 3561,
+              "end": 3577,
               "loc": {
                 "start": {
-                  "line": 49,
+                  "line": 56,
                   "column": 192
                 },
                 "end": {
-                  "line": 49,
+                  "line": 56,
                   "column": 208
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 3112,
-                "end": 3120,
+                "start": 3561,
+                "end": 3569,
                 "loc": {
                   "start": {
-                    "line": 49,
+                    "line": 56,
                     "column": 192
                   },
                   "end": {
-                    "line": 49,
+                    "line": 56,
                     "column": 200
                   }
                 },
@@ -40848,15 +40906,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 3121,
-                  "end": 3127,
+                  "start": 3570,
+                  "end": 3576,
                   "loc": {
                     "start": {
-                      "line": 49,
+                      "line": 56,
                       "column": 201
                     },
                     "end": {
-                      "line": 49,
+                      "line": 56,
                       "column": 207
                     }
                   },
@@ -40885,7 +40943,7 @@
                 }
               ],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 49,
+              "line": 56,
               "via": "handler"
             }
           ]
@@ -40905,11 +40963,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/views/ShellHeader.svelte:button:56:34",
-      "ordinal": 5,
+      "id": "desktop/src/lib/views/ShellHeader.svelte:button:63:34",
+      "ordinal": 6,
       "kind": "button",
       "file": "desktop/src/lib/views/ShellHeader.svelte",
-      "line": 56,
+      "line": 63,
       "column": 34,
       "label": "Dismiss notification",
       "role": null,
@@ -40926,15 +40984,15 @@
           "expression": "dismissNotice",
           "expressionNode": {
             "type": "Identifier",
-            "start": 3580,
-            "end": 3593,
+            "start": 4029,
+            "end": 4042,
             "loc": {
               "start": {
-                "line": 56,
+                "line": 63,
                 "column": 105
               },
               "end": {
-                "line": 56,
+                "line": 63,
                 "column": 118
               }
             },
@@ -40953,7 +41011,7 @@
               "name": "dismissNotice",
               "args": [],
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 56,
+              "line": 63,
               "via": "callback"
             }
           ]
@@ -56460,7 +56518,7 @@
               "name": "browseFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -56534,7 +56592,7 @@
               "name": "browseFile",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -56608,7 +56666,7 @@
               "name": "analyzeFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -56815,7 +56873,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -56889,7 +56947,7 @@
               "name": "browseFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -57096,7 +57154,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -57303,7 +57361,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -57658,7 +57716,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -57961,7 +58019,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -58170,7 +58228,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -58379,7 +58437,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -58812,7 +58870,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -59021,7 +59079,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -59230,7 +59288,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -59437,7 +59495,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -59644,7 +59702,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -59718,7 +59776,7 @@
               "name": "chooseYoutubeOutput",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -60022,7 +60080,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -60163,7 +60221,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -60369,7 +60427,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -60641,7 +60699,7 @@
                 }
               ],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -60995,7 +61053,7 @@
               "name": "analyzeFolder",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -61071,7 +61129,7 @@
               "name": "stopAfterCurrent",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -61216,7 +61274,7 @@
               "name": "beginRun",
               "args": [],
               "file": "desktop/src/routes/+page.svelte",
-              "line": 439,
+              "line": 444,
               "via": "bound-callback"
             }
           ]
@@ -62357,8 +62415,8 @@
         "desktop/src/lib/RunSettingsEditor.svelte:button:219:5",
         "desktop/src/lib/RunSettingsEditor.svelte:button:220:5",
         "desktop/src/lib/RunSettingsEditor.svelte:button:221:5",
-        "desktop/src/lib/ToolRepairConfirmation.svelte:button:11:75",
-        "desktop/src/lib/ToolRepairConfirmation.svelte:button:17:34",
+        "desktop/src/lib/ToolRepairConfirmation.svelte:button:12:75",
+        "desktop/src/lib/ToolRepairConfirmation.svelte:button:25:34",
         "desktop/src/lib/views/MetadataReviewDialog.svelte:button:98:7",
         "desktop/src/lib/views/MetadataReviewDialog.svelte:button:200:316",
         "desktop/src/lib/views/OutputPreviewDialog.svelte:button:37:7",
@@ -62445,7 +62503,7 @@
       "controls": [
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:67:189",
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:113:394",
-        "desktop/src/lib/views/ShellHeader.svelte:button:48:5"
+        "desktop/src/lib/views/ShellHeader.svelte:button:55:5"
       ]
     },
     {
@@ -62733,8 +62791,8 @@
         "desktop/src/lib/RunSettingsEditor.svelte:button:219:5",
         "desktop/src/lib/RunSettingsEditor.svelte:button:220:5",
         "desktop/src/lib/RunSettingsEditor.svelte:button:221:5",
-        "desktop/src/lib/ToolRepairConfirmation.svelte:button:11:75",
-        "desktop/src/lib/ToolRepairConfirmation.svelte:button:17:34",
+        "desktop/src/lib/ToolRepairConfirmation.svelte:button:12:75",
+        "desktop/src/lib/ToolRepairConfirmation.svelte:button:25:34",
         "desktop/src/lib/views/MetadataReviewDialog.svelte:button:98:7",
         "desktop/src/lib/views/MetadataReviewDialog.svelte:button:200:316",
         "desktop/src/lib/views/OutputPreviewDialog.svelte:button:37:7",
@@ -62801,7 +62859,7 @@
       "controls": [
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:67:189",
         "desktop/src/lib/views/EnvironmentPanel.svelte:button:113:394",
-        "desktop/src/lib/views/ShellHeader.svelte:button:48:5"
+        "desktop/src/lib/views/ShellHeader.svelte:button:55:5"
       ]
     },
     {
@@ -63046,7 +63104,7 @@
         "desktop/src/lib/ReportBrowser.svelte:button:37:15",
         "desktop/src/lib/RunSettingsEditor.svelte:button:220:5",
         "desktop/src/lib/SettingsPreferences.svelte:button:289:17",
-        "desktop/src/lib/ToolRepairConfirmation.svelte:button:17:34",
+        "desktop/src/lib/ToolRepairConfirmation.svelte:button:25:34",
         "desktop/src/lib/views/WorkbenchDetailPanel.svelte:button:197:54",
         "desktop/src/lib/views/WorkbenchMoviesPanel.svelte:button:189:36",
         "desktop/src/lib/views/WorkbenchMoviesPanel.svelte:button:237:354"

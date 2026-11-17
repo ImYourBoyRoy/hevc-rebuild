@@ -50,6 +50,7 @@
     "test:reports-controller": "node --experimental-strip-types --test tests/reports-controller.test.mjs",
     "test:file-pickers": "node --experimental-strip-types --test tests/file-pickers.test.mjs",
     "test:tool-paths": "node --experimental-strip-types --test tests/tool-paths.test.mjs",
+    "test:setup-updates": "node --experimental-strip-types --test tests/setup-updates.test.mjs",
     "test:tool-setup": "node --experimental-strip-types --test \"tests/tool-setup-*.test.mjs\"",
     "test:window-state-controller": "node --experimental-strip-types --test tests/window-state.test.mjs",
     "test:browser-preferences": "node --experimental-strip-types --test tests/browser-preferences.test.mjs",

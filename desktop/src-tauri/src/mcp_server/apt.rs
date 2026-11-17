@@ -177,6 +177,37 @@ pub(super) fn run_apt_command_job(jobs: Jobs, id: String, mut operation: Vec<Str
     }
 }
 
+/// One-pass setup job: a single administrator step (one prompt), then the user-space helper.
+pub(super) fn run_provision_job(jobs: Jobs, id: String, plan: super::super::provision::ProvisionPlan) {
+    if let Some(script) = super::super::provision::privileged_script(&plan) {
+        run_apt_command_job(jobs.clone(), id.clone(), vec!["sh".into(), "-c".into(), script]);
+        let completed = jobs
+            .lock()
+            .ok()
+            .and_then(|jobs| jobs.get(&id).map(|job| job.status == "completed"))
+            .unwrap_or(false);
+        if !completed {
+            return;
+        }
+    }
+    let mut result = json!({"packages_applied": plan.has_privileged_work()});
+    if plan.helper.needs_work() {
+        match super::super::dependencies::install_latest_hdr10plus_tool() {
+            Ok(path) => result["helper_installed_at"] = json!(path),
+            Err(error) => {
+                update_failed(&jobs, &id, error);
+                return;
+            }
+        }
+    }
+    if let Ok(mut jobs) = jobs.lock() {
+        if let Some(job) = jobs.get_mut(&id) {
+            job.status = "completed".into();
+            job.result = Some(result);
+        }
+    }
+}
+
 pub(super) fn run_apt_update_job(jobs: Jobs, id: String, packages: Vec<String>) {
     let mut operation = vec![
         "apt-get".to_string(),

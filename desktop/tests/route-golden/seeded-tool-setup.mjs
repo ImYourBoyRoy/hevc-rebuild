@@ -11,23 +11,23 @@ export async function toolSetup(ctx) {
     const repairGroups = [
       ['repair-updates', { apt: aptStatus() }, [
         ['check-versions', async () => { await page.getByRole('button', { name: 'Check versions', exact: true }).click(); }],
-        ['review-setup', async () => { await page.getByRole('button', { name: 'Review setup & updates', exact: true }).click(); }],
-        ['confirm-toolchain', async () => { await page.getByRole('button', { name: 'Continue to authentication', exact: true }).click(); }],
+        ['review-setup', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],
+        ['confirm-toolchain', async () => { await page.getByRole('button', { name: 'Authenticate once & install', exact: true }).click(); }],
         ['live-output', async () => { await page.evaluate(() => { window.__goldenEmit('repair-line', { runId: 'job-toolchain', line: 'Reading package lists…' }); window.__goldenEmit('repair-line', { runId: 'other-job', line: 'ignored line' }); window.__goldenEmit('repair-line', { runId: 'job-toolchain', line: 'Setting up ffmpeg (7.1-1)…' }); }); }],
         ['finished-ok', async () => { await page.evaluate(() => { const environment = window.__goldenBaseEnvironment(); environment.checks.find((check) => check.key === 'ffmpeg').version = '7.1-1'; window.__goldenEnvironment = environment; window.__goldenAptStatus = { packages: [], catalog_updated_at: 1700000000, catalog_stale: false, source: 'fixture-apt', checked_at: 1700000001 }; window.__goldenEmit('repair-finished', { jobId: 'job-toolchain', success: true, error: null, logWarning: null }); }); await page.waitForTimeout(800); }],
       ]],
       ['repair-stale', { apt: aptStatus({ catalog_stale: true }) }, [
-        ['review-refreshes-catalog', async () => { await page.getByRole('button', { name: 'Review setup & updates', exact: true }).click(); }],
-        ['catalog-finished', async () => { await page.evaluate(() => { window.__goldenAptStatus = { packages: [{ name: 'ffmpeg', installed_version: '7.0-1', candidate_version: '7.1-1' }], catalog_updated_at: 1700000002, catalog_stale: false, source: 'fixture-apt', checked_at: 1700000002 }; window.__goldenEmit('repair-finished', { jobId: 'job-catalog', success: true, error: null, logWarning: null }); }); await page.waitForTimeout(800); }],
+        ['review-includes-catalog-refresh', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],
         ['cancel-review', async () => { await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click(); }],
       ]],
       ['repair-failure', { apt: aptStatus() }, [
-        ['review-setup', async () => { await page.getByRole('button', { name: 'Review setup & updates', exact: true }).click(); }],
-        ['confirm-toolchain', async () => { await page.getByRole('button', { name: 'Continue to authentication', exact: true }).click(); }],
+        ['review-setup', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],
+        ['confirm-toolchain', async () => { await page.getByRole('button', { name: 'Authenticate once & install', exact: true }).click(); }],
         ['finished-failed', async () => { await page.evaluate(() => { window.__goldenEmit('repair-finished', { jobId: 'job-toolchain', success: false, error: 'apt exited with status 100', logWarning: 'Log was truncated' }); }); await page.waitForTimeout(800); }],
       ]],
       ['repair-helper', { apt: aptStatus({ packages: [] }), helperMissing: true }, [
-        ['install-helper', async () => { await page.getByRole('button', { name: 'Review setup & updates', exact: true }).click(); await page.waitForTimeout(800); }],
+        ['review-helper-only', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],
+        ['install-helper', async () => { await page.getByRole('dialog').getByRole('button', { name: 'Install & update', exact: true }).click(); await page.waitForTimeout(800); }],
       ]],
       ['repair-logs', { apt: aptStatus({ packages: [] }), logs: true }, [
         ['open-history', async () => { await page.locator('summary', { hasText: 'Saved setup logs' }).click(); }],

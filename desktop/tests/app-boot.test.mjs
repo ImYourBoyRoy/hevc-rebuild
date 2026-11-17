@@ -47,7 +47,7 @@ function harness({ desktop = true, invokeImpl = {}, hostOver = {}, storage = {},
     restoreWindowState: act("restoreWindowState"), publishTheme: (value) => { calls.push(["publishTheme", value]); state.theme = value; },
     applyToolPaths: (value) => calls.push(["applyToolPaths", value]), persistPreferences: act("persistPreferences", async () => persistResult), loadMediaQueue: act("loadMediaQueue"),
     loadEnvironment: act("loadEnvironment"), loadSettings: act("loadSettings"), loadReports: act("loadReports"), refreshToolSetupLogs: act("refreshToolSetupLogs"),
-    refreshTmdbCredentialStatus: act("refreshTmdbCredentialStatus"), refreshTvdbCredentialStatus: act("refreshTvdbCredentialStatus"), checkUbuntuPackageUpdates: act("checkUbuntuPackageUpdates"),
+    refreshTmdbCredentialStatus: act("refreshTmdbCredentialStatus"), refreshTvdbCredentialStatus: act("refreshTvdbCredentialStatus"), checkUbuntuPackageUpdates: act("checkUbuntuPackageUpdates"), checkSetupUpdates: act("checkSetupUpdates"),
     noteRunProgress: (payload) => calls.push(["noteRunProgress", payload]), finishRun: act("finishRun"), handleRepairLine: (p) => calls.push(["repairLine", p]),
     handleRepairLogWarning: (p) => calls.push(["repairWarning", p]), handleRepairFinished: act("repairFinished"), addQueueSources: act("addQueueSources"), openPage: (p) => calls.push(["openPage", p]),
     scheduleWindowStateSave: () => calls.push(["scheduleWindowStateSave"]), handleAgentControlRequest: act("agentRequest"), handleUtilityContextMenu: () => {}, closeContextMenu: () => calls.push(["closeContextMenu"]),
@@ -96,7 +96,7 @@ test("initialize applies stored preferences to the route state and loads everyth
   assert.deepEqual([h.host.booting, h.host.environmentError], [false, ""]);
   assert.deepEqual(h.calls.find((call) => call[0] === "applyToolPaths")[1], { ffmpeg: "/opt/ffmpeg", ffprobe: null });
   assert.deepEqual(names(h).filter((name) => ["restoreWindowState", "publishTheme", "loadMediaQueue"].includes(name)), ["restoreWindowState", "publishTheme", "loadMediaQueue"]);
-  for (const name of ["loadEnvironment", "loadSettings", "loadReports", "refreshToolSetupLogs", "refreshTmdbCredentialStatus", "refreshTvdbCredentialStatus", "checkUbuntuPackageUpdates"]) assert.equal(names(h).includes(name), true, name);
+  for (const name of ["loadEnvironment", "loadSettings", "loadReports", "refreshToolSetupLogs", "refreshTmdbCredentialStatus", "refreshTvdbCredentialStatus", "checkUbuntuPackageUpdates", "checkSetupUpdates"]) assert.equal(names(h).includes(name), true, name);
   assert.deepEqual(h.calls.find((call) => call[0] === "loadSettings"), ["loadSettings", "/saved"]);
   assert.deepEqual(h.calls.find((call) => call[0] === "checkUbuntuPackageUpdates"), ["checkUbuntuPackageUpdates", true]);
 });
@@ -158,6 +158,7 @@ test("initialize shows the storage warning and skips the update check on a non-A
   const unavailable = harness({ hostOver: { environment: { os: { package_manager: "apt", package_manager_available: false } } }, invokeImpl: { load_app_preferences: stored() } });
   await unavailable.boot.initialize();
   assert.equal(names(unavailable).includes("checkUbuntuPackageUpdates"), false);
+  assert.equal(names(h).includes("checkSetupUpdates"), true, "the tool and helper update check runs on every desktop host, not only APT");
 });
 
 test("initialize reports a backend failure, records the error and always finishes booting", async () => {

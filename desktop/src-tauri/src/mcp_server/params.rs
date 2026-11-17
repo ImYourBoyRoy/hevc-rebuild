@@ -203,6 +203,12 @@ pub(super) struct AptRefreshParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub(super) struct ProvisionParams {
+    pub(super) confirm_plan: bool,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub(super) struct HelperParams {
     pub(super) confirm_installation: bool,
 }

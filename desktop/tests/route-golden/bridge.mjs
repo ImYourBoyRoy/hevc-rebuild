@@ -131,6 +131,17 @@ export async function installBridge(page, FIXTURES, tinyPng) {
       'plugin:dialog|save': () => '/tmp/hevc-setup.log',
       refresh_ubuntu_package_catalog: () => { window.__goldenRepairCalls.push({ command: 'refresh_ubuntu_package_catalog' }); return 'job-catalog'; },
       install_ubuntu_toolchain: (args) => { window.__goldenRepairCalls.push({ command: 'install_ubuntu_toolchain', toolPaths: args.toolPaths, confirmedMissingPackages: args.confirmedMissingPackages, confirmedUpdatePackages: args.confirmedUpdatePackages }); return 'job-toolchain'; },
+      provision_plan: () => {
+        window.__goldenRepairCalls.push({ command: 'provision_plan' });
+        const apt = window.__goldenAptStatus ?? { packages: [], catalog_stale: false };
+        const environment = window.__goldenEnvironment ?? fixtures.scan.environment;
+        const helperMissing = !environment.checks.find((check) => check.key === 'hdr10plus_tool')?.available;
+        const upgrade = apt.packages.map((item) => item.name);
+        const refresh = Boolean(apt.catalog_stale);
+        const privileged = refresh || upgrade.length > 0;
+        return { refresh_catalog: refresh, install_packages: [], upgrade_packages: upgrade, helper: { action: helperMissing ? 'install' : 'current', installed: helperMissing ? null : '1.7.2', latest: null }, needs_password: privileged, password_prompts: privileged ? 1 : 0, nothing_to_do: !privileged && !helperMissing, steps: [], release_check_error: null };
+      },
+      provision_toolchain: (args) => { window.__goldenRepairCalls.push({ command: 'provision_toolchain', toolPaths: args.toolPaths }); return 'job-toolchain'; },
       install_hdr10plus: (args) => {
         window.__goldenRepairCalls.push({ command: 'install_hdr10plus', jobId: args.jobId.replace(/\d+/g, 'N') });
         const environment = clone(window.__goldenEnvironment ?? fixtures.scan.environment);

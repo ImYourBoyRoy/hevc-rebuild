@@ -12,10 +12,10 @@ Static wiring is evidence of the path in source. It is not proof that a native p
 | Measure | Count |
 |---|---:|
 | Svelte files scanned | 36 |
-| Template controls | 472 |
-| Buttons | 270 |
-| Clickable controls | 327 |
-| Click handlers | 269 |
+| Template controls | 473 |
+| Buttons | 271 |
+| Clickable controls | 328 |
+| Click handlers | 270 |
 | Links | 23 |
 | Form controls | 146 |
 | Disclosure controls | 33 |
@@ -123,7 +123,7 @@ Persistence, readback, and internal callback plumbing are retained in the JSON r
 
 | Destination | Controls | Entry points |
 |---|---:|---|
-| `callback:onClose` | 14 | [RecoveryReview.svelte:31 Close recovery review](../desktop/src/lib/RecoveryReview.svelte#L31)<br>[RecoveryReview.svelte:73 Cancel](../desktop/src/lib/RecoveryReview.svelte#L73)<br>[RunSettingsEditor.svelte:141 Close current-run settings](../desktop/src/lib/RunSettingsEditor.svelte#L141)<br>[RunSettingsEditor.svelte:219 Clear current-run choices](../desktop/src/lib/RunSettingsEditor.svelte#L219)<br>[RunSettingsEditor.svelte:220 Cancel](../desktop/src/lib/RunSettingsEditor.svelte#L220)<br>[RunSettingsEditor.svelte:221 Apply to {entries.length} file {entries.length === 1 ? "" : "s"}](../desktop/src/lib/RunSettingsEditor.svelte#L221)<br>[ToolRepairConfirmation.svelte:11 Close confirmation](../desktop/src/lib/ToolRepairConfirmation.svelte#L11)<br>[ToolRepairConfirmation.svelte:17 Cancel](../desktop/src/lib/ToolRepairConfirmation.svelte#L17)<br>… |
+| `callback:onClose` | 14 | [RecoveryReview.svelte:31 Close recovery review](../desktop/src/lib/RecoveryReview.svelte#L31)<br>[RecoveryReview.svelte:73 Cancel](../desktop/src/lib/RecoveryReview.svelte#L73)<br>[RunSettingsEditor.svelte:141 Close current-run settings](../desktop/src/lib/RunSettingsEditor.svelte#L141)<br>[RunSettingsEditor.svelte:219 Clear current-run choices](../desktop/src/lib/RunSettingsEditor.svelte#L219)<br>[RunSettingsEditor.svelte:220 Cancel](../desktop/src/lib/RunSettingsEditor.svelte#L220)<br>[RunSettingsEditor.svelte:221 Apply to {entries.length} file {entries.length === 1 ? "" : "s"}](../desktop/src/lib/RunSettingsEditor.svelte#L221)<br>[ToolRepairConfirmation.svelte:12 Close confirmation](../desktop/src/lib/ToolRepairConfirmation.svelte#L12)<br>[ToolRepairConfirmation.svelte:25 Cancel](../desktop/src/lib/ToolRepairConfirmation.svelte#L25)<br>… |
 | `callback:insertRenameToken` | 9 | [LibraryRenameDialog.svelte:45 Title](../desktop/src/lib/LibraryRenameDialog.svelte#L45)<br>[LibraryRenameDialog.svelte:46 Year](../desktop/src/lib/LibraryRenameDialog.svelte#L46)<br>[LibraryRenameDialog.svelte:47 Certificate](../desktop/src/lib/LibraryRenameDialog.svelte#L47)<br>[LibraryRenameDialog.svelte:48 Extension](../desktop/src/lib/LibraryRenameDialog.svelte#L48)<br>[LibraryRenameDialog.svelte:49 Year and certificate, when present](../desktop/src/lib/LibraryRenameDialog.svelte#L49)<br>[LibraryRenameDialog.svelte:58 Season and episode](../desktop/src/lib/LibraryRenameDialog.svelte#L58)<br>[LibraryRenameDialog.svelte:59 Episode title](../desktop/src/lib/LibraryRenameDialog.svelte#L59)<br>[LibraryRenameDialog.svelte:60 Series title](../desktop/src/lib/LibraryRenameDialog.svelte#L60)<br>… |
 | `callback:onOpen` | 7 | [HomeDashboard.svelte:126 Open library](../desktop/src/lib/HomeDashboard.svelte#L126)<br>[HomeDashboard.svelte:140 Open organizer](../desktop/src/lib/HomeDashboard.svelte#L140)<br>[HomeDashboard.svelte:150 Open run setup](../desktop/src/lib/HomeDashboard.svelte#L150)<br>[HomeDashboard.svelte:159 Open YouTube prep](../desktop/src/lib/HomeDashboard.svelte#L159)<br>[HomeDashboard.svelte:171 Open Settings](../desktop/src/lib/HomeDashboard.svelte#L171)<br>[HomeDashboard.svelte:202 Reports](../desktop/src/lib/HomeDashboard.svelte#L202)<br>[HomeDashboard.svelte:223 Run setup](../desktop/src/lib/HomeDashboard.svelte#L223) |
 | `callback:openMetadataProviderSettings` | 6 | [MetadataWorkbench.svelte:231 Metadata settings](../desktop/src/lib/MetadataWorkbench.svelte#L231)<br>[MetadataWorkbench.svelte:311 Set up TMDB](../desktop/src/lib/MetadataWorkbench.svelte#L311)<br>[MetadataWorkbench.svelte:314 Set up TheTVDB](../desktop/src/lib/MetadataWorkbench.svelte#L314)<br>[MetadataWorkbench.svelte:317 Review metadata sources and language](../desktop/src/lib/MetadataWorkbench.svelte#L317)<br>[SettingsPreferences.svelte:157 Add TMDB token](../desktop/src/lib/SettingsPreferences.svelte#L157)<br>[SettingsPreferences.svelte:182 Set up TheTVDB access](../desktop/src/lib/SettingsPreferences.svelte#L182) |
@@ -135,7 +135,7 @@ Persistence, readback, and internal callback plumbing are retained in the JSON r
 | `callback:updateMetadataSources` | 4 | [SettingsPreferences.svelte:153 TMDB](../desktop/src/lib/SettingsPreferences.svelte#L153)<br>[SettingsPreferences.svelte:162 Wikidata](../desktop/src/lib/SettingsPreferences.svelte#L162)<br>[SettingsPreferences.svelte:170 TVmaze](../desktop/src/lib/SettingsPreferences.svelte#L170)<br>[SettingsPreferences.svelte:178 TheTVDB](../desktop/src/lib/SettingsPreferences.svelte#L178) |
 | `callback:analyzeFolder` | 3 | [LibraryView.svelte:120 {scanning ? "Scanning" : "Add path"}](../desktop/src/lib/views/LibraryView.svelte#L120)<br>[YouTubePreparation.svelte:32 Scanning Add path to queue](../desktop/src/lib/YouTubePreparation.svelte#L32)<br>[YouTubePreparation.svelte:81 Add path to queue](../desktop/src/lib/YouTubePreparation.svelte#L81) |
 | `callback:browseFile` | 3 | [LibraryQueueStatus.svelte:124 Add files](../desktop/src/lib/LibraryQueueStatus.svelte#L124)<br>[LibraryView.svelte:178 Add files](../desktop/src/lib/views/LibraryView.svelte#L178)<br>[YouTubePreparation.svelte:32 Add files](../desktop/src/lib/YouTubePreparation.svelte#L32) |
-| `callback:loadEnvironment` | 3 | [EnvironmentPanel.svelte:67 Recheck](../desktop/src/lib/views/EnvironmentPanel.svelte#L67)<br>[EnvironmentPanel.svelte:113 Retry check](../desktop/src/lib/views/EnvironmentPanel.svelte#L113)<br>[ShellHeader.svelte:48 Refresh environment](../desktop/src/lib/views/ShellHeader.svelte#L48) |
+| `callback:loadEnvironment` | 3 | [EnvironmentPanel.svelte:67 Recheck](../desktop/src/lib/views/EnvironmentPanel.svelte#L67)<br>[EnvironmentPanel.svelte:113 Retry check](../desktop/src/lib/views/EnvironmentPanel.svelte#L113)<br>[ShellHeader.svelte:55 Refresh environment](../desktop/src/lib/views/ShellHeader.svelte#L55) |
 | `callback:onAddFolder` | 3 | [HomeDashboard.svelte:127 Add folder](../desktop/src/lib/HomeDashboard.svelte#L127)<br>[HomeDashboard.svelte:129 Add folder](../desktop/src/lib/HomeDashboard.svelte#L129)<br>[LibraryQueueStatus.svelte:123 Add folder](../desktop/src/lib/LibraryQueueStatus.svelte#L123) |
 | `callback:setPathsAnimated` | 3 | [LibraryPosterGrid.svelte:128 Animated encode for everything shown](../desktop/src/lib/LibraryPosterGrid.svelte#L128)<br>[LibraryPosterGrid.svelte:224 {card.kind === "media" ? `Animated encode for ${card.filename}` : `An…](../desktop/src/lib/LibraryPosterGrid.svelte#L224)<br>[LibraryTvReview.svelte:175 {level === "episode" ? "Animated encode for this episode" : "Animated…](../desktop/src/lib/LibraryTvReview.svelte#L175) |
 | `callback:addFilenamePattern` | 2 | [SettingsPreferences.svelte:310 {`New ${filter.title.toLowerCase()} pattern`}](../desktop/src/lib/SettingsPreferences.svelte#L310)<br>[SettingsPreferences.svelte:310 Add](../desktop/src/lib/SettingsPreferences.svelte#L310) |
@@ -168,7 +168,7 @@ Persistence, readback, and internal callback plumbing are retained in the JSON r
 
 | Label | Controls | Entry points |
 |---|---:|---|
-| cancel | 8 | [RecoveryReview.svelte:73 Cancel](../desktop/src/lib/RecoveryReview.svelte#L73)<br>[ReportBrowser.svelte:37 Cancel](../desktop/src/lib/ReportBrowser.svelte#L37)<br>[RunSettingsEditor.svelte:220 Cancel](../desktop/src/lib/RunSettingsEditor.svelte#L220)<br>[SettingsPreferences.svelte:289 Cancel](../desktop/src/lib/SettingsPreferences.svelte#L289)<br>[ToolRepairConfirmation.svelte:17 Cancel](../desktop/src/lib/ToolRepairConfirmation.svelte#L17)<br>[WorkbenchDetailPanel.svelte:197 Cancel](../desktop/src/lib/views/WorkbenchDetailPanel.svelte#L197)<br>[WorkbenchMoviesPanel.svelte:189 Cancel](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L189)<br>[WorkbenchMoviesPanel.svelte:237 Cancel](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L237) |
+| cancel | 8 | [RecoveryReview.svelte:73 Cancel](../desktop/src/lib/RecoveryReview.svelte#L73)<br>[ReportBrowser.svelte:37 Cancel](../desktop/src/lib/ReportBrowser.svelte#L37)<br>[RunSettingsEditor.svelte:220 Cancel](../desktop/src/lib/RunSettingsEditor.svelte#L220)<br>[SettingsPreferences.svelte:289 Cancel](../desktop/src/lib/SettingsPreferences.svelte#L289)<br>[ToolRepairConfirmation.svelte:25 Cancel](../desktop/src/lib/ToolRepairConfirmation.svelte#L25)<br>[WorkbenchDetailPanel.svelte:197 Cancel](../desktop/src/lib/views/WorkbenchDetailPanel.svelte#L197)<br>[WorkbenchMoviesPanel.svelte:189 Cancel](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L189)<br>[WorkbenchMoviesPanel.svelte:237 Cancel](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L237) |
 | add folder | 5 | [HomeDashboard.svelte:127 Add folder](../desktop/src/lib/HomeDashboard.svelte#L127)<br>[HomeDashboard.svelte:129 Add folder](../desktop/src/lib/HomeDashboard.svelte#L129)<br>[LibraryQueueStatus.svelte:123 Add folder](../desktop/src/lib/LibraryQueueStatus.svelte#L123)<br>[LibraryView.svelte:178 Add folder](../desktop/src/lib/views/LibraryView.svelte#L178)<br>[YouTubePreparation.svelte:32 Add folder](../desktop/src/lib/YouTubePreparation.svelte#L32) |
 | title | 5 | [LibraryRenameDialog.svelte:45 Title](../desktop/src/lib/LibraryRenameDialog.svelte#L45)<br>[LibraryTvReview.svelte:146 Title](../desktop/src/lib/LibraryTvReview.svelte#L146)<br>[WorkbenchDetailPanel.svelte:257 Title](../desktop/src/lib/views/WorkbenchDetailPanel.svelte#L257)<br>[WorkbenchMoviesPanel.svelte:100 Title](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L100)<br>[WorkbenchMoviesPanel.svelte:228 Title](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L228) |
 | year | 5 | [LibraryRenameDialog.svelte:46 Year](../desktop/src/lib/LibraryRenameDialog.svelte#L46)<br>[LibraryTvReview.svelte:160 Year](../desktop/src/lib/LibraryTvReview.svelte#L160)<br>[WorkbenchDetailPanel.svelte:258 Year](../desktop/src/lib/views/WorkbenchDetailPanel.svelte#L258)<br>[WorkbenchMoviesPanel.svelte:102 Year](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L102)<br>[WorkbenchMoviesPanel.svelte:229 Year](../desktop/src/lib/views/WorkbenchMoviesPanel.svelte#L229) |
@@ -503,9 +503,9 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 
 | Source | Kind | Label | Event / trace | Destination | Guards |
 |---|---|---|---|---|---|
-| [L11](../desktop/src/lib/ToolRepairConfirmation.svelte#L11) | button | Close confirmation | click: `onClose`<br>`onClose` | callback:onClose (boundary) | repairConfirmOpen && environment && aptUpdates |
-| [L17](../desktop/src/lib/ToolRepairConfirmation.svelte#L17) | button | Cancel | click: `onClose`<br>`onClose` | callback:onClose (boundary) | repairConfirmOpen && environment && aptUpdates |
-| [L17](../desktop/src/lib/ToolRepairConfirmation.svelte#L17) | button | Continue to authentication | click: `confirmAptRepair`<br>`confirmAptRepair` → `confirmAptRepair` | callback:confirmAptRepair (boundary) | repairConfirmOpen && environment && aptUpdates |
+| [L12](../desktop/src/lib/ToolRepairConfirmation.svelte#L12) | button | Close confirmation | click: `onClose`<br>`onClose` | callback:onClose (boundary) | open && plan |
+| [L25](../desktop/src/lib/ToolRepairConfirmation.svelte#L25) | button | Cancel | click: `onClose`<br>`onClose` | callback:onClose (boundary) | open && plan |
+| [L25](../desktop/src/lib/ToolRepairConfirmation.svelte#L25) | button | Authenticate once & install Install & update | click: `confirmSetup`<br>`confirmSetup` → `confirmSetup` | callback:confirmSetup (boundary) | open && plan |
 
 ### `desktop/src/lib/UpdateBanner.svelte`
 
@@ -526,7 +526,7 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 | [L80](../desktop/src/lib/views/EnvironmentPanel.svelte#L80) | button | Browse | click: `() => chooseToolPath(tool.key, tool.label)`<br>`chooseToolPath(tool.key, tool.label)` | — | environment; Each(toolPathOptions) |
 | [L80](../desktop/src/lib/views/EnvironmentPanel.svelte#L80) | button | PATH | click: `() => clearToolPath(tool.key)`<br>`clearToolPath(tool.key)` | — | environment; Each(toolPathOptions); toolPathValue(tool.key) |
 | [L86](../desktop/src/lib/views/EnvironmentPanel.svelte#L86) | button | Checking… Check versions | click: `() => checkUbuntuPackageUpdates()` | — | environment; aptHost |
-| [L86](../desktop/src/lib/views/EnvironmentPanel.svelte#L86) | button | Review setup & updates | click: `() => repairApt()`<br>`repairApt` | — | environment; aptHost |
+| [L86](../desktop/src/lib/views/EnvironmentPanel.svelte#L86) | button | Install & update everything | click: `() => reviewSetup()` | — | environment; aptHost |
 | [L90](../desktop/src/lib/views/EnvironmentPanel.svelte#L90) | button | Refresh catalog | click: `() => refreshUbuntuPackageCatalog()`<br>`refreshUbuntuPackageCatalog` | — | environment; aptHost; aptUpdates; aptUpdates.catalog_stale |
 | [L105](../desktop/src/lib/views/EnvironmentPanel.svelte#L105) | button | Copy | click: `() => copyHostSetupCommand()`<br>`copyHostSetupCommand` | — | environment; else(aptHost); hostSetupCommand |
 | [L108](../desktop/src/lib/views/EnvironmentPanel.svelte#L108) | link | hdr10plus_tool | href `https://github.com/quietvoid/hdr10plus_tool/releases/latest` | external:https://github.com/quietvoid/hdr10plus_tool/releases/latest | environment; else(aptHost); environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available) |
@@ -670,11 +670,12 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 
 | Source | Kind | Label | Event / trace | Destination | Guards |
 |---|---|---|---|---|---|
-| [L37](../desktop/src/lib/views/ShellHeader.svelte#L37) | form-control | Appearance | change: `(event) => applyTheme(event.currentTarget.value)`<br>`applyTheme(event.currentTarget.value)` | — | always |
-| [L46](../desktop/src/lib/views/ShellHeader.svelte#L46) | button | {setupGapDetail} | click: `openToolchainSettings`<br>`openToolchainSettings` | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| [L48](../desktop/src/lib/views/ShellHeader.svelte#L48) | button | Refresh environment | click: `loadEnvironment`<br>`loadEnvironment` | callback:loadEnvironment (boundary) | always |
-| [L49](../desktop/src/lib/views/ShellHeader.svelte#L49) | button | Help and commands | click: `() => openPage("help")`<br>`openPage("help")` | page:help | always |
-| [L56](../desktop/src/lib/views/ShellHeader.svelte#L56) | button | Dismiss notification | click: `dismissNotice`<br>`dismissNotice` | callback:dismissNotice (boundary) | notice.message |
+| [L41](../desktop/src/lib/views/ShellHeader.svelte#L41) | form-control | Appearance | change: `(event) => applyTheme(event.currentTarget.value)`<br>`applyTheme(event.currentTarget.value)` | — | always |
+| [L50](../desktop/src/lib/views/ShellHeader.svelte#L50) | button | {setupGapDetail} | click: `openToolchainSettings`<br>`openToolchainSettings` | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
+| [L53](../desktop/src/lib/views/ShellHeader.svelte#L53) | button | {updateDetail} | click: `reviewUpdates`<br>`reviewUpdates` | callback:reviewUpdates (boundary) | updateLabel |
+| [L55](../desktop/src/lib/views/ShellHeader.svelte#L55) | button | Refresh environment | click: `loadEnvironment`<br>`loadEnvironment` | callback:loadEnvironment (boundary) | always |
+| [L56](../desktop/src/lib/views/ShellHeader.svelte#L56) | button | Help and commands | click: `() => openPage("help")`<br>`openPage("help")` | page:help | always |
+| [L63](../desktop/src/lib/views/ShellHeader.svelte#L63) | button | Dismiss notification | click: `dismissNotice`<br>`dismissNotice` | callback:dismissNotice (boundary) | notice.message |
 
 ### `desktop/src/lib/views/ShellSidebar.svelte`
 

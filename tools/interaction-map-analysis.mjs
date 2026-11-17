@@ -96,6 +96,8 @@ const userFacingNativeCommands = new Set([
   "open_file_location",
   "preview_library_rename",
   "preview_queue_output_targets",
+  "provision_plan",
+  "provision_toolchain",
   "refresh_ubuntu_package_catalog",
   "request_stop",
   "scan_folder",

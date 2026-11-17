@@ -152,11 +152,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -170,11 +170,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -197,11 +197,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -224,11 +224,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -260,11 +260,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -287,11 +287,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -729,11 +729,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -747,11 +747,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -774,11 +774,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -801,11 +801,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -837,11 +837,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -864,11 +864,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -1402,11 +1402,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -1420,11 +1420,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -1447,11 +1447,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -1474,11 +1474,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -1510,11 +1510,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -1537,11 +1537,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -2757,11 +2757,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -2775,11 +2775,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -2802,11 +2802,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -2829,11 +2829,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -2865,11 +2865,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -2892,11 +2892,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -4740,11 +4740,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -4758,11 +4758,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -4785,11 +4785,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -4812,11 +4812,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -4848,11 +4848,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -4875,11 +4875,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -6087,11 +6087,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -6105,11 +6105,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -6132,11 +6132,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -6159,11 +6159,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -6195,11 +6195,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -6222,11 +6222,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -6733,11 +6733,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -6751,11 +6751,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -6778,11 +6778,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -6805,11 +6805,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -6841,11 +6841,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -6868,11 +6868,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [
@@ -7856,11 +7856,11 @@
           "clicks": 0,
           "note": "A select action is available but is not a click in the task budgets.",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 37,
+            "line": 41,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
             "kind": "form-control",
             "label": "Appearance",
             "guards": [],
@@ -7874,11 +7874,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:37:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:form-control:41:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 37,
+              "line": 41,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:37:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:41:7",
               "kind": "form-control",
               "label": "Appearance",
               "guards": [],
@@ -7901,11 +7901,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Refresh environment",
             "guards": [
@@ -7928,11 +7928,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Refresh environment",
               "guards": [
@@ -7964,11 +7964,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+            "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
             "file": "desktop/src/lib/views/ShellHeader.svelte",
-            "line": 46,
+            "line": 50,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+            "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
             "kind": "app-click",
             "label": "Help and commands",
             "guards": [
@@ -7991,11 +7991,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellHeader.svelte:button:46:7",
+              "id": "desktop/src/lib/views/ShellHeader.svelte:button:50:7",
               "file": "desktop/src/lib/views/ShellHeader.svelte",
-              "line": 46,
+              "line": 50,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellHeader.svelte:46:7",
+              "source": "desktop/src/lib/views/ShellHeader.svelte:50:7",
               "kind": "app-click",
               "label": "Help and commands",
               "guards": [

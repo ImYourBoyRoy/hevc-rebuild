@@ -39,6 +39,60 @@ pub(crate) async fn check_ubuntu_package_updates() -> Result<Value, String> {
         .map_err(|error| format!("Ubuntu package update check failed: {error}"))?
 }
 
+/// Run one command, elevated with `pkexec` unless already root, streaming its output to the setup
+/// log and the UI. Used for the single batched administrator step.
+fn run_elevated_command(
+    app_handle: &AppHandle,
+    logger: &Arc<tool_diagnostics::ToolSetupLogger>,
+    worker_id: &str,
+    mut command_parts: Vec<String>,
+    stage: String,
+) -> Result<(), String> {
+    if unsafe { libc_geteuid() } != 0 {
+        command_parts.insert(0, "pkexec".into());
+    }
+    let program = command_parts
+        .first()
+        .cloned()
+        .ok_or("The Ubuntu package operation has no executable.")?;
+    emit_repair_line(app_handle, logger, worker_id, stage);
+    let mut child = crate::process_output::spawn_owned(
+        Command::new(program)
+            .args(command_parts.iter().skip(1))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped()),
+    )
+    .map_err(|error| format!("Could not start the APT package operation: {error}"))?;
+    let stderr_thread = child.stderr.take().map(|stream| {
+        forward_repair_lines(
+            app_handle.clone(),
+            worker_id.to_string(),
+            logger.clone(),
+            stream,
+            child.id(),
+        )
+    });
+    let mut output_result = Ok(());
+    if let Some(stdout) = child.stdout.take() {
+        output_result = crate::process_output::read_process_lines(stdout, child.id(), |line| {
+            emit_repair_line(app_handle, logger, worker_id, line);
+        });
+    }
+    let diagnostic_result = match stderr_thread {
+        Some(handle) => handle
+            .join()
+            .unwrap_or_else(|_| Err("Package diagnostic reader panicked.".into())),
+        None => Ok(()),
+    };
+    let reader_result = output_result.and(diagnostic_result);
+    match child.wait() {
+        Ok(_) if reader_result.is_err() => Err(reader_result.err().unwrap_or_default()),
+        Ok(status) if status.success() => Ok(()),
+        Ok(status) => Err(format!("APT package operation exited with {status}.")),
+        Err(error) => Err(format!("Could not wait for APT: {error}")),
+    }
+}
+
 fn start_apt_command_job(
     app: AppHandle,
     state: &RunState,
@@ -74,74 +128,15 @@ fn start_apt_commands_job(
         });
         let mut success = false;
         let mut error_message = None;
-        for (index, mut command_parts) in commands.into_iter().enumerate() {
-            if unsafe { libc_geteuid() } != 0 {
-                command_parts.insert(0, "pkexec".into());
-            }
-            let Some(program) = command_parts.first().cloned() else {
-                error_message = Some("The Ubuntu package operation has no executable.".into());
-                break;
-            };
-            let stage = format!(
-                "Package setup step {} · {}",
-                index + 1,
-                command_parts.join(" ")
-            );
-            emit_repair_line(&app_handle, &logger, &worker_id, stage);
-            match crate::process_output::spawn_owned(
-                Command::new(program)
-                    .args(command_parts.iter().skip(1))
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped()),
-            ) {
-                Ok(mut child) => {
-                    let stderr_thread = child.stderr.take().map(|stream| {
-                        forward_repair_lines(
-                            app_handle.clone(),
-                            worker_id.clone(),
-                            logger.clone(),
-                            stream,
-                            child.id(),
-                        )
-                    });
-                    let mut output_result = Ok(());
-                    if let Some(stdout) = child.stdout.take() {
-                        output_result =
-                            crate::process_output::read_process_lines(stdout, child.id(), |line| {
-                                emit_repair_line(&app_handle, &logger, &worker_id, line);
-                            });
-                    }
-                    let diagnostic_result = match stderr_thread {
-                        Some(handle) => handle
-                            .join()
-                            .unwrap_or_else(|_| Err("Package diagnostic reader panicked.".into())),
-                        None => Ok(()),
-                    };
-                    let reader_result = output_result.and(diagnostic_result);
-                    match child.wait() {
-                        Ok(_) if reader_result.is_err() => {
-                            success = false;
-                            error_message = reader_result.err();
-                        }
-                        Ok(status) if status.success() => success = true,
-                        Ok(status) => {
-                            error_message =
-                                Some(format!("APT package operation exited with {status}."));
-                        }
-                        Err(error) => {
-                            error_message = Some(format!("Could not wait for APT: {error}"));
-                        }
-                    }
-                }
+        for (index, command_parts) in commands.into_iter().enumerate() {
+            let stage = format!("Package setup step {} · {}", index + 1, command_parts.join(" "));
+            match run_elevated_command(&app_handle, &logger, &worker_id, command_parts, stage) {
+                Ok(()) => success = true,
                 Err(error) => {
-                    error_message = Some(format!(
-                        "Could not start the APT package operation: {error}"
-                    ));
+                    success = false;
+                    error_message = Some(error);
+                    break;
                 }
-            }
-            if error_message.is_some() {
-                success = false;
-                break;
             }
         }
         logger.finish(success, error_message.as_deref());
@@ -480,4 +475,65 @@ pub(crate) async fn install_hdr10plus(
     }
     release_job(&run_state, &id);
     result
+}
+
+#[tauri::command]
+pub(crate) async fn provision_plan(tool_paths: ToolPaths) -> Result<Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        provision::current_plan(tool_paths).map(|(plan, error)| provision::plan_json(&plan, error.as_deref()))
+    })
+    .await
+    .map_err(|error| format!("Setup plan failed: {error}"))?
+}
+
+/// Install and update everything in one pass: a single administrator prompt covers the catalog
+/// refresh, missing packages and package updates; the HDR10+ helper is then installed or updated
+/// in user space. The plan is recomputed here so the job never runs a stale or caller-supplied list.
+#[tauri::command]
+pub(crate) async fn provision_toolchain(
+    app: AppHandle,
+    state: State<'_, RunState>,
+    tool_paths: ToolPaths,
+) -> Result<String, String> {
+    let (plan, _) = tauri::async_runtime::spawn_blocking(move || provision::current_plan(tool_paths))
+        .await
+        .map_err(|error| format!("Setup plan failed: {error}"))??;
+    if plan.nothing_to_do() {
+        return Err("Everything is already installed and up to date.".into());
+    }
+    let id = new_job_id();
+    claim_job(state.inner(), new_active_job(id.clone(), None))?;
+    let run_state = state.inner().clone();
+    let worker_id = id.clone();
+    thread::spawn(move || {
+        let app_handle = app;
+        let logger = Arc::new(match tool_setup_log_directory() {
+            Ok(directory) => tool_diagnostics::ToolSetupLogger::create(&directory, &worker_id, "One-pass toolchain setup"),
+            Err(error) => tool_diagnostics::ToolSetupLogger::unavailable(error),
+        });
+        let mut outcome: Result<(), String> = Ok(());
+        if let Some(script) = provision::privileged_script(&plan) {
+            outcome = run_elevated_command(
+                &app_handle,
+                &logger,
+                &worker_id,
+                vec!["sh".into(), "-c".into(), script],
+                "Administrator step · refresh catalog, install and update packages (one prompt)".into(),
+            );
+        }
+        if outcome.is_ok() && plan.helper.needs_work() {
+            emit_repair_line(&app_handle, &logger, &worker_id, "HDR10+ helper · download, verify digest and install (no password)".into());
+            outcome = dependencies::install_latest_hdr10plus_tool().map(|path| {
+                emit_repair_line(&app_handle, &logger, &worker_id, format!("HDR10+ helper installed at {path}."));
+            });
+        }
+        let error_message = outcome.err();
+        logger.finish(error_message.is_none(), error_message.as_deref());
+        let _ = app_handle.emit(
+            "repair-finished",
+            json!({"jobId": worker_id, "success": error_message.is_none(), "error": error_message, "logWarning": logger.warning()}),
+        );
+        release_job(&run_state, &worker_id);
+    });
+    Ok(id)
 }

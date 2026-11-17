@@ -35,6 +35,7 @@ mod commands_queue;
 mod commands_workspace;
 mod content;
 mod dependencies;
+mod provision;
 mod encode_plan;
 mod encode_run;
 mod encode_supervisor;
@@ -106,7 +107,7 @@ pub(crate) use apt_policy::{
     validate_apt_toolchain_confirmation, validate_apt_update_confirmation,
     validate_apt_upgrade_plan, APT_ALLOWLIST,
 };
-pub(crate) use cli_apt::{run_json_cli_apt_refresh, run_json_cli_apt_upgrade};
+pub(crate) use cli_apt::{run_json_cli_apt_refresh, run_json_cli_apt_upgrade, run_json_cli_provision};
 pub(crate) use cli_json::run_json_cli;
 pub use cli_modes::{cli_mode, internal_cli_mode, mcp_mode, metadata_cli_mode, organizer_cli_mode};
 pub(crate) use executable_lookup::executable_in_path;
@@ -272,6 +273,8 @@ pub fn run() {
             apt_commands::install_ubuntu_toolchain,
             apt_commands::install_apt_tools,
             apt_commands::install_hdr10plus,
+            apt_commands::provision_plan,
+            apt_commands::provision_toolchain,
         ])
         .build(tauri::generate_context!())
         .expect("error while building HEVC Rebuild Studio")

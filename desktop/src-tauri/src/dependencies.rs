@@ -158,21 +158,8 @@ pub(crate) fn install_latest_hdr10plus_tool() -> Result<String, String> {
     }
 
     let (token, suffix) = hdr10plus_asset_selector()?;
-    let client = reqwest::blocking::Client::builder()
-        .user_agent(concat!("hevc-rebuild-studio/", env!("CARGO_PKG_VERSION")))
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|error| format!("Could not configure the HDR10+ helper download: {error}"))?;
-
-    let release_bytes = fetch_limited(
-        &client,
-        HDR10PLUS_RELEASE_API,
-        &["api.github.com"],
-        MAX_RELEASE_JSON_BYTES,
-    )?;
-    let release: Value = serde_json::from_slice(&release_bytes).map_err(|error| {
-        format!("The official HDR10+ release response was invalid JSON: {error}")
-    })?;
+    let client = hdr10plus_http_client()?;
+    let release = fetch_latest_hdr10plus_release(&client)?;
     let assets = release
         .get("assets")
         .and_then(Value::as_array)
@@ -231,6 +218,50 @@ pub(crate) fn install_latest_hdr10plus_tool() -> Result<String, String> {
         ));
     };
     Ok(path.to_string_lossy().into_owned())
+}
+
+fn hdr10plus_http_client() -> Result<reqwest::blocking::Client, String> {
+    reqwest::blocking::Client::builder()
+        .user_agent(concat!("hevc-rebuild-studio/", env!("CARGO_PKG_VERSION")))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|error| format!("Could not configure the HDR10+ helper download: {error}"))
+}
+
+fn fetch_latest_hdr10plus_release(client: &reqwest::blocking::Client) -> Result<Value, String> {
+    let release_bytes = fetch_limited(
+        client,
+        HDR10PLUS_RELEASE_API,
+        &["api.github.com"],
+        MAX_RELEASE_JSON_BYTES,
+    )?;
+    serde_json::from_slice(&release_bytes).map_err(|error| {
+        format!("The official HDR10+ release response was invalid JSON: {error}")
+    })
+}
+
+/// Latest published hdr10plus_tool version (for example "1.7.1"), or an error when offline.
+pub(crate) fn latest_hdr10plus_version() -> Result<String, String> {
+    let client = hdr10plus_http_client()?;
+    let release = fetch_latest_hdr10plus_release(&client)?;
+    let tag = release
+        .get("tag_name")
+        .and_then(Value::as_str)
+        .ok_or("The official HDR10+ release response had no version tag.")?;
+    parse_tool_version(tag)
+        .ok_or_else(|| "The official HDR10+ release tag was not a recognizable version.".into())
+}
+
+/// Installed helper version from a prior environment check, if the helper is present.
+pub(crate) fn installed_hdr10plus_version(environment: &Value) -> Option<String> {
+    environment
+        .get("checks")
+        .and_then(Value::as_array)?
+        .iter()
+        .find(|check| check.get("key").and_then(Value::as_str) == Some("hdr10plus_tool"))
+        .filter(|check| check.get("available").and_then(Value::as_bool) == Some(true))
+        .and_then(|check| check.get("version").and_then(Value::as_str))
+        .and_then(parse_tool_version)
 }
 
 fn hdr10plus_asset_selector() -> Result<(&'static str, &'static str), String> {

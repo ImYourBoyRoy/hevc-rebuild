@@ -7,6 +7,7 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { currentMonitor, getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
   import ToolRepairConfirmation from "#lib/ToolRepairConfirmation.svelte";
+  import { SETUP_CHECK_INTERVAL_MS, setupUpdateSummary } from "#lib/setup-updates.js";
   import RecoveryReview from "#lib/RecoveryReview.svelte";
   import { createWorkspaceState } from "#lib/workspace.svelte.js";
   import { RunEventBuffer, selectQueuePaths } from "#lib/workspace-state.js";
@@ -175,8 +176,8 @@
     removeMetadataBlacklistPattern, clearMetadataBlacklist, addFilenamePattern, removeFilenamePattern, clearFilenamePatterns,
   } = createSettingsController({ invoke, isDesktop: () => appState.desktopShell, host: settingsState, persistPreferences });
   const {
-    loadEnvironment, packageUpdateForTool, repairApt, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, refreshToolSetupLogs, openToolSetupLog,
-    exportToolSetupLog, confirmAptRepair, handleRepairLine, handleRepairLogWarning, handleRepairFinished,
+    loadEnvironment, packageUpdateForTool, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, refreshToolSetupLogs, openToolSetupLog,
+    exportToolSetupLog, reviewSetup, confirmSetup, checkSetupUpdates, handleRepairLine, handleRepairLogWarning, handleRepairFinished,
   } = createToolSetupController({ invoke, isDesktop: () => appState.desktopShell, host: toolSetup, dialogs: { save: (options) => saveDialog(options) } });
   const { openPage, navItemActive, openProgressDetails, openMetadataProviderSettings } = createAppNavigation({
     host: composeHost({ get runMode() { return workspace.run.mode; } }, stateHost),
@@ -375,12 +376,16 @@
     env: { document, window, localStorage, isTauri, listen, getCurrentWindow, openUrl },
     actions: {
       restoreWindowState, publishTheme, applyToolPaths, persistPreferences, loadMediaQueue, loadEnvironment, loadSettings, loadReports, refreshToolSetupLogs,
-      refreshTmdbCredentialStatus, refreshTvdbCredentialStatus, checkUbuntuPackageUpdates, noteRunProgress, finishRun, handleRepairLine, handleRepairLogWarning,
+      refreshTmdbCredentialStatus, refreshTvdbCredentialStatus, checkUbuntuPackageUpdates, checkSetupUpdates, noteRunProgress, finishRun, handleRepairLine, handleRepairLogWarning,
       handleRepairFinished, addQueueSources, openPage, scheduleWindowStateSave, handleAgentControlRequest, handleUtilityContextMenu, closeContextMenu,
     },
   });
   installAppEffects({ workspace, derived, appState, scanState, reviewState, libraryUi, runUi, invoke, localRecordFromAsset, seriesReviewStorageKey, ensureQueueArtworkPreview, reviewedSeriesForPath, seriesSuggestionArtwork, persistQueueSelection, persistQueueMovieReviews, persistQueueSeriesReviews, refreshArtworkCache });
-  onMount(() => startApp());
+  onMount(() => {
+    const stopApp = startApp();
+    const recheck = window.setInterval(() => void checkSetupUpdates(), SETUP_CHECK_INTERVAL_MS);
+    return () => { window.clearInterval(recheck); stopApp(); };
+  });
 </script>
 
 <svelte:window onkeydown={handleGlobalKeydown} />
@@ -411,7 +416,7 @@
 
   <main class="main-panel">
     <ThemeBackdrop theme={appState.theme} />
-    <ShellHeader page={appState.page} theme={appState.theme} environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} booting={appState.booting} setupGapDetail={derived.setupGapDetail} setupGapLabel={derived.setupGapLabel} notice={workspace.notice} {applyTheme} {openPage} {openToolchainSettings} {loadEnvironment} dismissNotice={() => (workspace.notice.message = "")} />
+    <ShellHeader page={appState.page} theme={appState.theme} environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} booting={appState.booting} setupGapDetail={derived.setupGapDetail} setupGapLabel={derived.setupGapLabel} notice={workspace.notice} updateLabel={setupUpdateSummary(toolSetup.setupUpdates)?.label ?? ""} updateDetail={setupUpdateSummary(toolSetup.setupUpdates)?.detail ?? ""} reviewUpdates={reviewSetup} {applyTheme} {openPage} {openToolchainSettings} {loadEnvironment} dismissNotice={() => (workspace.notice.message = "")} />
 
     <UpdateBanner blocked={derived.workflowBusy} />
 
@@ -425,7 +430,7 @@
       {:else if appState.page === "settings"}
         {#await import("#lib/SettingsPreferences.svelte") then { default: SettingsPreferences }}
         <SettingsPreferences preferenceStorage={appState.preferenceStorage} bind:settings={settingsState.settings} settingsChanged={derived.settingsChanged} workflowBusy={derived.workflowBusy} appPreferences={appState.appPreferences} bind:metadataLanguageDraft={settingsState.metadataLanguageDraft} tmdbCredentialStatus={credentials.tmdbCredentialStatus} tvdbCredentialStatus={credentials.tvdbCredentialStatus} desktopShell={appState.desktopShell} bind:tmdbTokenDraft={credentials.tmdbTokenDraft} bind:tmdbTokenVisible={credentials.tmdbTokenVisible} tmdbCredentialBusy={credentials.tmdbCredentialBusy} bind:tvdbApiKeyDraft={credentials.tvdbApiKeyDraft} bind:tvdbCredentialsVisible={credentials.tvdbCredentialsVisible} tvdbCredentialBusy={credentials.tvdbCredentialBusy} bind:tvdbSubscriberPinDraft={credentials.tvdbSubscriberPinDraft} bind:tvdbAccessConfirmed={credentials.tvdbAccessConfirmed} artworkCacheLoading={artwork.artworkCacheLoading} artworkCachePurging={artwork.artworkCachePurging} artworkCacheInfo={artwork.artworkCacheInfo} artworkCacheError={artwork.artworkCacheError} bind:artworkCacheConfirm={artwork.artworkCacheConfirm} bind:newFilenameIncludePattern={settingsState.newFilenameIncludePattern} bind:newFilenameExcludePattern={settingsState.newFilenameExcludePattern} filenameFilterError={settingsState.filenameFilterError} bind:newMetadataBlacklistPattern={settingsState.newMetadataBlacklistPattern} metadataBlacklistError={settingsState.metadataBlacklistError} workDirectory={settingsState.workDirectory} {previewWorkDirectory} {saveSettings} {persistPreferences} {saveMetadataLanguageDraft} {updateMetadataSources} {openMetadataProviderSettings} {toggleTmdbCredentialVisibility} {saveTmdbCredential} {removeTmdbCredential} {toggleTvdbCredentialVisibility} {saveTvdbCredential} {removeTvdbCredential} {refreshArtworkCache} {bytes} {purgeUnusedArtworkCache} {addFilenamePattern} {clearFilenamePatterns} {removeFilenamePattern} {addMetadataBlacklistPattern} {clearMetadataBlacklist} {removeMetadataBlacklistPattern}>
-          {#snippet environmentPanel()}<EnvironmentPanel environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} environmentError={toolSetup.environmentError} booting={appState.booting} desktopShell={appState.desktopShell} workflowBusy={derived.workflowBusy} settings={settingsState.settings} aptHost={derived.aptHost} aptChecking={toolSetup.aptChecking} aptUpdates={toolSetup.aptUpdates} packageManagerLabel={derived.packageManagerLabel} hostSetupShell={derived.hostSetupShell} hostSetupCommand={derived.hostSetupCommand} repairId={toolSetup.repairId} hdrInstalling={toolSetup.hdrInstalling} repairSummary={toolSetup.repairSummary} repairSummaryIsError={toolSetup.repairSummaryIsError} repairLogWarning={toolSetup.repairLogWarning} repairLines={toolSetup.repairLines} repairToolOutcomes={toolSetup.repairToolOutcomes} toolSetupLogs={toolSetup.toolSetupLogs} toolSetupLogLoading={toolSetup.toolSetupLogLoading} toolSetupLogError={toolSetup.toolSetupLogError} toolSetupLogExporting={toolSetup.toolSetupLogExporting} {toolPathOptions} {toolPathValue} {setToolPathValue} {chooseToolPath} {clearToolPath} {saveToolPaths} {loadEnvironment} {checkUbuntuPackageUpdates} {refreshUbuntuPackageCatalog} {repairApt} {packageUpdateForTool} {openToolSetupLog} {exportToolSetupLog} {copyHostSetupCommand} {openPage} bind:selectedToolSetupLog={toolSetup.selectedToolSetupLog} bind:viewedToolSetupLog={toolSetup.viewedToolSetupLog} />{/snippet}
+          {#snippet environmentPanel()}<EnvironmentPanel environment={toolSetup.environment} environmentLoading={toolSetup.environmentLoading} environmentError={toolSetup.environmentError} booting={appState.booting} desktopShell={appState.desktopShell} workflowBusy={derived.workflowBusy} settings={settingsState.settings} aptHost={derived.aptHost} aptChecking={toolSetup.aptChecking} aptUpdates={toolSetup.aptUpdates} packageManagerLabel={derived.packageManagerLabel} hostSetupShell={derived.hostSetupShell} hostSetupCommand={derived.hostSetupCommand} repairId={toolSetup.repairId} hdrInstalling={toolSetup.hdrInstalling} repairSummary={toolSetup.repairSummary} repairSummaryIsError={toolSetup.repairSummaryIsError} repairLogWarning={toolSetup.repairLogWarning} repairLines={toolSetup.repairLines} repairToolOutcomes={toolSetup.repairToolOutcomes} toolSetupLogs={toolSetup.toolSetupLogs} toolSetupLogLoading={toolSetup.toolSetupLogLoading} toolSetupLogError={toolSetup.toolSetupLogError} toolSetupLogExporting={toolSetup.toolSetupLogExporting} {toolPathOptions} {toolPathValue} {setToolPathValue} {chooseToolPath} {clearToolPath} {saveToolPaths} {loadEnvironment} {checkUbuntuPackageUpdates} {refreshUbuntuPackageCatalog} {reviewSetup} {packageUpdateForTool} {openToolSetupLog} {exportToolSetupLog} {copyHostSetupCommand} {openPage} bind:selectedToolSetupLog={toolSetup.selectedToolSetupLog} bind:viewedToolSetupLog={toolSetup.viewedToolSetupLog} />{/snippet}
         </SettingsPreferences>
         {/await}
 
@@ -487,5 +492,5 @@
     onClose={() => runUi.runSettingsEditorOpen = false}
   />
 
-<ToolRepairConfirmation repairConfirmOpen={toolSetup.repairConfirmOpen} environment={toolSetup.environment} aptUpdates={toolSetup.aptUpdates} workflowBusy={derived.workflowBusy} {confirmAptRepair} onClose={() => toolSetup.repairConfirmOpen = false} />
+<ToolRepairConfirmation open={toolSetup.setupConfirmOpen} plan={toolSetup.setupPlan} workflowBusy={derived.workflowBusy} {confirmSetup} onClose={() => toolSetup.setupConfirmOpen = false} />
 </div>

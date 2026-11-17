@@ -18,7 +18,7 @@ export function harness({ desktop = true, invokeImpl = {}, hostOver = {}, saveRe
   const invokes = [];
   const state = {
     environment: aptEnvironment(), environmentLoading: false, environmentError: "",
-    aptUpdates: null, aptChecking: false, repairConfirmOpen: false, repairId: "", activeToolSetupLogId: "", packageJobKind: null,
+    aptUpdates: null, aptChecking: false, repairConfirmOpen: false, setupConfirmOpen: false, setupPlan: null, setupUpdates: null, repairId: "", activeToolSetupLogId: "", packageJobKind: null,
     repairLines: [], repairSummary: "", repairSummaryIsError: false, repairLogWarning: "",
     toolSetupLogs: [], selectedToolSetupLog: "", viewedToolSetupLog: "", toolSetupLogLoading: false, toolSetupLogError: "", toolSetupLogExporting: false,
     repairToolChecksBefore: null, repairAffectedToolKeys: [], repairToolOutcomes: [], hdrInstalling: false,

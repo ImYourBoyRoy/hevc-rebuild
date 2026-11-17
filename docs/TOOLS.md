@@ -59,9 +59,25 @@ sudo apt update
 sudo apt install ffmpeg mediainfo mkvtoolnix fontconfig
 ```
 
-The desktop setup screen performs the same package review with explicit
-administrator confirmation. The GUI, CLI, and MCP workflows themselves remain
-native Rust; the commands above are only the host-tool installation lane.
+The desktop setup screen does all of this in **one pass** ("Install & update
+everything"): it shows the plan, asks for your administrator password **once**
+(a single `pkexec` step that refreshes the catalog, installs missing packages
+and updates the fixed package list, with `--no-remove`), then installs or updates
+the HDR10+ helper in user space, which needs no password. The helper is checked
+against the latest upstream release, so an out-of-date copy is updated, not just
+a missing one. The same plan is available to automation:
+
+```bash
+hevc-rebuild-studio json provision-plan            # read-only: what would run, whether a password is needed
+hevc-rebuild-studio json provision --confirm       # runs it; sudo asks for the password once on the terminal
+```
+
+MCP exposes `plan_system_setup` (read-only) and `provision_system`
+(`confirm_plan=true`); the password prompt appears on the user's desktop and the
+model never sees it. The app re-checks packages and the helper at launch and every
+six hours and shows an "N UPDATES" notice in the header when something is missing
+or outdated. The GUI, CLI, and MCP workflows themselves remain native Rust; the
+commands above are only the host-tool installation lane.
 
 ## Windows
 

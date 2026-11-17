@@ -23,8 +23,12 @@
     openToolchainSettings: () => unknown;
     loadEnvironment: () => unknown;
     dismissNotice: () => void;
+    /** Header notice for missing or outdated tools; empty when everything is current. */
+    updateLabel?: string;
+    updateDetail?: string;
+    reviewUpdates?: () => unknown;
   }
-  let { page, theme, environment, environmentLoading, booting, setupGapDetail, setupGapLabel, notice, applyTheme, openPage, openToolchainSettings, loadEnvironment, dismissNotice }: Props = $props();
+  let { page, theme, environment, environmentLoading, booting, setupGapDetail, setupGapLabel, notice, applyTheme, openPage, openToolchainSettings, loadEnvironment, dismissNotice, updateLabel = "", updateDetail = "", reviewUpdates = () => {} }: Props = $props();
   const current = $derived(themes.find((item) => item.id === theme));
 </script>
 
@@ -44,6 +48,9 @@
       <span class="status-pill neutral"><LoaderCircle size={14} class="spin" /> CHECKING</span>
     {:else}
       <button class="status-pill warning" aria-label={setupGapDetail} title={setupGapDetail} onclick={openToolchainSettings}><AlertTriangle size={14} /><span>{setupGapLabel}</span></button>
+    {/if}
+    {#if updateLabel}
+      <button class="status-pill warning" aria-label={updateDetail} title={updateDetail} onclick={reviewUpdates}><AlertTriangle size={14} /><span>{updateLabel}</span></button>
     {/if}
     <button class="icon-button" aria-label="Refresh environment" title="Refresh environment" disabled={environmentLoading} onclick={loadEnvironment}><RefreshCw size={17} class={environmentLoading ? "spin" : ""} /></button>
     <button class="icon-button" class:active-help={page === "help"} aria-label="Help and commands" title="Help and commands" aria-current={page === "help" ? "page" : undefined} onclick={() => openPage("help")}><HelpCircle size={17} /></button>

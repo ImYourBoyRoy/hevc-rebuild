@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 551 |
-| Text lines | 220,457 |
-| Size on disk | 14711.1 KiB |
+| Files | 555 |
+| Text lines | 222,101 |
+| Size on disk | 14807.5 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 0 |
 
@@ -23,7 +23,7 @@ No file exceeds its advisory line budget.
 
 ### `/`
 
-15 files · 1,852 lines · 204.3 KiB
+15 files · 1,854 lines · 206.7 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -35,7 +35,7 @@ No file exceeds its advisory line budget.
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 853 | 166.0 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 855 | 168.4 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 277 | 13.3 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -78,13 +78,13 @@ No file exceeds its advisory line budget.
 
 ### `desktop/`
 
-9 files · 2,460 lines · 112.8 KiB
+9 files · 2,461 lines · 112.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitignore` | 10 | 132 B | Desktop-local ignore rules. |
 | `CSS_CONTRACT.md` | 47 | 14.9 KiB | Theme, cascade and responsive CSS contract. |
-| `package.json` | 112 | 7.3 KiB | Frontend manifest: dependencies, pinned package manager, build and test scripts. |
+| `package.json` | 113 | 7.3 KiB | Frontend manifest: dependencies, pinned package manager, build and test scripts. |
 | `pnpm-lock.yaml` | 2,058 | 65.5 KiB | Frontend lockfile (committed for reproducible installs). |
 | `pnpm-workspace.yaml` | 16 | 651 B | pnpm workspace and build-script allowlist. |
 | `README.md` | 115 | 7.3 KiB | Desktop app build, test and architecture guide. |
@@ -254,21 +254,21 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src-tauri/src/`
 
-69 files · 31,434 lines · 1089.2 KiB
+70 files · 31,963 lines · 1110.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `agent_control.rs` | 585 | 20.0 KiB | Opt-in local Unix-socket or Windows named-pipe control channel for native maintainer walkthroughs; bounded keyboard/state protocol only. |
 | `app_paths.rs` | 225 | 8.1 KiB | Per-user application config, state, cache and queue locations, including AppImage portable storage. |
 | `app_preferences.rs` | 674 | 27.1 KiB | Saved application preferences: defaults, normalization and the load/save commands. |
-| `apt_commands.rs` | 483 | 17.2 KiB | Tauri commands that check, refresh, upgrade and repair Ubuntu packages and install HDR10+ tooling. |
+| `apt_commands.rs` | 539 | 19.4 KiB | Tauri commands that check, refresh, upgrade and repair Ubuntu packages and install HDR10+ tooling. |
 | `apt_policy.rs` | 294 | 10.0 KiB | Allow-list and confirmation rules for Ubuntu package operations shared by the GUI, CLI and MCP. |
 | `argument_tests.rs` | 372 | 12.7 KiB | Characterization tests for the engine arguments built from settings, selections and overrides. |
 | `backup_folder.rs` | 143 | 5.5 KiB | Where the originals go after a rebuild. |
 | `batch_plan.rs` | 778 | 27.3 KiB | Planning, storage forecasting, and live tracking for unattended library rebuilds started through MCP. |
 | `calibration.rs` | 1,283 | 43.4 KiB | Native benchmark execution and cache policy for x265 thread calibration. |
-| `cli_apt.rs` | 216 | 7.1 KiB | The `json apt-refresh` and `json apt-upgrade` actions and their confirmation-gated apt runner. |
-| `cli_json.rs` | 570 | 19.1 KiB | The installed `json` command: scan, queue, work-directory, artwork-cache, environment and report actions. |
+| `cli_apt.rs` | 268 | 8.9 KiB | The `json apt-refresh` and `json apt-upgrade` actions and their confirmation-gated apt runner. |
+| `cli_json.rs` | 576 | 19.3 KiB | The installed `json` command: scan, queue, work-directory, artwork-cache, environment and report actions. |
 | `cli_modes.rs` | 238 | 8.8 KiB | Process entry points for the `cli`, `json`, internal, metadata, organizer and MCP command-line modes. |
 | `commands_library.rs` | 132 | 4.1 KiB | Tauri commands for library artwork, local asset scans, folder organizing and file reveal. |
 | `commands_logs.rs` | 108 | 3.9 KiB | Tauri commands for reports, tool-setup logs and confined diagnostic log reads. |
@@ -276,7 +276,7 @@ No file exceeds its advisory line budget.
 | `commands_queue.rs` | 79 | 2.8 KiB | Tauri commands that load and save the persisted library queue and preview output targets. |
 | `commands_workspace.rs` | 117 | 4.0 KiB | Tauri commands for environment inspection, effective settings, work directory and folder scans. |
 | `content.rs` | 335 | 11.8 KiB | Read-only content genre and x265 tune decisions shared by the scanner and the encoder planning. |
-| `dependencies.rs` | 913 | 33.7 KiB | Read-only cached APT installed/candidate version report. |
+| `dependencies.rs` | 944 | 35.0 KiB | Read-only cached APT installed/candidate version report. |
 | `encode_plan.rs` | 886 | 32.5 KiB | Rust-owned FFmpeg/x265 argument planning. |
 | `encode_run.rs` | 626 | 21.3 KiB | Native FFmpeg encode supervisor. |
 | `encode_supervisor.rs` | 320 | 10.6 KiB | Own the FFmpeg child process for media runs launched through the Rust app. |
@@ -285,7 +285,7 @@ No file exceeds its advisory line budget.
 | `hdr_metadata.rs` | 1,193 | 41.3 KiB | HDR10+ extraction/verification and Dolby Vision preservation or fallback eligibility. |
 | `integrity.rs` | 985 | 31.5 KiB | Native read-only media integrity checks. |
 | `job_state.rs` | 181 | 5.3 KiB | The single active-job slot behind the desktop run controls, plus the events a job emits to the window. |
-| `lib.rs` | 287 | 10.8 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
+| `lib.rs` | 290 | 11.0 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
 | `library_artwork.rs` | 396 | 15.8 KiB | Confirmed provider/local artwork saves, cache inspection and reviewed purge. |
 | `library_assets.rs` | 628 | 20.4 KiB | Bounded adjacent-artwork inspection (never reads NFO sidecars). |
 | `library_metadata.rs` | 234 | 7.1 KiB | Bounded public-provider requests, title-clue parser and metadata review data. |
@@ -305,6 +305,7 @@ No file exceeds its advisory line budget.
 | `packet_verify.rs` | 497 | 16.3 KiB | Streams FFmpeg framehash output into fixed-size packet digests. |
 | `process_output.rs` | 225 | 8.1 KiB | Process output readers stop on the first I/O error and preserve prior lines. |
 | `profile_cache.rs` | 82 | 2.5 KiB | Bounded process-local profile cache. |
+| `provision.rs` | 381 | 15.3 KiB | One-pass toolchain provisioning: a pure plan for "install and update everything" that needs at most one administrator prompt. |
 | `quality_gate.rs` | 432 | 14.6 KiB | Sampled picture-quality check (SSIM) used before an output replaces its source. |
 | `rebuild_run.rs` | 506 | 16.3 KiB | Native Short-Test and Full Rebuild coordinator: discovery, profiling, stream selection, HDR/DV policy, calibration, encode with memory retries, metadata, validation, and durable install. |
 | `reports.rs` | 696 | 24.7 KiB | CSV run-report schema, locked atomic append, history listing and reading. |
@@ -369,16 +370,16 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src-tauri/src/mcp_server/`
 
-9 files · 4,350 lines · 172.1 KiB
+9 files · 4,433 lines · 175.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `apt.rs` | 203 | 6.5 KiB | Ubuntu package jobs (refresh, upgrade, repair) run through allow-listed apt commands. |
+| `apt.rs` | 234 | 7.6 KiB | Ubuntu package jobs (refresh, upgrade, repair) run through allow-listed apt commands. |
 | `batch_tool_tests.rs` | 431 | 16.1 KiB | Tests for the unattended batch tools, driven through the same methods the router calls. |
 | `batch.rs` | 227 | 8.6 KiB | Planning helpers for unattended library batches: which files, how much disk, what free-space floor, and whether a plan can still start. |
 | `exec.rs` | 635 | 22.0 KiB | Job executors: run a prepared request on the native Rust engines, publish live progress and per-file results into the job registry, and set the final status. |
-| `mod.rs` | 1,435 | 66.5 KiB | Typed local stdio MCP server: tool router, tracked jobs, bounded output, startup. |
-| `params.rs` | 262 | 10.8 KiB | Request parameter types for the MCP tools. |
+| `mod.rs` | 1,481 | 69.0 KiB | Typed local stdio MCP server: tool router, tracked jobs, bounded output, startup. |
+| `params.rs` | 268 | 11.0 KiB | Request parameter types for the MCP tools. |
 | `prepare.rs` | 475 | 18.7 KiB | Turns a tool request into validated engine arguments (`prepare_media_run`) and checks a queue of such runs together before anything starts. |
 | `queue_sync_tests.rs` | 224 | 7.7 KiB | Tests for queue status synchronization. |
 | `queue_sync.rs` | 458 | 15.3 KiB | Keeps the saved GUI/MCP media queue in step with run results: marks entries running, then records outcomes from each run's own CSV report, never assuming comple |
@@ -483,11 +484,11 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src/lib/`
 
-83 files · 12,965 lines · 694.5 KiB
+84 files · 13,064 lines · 699.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `app-boot.ts` | 322 | 16.2 KiB | App boot and native listener wiring extracted from the route: initialize() (preferences, legacy migration, window restore, queue, startup loads), browser-preview preferences, the mount sequence, scan/run/repair/drag-drop/resize/agent-control listeners, cleanup and the external-link handler; typed AppBootHost with injected DOM, window, storage and Tauri APIs. |
+| `app-boot.ts` | 324 | 16.3 KiB | App boot and native listener wiring extracted from the route: initialize() (preferences, legacy migration, window restore, queue, startup loads), browser-preview preferences, the mount sequence, scan/run/repair/drag-drop/resize/agent-control listeners, cleanup and the external-link handler; typed AppBootHost with injected DOM, window, storage and Tauri APIs. |
 | `app-input.ts` | 249 | 10.3 KiB | Global keyboard shortcuts, the native agent-control channel and the native context menus extracted from the route; typed AppInputHost with injected DOM, window, menu API and actions. |
 | `app-navigation.ts` | 63 | 2.6 KiB | Page navigation extracted from the route (active sidebar item, page switch with the YouTube run mode, progress details jump, open Settings at a provider credential field); typed AppNavigationHost, injected DOM and frame timing. |
 | `artwork-controller.ts` | 144 | 5.9 KiB | Queue poster previews (library-root check, 24-entry cache, lazy observer loading) and the app artwork cache inspect/purge flow extracted from the route; typed ArtworkHost, injected bridge and observer. |
@@ -552,14 +553,15 @@ No file exceeds its advisory line budget.
 | `search-panel.ts` | 174 | 6.7 KiB | Title search panel extracted from MetadataWorkbench (open a search for a movie or series record, run it with its guards and resets, close it, series year mismatch, collapsed candidate lists, reviewed series root); typed SearchPanelHost over the workbench state instances, injected provider calls; tested by test:search-panel. |
 | `settings-controller.ts` | 194 | 8.9 KiB | Effective-settings load/reset/save, work-directory preview, metadata language draft and provider toggles, title-cleanup blacklist and filename filters extracted from the route; typed SettingsHost, injected bridge and persistence. |
 | `SettingsPreferences.svelte` | 342 | 33.6 KiB | Settings view: preferences, provider credentials, artwork cache. |
+| `setup-updates.ts` | 28 | 1.5 KiB | Turns the one-pass setup plan into the header notice for missing or out-of-date tools, and names how often the app re-checks. |
 | `telemetry-format.ts` | 14 | 988 B | Number/byte/percent formatting for telemetry. |
 | `theme-transition.ts` | 87 | 3.1 KiB | Runs a theme switch as a smooth cross-fade instead of a hard cut. |
 | `ThemeBackdrop.svelte` | 103 | 4.5 KiB | Decorative animated canvas behind the work area for the themed skins (matrix rain, plasma, sparks, projector); drives lib/backdrop and pauses when hidden or under reduced motion. |
 | `themes.ts` | 56 | 3.0 KiB | Registry of the application themes. |
 | `tool-paths.ts` | 138 | 5.0 KiB | Executable tool paths extracted from the route (six path drafts, normalize and apply saved paths, save and recheck, choose or clear, toolchain settings shortcut, copy host setup command); typed ToolPathsHost, injected dialog, clipboard and DOM lookup. |
-| `tool-setup-controller.ts` | 391 | 18.5 KiB | Environment inspection, APT update/catalog/toolchain jobs, HDR10+ helper install, saved setup logs and the repair-* event handlers extracted from the route; typed ToolSetupHost, injected bridge and save dialog. |
+| `tool-setup-controller.ts` | 452 | 21.8 KiB | Environment inspection, APT update/catalog/toolchain jobs, HDR10+ helper install, saved setup logs and the repair-* event handlers extracted from the route; typed ToolSetupHost, injected bridge and save dialog. |
 | `ToolRepairActivity.svelte` | 67 | 4.5 KiB | Tool-setup activity and saved logs view. |
-| `ToolRepairConfirmation.svelte` | 19 | 2.7 KiB | Exact-plan confirmation for allowlisted tool repair. |
+| `ToolRepairConfirmation.svelte` | 27 | 3.0 KiB | Exact-plan confirmation for allowlisted tool repair. |
 | `types.ts` | 10 | 530 B | Shared TypeScript contracts mirroring native JSON payloads. |
 | `ui-contracts.ts` | 67 | 2.4 KiB | Shared UI prop/preference/credential-status contracts (no credentials). |
 | `UpdateBanner.svelte` | 130 | 4.6 KiB | Update-available banner and install flow. |
@@ -584,11 +586,11 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src/lib/native-types/`
 
-8 files · 751 lines · 19.7 KiB
+8 files · 764 lines · 20.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `environment.ts` | 79 | 1.8 KiB | Environment checks, APT update status and the app artwork cache report. |
+| `environment.ts` | 92 | 2.3 KiB | Environment checks, APT update status and the app artwork cache report. |
 | `library.ts` | 52 | 1.2 KiB | Library page cards, crumbs and organizer templates. |
 | `media.ts` | 167 | 4.7 KiB | Scanned media: profiles, streams, resource forecasts, entries and scan results. |
 | `modes.ts` | 15 | 537 B | Run modes and the pages of the app shell. |
@@ -599,7 +601,7 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src/lib/state/`
 
-24 files · 1,452 lines · 78.4 KiB
+24 files · 1,455 lines · 78.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -616,7 +618,7 @@ No file exceeds its advisory line budget.
 | `run-ui-state.svelte.ts` | 38 | 1.9 KiB | Rune class for run flow state: mode, pending batches, output preview, recovery review, per-file overrides, run-settings editor and the progress clock. |
 | `scan-state.svelte.ts` | 11 | 516 B | Rune class for scan activity, progress and the visible scan result. |
 | `settings-state.svelte.ts` | 28 | 1.3 KiB | Rune class for the effective settings draft and baselines, work-directory preview and filter/blacklist drafts. |
-| `tool-setup-state.svelte.ts` | 41 | 2.0 KiB | Rune class for the environment inspection result and the package-repair job, logs and outcomes. |
+| `tool-setup-state.svelte.ts` | 44 | 2.2 KiB | Rune class for the environment inspection result and the package-repair job, logs and outcomes. |
 | `workbench-artwork-save-state.svelte.ts` | 17 | 1000 B | Rune class for the metadata workbench poster saving (pending provider save, pending local and batch poster copies, busy, error and message fields). |
 | `workbench-derived.svelte.ts` | 28 | 1.6 KiB | Derived values of the metadata workbench (desktop shell flag, analysis series groups, the groups and organizer files visible for the focused file); state and props injected, each field computed lazily. |
 | `workbench-effects.svelte.ts` | 373 | 19.8 KiB | The metadata workbench's ten $effect blocks moved out of the component (follow the focused file, automatic lookup after a scan, series review sync, title search focus, row scroll, poster preview loading); installed by one call with props, derived values, state instances and component functions in one context. |
@@ -630,17 +632,17 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src/lib/views/`
 
-11 files · 1,786 lines · 179.6 KiB
+11 files · 1,793 lines · 180.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `EnvironmentPanel.svelte` | 114 | 14.0 KiB | Settings environment panel (toolchain health, executable overrides, APT/Homebrew/winget setup, repair activity) extracted from the route snippet; pure view with controller callbacks. |
+| `EnvironmentPanel.svelte` | 114 | 14.1 KiB | Settings environment panel (toolchain health, executable overrides, APT/Homebrew/winget setup, repair activity) extracted from the route snippet; pure view with controller callbacks. |
 | `LibraryView.svelte` | 179 | 14.0 KiB | Library page view (scan options, queue status, warnings, poster grid, rename dialog, pagination, empty state) extracted from the route; pure props and callbacks, state stays route-owned. |
 | `MediaTable.svelte` | 268 | 31.5 KiB | Paged media table (selection, profile, track choices, review, run state, YouTube estimates) extracted from the route snippet and rendered inside the YouTube page; pure view with route callbacks. |
 | `MetadataReviewDialog.svelte` | 203 | 14.6 KiB | Compact media-file/series/season/episode review dialog around the metadata workbench and LibraryTvReview, extracted from the route; every edit is a route callback. |
 | `OutputPreviewDialog.svelte` | 93 | 7.3 KiB | Review-before-start dialog (destinations, collisions, disk budget, rebuild acknowledgement) extracted from the route; the route owns the preview, flags and start action. |
 | `RunView.svelte` | 203 | 24.5 KiB | Run page view (task picker, output folder, per-file review, rebuild parameters, queue plan, launch card) extracted from the route; pure props and callbacks, state stays route-owned. |
-| `ShellHeader.svelte` | 58 | 3.5 KiB | Breadcrumb, appearance picker, engine status pill, refresh/help buttons and the dismissible notice extracted from the route; pure view with route callbacks. |
+| `ShellHeader.svelte` | 65 | 4.0 KiB | Breadcrumb, appearance picker, engine status pill, refresh/help buttons and the dismissible notice extracted from the route; pure view with route callbacks. |
 | `ShellSidebar.svelte` | 71 | 3.6 KiB | Brand lockup, main/utility navigation, active-library chip and engine status extracted from the route; navigation and the folder picker are route callbacks. |
 | `StopNowDialog.svelte` | 28 | 1.6 KiB | Stop-now confirmation dialog extracted from the route; the route owns the open flag and the stop action. |
 | `WorkbenchDetailPanel.svelte` | 319 | 37.7 KiB | Metadata workbench detail card (selected match, seasons and episodes, artwork choices, organizer rename plan) extracted from MetadataWorkbench; state instances, derived values and controller functions arrive as props, the bindable assignments and templates are bound. |
@@ -648,13 +650,13 @@ No file exceeds its advisory line budget.
 
 ### `desktop/src/routes/`
 
-3 files · 522 lines · 48.1 KiB
+3 files · 527 lines · 48.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `+layout.svelte` | 26 | 1.0 KiB | Root layout; imports the global stylesheet once. |
 | `+layout.ts` | 5 | 290 B | Static-adapter prerender/SSR settings for Tauri. |
-| `+page.svelte` | 491 | 46.8 KiB | Application route and coordinator: navigation, native IPC, queue/run orchestration, preferences, and most UI state (scheduled for segregation). |
+| `+page.svelte` | 496 | 47.2 KiB | Application route and coordinator: navigation, native IPC, queue/run orchestration, preferences, and most UI state (scheduled for segregation). |
 
 ### `desktop/src/styles/`
 
@@ -732,11 +734,11 @@ No file exceeds its advisory line budget.
 
 ### `desktop/tests/`
 
-74 files · 10,252 lines · 697.2 KiB
+76 files · 10,379 lines · 705.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `app-boot.test.mjs` | 369 | 23.5 KiB | Node tests for app-boot.ts with fake DOM, window, storage, listen/window API and route actions. |
+| `app-boot.test.mjs` | 370 | 23.7 KiB | Node tests for app-boot.ts with fake DOM, window, storage, listen/window API and route actions. |
 | `app-input.test.mjs` | 263 | 15.7 KiB | Node tests for app-input.ts with fake DOM, window, menu API and route actions. |
 | `app-navigation.test.mjs` | 84 | 4.6 KiB | Node tests for app-navigation.ts with fake DOM and host. |
 | `artwork-controller.test.mjs` | 212 | 11.9 KiB | Node tests for artwork-controller.ts with fake invoke, host and intersection observer. |
@@ -797,6 +799,7 @@ No file exceeds its advisory line budget.
 | `run-overrides.test.mjs` | 108 | 7.7 KiB | Node tests for run-overrides.ts (poster precedence, season resolution, comment and certificate rules, bounded text). |
 | `search-panel.test.mjs` | 185 | 13.6 KiB | Node tests for search-panel.ts with a plain-object host and fake provider calls (target setup, stale clue guard, search guards and failures, ranking, year mismatch, candidate lists). |
 | `settings-controller.test.mjs` | 260 | 15.9 KiB | Node tests for settings-controller.ts with fake invoke, host and persistence. |
+| `setup-updates.test.mjs` | 30 | 1.8 KiB | The header notice for tools that are missing or out of date. |
 | `support-contract.mjs` | 33 | 4.8 KiB | Browser contract: reports, settings, repair, recovery. |
 | `theme-contrast-contract.mjs` | 60 | 4.7 KiB | Browser contract: every visible piece of text on the Home, Library (with its queue, toolbar, file list and search expanded) and Reports table screens meets WCAG |
 | `theme-transition.test.mjs` | 122 | 4.9 KiB | Contract for the theme-switch transition runner (src/lib/theme-transition.ts): a cross-fade through the View Transitions API when the webview has it, a CSS tran |
@@ -806,6 +809,7 @@ No file exceeds its advisory line budget.
 | `tool-setup-events.test.mjs` | 91 | 6.2 KiB | Tool setup: repair-line, log-warning and repair-finished event handlers. |
 | `tool-setup-install.test.mjs` | 89 | 6.7 KiB | Tool setup: reviewed toolchain confirmation and the HDR10+ helper install. |
 | `tool-setup-logs.test.mjs` | 73 | 4.4 KiB | Tool setup: saved setup logs (list, open, export). |
+| `tool-setup-provision.test.mjs` | 96 | 6.2 KiB | Tool setup: the one-pass "install and update everything" review and apply flow (one password). |
 | `tool-setup-repair.test.mjs` | 138 | 8.9 KiB | Tool setup: update checks, catalog refresh and the repair-apt flow. |
 | `window-state.test.mjs` | 237 | 11.8 KiB | Node tests for window-state-controller.ts with fake window, monitor, invoke, storage and timers. |
 | `workspace-state.test.mjs` | 50 | 3.3 KiB | Unit tests for the workspace state module. |
@@ -831,21 +835,21 @@ No file exceeds its advisory line budget.
 
 ### `desktop/tests/golden/`
 
-3 files · 37,201 lines · 4176.5 KiB
+3 files · 37,886 lines · 4227.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `make-route-fixtures.mjs` | 62 | 5.9 KiB | Regenerates route-fixtures.json from a real json scan of a synthetic library (paths, timestamps and host data sanitized). |
 | `route-fixtures.json` | 3,900 | 119.1 KiB | Sanitized fixtures for the fake Tauri bridge: a real json scan of a synthetic three-file library, queue, reviews, settings, preferences. |
-| `route-golden.json` | 33,239 | 4051.4 KiB | Stored route golden snapshots (406); refresh only for an intended UI change with pnpm test:route-golden -- --update. |
+| `route-golden.json` | 33,924 | 4102.2 KiB | Stored route golden snapshots (406); refresh only for an intended UI change with pnpm test:route-golden -- --update. |
 
 ### `desktop/tests/route-golden/`
 
-14 files · 762 lines · 63.1 KiB
+14 files · 773 lines · 63.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `bridge.mjs` | 191 | 17.0 KiB | Route golden section (T10.3): the fake Tauri bridge: blocks external requests and answers every native command from the fixtures. |
+| `bridge.mjs` | 202 | 18.1 KiB | Route golden section (T10.3): the fake Tauri bridge: blocks external requests and answers every native command from the fixtures. |
 | `page-helpers.mjs` | 38 | 1.9 KiB | Route golden section (T10.3): DOM fingerprint and the settle wait used by every snapshot. |
 | `preview-preferences.mjs` | 30 | 2.9 KiB | Route golden section (T10.3): browser-preview preferences: older saved shapes, legacy keys, corrupt storage and what a theme change writes. |
 | `seeded-boot-input.mjs` | 47 | 3.1 KiB | Route golden section (T10.3): Boot and input: keyboard shortcuts, the agent-control channel, drag-and-drop and external events. |
@@ -857,12 +861,12 @@ No file exceeds its advisory line budget.
 | `seeded-review-flows.mjs` | 26 | 1.2 KiB | Route golden section (T10.3): Review dialogs (film, series, season) opened and closed on the seeded library. |
 | `seeded-run-lifecycle.mjs` | 30 | 3.1 KiB | Route golden section (T10.3): Run lifecycle: start an integrity check, feed engine events, request a safe stop, finish, then a second run that fails. |
 | `seeded-settings.mjs` | 72 | 7.2 KiB | Route golden section (T10.3): Credentials, artwork cache and settings: TMDB/TVDB, cache purge, language, filename filters, work root, Run-page settings. |
-| `seeded-tool-setup.mjs` | 53 | 5.0 KiB | Route golden section (T10.3): Tool setup (package repair) on fresh loads of the Settings page: update check, reviewed toolchain, live output, outcomes. |
+| `seeded-tool-setup.mjs` | 53 | 4.8 KiB | Route golden section (T10.3): Tool setup (package repair) on fresh loads of the Settings page: update check, reviewed toolchain, live output, outcomes. |
 | `seeded-window-preferences.mjs` | 42 | 2.8 KiB | Route golden section (T10.3): Window and preferences: restore clamp, resize/maximize saving, no-op saves, themes, YouTube rows. |
 
 ### `desktop/tests/support/`
 
-2 files · 134 lines · 8.6 KiB
+2 files · 134 lines · 8.7 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -871,13 +875,13 @@ No file exceeds its advisory line budget.
 
 ### `docs/`
 
-13 files · 77,936 lines · 2631.6 KiB
+13 files · 78,013 lines · 2634.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `architecture-descriptions.json` | 301 | 45.5 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
-| `interaction-map.json` | 63,199 | 1920.7 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
-| `interaction-map.md` | 844 | 179.8 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
+| `interaction-map.json` | 63,257 | 1922.2 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
+| `interaction-map.md` | 845 | 179.9 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
 | `interaction-tasks.json` | 320 | 9.8 KiB | Reviewed task journey selectors used to compute shortest click paths and over-tap deltas. |
 | `interaction-waterfall.json` | 10,299 | 334.5 KiB | Generated machine-readable state inventories, source-resolved waterfall steps, click formulas and native/system boundaries. |
 | `interaction-waterfall.md` | 767 | 67.8 KiB | Generated human-readable multiflow waterfall map with active controls, transitions and minimum click formulas. |
@@ -886,8 +890,8 @@ No file exceeds its advisory line budget.
 | `PROJECT-STRUCTURE.md` | 60 | 3.2 KiB | Project structure |
 | `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
-| `TOOLS.md` | 102 | 4.6 KiB | Installation and external tools |
-| `USAGE.md` | 247 | 12.0 KiB | Human usage guide |
+| `TOOLS.md` | 118 | 5.5 KiB | Installation and external tools |
+| `USAGE.md` | 249 | 12.1 KiB | Human usage guide |
 
 ### `docs/maintainer/`
 
@@ -925,12 +929,12 @@ No file exceeds its advisory line budget.
 
 ### `tools/`
 
-13 files · 1,702 lines · 83.1 KiB
+13 files · 1,704 lines · 83.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `architecture-map.mjs` | 244 | 11.5 KiB | Generates ARCHITECTURE.md: the directory waterfall of every tracked or non-ignored project file with line count, size and a one-line description. |
-| `interaction-map-analysis.mjs` | 173 | 8.1 KiB | Builds the source-derived control inventory, task click budgets, and redundancy groups. |
+| `interaction-map-analysis.mjs` | 175 | 8.1 KiB | Builds the source-derived control inventory, task click budgets, and redundancy groups. |
 | `interaction-map-ast.mjs` | 263 | 10.9 KiB | Shared Svelte AST helpers for extracting controls, labels, guards, events, and component bindings. |
 | `interaction-map-report.mjs` | 78 | 7.3 KiB | Renders the human-readable interaction inventory, task budgets, and redundancy hotspots as Markdown. |
 | `interaction-map-trace.mjs` | 156 | 8.1 KiB | Traces event handlers and static component callback bindings to pages, dialogs, native commands, and external destinations. |

@@ -34,14 +34,18 @@ fn parse_apt_upgrade_cli_args(args: &[String]) -> Result<Vec<String>, String> {
 }
 
 fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
-    if !cfg!(target_os = "linux") {
-        return Err("APT package operations are available only on Linux hosts.".into());
-    }
     if arguments.is_empty() {
         return Err("APT command arguments are missing.".into());
     }
+    run_elevated_cli_command("apt-get", arguments)
+}
+
+fn run_elevated_cli_command(program: &str, arguments: &[String]) -> Result<(), String> {
+    if !cfg!(target_os = "linux") {
+        return Err("APT package operations are available only on Linux hosts.".into());
+    }
     let mut command = if unsafe { libc_geteuid() } == 0 {
-        let mut command = Command::new("apt-get");
+        let mut command = Command::new(program);
         command.args(arguments);
         command
     } else {
@@ -49,7 +53,7 @@ fn run_apt_cli_command(arguments: &[String]) -> Result<(), String> {
             return Err("CLI administrator authentication (sudo) is not installed.".into());
         }
         let mut command = Command::new("sudo");
-        command.arg("apt-get").args(arguments);
+        command.arg(program).args(arguments);
         command
     };
     let mut child = command
@@ -188,6 +192,54 @@ pub(crate) fn run_json_cli_apt_upgrade(args: &[String]) -> i32 {
             2
         }
     }
+}
+
+/// `json provision-plan` prints the one-pass plan; `json provision --confirm` runs it. The
+/// administrator password is asked once, by sudo on the terminal; this process never sees it.
+pub(crate) fn run_json_cli_provision(args: &[String], apply: bool) -> i32 {
+    if apply && args != ["--confirm"] {
+        eprintln!("One-pass setup requires only the explicit --confirm option. Run provision-plan first to review it.");
+        return 2;
+    }
+    if !apply && !args.is_empty() {
+        eprintln!("provision-plan does not accept additional options.");
+        return 2;
+    }
+    let (plan, release_error) = match provision::current_plan(ToolPaths::default()) {
+        Ok(result) => result,
+        Err(error) => {
+            eprintln!("{error}");
+            return 1;
+        }
+    };
+    let mut payload = provision::plan_json(&plan, release_error.as_deref());
+    if !apply {
+        println!("{payload}");
+        return 0;
+    }
+    if plan.nothing_to_do() {
+        payload["applied"] = json!(false);
+        println!("{payload}");
+        return 0;
+    }
+    if let Some(script) = provision::privileged_script(&plan) {
+        if let Err(error) = run_elevated_cli_command("sh", &["-c".into(), script]) {
+            eprintln!("{error}");
+            return 1;
+        }
+    }
+    if plan.helper.needs_work() {
+        match dependencies::install_latest_hdr10plus_tool() {
+            Ok(path) => payload["helper_installed_at"] = json!(path),
+            Err(error) => {
+                eprintln!("{error}");
+                return 1;
+            }
+        }
+    }
+    payload["applied"] = json!(true);
+    println!("{payload}");
+    0
 }
 
 #[cfg(test)]

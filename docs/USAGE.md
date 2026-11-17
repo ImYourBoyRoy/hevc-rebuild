@@ -106,6 +106,8 @@ Use the installed executable when available:
 hevc-rebuild-studio cli "/media/Movies" --recursive --info-only
 hevc-rebuild-studio cli "/media/Movies" --recursive --output-dir "/media/Rebuilt"
 hevc-rebuild-studio json environment
+hevc-rebuild-studio json provision-plan
+hevc-rebuild-studio json provision --confirm
 hevc-rebuild-studio json scan --root "/media/Movies" --recursive
 hevc-rebuild-studio json check --file "/media/Movies/Film.mkv"
 hevc-rebuild-studio json integrity --file "/media/Movies/Film.mkv" --level quick

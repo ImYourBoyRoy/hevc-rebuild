@@ -77,3 +77,16 @@ export interface ArtworkCachePurgeResult {
   remaining: ArtworkCacheInfo;
   message: string;
 }
+
+/** The one-pass setup plan from `provision_plan`: what runs and whether one password prompt is needed. */
+export interface ProvisionPlan {
+  refresh_catalog: boolean;
+  install_packages: string[];
+  upgrade_packages: string[];
+  helper: { action: "install" | "update" | "current" | "unchecked"; installed: string | null; latest: string | null };
+  needs_password: boolean;
+  password_prompts: number;
+  nothing_to_do: boolean;
+  steps: string[];
+  release_check_error: string | null;
+}

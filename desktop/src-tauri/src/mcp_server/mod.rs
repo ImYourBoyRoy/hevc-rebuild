@@ -1346,6 +1346,52 @@ impl McpServer {
     }
 
     #[tool(
+        name = "plan_system_setup",
+        description = "Read-only. Returns the one-pass setup plan: missing and upgradable packages from the fixed Ubuntu allowlist, whether the package catalog needs a refresh, the HDR10+ helper action (install, update, current), and whether one administrator password prompt is needed. Call this first, show the steps to the user, then call provision_system."
+    )]
+    fn plan_system_setup(
+        &self,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        let (plan, error) = super::provision::current_plan(ToolPaths::default())
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        Ok(rmcp::handler::server::wrapper::Json(super::provision::plan_json(&plan, error.as_deref())))
+    }
+
+    #[tool(
+        name = "provision_system",
+        description = "Install and update everything in one pass after the user approves the plan from plan_system_setup (set confirm_plan=true). At most ONE administrator prompt appears on the user's desktop covering the catalog refresh, missing packages and package updates; the HDR10+ helper is installed or updated in user space with no password. The server recomputes the plan itself, so no package list is accepted. The model never sees or handles the password."
+    )]
+    fn provision_system(
+        &self,
+        Parameters(params): Parameters<ProvisionParams>,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        if !params.confirm_plan {
+            return Err(ErrorData::invalid_params(
+                "Set confirm_plan=true after the user has reviewed plan_system_setup.",
+                None,
+            ));
+        }
+        let (plan, _) = super::provision::current_plan(ToolPaths::default())
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        if plan.nothing_to_do() {
+            return Ok(rmcp::handler::server::wrapper::Json(
+                json!({"status":"already_ready"}),
+            ));
+        }
+        let id = job_id();
+        let mut job = Job::new(id.clone(), "system_provision");
+        job.status = "running".into();
+        self.insert_job(job)
+            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let jobs = self.jobs.clone();
+        let worker_id = id.clone();
+        thread::spawn(move || apt::run_provision_job(jobs, worker_id, plan));
+        Ok(rmcp::handler::server::wrapper::Json(
+            json!({"job_id":id,"status":"running","poll_with":"get_job"}),
+        ))
+    }
+
+    #[tool(
         name = "install_hdr10plus_helper",
         description = "Install the latest upstream HDR10+ helper after explicit confirmation. Rust requires and verifies the release SHA-256 digest, safely reads the expected tar entry, checks the staged binary version, and places it in this user's managed application data directory and the AppImage sidecar when that profile is active."
     )]

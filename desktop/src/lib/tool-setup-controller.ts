@@ -5,10 +5,10 @@
 // injected so every branch is unit-tested in node (pnpm test:tool-setup). The code is the route's
 // code moved verbatim with `h.` prefixes. No direct Tauri imports.
 
-import type { AptUpdateStatus, CommandCheck, Environment, RunLineEvent, ToolPaths } from './types.js';
+import type { AptUpdateStatus, CommandCheck, Environment, ProvisionPlan, RunLineEvent, ToolPaths } from './types.js';
 import type { RepairToolOutcome, ToolSetupLogSummary } from './ui-contracts.js';
 
-export type PackageJobKind = "repair" | "catalog-refresh" | "upgrade" | "toolchain" | null;
+export type PackageJobKind = "repair" | "catalog-refresh" | "upgrade" | "toolchain" | "provision" | null;
 export type RepairFinished = { jobId: string; success: boolean; error: string | null; logWarning?: string | null };
 
 export interface ToolSetupHost {
@@ -18,6 +18,9 @@ export interface ToolSetupHost {
   aptUpdates: AptUpdateStatus | null;
   aptChecking: boolean;
   repairConfirmOpen: boolean;
+  setupConfirmOpen: boolean;
+  setupPlan: ProvisionPlan | null;
+  setupUpdates: ProvisionPlan | null;
   repairId: string;
   activeToolSetupLogId: string;
   packageJobKind: PackageJobKind;
@@ -162,6 +165,62 @@ export function createToolSetupController(deps: ToolSetupDeps) {
       return;
     }
     h.repairConfirmOpen = true;
+  }
+
+  /** Silent background check (launch and every few hours): remembers what is missing or outdated for the header notice. */
+  async function checkSetupUpdates() {
+    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    try {
+      h.setupUpdates = await invoke<ProvisionPlan>("provision_plan", { toolPaths: h.currentToolPaths() });
+    } catch {
+      /* Offline or unsupported hosts keep the last known result; the manual button reports errors. */
+    }
+  }
+
+  /** One pass: fetch the plan (packages, catalog, helper) and ask once; nothing runs until confirmSetup. */
+  async function reviewSetup() {
+    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    try {
+      const plan = await invoke<ProvisionPlan>("provision_plan", { toolPaths: h.currentToolPaths() });
+      h.setupPlan = plan;
+      if (plan.nothing_to_do) {
+        h.setupConfirmOpen = false;
+        h.repairSummary = "Everything is installed and up to date.";
+        h.repairSummaryIsError = false;
+        h.setNotice("Everything is installed and up to date.", "success");
+        return;
+      }
+      h.setupConfirmOpen = true;
+    } catch (error) {
+      h.setupConfirmOpen = false;
+      h.setNotice(`Could not prepare the setup plan: ${String(error)}`, "error");
+    }
+  }
+
+  /** Apply the reviewed plan. The backend recomputes it and asks for the password at most once. */
+  async function confirmSetup() {
+    if (!h.setupPlan || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    const plan = h.setupPlan;
+    h.setupConfirmOpen = false;
+    h.repairLines = [];
+    h.repairLogWarning = "";
+    h.repairSummary = plan.needs_password ? "Waiting for administrator authentication (one prompt)…" : "Installing and updating…";
+    h.repairSummaryIsError = false;
+    h.installHdrHelperAfterPackages = false;
+    h.repairToolChecksBefore = h.environment?.checks.map((check) => ({ ...check })) ?? null;
+    const helperWork = plan.helper.action === "install" || plan.helper.action === "update";
+    h.repairAffectedToolKeys = [...new Set([...toolKeysForPackages([...plan.install_packages, ...plan.upgrade_packages]), ...(helperWork ? ["hdr10plus_tool"] : [])])];
+    h.repairToolOutcomes = [];
+    try {
+      h.repairId = await invoke<string>("provision_toolchain", { toolPaths: h.currentToolPaths() });
+      h.packageJobKind = "provision";
+      h.setNotice(plan.needs_password ? "Setup started. You will be asked for your password once." : "Setup started. No password is needed.", "info");
+    } catch (error) {
+      h.repairId = "";
+      h.repairSummary = `Setup could not start: ${String(error)}`;
+      h.repairSummaryIsError = true;
+      h.setNotice(`Could not start setup: ${String(error)}`, "error");
+    }
   }
 
   async function checkUbuntuPackageUpdates(silent = false): Promise<AptUpdateStatus | null> {
@@ -354,19 +413,20 @@ export function createToolSetupController(deps: ToolSetupDeps) {
     h.packageJobKind = null;
     h.repairSummary = payload.success
       ? completedKind === "catalog-refresh" ? "Package information refreshed; checking installed versions…"
+        : completedKind === "provision" ? "Setup and updates finished; checking installed versions…"
         : completedKind === "toolchain" ? "Reviewed package setup finished; checking installed versions…"
           : completedKind === "upgrade" ? "Package updates finished; checking installed versions…"
             : "Package repair finished; checking installed versions…"
       : payload.error ?? "The package operation did not finish successfully.";
     h.repairSummaryIsError = !payload.success;
-    if (payload.success) h.setNotice(completedKind === "catalog-refresh" ? "Ubuntu package catalog refreshed." : completedKind === "toolchain" ? "Reviewed Ubuntu package setup completed. Rechecking installed tools." : completedKind === "upgrade" ? "Ubuntu package upgrades completed." : "Package repair completed. Rechecking the installed tools.", "success");
+    if (payload.success) h.setNotice(completedKind === "catalog-refresh" ? "Ubuntu package catalog refreshed." : completedKind === "provision" ? "Setup and updates completed. Rechecking installed tools." : completedKind === "toolchain" ? "Reviewed Ubuntu package setup completed. Rechecking installed tools." : completedKind === "upgrade" ? "Ubuntu package upgrades completed." : "Package repair completed. Rechecking the installed tools.", "success");
     else h.setNotice(payload.error ?? "The package operation did not finish successfully.", "error");
     await refreshToolSetupLogs(payload.jobId);
     const environmentLoaded = await loadEnvironment();
     if (environmentLoaded && affectedToolKeys.length) recordRepairToolOutcomes(checksBefore, h.environment?.checks ?? []);
     h.repairToolChecksBefore = null;
     h.repairAffectedToolKeys = [];
-    if (h.aptHost && (h.aptUpdates || completedKind === "catalog-refresh" || completedKind === "upgrade" || completedKind === "toolchain")) await checkUbuntuPackageUpdates(true);
+    if (h.aptHost && (h.aptUpdates || completedKind === "catalog-refresh" || completedKind === "upgrade" || completedKind === "toolchain" || completedKind === "provision")) await checkUbuntuPackageUpdates(true);
     if (completedKind === "catalog-refresh" && h.continueToolchainSetupAfterRefresh) {
       h.continueToolchainSetupAfterRefresh = false;
       if (payload.success) await repairApt();
@@ -380,6 +440,7 @@ export function createToolSetupController(deps: ToolSetupDeps) {
     }
     if (completedKind === "toolchain" && !payload.success) h.installHdrHelperAfterPackages = false;
     if (completedKind === "catalog-refresh" && !payload.success) h.continueToolchainSetupAfterRefresh = false;
+    if (completedKind === "provision") await checkSetupUpdates();
     if (payload.success && !helperStarted) {
       h.repairSummary = h.environment?.ready
         ? "Setup complete. All required media tools are ready."
@@ -387,5 +448,5 @@ export function createToolSetupController(deps: ToolSetupDeps) {
     }
   }
 
-  return { loadEnvironment, aptPackageForTool, packageUpdateForTool, toolCheckReadout, recordRepairToolOutcomes, toolKeysForPackages, repairApt, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, refreshToolSetupLogs, openToolSetupLog, exportToolSetupLog, confirmAptRepair, installHdrHelper, handleRepairLine, handleRepairLogWarning, handleRepairFinished };
+  return { loadEnvironment, aptPackageForTool, packageUpdateForTool, toolCheckReadout, recordRepairToolOutcomes, toolKeysForPackages, repairApt, reviewSetup, confirmSetup, checkSetupUpdates, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, refreshToolSetupLogs, openToolSetupLog, exportToolSetupLog, confirmAptRepair, installHdrHelper, handleRepairLine, handleRepairLogWarning, handleRepairFinished };
 }

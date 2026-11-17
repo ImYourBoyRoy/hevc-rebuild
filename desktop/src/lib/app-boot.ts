@@ -69,6 +69,7 @@ export interface AppBootActions {
   refreshTmdbCredentialStatus(): Promise<unknown> | unknown;
   refreshTvdbCredentialStatus(): Promise<unknown> | unknown;
   checkUbuntuPackageUpdates(silent?: boolean): Promise<unknown> | unknown;
+  checkSetupUpdates(): Promise<unknown> | unknown;
   noteRunProgress(payload: RunProgressEvent): void;
   finishRun(payload: RunFinishedEvent): Promise<unknown> | unknown;
   handleRepairLine(payload: RunLineEvent): void;
@@ -110,7 +111,7 @@ export function createAppBoot(deps: AppBootDeps) {
   const { browserPreferencesKey, defaultFilenameExcludePatterns, defaultOrganizerTemplates } = constants;
   const {
     restoreWindowState, publishTheme, applyToolPaths, persistPreferences, loadMediaQueue, loadEnvironment, loadSettings, loadReports, refreshToolSetupLogs,
-    refreshTmdbCredentialStatus, refreshTvdbCredentialStatus, checkUbuntuPackageUpdates, noteRunProgress, finishRun, handleRepairLine, handleRepairLogWarning,
+    refreshTmdbCredentialStatus, refreshTvdbCredentialStatus, checkUbuntuPackageUpdates, checkSetupUpdates, noteRunProgress, finishRun, handleRepairLine, handleRepairLogWarning,
     handleRepairFinished, addQueueSources, openPage, scheduleWindowStateSave, handleAgentControlRequest, handleUtilityContextMenu, closeContextMenu,
   } = actions;
   const setNotice = h.setNotice.bind(h);
@@ -211,6 +212,7 @@ export function createAppBoot(deps: AppBootDeps) {
       if (stored.storageWarning) h.setNotice(stored.storageWarning, "error");
       await Promise.all([loadEnvironment(), loadSettings(h.root), loadReports(), refreshToolSetupLogs(), refreshTmdbCredentialStatus(), refreshTvdbCredentialStatus()]);
       if (h.environment?.os.package_manager === "apt" && h.environment?.os.package_manager_available !== false) await checkUbuntuPackageUpdates(true);
+      await checkSetupUpdates();
     } catch (error) {
       h.environmentError = String(error);
       h.setNotice(`The desktop backend did not start: ${String(error)}`, "error");

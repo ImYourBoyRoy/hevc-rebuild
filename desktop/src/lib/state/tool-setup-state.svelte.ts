@@ -2,7 +2,7 @@
 // Environment inspection result and the package-repair job, logs and tool outcomes.
 // A plain rune class: its instance is the typed host the controller works on, so the route needs no
 // per-field accessors. Members marked `declare` are supplied by the route (see withGetters).
-import type { Environment, AptUpdateStatus, CommandCheck, ToolPaths } from "../types.js";
+import type { Environment, AptUpdateStatus, CommandCheck, ProvisionPlan, ToolPaths } from "../types.js";
 import type { ToolSetupLogSummary, RepairToolOutcome } from "../ui-contracts.js";
 
 export class ToolSetupState {
@@ -10,13 +10,16 @@ export class ToolSetupState {
   environmentLoading = $state(false);
   environmentError = $state("");
   repairConfirmOpen = $state(false);
+  setupConfirmOpen = $state(false);
+  setupPlan = $state<ProvisionPlan | null>(null);
+  setupUpdates = $state<ProvisionPlan | null>(null);
   aptUpdates = $state<AptUpdateStatus | null>(null);
   aptChecking = $state(false);
   continueToolchainSetupAfterRefresh = $state(false);
   installHdrHelperAfterPackages = $state(false);
   repairId = $state("");
   activeToolSetupLogId = $state("");
-  packageJobKind = $state<"repair" | "catalog-refresh" | "upgrade" | "toolchain" | null>(null);
+  packageJobKind = $state<"repair" | "catalog-refresh" | "upgrade" | "toolchain" | "provision" | null>(null);
   repairLines = $state<string[]>([]);
   repairSummary = $state("");
   repairSummaryIsError = $state(false);
