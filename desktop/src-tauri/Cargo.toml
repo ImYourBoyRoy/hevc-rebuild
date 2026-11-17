@@ -13,7 +13,10 @@ edition = "2021"
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "hevc_rebuild_studio_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# Desktop-only app: `rlib` is all the binary and the tests need. The Tauri template's `staticlib` and `cdylib`
+# serve mobile targets; here each one left a 1.3 GB and a 0.4 GB copy of the library in `target/` for every
+# build variant (about 2 GB per feature/test combination, 15 GB in a working checkout).
+crate-type = ["rlib"]
 
 [features]
 # `desktop` (the default) is the Tauri window, its plugins and the GUI embedded in the executable.
@@ -71,6 +74,10 @@ sysinfo = { version = "^0.39.3", default-features = false, features = ["system"]
 tower = { version = "^0.5.3", features = ["util"] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+# Backtraces keep file and line numbers; full debug info for every dependency is what made `target/` huge.
+[profile.dev]
+debug = "line-tables-only"
+
 [profile.release]
 codegen-units = 1
 lto = true
