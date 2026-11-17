@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 583 |
-| Text lines | 228,832 |
-| Size on disk | 17046.6 KiB |
+| Text lines | 229,050 |
+| Size on disk | 17058.1 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,883 lines · 218.1 KiB
+15 files · 1,887 lines · 220.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -39,7 +39,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 867 | 177.7 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 871 | 180.1 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -115,14 +115,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/`
 
-11 files · 6,394 lines · 152.9 KiB
+11 files · 6,401 lines · 153.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitignore` | 7 | 166 B | Rust build output ignore rules. |
 | `build.rs` | 26 | 1.4 KiB | Tauri build script; also embeds the Windows manifest into every target so the unit-test executable can load Common Controls v6. |
 | `Cargo.lock` | 6,164 | 144.4 KiB | Rust dependency lockfile (committed). |
-| `Cargo.toml` | 79 | 3.2 KiB | Rust crate manifest: Tauri 2 app, library and dependency floors. |
+| `Cargo.toml` | 86 | 3.6 KiB | Rust crate manifest: Tauri 2 app, library and dependency floors. |
 | `linux-post-install.sh` | 18 | 577 B | Debian package post-install hook. |
 | `linux-post-remove.sh` | 11 | 294 B | Debian package post-remove hook. |
 | `linux.desktop.hbs` | 9 | 171 B | Linux .desktop entry template. |
@@ -258,7 +258,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/`
 
-72 files · 32,973 lines · 1145.4 KiB
+72 files · 33,094 lines · 1150.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -278,7 +278,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `commands_logs.rs` | 108 | 4.0 KiB | Tauri commands for reports, tool-setup logs and confined diagnostic log reads. |
 | `commands_metadata.rs` | 221 | 7.7 KiB | Tauri commands for filename clues, public film/TV lookups and TMDb/TVDB credentials. |
 | `commands_queue.rs` | 79 | 3.0 KiB | Tauri commands that load and save the persisted library queue and preview output targets. |
-| `commands_workspace.rs` | 152 | 5.2 KiB | Tauri commands for environment inspection, effective settings, work directory and folder scans. |
+| `commands_workspace.rs` | 216 | 7.4 KiB | Tauri commands for environment inspection, effective settings, work directory and folder scans. |
 | `content.rs` | 335 | 11.8 KiB | Read-only content genre and x265 tune decisions shared by the scanner and the encoder planning. |
 | `dependencies.rs` | 943 | 35.0 KiB | Read-only cached APT installed/candidate version report. |
 | `encode_plan.rs` | 902 | 33.3 KiB | Rust-owned FFmpeg/x265 argument planning. |
@@ -310,7 +310,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `process_output.rs` | 225 | 8.1 KiB | Process output readers stop on the first I/O error and preserve prior lines. |
 | `profile_cache.rs` | 82 | 2.5 KiB | Bounded process-local profile cache. |
 | `provision_run.rs` | 476 | 15.9 KiB | Runs a `ProvisionPlan` for the GUI, CLI and MCP with one implementation: the package step for the host's manager (apt under one administrator prompt, Homebrew a |
-| `provision.rs` | 1,252 | 44.3 KiB | One-pass toolchain provisioning: a pure plan for "install and update everything" that needs at most one administrator prompt. |
+| `provision.rs` | 1,309 | 47.0 KiB | One-pass toolchain provisioning: a pure plan for "install and update everything" that needs at most one administrator prompt. |
 | `quality_gate.rs` | 432 | 14.6 KiB | Sampled picture-quality check (SSIM) used before an output replaces its source. |
 | `rebuild_run.rs` | 506 | 16.3 KiB | Native Short-Test and Full Rebuild coordinator: discovery, profiling, stream selection, HDR/DV policy, calibration, encode with memory retries, metadata, validation, and durable install. |
 | `reports.rs` | 696 | 24.7 KiB | CSV run-report schema, locked atomic append, history listing and reading. |
@@ -477,19 +477,19 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/web_server/`
 
-11 files · 4,167 lines · 159.1 KiB
+11 files · 4,229 lines · 161.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `assets.rs` | 276 | 10.3 KiB | GUI files for the server (embedded Tauri assets or --web-root): index rewrite (shim injection, Tauri CSP removed), inline-script CSP hashes, traversal-safe lookup. |
 | `auth.rs` | 207 | 7.3 KiB | Server token (256-bit, constant-time compare), bearer/cookie extraction, session cookie, Host allow-list and Origin match. |
 | `commands.rs` | 669 | 29.9 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
-| `config.rs` | 560 | 20.5 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
+| `config.rs` | 572 | 20.8 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
 | `events.rs` | 319 | 11.2 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
-| `fs_browse.rs` | 193 | 7.0 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
-| `mcp_tests.rs` | 319 | 10.6 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
+| `fs_browse.rs` | 227 | 8.2 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
+| `mcp_tests.rs` | 328 | 11.1 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
 | `mod.rs` | 395 | 14.3 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
-| `router_tests.rs` | 427 | 14.5 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
+| `router_tests.rs` | 434 | 14.6 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
 | `scope.rs` | 365 | 13.3 KiB | `--root` confinement: canonical root set, symlink/`..`-safe path check, and the table of which command arguments carry media or output paths. |
 | `web_shim.js` | 437 | 20.3 KiB | Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab. |
 
@@ -927,7 +927,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/maintainer/`
 
-8 files · 777 lines · 41.6 KiB
+8 files · 801 lines · 43.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -937,7 +937,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `README.md` | 15 | 654 B | Maintainer notes |
 | `REVIEW.md` | 93 | 3.8 KiB | Review and release evidence |
 | `RUST_MIGRATION.md` | 92 | 4.8 KiB | Native Rust architecture record |
-| `SERVE_MODE.md` | 239 | 14.8 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
+| `SERVE_MODE.md` | 263 | 16.3 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
 | `TECHNICAL.md` | 178 | 9.0 KiB | Technical architecture |
 
 ### `docs/screenshots/`

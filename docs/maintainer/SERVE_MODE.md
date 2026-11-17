@@ -231,6 +231,30 @@ API; the shim records the items and their channel handlers, draws them as a menu
 pointer, runs the chosen action through its channel (once, in order), runs Cut / Copy /
 Paste / Select all through the browser, and closes on a choice, click outside or Escape.
 
+### 8. Cross-platform verification (2026-11-17)
+
+Native runs of both build configurations (window build and `--no-default-features`):
+
+| Machine | Window build | Headless build | Notes |
+|---|---|---|---|
+| Linux laptop (Ubuntu 26.04) | 479 | 477 | media tools present (`HEVC_REQUIRE_MEDIA_TOOLS=1`) |
+| Ubuntu server (builder) | 479 | 477 | no ffmpeg; media tests skip; headless links 5 libs, 0 GUI |
+| macOS Tahoe SIP-off guest | 475 | 473 | no ffmpeg; headless links only system frameworks |
+| Windows Server 2025 (native, GNU) | 468 | 466 | ffmpeg and mkvtoolnix present, media tests ran |
+
+Live `serve` smoke tests on macOS and Windows: token, shim, environment check, plan, path
+browser. They found real defects, fixed with tests first: `default_media_root` read only
+`HOME` (unset on Windows, so the GUI's boot call failed there); Windows canonicalisation
+returned `\\?\C:\...` paths in the browser; tests assumed Unix separators, `/etc` and
+installed media tools. A server running elevated on Windows (High integrity, or SYSTEM)
+now gets the `root` route; on Windows without elevation the plan still reports a blocker.
+Real privileged runs: Linux apt catalog refresh as namespace root
+(`tools/serve-setup-sandbox.sh`), Windows helper install through the server
+(`hdr10plus_tool` 1.7.2), Homebrew provisioning through the server on the disposable
+macOS guest. Not covered: apt package installs (the sandbox cannot write `/usr`), winget
+package installs (winget is per-user and absent for SYSTEM), the `sudo -n` route on a host
+with passwordless sudo.
+
 ## Open questions for the owner (defaults chosen, change on request)
 
 - Port 8437, loopback only, remote binding needs `--allow-remote`.
