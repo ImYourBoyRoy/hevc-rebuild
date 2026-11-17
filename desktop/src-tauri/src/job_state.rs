@@ -1,4 +1,5 @@
-//! The single active-job slot behind the desktop run controls, plus the events a job emits to the window.
+//! The single active-job slot behind the desktop run controls, the `Events` sink job runners emit into
+//! (the desktop window or the headless server's bus), and the event payload types.
 
 use super::*;
 
@@ -8,16 +9,52 @@ pub(crate) struct RunState(pub(crate) Arc<Mutex<Option<ActiveJob>>>);
 #[derive(Clone)]
 pub(crate) struct ActiveJob {
     pub(crate) id: String,
+    /// What the job is, when a client other than the GUI started it (`integrity_check`, `media_run`, ...);
+    /// empty for jobs the GUI starts itself.
+    pub(crate) kind: String,
     pub(crate) stop_file: Option<PathBuf>,
     pub(crate) child_pid: Arc<Mutex<Option<u32>>>,
+}
+
+/// The job kind a run mode is announced under (the same names the MCP server uses), so a window that did
+/// not start the run knows how to show it.
+pub(crate) fn kind_for_run_mode(mode: &str) -> &'static str {
+    if mode == "integrity" {
+        "integrity_check"
+    } else {
+        "media_run"
+    }
+}
+
+/// A job with a kind, for clients that follow jobs they did not start.
+pub(crate) fn new_active_job_of(id: String, stop_file: Option<PathBuf>, kind: &str) -> ActiveJob {
+    let mut job = new_active_job(id, stop_file);
+    job.kind = kind.to_string();
+    job
 }
 
 pub(crate) fn new_active_job(id: String, stop_file: Option<PathBuf>) -> ActiveJob {
     ActiveJob {
         id,
+        kind: String::new(),
         stop_file,
         child_pid: Arc::new(Mutex::new(None)),
     }
+}
+
+/// The job that holds the single slot, for a client that wants to follow it (`active_job`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(crate) struct ActiveJobInfo {
+    pub(crate) id: String,
+    pub(crate) kind: String,
+}
+
+pub(crate) fn active_job_info(state: &RunState) -> Option<ActiveJobInfo> {
+    let current = state.0.lock().ok()?;
+    current.as_ref().map(|job| ActiveJobInfo {
+        id: job.id.clone(),
+        kind: job.kind.clone(),
+    })
 }
 
 fn remember_job_child(state: &RunState, run_id: &str, process_id: u32) {
@@ -50,6 +87,33 @@ fn forget_job_child(state: &RunState, run_id: &str) {
     drop(current);
     let cleared = child_pid.lock().map(|mut child| *child = None);
     drop(cleared);
+}
+
+/// Where a job's events go: the desktop window (Tauri emit) or, in `serve` mode, the server's event
+/// bus. Job runners only know this type, so one implementation serves both front ends.
+#[derive(Clone)]
+pub(crate) struct Events(Arc<EventSink>);
+
+type EventSink = dyn Fn(&str, Value) + Send + Sync;
+
+impl Events {
+    pub(crate) fn from_tauri(app: AppHandle) -> Events {
+        Events::from_fn(move |event, payload| {
+            let _ = app.emit(event, payload);
+        })
+    }
+
+    pub(crate) fn from_fn(sink: impl Fn(&str, Value) + Send + Sync + 'static) -> Events {
+        Events(Arc::new(sink))
+    }
+
+    /// Same shape as Tauri's `emit`, so runner code reads the same in both front ends.
+    pub(crate) fn emit<S: Serialize>(&self, event: &str, payload: S) -> Result<(), String> {
+        let value = serde_json::to_value(payload)
+            .map_err(|error| format!("Could not encode `{event}`: {error}"))?;
+        (self.0)(event, value);
+        Ok(())
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -137,6 +201,72 @@ pub(crate) fn child_tracker<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn events_deliver_the_event_name_and_camel_case_payload_to_the_sink() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let events = {
+            let seen = Arc::clone(&seen);
+            Events::from_fn(move |name, payload| {
+                seen.lock().unwrap().push((name.to_string(), payload))
+            })
+        };
+        events
+            .emit(
+                "run-line",
+                RunLine {
+                    run_id: "r1".into(),
+                    line: "frame=1".into(),
+                },
+            )
+            .expect("emit");
+        let clone = events.clone();
+        clone
+            .emit("run-finished", json!({"runId": "r1"}))
+            .expect("emit from a clone");
+        let seen = seen.lock().unwrap();
+        assert_eq!(
+            seen[0],
+            (
+                "run-line".to_string(),
+                json!({"runId": "r1", "line": "frame=1"})
+            )
+        );
+        assert_eq!(seen[1].0, "run-finished");
+    }
+
+    #[test]
+    fn gui_started_jobs_carry_a_kind_so_another_window_can_follow_them() {
+        assert_eq!(kind_for_run_mode("integrity"), "integrity_check");
+        for mode in ["check", "metadata", "test", "full", "youtube"] {
+            assert_eq!(kind_for_run_mode(mode), "media_run", "{mode}");
+        }
+        let state = RunState::default();
+        claim_job(
+            &state,
+            new_active_job_of("scan-1".into(), None, "folder_analysis"),
+        )
+        .unwrap();
+        assert_eq!(active_job_info(&state).unwrap().kind, "folder_analysis");
+    }
+
+    #[test]
+    fn active_job_info_reports_the_slot_holder_and_nothing_when_idle() {
+        let state = RunState::default();
+        assert_eq!(active_job_info(&state), None);
+        let mut job = new_active_job("run-a".into(), None);
+        job.kind = "integrity_check".into();
+        claim_job(&state, job).unwrap();
+        assert_eq!(
+            active_job_info(&state),
+            Some(ActiveJobInfo {
+                id: "run-a".into(),
+                kind: "integrity_check".into()
+            })
+        );
+        release_job(&state, "run-a");
+        assert_eq!(active_job_info(&state), None);
+    }
 
     #[test]
     fn job_state_allows_one_active_job_and_tracks_its_child_process() {

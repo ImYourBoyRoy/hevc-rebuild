@@ -56,6 +56,7 @@ fn default_app_preferences() -> Value {
         ],
         "filenameExcludeDefaultsVersion": 2,
         "savePosterBesideMedia": true,
+        "autoUpdateTools": false,
         "metadataAutoLookup": true,
         "metadataLanguage": "en-US",
         "metadataSources": {
@@ -301,6 +302,12 @@ fn normalize_app_preferences(value: Value) -> Result<Value, String> {
         }
         result.insert("stopOnError".into(), stop_on_error.clone());
     }
+    if let Some(auto_update) = object.get("autoUpdateTools") {
+        if !auto_update.is_boolean() {
+            return Err("Keep tools up to date automatically must be true or false.".into());
+        }
+        result.insert("autoUpdateTools".into(), auto_update.clone());
+    }
     if let Some(save_poster_beside_media) = object.get("savePosterBesideMedia") {
         if !save_poster_beside_media.is_boolean() {
             return Err("Save poster beside media must be true or false.".into());
@@ -473,6 +480,23 @@ pub(crate) fn save_app_preferences(preferences: Value) -> Result<AppPreferencesP
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn automatic_tool_updates_default_off_and_accept_only_booleans() {
+        let defaults = normalize_app_preferences(json!({})).unwrap();
+        assert_eq!(
+            defaults["autoUpdateTools"], false,
+            "never on unless the owner opts in"
+        );
+        for value in [true, false] {
+            let saved = normalize_app_preferences(json!({ "autoUpdateTools": value })).unwrap();
+            assert_eq!(saved["autoUpdateTools"], value);
+        }
+        for bad in [json!("yes"), json!(1), json!(null)] {
+            let error = normalize_app_preferences(json!({ "autoUpdateTools": bad })).unwrap_err();
+            assert!(error.contains("Keep tools up to date"), "{error}");
+        }
+    }
 
     #[test]
     fn every_theme_is_accepted_and_the_legacy_hacker_skin_upgrades() {

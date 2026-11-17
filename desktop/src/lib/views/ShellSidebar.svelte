@@ -2,6 +2,7 @@
      Brand lockup, main navigation, active-library chip and engine status.
      Pure view: navigation and the folder picker are route callbacks. -->
 <script lang="ts">
+  import { APP_VERSION } from "../app-version.js";
   import { ChevronRight, Clapperboard, FolderOpen, History, Film, Settings2, Video, Wrench } from "@lucide/svelte";
   import type { Environment, Page } from "../types.js";
 
@@ -66,6 +67,6 @@
   <div class="sidebar-bottom">
     <span class="connection-dot" class:green={environment?.ready}></span>
     <span>{environment?.ready ? "Engine ready" : environmentLoading || booting ? "Checking engine…" : "Setup required"}</span>
-    <span class="version-tag">v1.3.0</span>
+    <span class="version-tag">v{APP_VERSION}</span>
   </div>
 </aside>

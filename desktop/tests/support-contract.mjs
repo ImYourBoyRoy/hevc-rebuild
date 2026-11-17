@@ -15,9 +15,11 @@ async function contract(page){
   await page.getByRole('button',{name:'Review unused posters',exact:true}).click();if(await callback.textContent()==='cache-purge')throw new Error('Cache preview mutated');
   await page.getByRole('group',{name:'Confirm artwork cleanup'}).getByRole('button',{name:'Cancel',exact:true}).click();if(await callback.textContent()==='cache-purge')throw new Error('Cache cancel mutated');
   await view.selectOption('repair');await opener.click();
-  const authenticate=page.getByRole('button',{name:'Continue to authentication',exact:true});if(!await authenticate.isDisabled())throw new Error('Stale catalog gate');
-  await page.keyboard.press('Escape');await page.getByRole('checkbox',{name:'Stale catalog',exact:true}).uncheck();await opener.click();
-  if(await authenticate.isDisabled())throw new Error('Fresh exact-plan action missing');if(!(await page.getByRole('dialog').textContent()).includes('mediainfo'))throw new Error('Exact package plan lost');
+  const authenticate=page.getByRole('button',{name:'Authenticate once & install',exact:true});
+  if(await authenticate.count())throw new Error('A missing prerequisite must hide the install action');
+  if(!(await page.getByRole('dialog').textContent()).includes('Synthetic prerequisite'))throw new Error('Prerequisite remedy missing');
+  await page.keyboard.press('Escape');await page.getByRole('checkbox',{name:'Missing prerequisite',exact:true}).uncheck();await opener.click();
+  if(await authenticate.isDisabled())throw new Error('Plan action missing');const planText=await page.getByRole('dialog').textContent();if(!planText.includes('mediainfo')||!planText.includes('ffmpeg')||!planText.includes('HDR10+ helper'))throw new Error('Plan contents lost');
   await authenticate.click();if(await callback.textContent()!=='authenticate')throw new Error('Auth callback');await page.getByRole('button',{name:'Cancel',exact:true}).click();
   await page.getByText('Saved setup logs · 1',{exact:true}).click();await page.getByRole('button',{name:'View complete log',exact:true}).click();if(await callback.textContent()!=='open-setup-log')throw new Error('Setup log callback');
   await page.getByRole('button',{name:'Export log…',exact:true}).click();if(await callback.textContent()!=='export-setup-log')throw new Error('Setup export callback');

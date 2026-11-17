@@ -8,7 +8,7 @@
 import type { AptUpdateStatus, CommandCheck, Environment, ProvisionPlan, RunLineEvent, ToolPaths } from './types.js';
 import type { RepairToolOutcome, ToolSetupLogSummary } from './ui-contracts.js';
 
-export type PackageJobKind = "repair" | "catalog-refresh" | "upgrade" | "toolchain" | "provision" | null;
+export type PackageJobKind = "provision" | null;
 export type RepairFinished = { jobId: string; success: boolean; error: string | null; logWarning?: string | null };
 
 export interface ToolSetupHost {
@@ -17,7 +17,6 @@ export interface ToolSetupHost {
   environmentError: string;
   aptUpdates: AptUpdateStatus | null;
   aptChecking: boolean;
-  repairConfirmOpen: boolean;
   setupConfirmOpen: boolean;
   setupPlan: ProvisionPlan | null;
   setupUpdates: ProvisionPlan | null;
@@ -37,10 +36,8 @@ export interface ToolSetupHost {
   repairToolChecksBefore: CommandCheck[] | null;
   repairAffectedToolKeys: string[];
   repairToolOutcomes: RepairToolOutcome[];
-  hdrInstalling: boolean;
-  continueToolchainSetupAfterRefresh: boolean;
-  installHdrHelperAfterPackages: boolean;
   readonly aptHost: boolean;
+  readonly autoUpdateTools: boolean;
   readonly workflowBusy: boolean;
   readonly scanning: boolean;
   readonly runId: string;
@@ -130,56 +127,57 @@ export function createToolSetupController(deps: ToolSetupDeps) {
       .map((check) => check.key))];
   }
 
-  async function repairApt() {
-    if (h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
-    if (!h.environment?.os.supported || !h.aptHost) {
-      h.setNotice("Automatic APT repair is available only on Linux hosts using APT. Use the platform setup documented in Help & commands.", "error");
-      return;
-    }
-    if (!h.aptUpdates) {
-      const status = await checkUbuntuPackageUpdates(true);
-      if (!status) return;
-    }
-    if (h.aptUpdates?.catalog_stale) {
-      h.continueToolchainSetupAfterRefresh = true;
-      h.setNotice("The Ubuntu package catalog is stale. Refreshing it first; the package list will be shown for review before anything is installed.", "info");
-      await refreshUbuntuPackageCatalog(true);
-      return;
-    }
-    const missing = h.environment.missing_apt_packages;
-    const helperMissing = h.environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available);
-    if (!missing.length && !h.aptUpdates?.packages.length) {
-      if (helperMissing) {
-        await installHdrHelper();
-        return;
-      }
-      h.repairSummary = "The checked Ubuntu packages are installed and current in the enabled repositories.";
-      h.repairSummaryIsError = false;
-      h.setNotice("The required system tools are installed and current in the enabled Ubuntu package sources.", "success");
-      return;
-    }
-    if (!h.environment.checks.some((check) => check.key === "pkexec" && check.available)) {
-      h.repairSummary = "Desktop administrator authentication (pkexec) is missing. No system packages were changed.";
-      h.repairSummaryIsError = true;
-      h.setNotice("Desktop administrator authentication (pkexec) is missing. Install the listed system packages through Ubuntu Software or a terminal.", "error");
-      return;
-    }
-    h.repairConfirmOpen = true;
+  /** The part of a plan that needs no password: the HDR10+ helper, and Homebrew (which runs as the user). */
+  function passwordFreeWork(plan: ProvisionPlan): boolean {
+    const helper = plan.helper.action === "install" || plan.helper.action === "update";
+    const brew = plan.manager === "brew" && !plan.blockers.length && (plan.install_packages.length > 0 || plan.upgrade_packages.length > 0);
+    return helper || brew;
   }
 
-  /** Silent background check (launch and every few hours): remembers what is missing or outdated for the header notice. */
+  let lastAutomaticPlan = "";
+
+  /** Silent background check (launch and every few hours): remembers what is missing or outdated for
+   *  the header notice, and, when the owner switched on "keep tools up to date", applies only the
+   *  password-free part while the app is idle. It never opens a dialog or asks for a password. */
   async function checkSetupUpdates() {
-    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.scanning) return;
     try {
       h.setupUpdates = await invoke<ProvisionPlan>("provision_plan", { toolPaths: h.currentToolPaths() });
     } catch {
       /* Offline or unsupported hosts keep the last known result; the manual button reports errors. */
+      return;
+    }
+    await applyAutomaticUpdates();
+  }
+
+  async function applyAutomaticUpdates() {
+    const plan = h.setupUpdates;
+    if (!h.autoUpdateTools || !plan || !passwordFreeWork(plan)) return;
+    if (h.runId || h.runStarting || h.repairId || h.scanning) return;
+    // Never retry the same plan in a loop after a failure; a different plan or a restart tries again.
+    const key = JSON.stringify([plan.manager, plan.install_packages, plan.upgrade_packages, plan.helper]);
+    if (key === lastAutomaticPlan) return;
+    lastAutomaticPlan = key;
+    h.repairLines = [];
+    h.repairLogWarning = "";
+    h.repairSummary = "Updating tools in the background…";
+    h.repairSummaryIsError = false;
+    h.repairToolChecksBefore = h.environment?.checks.map((check) => ({ ...check })) ?? null;
+    h.repairAffectedToolKeys = plan.helper.action === "install" || plan.helper.action === "update" ? ["hdr10plus_tool"] : [];
+    h.repairToolOutcomes = [];
+    try {
+      h.repairId = await invoke<string>("provision_toolchain", { toolPaths: h.currentToolPaths(), userSpaceOnly: true });
+      h.packageJobKind = "provision";
+    } catch (error) {
+      h.repairId = "";
+      h.repairSummary = `Automatic update could not start: ${String(error)}`;
+      h.repairSummaryIsError = true;
     }
   }
 
   /** One pass: fetch the plan (packages, catalog, helper) and ask once; nothing runs until confirmSetup. */
   async function reviewSetup() {
-    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!isDesktop() || h.runId || h.runStarting || h.repairId || h.scanning) return;
     try {
       const plan = await invoke<ProvisionPlan>("provision_plan", { toolPaths: h.currentToolPaths() });
       h.setupPlan = plan;
@@ -199,15 +197,14 @@ export function createToolSetupController(deps: ToolSetupDeps) {
 
   /** Apply the reviewed plan. The backend recomputes it and asks for the password at most once. */
   async function confirmSetup() {
-    if (!h.setupPlan || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!h.setupPlan || h.runId || h.runStarting || h.repairId || h.scanning) return;
     const plan = h.setupPlan;
     h.setupConfirmOpen = false;
     h.repairLines = [];
     h.repairLogWarning = "";
     h.repairSummary = plan.needs_password ? "Waiting for administrator authentication (one prompt)…" : "Installing and updating…";
     h.repairSummaryIsError = false;
-    h.installHdrHelperAfterPackages = false;
-    h.repairToolChecksBefore = h.environment?.checks.map((check) => ({ ...check })) ?? null;
+        h.repairToolChecksBefore = h.environment?.checks.map((check) => ({ ...check })) ?? null;
     const helperWork = plan.helper.action === "install" || plan.helper.action === "update";
     h.repairAffectedToolKeys = [...new Set([...toolKeysForPackages([...plan.install_packages, ...plan.upgrade_packages]), ...(helperWork ? ["hdr10plus_tool"] : [])])];
     h.repairToolOutcomes = [];
@@ -245,25 +242,6 @@ export function createToolSetupController(deps: ToolSetupDeps) {
       return null;
     } finally {
       h.aptChecking = false;
-    }
-  }
-
-  async function refreshUbuntuPackageCatalog(continueSetup = false) {
-    if (!isDesktop() || h.workflowBusy || h.aptChecking || !h.aptHost) return;
-    h.repairLines = [];
-    h.repairLogWarning = "";
-    h.repairSummary = "Refreshing Ubuntu package information…";
-    h.repairSummaryIsError = false;
-    try {
-      h.repairId = await invoke<string>("refresh_ubuntu_package_catalog");
-      h.packageJobKind = "catalog-refresh";
-      h.continueToolchainSetupAfterRefresh = continueSetup;
-      h.setNotice("Refreshing the configured Ubuntu package catalog. No software is being installed.", "info");
-    } catch (error) {
-      h.continueToolchainSetupAfterRefresh = false;
-      h.repairSummary = `Package information could not be refreshed: ${String(error)}`;
-      h.repairSummaryIsError = true;
-      h.setNotice(`Could not refresh the Ubuntu package catalog: ${String(error)}`, "error");
     }
   }
 
@@ -321,79 +299,6 @@ export function createToolSetupController(deps: ToolSetupDeps) {
     }
   }
 
-  async function confirmAptRepair() {
-    if (h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
-    if (!h.environment || !h.aptUpdates || h.aptUpdates.catalog_stale) return;
-    const missingPackages = [...h.environment.missing_apt_packages];
-    const updatePackages = h.aptUpdates.packages.map((item) => item.name);
-    if (!missingPackages.length && !updatePackages.length) return;
-    h.repairConfirmOpen = false;
-    h.repairLines = [];
-    h.repairLogWarning = "";
-    const actions = [
-      ...(missingPackages.length ? [`installing ${missingPackages.length} missing package${missingPackages.length === 1 ? "" : "s"}`] : []),
-      ...(updatePackages.length ? [`updating ${updatePackages.length} package${updatePackages.length === 1 ? "" : "s"}`] : []),
-    ];
-    h.repairSummary = `${actions.join(" and ").replace(/^./, (first) => first.toUpperCase())}…`;
-    h.repairSummaryIsError = false;
-    h.installHdrHelperAfterPackages = h.environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available);
-    h.repairToolChecksBefore = h.environment.checks.map((check) => ({ ...check }));
-    h.repairAffectedToolKeys = toolKeysForPackages([...missingPackages, ...updatePackages]);
-    if (h.installHdrHelperAfterPackages) h.repairAffectedToolKeys = [...new Set([...h.repairAffectedToolKeys, "hdr10plus_tool"])];
-    h.repairToolOutcomes = [];
-    try {
-      h.repairId = await invoke<string>("install_ubuntu_toolchain", {
-        toolPaths: h.currentToolPaths(),
-        confirmedMissingPackages: missingPackages,
-        confirmedUpdatePackages: updatePackages,
-      });
-      h.packageJobKind = "toolchain";
-      h.setNotice("System tool setup started. APT will install the reviewed missing packages, then apply only the listed updates.", "info");
-    } catch (error) {
-      h.repairId = "";
-      h.installHdrHelperAfterPackages = false;
-      h.repairSummary = `Tool setup could not start: ${String(error)}`;
-      h.repairSummaryIsError = true;
-      h.setNotice(`Could not start system tool setup: ${String(error)}`, "error");
-    }
-  }
-
-  async function installHdrHelper(preservePreviousResults = false) {
-    if (h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
-    h.hdrInstalling = true;
-    h.repairToolChecksBefore = h.environment?.checks.map((check) => ({ ...check })) ?? null;
-    h.repairAffectedToolKeys = ["hdr10plus_tool"];
-    if (!preservePreviousResults) h.repairToolOutcomes = [];
-    h.repairLogWarning = "";
-    const setupLogId = `${Date.now()}-${Math.floor(Math.random() * 1_000_000_000)}`;
-    h.activeToolSetupLogId = setupLogId;
-    h.repairSummary = "Downloading and verifying the latest HDR10+ helper…";
-    h.repairSummaryIsError = false;
-    h.setNotice("Installing the HDR10+ helper from its verified upstream release…", "info");
-    try {
-      const path = await invoke<string>("install_hdr10plus", { jobId: setupLogId });
-      h.repairSummary = `HDR10+ helper installed at ${path}; checking its version…`;
-      h.setNotice(`HDR10+ helper installed at ${path}. Rechecking the environment.`, "success");
-      if (await loadEnvironment()) recordRepairToolOutcomes(h.repairToolChecksBefore, h.environment?.checks ?? []);
-      h.repairSummary = h.environment?.checks.find((check) => check.key === "hdr10plus_tool")?.available
-        ? "HDR10+ helper installed and detected."
-        : "The helper installer finished, but the environment check still cannot detect HDR10+ helper.";
-      h.repairSummaryIsError = !h.environment?.checks.find((check) => check.key === "hdr10plus_tool")?.available;
-      await refreshToolSetupLogs(setupLogId);
-    } catch (error) {
-      h.repairSummary = `HDR10+ helper setup failed: ${String(error)}`;
-      h.repairSummaryIsError = true;
-      if (await loadEnvironment()) recordRepairToolOutcomes(h.repairToolChecksBefore, h.environment?.checks ?? []);
-      await refreshToolSetupLogs(setupLogId);
-      h.setNotice(`HDR10+ helper setup failed: ${String(error)}`, "error");
-    } finally {
-      h.hdrInstalling = false;
-      h.activeToolSetupLogId = "";
-      h.repairToolChecksBefore = null;
-      h.repairAffectedToolKeys = [];
-    }
-  }
-
   function handleRepairLine(payload: RunLineEvent) {
     if (payload.runId === h.repairId) h.repairLines = [...h.repairLines, payload.line].slice(-120);
   }
@@ -404,49 +309,27 @@ export function createToolSetupController(deps: ToolSetupDeps) {
 
   async function handleRepairFinished(payload: RepairFinished) {
     if (payload.jobId !== h.repairId) return;
-    const completedKind = h.packageJobKind;
     const checksBefore = h.repairToolChecksBefore;
     const affectedToolKeys = h.repairAffectedToolKeys;
-    let helperStarted = false;
     h.repairLogWarning = payload.logWarning ?? "";
     h.repairId = "";
     h.packageJobKind = null;
-    h.repairSummary = payload.success
-      ? completedKind === "catalog-refresh" ? "Package information refreshed; checking installed versions…"
-        : completedKind === "provision" ? "Setup and updates finished; checking installed versions…"
-        : completedKind === "toolchain" ? "Reviewed package setup finished; checking installed versions…"
-          : completedKind === "upgrade" ? "Package updates finished; checking installed versions…"
-            : "Package repair finished; checking installed versions…"
-      : payload.error ?? "The package operation did not finish successfully.";
+    h.repairSummary = payload.success ? "Setup and updates finished; checking installed versions…" : payload.error ?? "The setup did not finish successfully.";
     h.repairSummaryIsError = !payload.success;
-    if (payload.success) h.setNotice(completedKind === "catalog-refresh" ? "Ubuntu package catalog refreshed." : completedKind === "provision" ? "Setup and updates completed. Rechecking installed tools." : completedKind === "toolchain" ? "Reviewed Ubuntu package setup completed. Rechecking installed tools." : completedKind === "upgrade" ? "Ubuntu package upgrades completed." : "Package repair completed. Rechecking the installed tools.", "success");
-    else h.setNotice(payload.error ?? "The package operation did not finish successfully.", "error");
+    h.setNotice(payload.success ? "Setup and updates completed. Rechecking installed tools." : payload.error ?? "The setup did not finish successfully.", payload.success ? "success" : "error");
     await refreshToolSetupLogs(payload.jobId);
     const environmentLoaded = await loadEnvironment();
     if (environmentLoaded && affectedToolKeys.length) recordRepairToolOutcomes(checksBefore, h.environment?.checks ?? []);
     h.repairToolChecksBefore = null;
     h.repairAffectedToolKeys = [];
-    if (h.aptHost && (h.aptUpdates || completedKind === "catalog-refresh" || completedKind === "upgrade" || completedKind === "toolchain" || completedKind === "provision")) await checkUbuntuPackageUpdates(true);
-    if (completedKind === "catalog-refresh" && h.continueToolchainSetupAfterRefresh) {
-      h.continueToolchainSetupAfterRefresh = false;
-      if (payload.success) await repairApt();
-    }
-    if (completedKind === "toolchain" && payload.success && h.installHdrHelperAfterPackages) {
-      h.installHdrHelperAfterPackages = false;
-      if (h.environment?.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)) {
-        helperStarted = true;
-        await installHdrHelper(true);
-      }
-    }
-    if (completedKind === "toolchain" && !payload.success) h.installHdrHelperAfterPackages = false;
-    if (completedKind === "catalog-refresh" && !payload.success) h.continueToolchainSetupAfterRefresh = false;
-    if (completedKind === "provision") await checkSetupUpdates();
-    if (payload.success && !helperStarted) {
+    if (h.aptHost) await checkUbuntuPackageUpdates(true);
+    await checkSetupUpdates();
+    if (payload.success) {
       h.repairSummary = h.environment?.ready
         ? "Setup complete. All required media tools are ready."
-        : "Package work completed. One or more required tools still need attention; check their status in Settings.";
+        : "Setup finished. One or more required tools still need attention; check their status in Settings.";
     }
   }
 
-  return { loadEnvironment, aptPackageForTool, packageUpdateForTool, toolCheckReadout, recordRepairToolOutcomes, toolKeysForPackages, repairApt, reviewSetup, confirmSetup, checkSetupUpdates, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, refreshToolSetupLogs, openToolSetupLog, exportToolSetupLog, confirmAptRepair, installHdrHelper, handleRepairLine, handleRepairLogWarning, handleRepairFinished };
+  return { loadEnvironment, aptPackageForTool, packageUpdateForTool, toolCheckReadout, recordRepairToolOutcomes, toolKeysForPackages, reviewSetup, confirmSetup, checkSetupUpdates, checkUbuntuPackageUpdates, refreshToolSetupLogs, openToolSetupLog, exportToolSetupLog, handleRepairLine, handleRepairLogWarning, handleRepairFinished };
 }

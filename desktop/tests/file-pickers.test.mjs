@@ -14,7 +14,7 @@ function harness({ pick = null, invokeImpl = {}, hostOver = {} } = {}) {
   const dialogs = [];
   const state = {
     desktopShell: true, root: "/typed", activeRoot: null, appPreferences: { root: "/saved", fileOutputDirs: {} }, youtubeOutputDir: "", runId: "", runStarting: false,
-    repairId: "", hdrInstalling: false, scanning: false, workflowBusy: false, ...hostOver,
+    repairId: "", scanning: false, workflowBusy: false, ...hostOver,
   };
   const host = state;
   host.setNotice = (message, kind = "info") => log.push([kind, message]);
@@ -34,7 +34,7 @@ function harness({ pick = null, invokeImpl = {}, hostOver = {} } = {}) {
 }
 
 test("browseFolder is blocked when not on desktop or while something is running", async () => {
-  for (const hostOver of [{ desktopShell: false }, { runId: "r" }, { runStarting: true }, { repairId: "j" }, { hdrInstalling: true }, { scanning: true }]) {
+  for (const hostOver of [{ desktopShell: false }, { runId: "r" }, { runStarting: true }, { repairId: "j" }, { scanning: true }]) {
     const h = harness({ pick: ["/x"], hostOver });
     await h.ctl.browseFolder();
     assert.equal(h.dialogs.length, 0);

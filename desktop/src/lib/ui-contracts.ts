@@ -37,6 +37,7 @@ export type AppPreferences = {
     metadataSources: MetadataSources;
     organizerTemplates: OrganizerTemplates;
     savePosterBesideMedia: boolean;
+    autoUpdateTools: boolean;
     settings: Settings | null;
   };
 

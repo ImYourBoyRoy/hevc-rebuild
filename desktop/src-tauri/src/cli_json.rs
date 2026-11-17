@@ -4,7 +4,7 @@ use super::*;
 
 pub(crate) fn run_json_cli(args: &[String]) -> i32 {
     if args.is_empty() {
-        eprintln!("Choose a JSON action: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, provision-plan, provision, install-hdr10plus, integrity, check.");
+        eprintln!("Choose a JSON action: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, provision-plan, provision, install-hdr10plus, integrity, check.");
         return 2;
     }
     if args[0] == "output-plan" {
@@ -58,12 +58,6 @@ pub(crate) fn run_json_cli(args: &[String]) -> i32 {
     }
     if args[0] == "reports" {
         return run_reports_json_cli(args);
-    }
-    if args[0] == "apt-refresh" {
-        return run_json_cli_apt_refresh(&args[1..]);
-    }
-    if args[0] == "apt-upgrade" {
-        return run_json_cli_apt_upgrade(&args[1..]);
     }
     if args[0] == "provision-plan" {
         return run_json_cli_provision(&args[1..], false);
@@ -136,7 +130,7 @@ pub(crate) fn run_json_cli(args: &[String]) -> i32 {
         return run_json_work_directory_cli(&args[1..]);
     }
     eprintln!(
-        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, apt-refresh, apt-upgrade, provision-plan, provision, install-hdr10plus, artwork-cache, integrity.",
+        "Unknown JSON action {:?}. Available actions: environment, scan, defaults, work-directory, queue, queue-select, queue-run, output-plan, reports, apt-updates, provision-plan, provision, install-hdr10plus, artwork-cache, integrity.",
         args[0]
     );
     2

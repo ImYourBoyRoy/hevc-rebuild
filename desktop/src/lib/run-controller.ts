@@ -17,6 +17,12 @@ import type {
   Settings, ToolPaths, YoutubeMode, YoutubePreset, YoutubeQualityCheck, YoutubeSdrCodec, YoutubeShrink,
 } from './types.js';
 
+/** The job holding the server's single job slot (`active_job`); `kind` is empty for GUI-started jobs. */
+export type ActiveJobInfo = { id: string; kind: string };
+
+/** Job kinds from another client that this window can show on the Run page. */
+const ADOPTABLE_RUN_KINDS = ["media_run", "media_queue_run", "library_batch", "integrity_check"];
+
 export type SourceRunBatch = { source: MediaQueueSource; entries: MediaEntry[] };
 
 /** Everything the run controller reads or writes on the route. Property names match the route's variables. */
@@ -55,6 +61,8 @@ export interface RunHost {
   openPage(page: "run" | "youtube" | "library" | "reports"): void;
   currentToolPaths(): ToolPaths;
   loadReports(): Promise<void>;
+  /** Re-read the saved queue (another client updated it on disk while this window followed its run). */
+  loadMediaQueue(): Promise<unknown>;
   selectedPosterOverrides(entries: MediaEntry[]): Record<string, string>;
   selectedMetadataOverrides(entries: MediaEntry[]): Record<string, Record<string, string | string[]>>;
   fileTuneOverridesForBatch(entries: MediaEntry[], settings: Settings): Record<string, "animation" | "none">;
@@ -74,6 +82,9 @@ export interface RunControllerDeps {
 
 export function createRunController(deps: RunControllerDeps) {
   const { invoke, workspace, host: h, persistence, queue, runEventBuffer } = deps;
+  /** The run this window follows but did not plan, and the file position last seen for it. */
+  let followedRunId = "";
+  let followedBatchNumber = 0;
 
   function queueRunStateForPath(path: string): MediaQueueRunState | undefined {
     return h.queueRunStatesByPath.get(queuePathKey(path));
@@ -96,6 +107,11 @@ export function createRunController(deps: RunControllerDeps) {
   }
 
   function noteRunProgress(event: RunProgressEvent) {
+    if (followedRunId && event.runId === followedRunId && event.batchNumber !== followedBatchNumber) {
+      // The other client saves each file's result to the queue as it goes; show it.
+      followedBatchNumber = event.batchNumber;
+      void h.loadMediaQueue();
+    }
     workspace.run.progress = event;
     workspace.run.progressSeenAt = Date.now();
     recordQueueRunProgress(event);
@@ -229,6 +245,33 @@ export function createRunController(deps: RunControllerDeps) {
     }
   }
 
+  /**
+   * Follow a run some other client started: an agent over MCP, or another browser tab on the headless
+   * server. This window only renders events for the run id it knows, so it takes the id and shows the
+   * Run page. Only media runs are shown here (setup and analysis have their own views), and a run this
+   * window is already starting or following is never replaced. Returns whether the run was adopted.
+   */
+  function adoptActiveRun(job: ActiveJobInfo | null | undefined): boolean {
+    if (!job?.id || !ADOPTABLE_RUN_KINDS.includes(job.kind)) return false;
+    if (workspace.run.id || workspace.run.starting) return false;
+    runEventBuffer.reset();
+    followedRunId = job.id;
+    followedBatchNumber = 0;
+    workspace.run.id = job.id;
+    workspace.run.mode = job.kind === "integrity_check" ? "integrity" : workspace.run.mode;
+    workspace.run.lines = [];
+    workspace.run.progress = null;
+    workspace.run.resources = null;
+    workspace.run.stopAfterCurrent = false;
+    workspace.run.aborting = false;
+    workspace.run.startedAt = Date.now();
+    workspace.run.progressSeenAt = null;
+    workspace.run.message = "Following a run started by another client. Live progress is shown below.";
+    h.openPage("run");
+    h.setNotice("A run started by another client is shown here live.", "info");
+    return true;
+  }
+
   async function finishRun(payload: RunFinishedEvent) {
     workspace.run.id = "";
     if (payload.error) workspace.run.message = payload.error;
@@ -236,6 +279,11 @@ export function createRunController(deps: RunControllerDeps) {
     else if (payload.exitCode === 0) workspace.run.message = "Workflow finished. Review the report and any skipped files.";
     else workspace.run.message = `Workflow finished with exit code ${payload.exitCode ?? "unknown"}. Review the diagnostics.`;
     await h.loadReports();
+    if (followedRunId && payload.runId === followedRunId) {
+      followedRunId = "";
+      followedBatchNumber = 0;
+      await h.loadMediaQueue();
+    }
     const finishedBatch = h.pendingRunBatches[h.activeRunBatchIndex];
     const matchingReport = payload.reportPath
       ? h.reports.find((report) => queuePathKey(report.csv_path) === queuePathKey(payload.reportPath!))
@@ -423,7 +471,7 @@ export function createRunController(deps: RunControllerDeps) {
   }
 
   return {
-    queueRunStateForPath, noteRunProgress, handleQueueRenameState, beginQueuedRun, startNextRunBatch, finishRun,
+    queueRunStateForPath, noteRunProgress, handleQueueRenameState, beginQueuedRun, startNextRunBatch, adoptActiveRun, finishRun,
     stopAfterCurrent, confirmStopNow, prepareQueueEntryForRetry, skipQueueEntry, openQueueRunReport, loadQueueRunDiagnostics,
   };
 }

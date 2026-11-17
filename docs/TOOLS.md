@@ -91,24 +91,55 @@ winget install --exact --id MediaArea.MediaInfo --accept-source-agreements --acc
 winget install --exact --id MoritzBunkus.MKVToolNix --accept-source-agreements --accept-package-agreements
 ```
 
-`winget` must be installed and available on `PATH` for automatic package setup.
+"Install & update everything" runs these (and `winget upgrade` for tools you
+already have) from one elevated PowerShell script, so Windows asks you to
+approve **once**. FFmpeg is the **full** build (`Gyan.FFmpeg`); the stripped
+`Gyan.FFmpeg.Essentials` build leaves out libraries, and the app tells you when
+it finds that one. `winget` must be installed (it ships as "App Installer" from the
+Microsoft Store); if it is missing the setup dialog says so instead of
+failing. The app also looks in `%LOCALAPPDATA%\Microsoft\WinGet\Links`, so
+tools installed after the app started are found without restarting.
 The Tauri Windows installer targets are configured, but a release still needs a
 native Windows build and runtime acceptance pass.
 
 ## macOS
 
-macOS setup uses Homebrew for FFmpeg, MediaInfo, MKVToolNix, and Fontconfig.
-The app does not install Homebrew itself. The HDR10+ helper uses the
+macOS setup uses Homebrew for FFmpeg, MediaInfo, and MKVToolNix. Homebrew runs as
+you, so **no password is needed** for these installs and updates. Homebrew itself
+needs Apple's Command Line Tools, so the environment check lists both
+("Xcode Command Line Tools" and "Homebrew"); when either is missing, the setup
+dialog shows the exact command to run in Terminal (`xcode-select --install`, then
+the official Homebrew install command from [brew.sh](https://brew.sh/)). The app
+never runs the Homebrew installer script itself. The HDR10+ helper uses the
 official universal macOS release asset and verifies its SHA-256 digest before
 installation.
 
 ```bash
-brew install ffmpeg mediainfo mkvtoolnix fontconfig
+brew install ffmpeg mediainfo mkvtoolnix
 ```
 
-Install Homebrew first from [brew.sh](https://brew.sh/) if `brew` is not
-available. Desktop macOS installer targets are configured, but a release still
-needs a native macOS build and runtime acceptance pass.
+A macOS app started from Finder has a minimal `PATH`, so the app also searches
+`/opt/homebrew/bin` and `/usr/local/bin` for tools. Desktop macOS installer
+targets are configured, but a release still needs a native macOS build and
+runtime acceptance pass.
+
+## Which FFmpeg build
+
+Use a **full** build. Ubuntu's `ffmpeg` package, Homebrew's `ffmpeg` and
+`Gyan.FFmpeg` all include libx265 (required) and libx264. The environment check
+reports whether the x265 inside your FFmpeg can write HDR10+ directly
+(`hdr10plus_x265`); when it cannot, the app injects HDR10+ afterwards with the
+`hdr10plus_tool` helper, which setup installs for you.
+
+## Automatic updates
+
+The app checks for missing or outdated tools at launch and every six hours and
+shows an "N UPDATES" (or "SETUP NEEDED") badge in the header. **Settings >
+Tool updates > Keep tools up to date automatically** (off by default) installs the
+password-free updates (the HDR10+ helper, and Homebrew packages on macOS) in the
+background while the app is idle. It never interrupts a conversion, opens a
+window, or asks for a password; updates that need an administrator password are
+only announced.
 
 ## Safety and verification
 

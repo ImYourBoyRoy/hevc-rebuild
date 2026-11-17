@@ -72,6 +72,8 @@ export interface AppBootActions {
   checkSetupUpdates(): Promise<unknown> | unknown;
   noteRunProgress(payload: RunProgressEvent): void;
   finishRun(payload: RunFinishedEvent): Promise<unknown> | unknown;
+  /** Follow a run another client started (an agent over MCP, another tab); returns whether it was taken. */
+  adoptActiveRun(job: { id: string; kind: string } | null | undefined): boolean;
   handleRepairLine(payload: RunLineEvent): void;
   handleRepairLogWarning(payload: RunLineEvent): void;
   handleRepairFinished(payload: RepairFinished): Promise<unknown> | unknown;
@@ -154,6 +156,14 @@ export function createAppBoot(deps: AppBootDeps) {
     void openUrl(anchor.href).catch((error) => h.setNotice(`Could not open ${anchor.hostname} in your browser: ${String(error)}`, "error"));
   }
 
+  /** A job that started before this window opened (headless server): follow it. Older backends lack the command. */
+  async function followActiveJob() {
+    try {
+      const job = await invoke<{ id: string; kind: string } | null>("active_job");
+      if (job) actions.adoptActiveRun(job);
+    } catch { /* No active_job command or no job: nothing to follow. */ }
+  }
+
   async function initialize() {
     try {
       const stored = await invoke<PreferencesPayload>("load_app_preferences");
@@ -213,6 +223,7 @@ export function createAppBoot(deps: AppBootDeps) {
       await Promise.all([loadEnvironment(), loadSettings(h.root), loadReports(), refreshToolSetupLogs(), refreshTmdbCredentialStatus(), refreshTvdbCredentialStatus()]);
       if (h.environment?.os.package_manager === "apt" && h.environment?.os.package_manager_available !== false) await checkUbuntuPackageUpdates(true);
       await checkSetupUpdates();
+      await followActiveJob();
     } catch (error) {
       h.environmentError = String(error);
       h.setNotice(`The desktop backend did not start: ${String(error)}`, "error");
@@ -277,6 +288,9 @@ export function createAppBoot(deps: AppBootDeps) {
             return;
           }
           await finishRun(event.payload);
+        }),
+        listen<{ runId: string; kind: string }>("job-started", (event) => {
+          actions.adoptActiveRun({ id: event.payload.runId, kind: event.payload.kind });
         }),
         listen<RunLineEvent>("repair-line", (event) => handleRepairLine(event.payload)),
         listen<RunLineEvent>("repair-log-warning", (event) => handleRepairLogWarning(event.payload)),

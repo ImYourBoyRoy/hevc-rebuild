@@ -27,7 +27,6 @@
     hostSetupShell: string;
     hostSetupCommand: string;
     repairId: string;
-    hdrInstalling: boolean;
     repairSummary: string;
     repairSummaryIsError: boolean;
     repairLogWarning: string;
@@ -47,7 +46,6 @@
     saveToolPaths: (recheck?: boolean) => unknown;
     loadEnvironment: ToolSetup["loadEnvironment"];
     checkUbuntuPackageUpdates: ToolSetup["checkUbuntuPackageUpdates"];
-    refreshUbuntuPackageCatalog: ToolSetup["refreshUbuntuPackageCatalog"];
     reviewSetup: ToolSetup["reviewSetup"];
     packageUpdateForTool: ToolSetup["packageUpdateForTool"];
     openToolSetupLog: ToolSetup["openToolSetupLog"];
@@ -57,9 +55,9 @@
   }
   let {
     environment, environmentLoading, environmentError, booting, desktopShell, workflowBusy, settings, aptHost, aptChecking, aptUpdates, packageManagerLabel,
-    hostSetupShell, hostSetupCommand, repairId, hdrInstalling, repairSummary, repairSummaryIsError, repairLogWarning, repairLines, repairToolOutcomes, toolSetupLogs,
+    hostSetupShell, hostSetupCommand, repairId, repairSummary, repairSummaryIsError, repairLogWarning, repairLines, repairToolOutcomes, toolSetupLogs,
     selectedToolSetupLog = $bindable(), viewedToolSetupLog = $bindable(), toolSetupLogLoading, toolSetupLogError, toolSetupLogExporting, toolPathOptions, toolPathValue,
-    setToolPathValue, chooseToolPath, clearToolPath, saveToolPaths, loadEnvironment, checkUbuntuPackageUpdates, refreshUbuntuPackageCatalog, reviewSetup,
+    setToolPathValue, chooseToolPath, clearToolPath, saveToolPaths, loadEnvironment, checkUbuntuPackageUpdates, reviewSetup,
     packageUpdateForTool, openToolSetupLog, exportToolSetupLog, copyHostSetupCommand, openPage,
   }: Props = $props();
 </script>
@@ -87,7 +85,7 @@
       {#if aptUpdates}
         <div class="apt-update-status"><span class="status-tag" class:status-warning={aptUpdates.catalog_stale} class:status-ready={!aptUpdates.catalog_stale}>{aptUpdates.catalog_stale ? "CATALOG NEEDS REFRESH" : `${aptUpdates.packages.length} UPDATE${aptUpdates.packages.length === 1 ? "" : "S"}`}</span><small>Catalog last updated: {aptUpdates.catalog_updated_at ? new Date(aptUpdates.catalog_updated_at * 1000).toLocaleString() : "unknown"} · checked {new Date(aptUpdates.checked_at * 1000).toLocaleString()}</small></div>
         {#if aptUpdates.catalog_stale}
-          <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Install & update everything refreshes the package catalog and applies the plan in one authenticated step, after showing you the list. Refreshing downloads package-index metadata; it does not install software.</span></div><button class="button secondary" disabled={!desktopShell || workflowBusy || !environment.checks.some((check) => check.key === "pkexec" && check.available)} onclick={() => refreshUbuntuPackageCatalog()}><RefreshCw size={15} /> Refresh catalog</button></div>
+          <div class="inline-warning apt-update-warning"><Info size={17} /><div><strong>These versions may be out of date.</strong><span>Install & update everything refreshes the package catalog and applies the plan in one authenticated step, after showing you the list. Refreshing downloads package-index metadata; it does not install software.</span></div></div>
         {:else if aptUpdates.packages.length}
           <div class="apt-update-section-label"><strong>Updates available</strong><small>Installed version → enabled repository version</small></div>
           <div class="apt-update-list">{#each aptUpdates.packages as update (update.name)}<div><code>{update.name}</code><span>{update.installed_version}</span><ArrowRight size={13} /><strong>{update.candidate_version}</strong></div>{/each}</div>
@@ -107,7 +105,7 @@
         {/if}
         {#if environment.checks.some((check) => check.key === "hdr10plus_tool" && !check.available)}<div class="repair-helper-note"><Info size={16} /><span><strong>HDR10+ helper missing.</strong> Only HDR10+ sources need it. Download <a href="https://github.com/quietvoid/hdr10plus_tool/releases/latest" target="_blank" rel="noreferrer">hdr10plus_tool</a> and select it above.</span></div>{/if}
       {/if}
-      <ToolRepairActivity showLogHistory={true} {repairSummary} {repairSummaryIsError} {repairId} {hdrInstalling} {repairToolOutcomes} {repairLogWarning} {repairLines} {toolSetupLogs} bind:selectedToolSetupLog {toolSetupLogLoading} bind:viewedToolSetupLog {toolSetupLogExporting} {toolSetupLogError} {openToolSetupLog} {exportToolSetupLog} />
+      <ToolRepairActivity showLogHistory={true} {repairSummary} {repairSummaryIsError} {repairId} {repairToolOutcomes} {repairLogWarning} {repairLines} {toolSetupLogs} bind:selectedToolSetupLog {toolSetupLogLoading} bind:viewedToolSetupLog {toolSetupLogExporting} {toolSetupLogError} {openToolSetupLog} {exportToolSetupLog} />
     </section>
     <div class="encoder-note"><Info size={15} /><span>Hardware inventory is used for resource planning and diagnostics. The current rebuild engine uses <strong>CPU libx265</strong>; GPU encoding is not enabled.</span><button class="text-button" onclick={() => openPage("run")}>Resource settings <ArrowRight size={14} /></button></div>
   {:else}<div class="empty-state compact">{#if environmentLoading || booting}<LoaderCircle class="spin" size={18} />{:else}<AlertTriangle size={18} />{/if}<div><strong>{environmentLoading || booting ? "Checking this computer…" : "Could not read the environment"}</strong><p>{environmentError || "The desktop backend may be unavailable. Recheck after setup."}</p></div>{#if !environmentLoading}<button class="button secondary" onclick={loadEnvironment}>Retry check</button>{/if}</div>{/if}

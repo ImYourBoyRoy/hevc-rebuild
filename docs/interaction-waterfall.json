@@ -26,11 +26,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -52,11 +52,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -89,11 +89,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -115,11 +115,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -325,11 +325,11 @@
           "kind": "app-click",
           "note": "browseFolder() returns until desktopShell is ready.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -351,11 +351,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -542,11 +542,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -568,11 +568,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -605,11 +605,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -631,11 +631,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -666,11 +666,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -692,11 +692,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -1215,11 +1215,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -1241,11 +1241,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -1278,11 +1278,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -1304,11 +1304,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -1339,11 +1339,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -1365,11 +1365,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -2570,11 +2570,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -2596,11 +2596,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -2633,11 +2633,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -2659,11 +2659,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -2694,11 +2694,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -2720,11 +2720,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -3006,11 +3006,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:disclosure:123:3",
+            "id": "desktop/src/lib/views/RunView.svelte:disclosure:125:3",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 123,
+            "line": 125,
             "column": 3,
-            "source": "desktop/src/lib/views/RunView.svelte:123:3",
+            "source": "desktop/src/lib/views/RunView.svelte:125:3",
             "kind": "app-click",
             "label": "Review selected run files",
             "guards": [
@@ -3024,11 +3024,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:disclosure:123:3",
+              "id": "desktop/src/lib/views/RunView.svelte:disclosure:125:3",
               "file": "desktop/src/lib/views/RunView.svelte",
-              "line": 123,
+              "line": 125,
               "column": 3,
-              "source": "desktop/src/lib/views/RunView.svelte:123:3",
+              "source": "desktop/src/lib/views/RunView.svelte:125:3",
               "kind": "app-click",
               "label": "Review selected run files",
               "guards": [
@@ -3052,11 +3052,11 @@
           "kind": "form-control",
           "clicks": 0,
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:form-control:127:158",
+            "id": "desktop/src/lib/views/RunView.svelte:form-control:129:279",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 127,
-            "column": 158,
-            "source": "desktop/src/lib/views/RunView.svelte:127:158",
+            "line": 129,
+            "column": 279,
+            "source": "desktop/src/lib/views/RunView.svelte:129:279",
             "kind": "form-control",
             "label": "Stop queue on first error",
             "guards": [
@@ -3070,11 +3070,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:form-control:127:158",
+              "id": "desktop/src/lib/views/RunView.svelte:form-control:129:279",
               "file": "desktop/src/lib/views/RunView.svelte",
-              "line": 127,
-              "column": 158,
-              "source": "desktop/src/lib/views/RunView.svelte:127:158",
+              "line": 129,
+              "column": 279,
+              "source": "desktop/src/lib/views/RunView.svelte:129:279",
               "kind": "form-control",
               "label": "Stop queue on first error",
               "guards": [
@@ -3097,11 +3097,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:button:80:230",
+            "id": "desktop/src/lib/views/RunView.svelte:button:82:230",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 80,
+            "line": 82,
             "column": 230,
-            "source": "desktop/src/lib/views/RunView.svelte:80:230",
+            "source": "desktop/src/lib/views/RunView.svelte:82:230",
             "kind": "app-click",
             "label": "Review and start selected task",
             "guards": [
@@ -3123,11 +3123,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:button:80:230",
+              "id": "desktop/src/lib/views/RunView.svelte:button:82:230",
               "file": "desktop/src/lib/views/RunView.svelte",
-              "line": 80,
+              "line": 82,
               "column": 230,
-              "source": "desktop/src/lib/views/RunView.svelte:80:230",
+              "source": "desktop/src/lib/views/RunView.svelte:82:230",
               "kind": "app-click",
               "label": "Review and start selected task",
               "guards": [
@@ -3161,11 +3161,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:button:93:411",
+            "id": "desktop/src/lib/views/RunView.svelte:button:95:411",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 93,
+            "line": 95,
             "column": 411,
-            "source": "desktop/src/lib/views/RunView.svelte:93:411",
+            "source": "desktop/src/lib/views/RunView.svelte:95:411",
             "kind": "app-click",
             "label": "Choose folder",
             "guards": [
@@ -3187,11 +3187,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:button:93:411",
+              "id": "desktop/src/lib/views/RunView.svelte:button:95:411",
               "file": "desktop/src/lib/views/RunView.svelte",
-              "line": 93,
+              "line": 95,
               "column": 411,
-              "source": "desktop/src/lib/views/RunView.svelte:93:411",
+              "source": "desktop/src/lib/views/RunView.svelte:95:411",
               "kind": "app-click",
               "label": "Choose folder",
               "guards": [
@@ -3223,11 +3223,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:button:93:532",
+            "id": "desktop/src/lib/views/RunView.svelte:button:95:532",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 93,
+            "line": 95,
             "column": 532,
-            "source": "desktop/src/lib/views/RunView.svelte:93:532",
+            "source": "desktop/src/lib/views/RunView.svelte:95:532",
             "kind": "app-click",
             "label": "Use default location",
             "guards": [
@@ -3243,11 +3243,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/RunView.svelte:button:93:532",
+              "id": "desktop/src/lib/views/RunView.svelte:button:95:532",
               "file": "desktop/src/lib/views/RunView.svelte",
-              "line": 93,
+              "line": 95,
               "column": 532,
-              "source": "desktop/src/lib/views/RunView.svelte:93:532",
+              "source": "desktop/src/lib/views/RunView.svelte:95:532",
               "kind": "app-click",
               "label": "Use default location",
               "guards": [
@@ -4553,11 +4553,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -4579,11 +4579,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -4616,11 +4616,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -4642,11 +4642,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -4677,11 +4677,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -4703,11 +4703,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -5900,11 +5900,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -5926,11 +5926,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -5963,11 +5963,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -5989,11 +5989,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -6024,11 +6024,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -6050,11 +6050,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -6546,11 +6546,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -6572,11 +6572,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -6609,11 +6609,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -6635,11 +6635,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -6670,11 +6670,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -6696,11 +6696,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -6905,11 +6905,11 @@
           "all": true,
           "label": "Settings buttons (source-conditional)",
           "control": {
-            "id": "desktop/src/lib/SettingsPreferences.svelte:button:116:27",
+            "id": "desktop/src/lib/SettingsPreferences.svelte:button:117:27",
             "file": "desktop/src/lib/SettingsPreferences.svelte",
-            "line": 116,
+            "line": 117,
             "column": 27,
-            "source": "desktop/src/lib/SettingsPreferences.svelte:116:27",
+            "source": "desktop/src/lib/SettingsPreferences.svelte:117:27",
             "kind": "button",
             "label": "Settings buttons (source-conditional)",
             "guards": [
@@ -6932,11 +6932,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:116:27",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:117:27",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 116,
+              "line": 117,
               "column": 27,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:116:27",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:117:27",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -6958,11 +6958,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:157:53",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:158:53",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 157,
+              "line": 158,
               "column": 53,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:157:53",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:158:53",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -6984,11 +6984,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:182:53",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:183:53",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 182,
+              "line": 183,
               "column": 53,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:182:53",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:183:53",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7010,11 +7010,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:197:75",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:198:75",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 197,
+              "line": 198,
               "column": 75,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:197:75",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:198:75",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7036,11 +7036,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:197:311",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:198:311",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 197,
+              "line": 198,
               "column": 311,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:197:311",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:198:311",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [],
@@ -7060,11 +7060,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:197:635",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:198:635",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 197,
+              "line": 198,
               "column": 635,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:197:635",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:198:635",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7086,11 +7086,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:223:102",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:224:102",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 223,
+              "line": 224,
               "column": 102,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:223:102",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:224:102",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7112,11 +7112,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:223:395",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:224:395",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 223,
+              "line": 224,
               "column": 395,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:223:395",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:224:395",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [],
@@ -7136,11 +7136,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:223:756",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:224:756",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 223,
+              "line": 224,
               "column": 756,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:223:756",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:224:756",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7162,11 +7162,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:269:260",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:275:260",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 269,
+              "line": 275,
               "column": 260,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:269:260",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:275:260",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [],
@@ -7186,11 +7186,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:284:15",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:290:15",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 284,
+              "line": 290,
               "column": 15,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:284:15",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:290:15",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7206,11 +7206,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:288:17",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:294:17",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 288,
+              "line": 294,
               "column": 17,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:288:17",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:294:17",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7235,11 +7235,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:289:17",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:295:17",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 289,
+              "line": 295,
               "column": 17,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:289:17",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:295:17",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7256,11 +7256,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:310:476",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:316:476",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 310,
+              "line": 316,
               "column": 476,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:310:476",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:316:476",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7282,11 +7282,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:312:216",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:318:216",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 312,
+              "line": 318,
               "column": 216,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:312:216",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:318:216",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7309,11 +7309,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:313:171",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:319:171",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 313,
+              "line": 319,
               "column": 171,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:313:171",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:319:171",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7337,11 +7337,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:328:309",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:334:309",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 328,
+              "line": 334,
               "column": 309,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:328:309",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:334:309",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7363,11 +7363,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:331:253",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:337:253",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 331,
+              "line": 337,
               "column": 253,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:331:253",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:337:253",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7390,11 +7390,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:button:332:180",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:button:338:180",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 332,
+              "line": 338,
               "column": 180,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:332:180",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:338:180",
               "kind": "button",
               "label": "Settings buttons (source-conditional)",
               "guards": [
@@ -7428,11 +7428,11 @@
           "label": "Settings anchors and provider links",
           "kind": "link",
           "control": {
-            "id": "desktop/src/lib/SettingsPreferences.svelte:link:120:11",
+            "id": "desktop/src/lib/SettingsPreferences.svelte:link:121:11",
             "file": "desktop/src/lib/SettingsPreferences.svelte",
-            "line": 120,
+            "line": 121,
             "column": 11,
-            "source": "desktop/src/lib/SettingsPreferences.svelte:120:11",
+            "source": "desktop/src/lib/SettingsPreferences.svelte:121:11",
             "kind": "link",
             "label": "Settings anchors and provider links",
             "guards": [],
@@ -7450,27 +7450,6 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:link:120:11",
-              "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 120,
-              "column": 11,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:120:11",
-              "kind": "link",
-              "label": "Settings anchors and provider links",
-              "guards": [],
-              "targets": [
-                {
-                  "kind": "anchor",
-                  "value": "#environment-capabilities",
-                  "confidence": "static"
-                }
-              ],
-              "trace": [],
-              "instances": 1,
-              "conditional": false,
-              "note": null
-            },
-            {
               "id": "desktop/src/lib/SettingsPreferences.svelte:link:121:11",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
               "line": 121,
@@ -7482,7 +7461,7 @@
               "targets": [
                 {
                   "kind": "anchor",
-                  "value": "#metadata-provider-title",
+                  "value": "#environment-capabilities",
                   "confidence": "static"
                 }
               ],
@@ -7503,7 +7482,7 @@
               "targets": [
                 {
                   "kind": "anchor",
-                  "value": "#poster-storage-title",
+                  "value": "#metadata-provider-title",
                   "confidence": "static"
                 }
               ],
@@ -7524,7 +7503,7 @@
               "targets": [
                 {
                   "kind": "anchor",
-                  "value": "#work-directory-title",
+                  "value": "#poster-storage-title",
                   "confidence": "static"
                 }
               ],
@@ -7545,7 +7524,7 @@
               "targets": [
                 {
                   "kind": "anchor",
-                  "value": "#filename-filter-title",
+                  "value": "#work-directory-title",
                   "confidence": "static"
                 }
               ],
@@ -7566,6 +7545,27 @@
               "targets": [
                 {
                   "kind": "anchor",
+                  "value": "#filename-filter-title",
+                  "confidence": "static"
+                }
+              ],
+              "trace": [],
+              "instances": 1,
+              "conditional": false,
+              "note": null
+            },
+            {
+              "id": "desktop/src/lib/SettingsPreferences.svelte:link:126:11",
+              "file": "desktop/src/lib/SettingsPreferences.svelte",
+              "line": 126,
+              "column": 11,
+              "source": "desktop/src/lib/SettingsPreferences.svelte:126:11",
+              "kind": "link",
+              "label": "Settings anchors and provider links",
+              "guards": [],
+              "targets": [
+                {
+                  "kind": "anchor",
                   "value": "#title-cleanup-title",
                   "confidence": "static"
                 }
@@ -7576,11 +7576,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:link:196:15",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:link:197:15",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 196,
+              "line": 197,
               "column": 15,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:196:15",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:197:15",
               "kind": "link",
               "label": "Settings anchors and provider links",
               "guards": [],
@@ -7597,11 +7597,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:link:220:17",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:link:221:17",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 220,
+              "line": 221,
               "column": 17,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:220:17",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:221:17",
               "kind": "link",
               "label": "Settings anchors and provider links",
               "guards": [],
@@ -7618,11 +7618,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/SettingsPreferences.svelte:link:221:17",
+              "id": "desktop/src/lib/SettingsPreferences.svelte:link:222:17",
               "file": "desktop/src/lib/SettingsPreferences.svelte",
-              "line": 221,
+              "line": 222,
               "column": 17,
-              "source": "desktop/src/lib/SettingsPreferences.svelte:221:17",
+              "source": "desktop/src/lib/SettingsPreferences.svelte:222:17",
               "kind": "link",
               "label": "Settings anchors and provider links",
               "guards": [],
@@ -7669,11 +7669,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders three runtime buttons from primaryNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Library / Run / YouTube navigation",
             "guards": [
@@ -7695,11 +7695,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Library / Run / YouTube navigation",
               "guards": [
@@ -7732,11 +7732,11 @@
           "kind": "app-click",
           "note": "One Svelte template control renders two runtime buttons from utilityNavigation.",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Settings / Reports navigation",
             "guards": [
@@ -7758,11 +7758,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Settings / Reports navigation",
               "guards": [
@@ -7793,11 +7793,11 @@
           },
           "kind": "app-click",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "app-click",
             "label": "Choose media folder",
             "guards": [
@@ -7819,11 +7819,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+              "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
               "file": "desktop/src/lib/views/ShellSidebar.svelte",
-              "line": 42,
+              "line": 43,
               "column": 7,
-              "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+              "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
               "kind": "app-click",
               "label": "Choose media folder",
               "guards": [
@@ -8028,11 +8028,11 @@
           "all": true,
           "label": "Report controls (source-conditional)",
           "control": {
-            "id": "desktop/src/lib/ReportBrowser.svelte:button:34:13",
+            "id": "desktop/src/lib/ReportBrowser.svelte:button:33:13",
             "file": "desktop/src/lib/ReportBrowser.svelte",
-            "line": 34,
+            "line": 33,
             "column": 13,
-            "source": "desktop/src/lib/ReportBrowser.svelte:34:13",
+            "source": "desktop/src/lib/ReportBrowser.svelte:33:13",
             "kind": "button",
             "label": "Report controls (source-conditional)",
             "guards": [],
@@ -8053,11 +8053,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:34:13",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:33:13",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 34,
+              "line": 33,
               "column": 13,
-              "source": "desktop/src/lib/ReportBrowser.svelte:34:13",
+              "source": "desktop/src/lib/ReportBrowser.svelte:33:13",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [],
@@ -8077,11 +8077,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:36:15",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:35:15",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 36,
+              "line": 35,
               "column": 15,
-              "source": "desktop/src/lib/ReportBrowser.svelte:36:15",
+              "source": "desktop/src/lib/ReportBrowser.svelte:35:15",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8103,11 +8103,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:37:15",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:36:15",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 37,
+              "line": 36,
               "column": 15,
-              "source": "desktop/src/lib/ReportBrowser.svelte:37:15",
+              "source": "desktop/src/lib/ReportBrowser.svelte:36:15",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8120,11 +8120,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:39:15",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:38:15",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 39,
+              "line": 38,
               "column": 15,
-              "source": "desktop/src/lib/ReportBrowser.svelte:39:15",
+              "source": "desktop/src/lib/ReportBrowser.svelte:38:15",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8137,11 +8137,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:63:17",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:62:17",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 63,
+              "line": 62,
               "column": 17,
-              "source": "desktop/src/lib/ReportBrowser.svelte:63:17",
+              "source": "desktop/src/lib/ReportBrowser.svelte:62:17",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8164,11 +8164,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:68:234",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:67:234",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 68,
+              "line": 67,
               "column": 234,
-              "source": "desktop/src/lib/ReportBrowser.svelte:68:234",
+              "source": "desktop/src/lib/ReportBrowser.svelte:67:234",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8191,11 +8191,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:95:156",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:94:156",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 95,
+              "line": 94,
               "column": 156,
-              "source": "desktop/src/lib/ReportBrowser.svelte:95:156",
+              "source": "desktop/src/lib/ReportBrowser.svelte:94:156",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -8218,11 +8218,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/ReportBrowser.svelte:button:100:310",
+              "id": "desktop/src/lib/ReportBrowser.svelte:button:99:310",
               "file": "desktop/src/lib/ReportBrowser.svelte",
-              "line": 100,
+              "line": 99,
               "column": 310,
-              "source": "desktop/src/lib/ReportBrowser.svelte:100:310",
+              "source": "desktop/src/lib/ReportBrowser.svelte:99:310",
               "kind": "button",
               "label": "Report controls (source-conditional)",
               "guards": [
@@ -9321,13 +9321,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+          "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
           "control": {
-            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:42:7",
+            "id": "desktop/src/lib/views/ShellSidebar.svelte:button:43:7",
             "file": "desktop/src/lib/views/ShellSidebar.svelte",
-            "line": 42,
+            "line": 43,
             "column": 7,
-            "source": "desktop/src/lib/views/ShellSidebar.svelte:42:7",
+            "source": "desktop/src/lib/views/ShellSidebar.svelte:43:7",
             "kind": "button",
             "label": "YouTube navigation item",
             "guards": [
@@ -9596,13 +9596,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/views/RunView.svelte:80:230",
+          "source": "desktop/src/lib/views/RunView.svelte:82:230",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:button:80:230",
+            "id": "desktop/src/lib/views/RunView.svelte:button:82:230",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 80,
+            "line": 82,
             "column": 230,
-            "source": "desktop/src/lib/views/RunView.svelte:80:230",
+            "source": "desktop/src/lib/views/RunView.svelte:82:230",
             "kind": "button",
             "label": "Review and create metadata MKVs",
             "guards": [
@@ -9769,13 +9769,13 @@
             "variables": {}
           },
           "clickFormula": "1",
-          "source": "desktop/src/lib/views/RunView.svelte:80:230",
+          "source": "desktop/src/lib/views/RunView.svelte:82:230",
           "control": {
-            "id": "desktop/src/lib/views/RunView.svelte:button:80:230",
+            "id": "desktop/src/lib/views/RunView.svelte:button:82:230",
             "file": "desktop/src/lib/views/RunView.svelte",
-            "line": 80,
+            "line": 82,
             "column": 230,
-            "source": "desktop/src/lib/views/RunView.svelte:80:230",
+            "source": "desktop/src/lib/views/RunView.svelte:82:230",
             "kind": "button",
             "label": "Review and start full rebuild",
             "guards": [

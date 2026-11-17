@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ArrowRight, Database, FileText, Film, FolderOpen, Info, LoaderCircle, RefreshCw, Search, Settings2, Trash2, X } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
+  import InfoTip from './InfoTip.svelte';
   import type { ArtworkCacheInfo, Settings, WorkDirectoryPreview } from './types.js';
   import type { AppPreferences, PreferencesPayload, MetadataSources, TmdbCredentialStatus, TvdbCredentialStatus } from './ui-contracts.js';
   interface Props {
@@ -230,6 +231,11 @@
             <p>TMDB and TheTVDB cover films and series. Wikidata adds public film records. TVmaze covers series and episodes and needs no key. Results stay suggestions until you review them.</p>
             <p>TheTVDB is read in its default season order. Check anime episode numbers against your files before you assign them. AniList is not used; its terms forbid storing its data as a backup.</p>
           </details>
+        </section>
+
+        <section class="settings-card tool-update-settings" aria-labelledby="tool-update-title">
+          <div class="settings-card-heading"><div class="settings-icon blue"><RefreshCw size={18} /></div><div><h2 id="tool-update-title">Tool updates</h2><p>HEVC Rebuild checks for missing or outdated tools at launch and every six hours.</p></div></div>
+          <label class="toggle-row"><span><strong>Keep tools up to date automatically</strong><InfoTip label="About automatic tool updates" title="What this does" text="When on, updates that need no password (the HDR10+ helper everywhere, and Homebrew packages on macOS) are installed in the background while the app is idle. It never interrupts a conversion, never opens a window and never asks for a password. Updates that need an administrator password are only announced in the header, so you decide when to apply them." /><small>Off by default. Updates that need your password are still announced, never applied on their own.</small></span><input type="checkbox" checked={appPreferences.autoUpdateTools} onchange={(event) => void persistPreferences({ autoUpdateTools: event.currentTarget.checked })} /></label>
         </section>
 
         <section class="settings-card poster-storage-settings" aria-labelledby="poster-storage-title">

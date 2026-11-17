@@ -87,7 +87,7 @@ impl RebuildRunOptions {
         let mut options = Self {
             minimum_size_mib: 5,
             embed_artwork: true,
-            crf: 22,
+            crf: crate::settings::DEFAULT_CRF,
             test_crf: 30,
             preset: "slow".into(),
             tune: "auto".into(),

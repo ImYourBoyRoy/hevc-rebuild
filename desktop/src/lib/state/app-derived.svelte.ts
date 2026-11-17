@@ -291,7 +291,7 @@ export class AppDerived {
 
   queueRenameBusy = $derived.by(() => (Object.values(this.workspace.queue.runStates).some((state) => state.status === "renaming")));
 
-  workflowBusy = $derived.by(() => (Boolean(this.scanState.scanning || this.workspace.run.starting || this.workspace.run.id || this.toolSetup.repairId || this.toolSetup.hdrInstalling || this.runUi.outputPreviewBusy || this.queueRenameBusy)));
+  workflowBusy = $derived.by(() => (Boolean(this.scanState.scanning || this.workspace.run.starting || this.workspace.run.id || this.toolSetup.repairId || this.runUi.outputPreviewBusy || this.queueRenameBusy)));
 
   modeToolsReady = $derived.by(() => {
     if (this.runUi.mode === "youtube") return this.toolSetup.environment?.youtube_ready;
@@ -300,7 +300,7 @@ export class AppDerived {
     return this.toolSetup.environment?.ready;
   });
 
-  canStart = $derived.by(() => (Boolean(this.modeToolsReady && this.hasQueueCandidates && this.selectedRunEntries.length > 0 && this.unresolvedSelectedPaths === 0 && !this.staleSelectedEntries.length && !this.scanState.scanning && !this.workspace.run.starting && !this.workspace.run.id && !this.toolSetup.repairId && !this.toolSetup.hdrInstalling && !this.runUi.outputPreviewBusy)));
+  canStart = $derived.by(() => (Boolean(this.modeToolsReady && this.hasQueueCandidates && this.selectedRunEntries.length > 0 && this.unresolvedSelectedPaths === 0 && !this.staleSelectedEntries.length && !this.scanState.scanning && !this.workspace.run.starting && !this.workspace.run.id && !this.toolSetup.repairId && !this.runUi.outputPreviewBusy)));
 
   overallRunPercent = $derived.by(() => {
     if (!this.workspace.run.progress) return null;

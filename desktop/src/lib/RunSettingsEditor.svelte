@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Film, Info, Layers, ShieldCheck, SlidersHorizontal, X } from "@lucide/svelte";
+  import InfoTip from "./InfoTip.svelte";
   import Modal from "./Modal.svelte";
+  import { CRF_EXPLANATION, crfBand, encoderAdvisories, presetHelp, tuneHelp } from "./explanations.js";
   import type { FileRunSettingsOverride, MediaEntry, Settings } from "./types.js";
 
   interface Props {
@@ -42,6 +44,8 @@
   let promoteSet = $state(false);
   let promote = $state(false);
   let tune = $state<TuneChoice>("inherit");
+  const effectiveTune = $derived(tune === "inherit" ? (settings?.content.tune ?? "auto") : tune);
+  const effectiveCrf = $derived(crfSet ? Number(crf) : Number(settings?.video.crf ?? 21));
   let hdrSet = $state(false);
   let preserveHdr10plus = $state(true);
   let dolby = $state<DolbyChoice>("inherit");
@@ -154,22 +158,25 @@
   <section class="run-settings-group">
     <div class="run-settings-group-heading"><SlidersHorizontal size={17} /><div><h3>Video encoding</h3><p>Only fields you switch on override the run settings.</p></div></div>
     <div class="run-settings-fields">
-      <label class="run-override-field" title="CRF controls quality and size. Lower values retain more detail and create larger files; higher values compress more and create smaller files.">
-        <span><input type="checkbox" bind:checked={crfSet} /> <strong>CRF</strong><small>lower = larger, higher-quality output</small></span>
+      <label class="run-override-field" >
+        <span><input type="checkbox" bind:checked={crfSet} /> <strong>CRF</strong><InfoTip label="About CRF quality" title="What is CRF?" text={CRF_EXPLANATION} /><small>{crfBand(crfSet ? Number(crf) : Number(settings?.video.crf ?? 21)).label}: lower = larger, higher quality</small></span>
         <input type="number" min="0" max="51" step="1" bind:value={crf} disabled={!crfSet} aria-label="Per-file CRF" />
       </label>
-      <label class="run-override-field" title="Preset changes compression effort, not target quality. Slower presets take longer but can reduce size at the same CRF; faster presets finish sooner.">
-        <span><input type="checkbox" bind:checked={presetSet} /> <strong>Encoder effort</strong><small>slower takes longer; quality target stays CRF-based</small></span>
+      <label class="run-override-field" >
+        <span><input type="checkbox" bind:checked={presetSet} /> <strong>Encoder effort</strong><InfoTip label="About encoder effort" title="What is a preset?" text="A preset trades time for size. Slower presets spend more computing effort to make a smaller file at the same quality. Slow is the recommended balance." /><small>{presetHelp(presetSet ? preset : settings?.video.preset ?? "slow")}</small></span>
         <select bind:value={preset} disabled={!presetSet} aria-label="Per-file encoder effort"><option value="ultrafast">ultrafast</option><option value="superfast">superfast</option><option value="veryfast">veryfast</option><option value="faster">faster</option><option value="fast">fast</option><option value="medium">medium</option><option value="slow">slow</option><option value="slower">slower</option><option value="veryslow">veryslow</option></select>
       </label>
-      <label class="run-override-field run-override-toggle" title="Promoting an 8-bit source changes the output pixel format to 10-bit when supported. It does not restore color detail that was not present in the source.">
+      <label class="run-override-field run-override-toggle" >
         <span><input type="checkbox" bind:checked={promoteSet} /> <strong>8-bit promotion</strong><small>encode this file as 10-bit when supported</small></span>
         <input type="checkbox" bind:checked={promote} disabled={!promoteSet} aria-label="Promote this file to 10-bit" />
       </label>
-      <label class="run-override-field" title="Film grain preserves grain structure more deliberately and can increase output size. Animation favors clean edges and flat areas. Automatic uses the saved detection rules.">
-        <span><strong>Content tune</strong><small>film grain is available per file here</small></span>
+      <label class="run-override-field" >
+        <span><strong>Content tune</strong><InfoTip label="About content tune" title={tuneHelp(effectiveTune).title} text={tuneHelp(effectiveTune).detail} /><small>{tuneHelp(effectiveTune).summary}</small></span>
         <select bind:value={tune} aria-label="Per-file content tune"><option value="inherit">Use current setting</option><option value="auto">Automatic</option><option value="animation">Animation</option><option value="grain">Film grain</option><option value="none">Normal</option></select>
       </label>
+      {#each encoderAdvisories({ tune: effectiveTune, crf: effectiveCrf }) as advisory (advisory.text)}
+        <div class="encoder-advisory" data-level={advisory.level} role="note"><Info size={16} aria-hidden="true" /><span>{advisory.text}</span></div>
+      {/each}
     </div>
   </section>
 

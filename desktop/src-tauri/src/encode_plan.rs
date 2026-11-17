@@ -542,7 +542,7 @@ pub(crate) fn build_plan(request: &Value) -> Result<Value, String> {
     let plan = request.get("resource_plan").unwrap_or(&Value::Null);
     let worker_threads = optional_integer(plan, "worker_threads")?.filter(|value| *value > 0);
     let frame_threads = optional_integer(plan, "frame_threads")?.filter(|value| *value > 0);
-    let crf = optional_integer(options, "crf")?.unwrap_or(22);
+    let crf = optional_integer(options, "crf")?.unwrap_or(crate::settings::DEFAULT_CRF);
     let preset = option_string(options, "preset", "slow")?;
     let tune = option_string(options, "tune", "")?;
     let force_deinterlace = option_bool(options, "force_deinterlace", false)?;
@@ -735,6 +735,22 @@ mod tests {
             "codec_name": "fixture", "width": width, "height": height,
             "default": index == 0, "attached_pic": false, "disposition": {}
         })
+    }
+
+    #[test]
+    fn a_plan_without_an_explicit_crf_uses_the_documented_default() {
+        let request = json!({
+            "tools":{"ffmpeg":"ffmpeg","x265_pixel_formats":["yuv420p"],"x265_dolbyvision":false},
+            "profile":{"path":"source.mkv","primary_video":stream(0,"video",1920,1080),
+                "secondary_videos":[],"audio":[],"subtitles":[],"attachments":[],"data":[],
+                "target_pix_fmt":"yuv420p","source_bit_depth":8,"source_chroma":"4:2:0"},
+            "options":{"output":"output.mkv"},"selected_streams":[stream(0,"video",1920,1080)]
+        });
+        let plan = build_plan(&request).expect("a minimal plan is valid");
+        let args = plan["args"].as_array().unwrap();
+        assert!(args
+            .windows(2)
+            .any(|pair| pair[0] == "-crf:v:0" && pair[1] == "21"));
     }
 
     #[test]

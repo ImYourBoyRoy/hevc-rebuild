@@ -21,7 +21,6 @@ export interface ToolPathsHost {
   readonly runId: string;
   readonly runStarting: boolean;
   readonly repairId: string;
-  readonly hdrInstalling: boolean;
   readonly workflowBusy: boolean;
   readonly hostSetupCommand: string;
   readonly hostSetupShell: string;
@@ -107,7 +106,7 @@ export function createToolPaths(deps: ToolPathsDeps) {
   }
 
   async function chooseToolPath(key: ToolPathKey, label: string) {
-    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.hdrInstalling) return;
+    if (!h.desktopShell || h.runId || h.runStarting || h.repairId) return;
     const picked = await openDialog({ directory: false, multiple: false, title: `Choose ${label} executable` });
     if (typeof picked !== "string") return;
     setToolPathValue(key, picked);

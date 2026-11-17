@@ -129,8 +129,6 @@ export async function installBridge(page, FIXTURES, tinyPng) {
       read_tool_setup_log: (args) => 'fixture setup log for ' + args.jobId,
       export_tool_setup_log: (args) => { window.__goldenRepairCalls.push({ command: 'export_tool_setup_log', jobId: args.jobId, destination: args.destination }); return args.destination; },
       'plugin:dialog|save': () => '/tmp/hevc-setup.log',
-      refresh_ubuntu_package_catalog: () => { window.__goldenRepairCalls.push({ command: 'refresh_ubuntu_package_catalog' }); return 'job-catalog'; },
-      install_ubuntu_toolchain: (args) => { window.__goldenRepairCalls.push({ command: 'install_ubuntu_toolchain', toolPaths: args.toolPaths, confirmedMissingPackages: args.confirmedMissingPackages, confirmedUpdatePackages: args.confirmedUpdatePackages }); return 'job-toolchain'; },
       provision_plan: () => {
         window.__goldenRepairCalls.push({ command: 'provision_plan' });
         const apt = window.__goldenAptStatus ?? { packages: [], catalog_stale: false };
@@ -139,16 +137,9 @@ export async function installBridge(page, FIXTURES, tinyPng) {
         const upgrade = apt.packages.map((item) => item.name);
         const refresh = Boolean(apt.catalog_stale);
         const privileged = refresh || upgrade.length > 0;
-        return { refresh_catalog: refresh, install_packages: [], upgrade_packages: upgrade, helper: { action: helperMissing ? 'install' : 'current', installed: helperMissing ? null : '1.7.2', latest: null }, needs_password: privileged, password_prompts: privileged ? 1 : 0, nothing_to_do: !privileged && !helperMissing, steps: [], release_check_error: null };
+        return { manager: 'apt', blockers: [], advisories: [], refresh_catalog: refresh, install_packages: [], upgrade_packages: upgrade, helper: { action: helperMissing ? 'install' : 'current', installed: helperMissing ? null : '1.7.2', latest: null }, needs_password: privileged, password_prompts: privileged ? 1 : 0, nothing_to_do: !privileged && !helperMissing, steps: [], release_check_error: null };
       },
       provision_toolchain: (args) => { window.__goldenRepairCalls.push({ command: 'provision_toolchain', toolPaths: args.toolPaths }); return 'job-toolchain'; },
-      install_hdr10plus: (args) => {
-        window.__goldenRepairCalls.push({ command: 'install_hdr10plus', jobId: args.jobId.replace(/\d+/g, 'N') });
-        const environment = clone(window.__goldenEnvironment ?? fixtures.scan.environment);
-        environment.checks.find((check) => check.key === 'hdr10plus_tool').available = true;
-        window.__goldenEnvironment = environment;
-        return '/fixture/bin/hdr10plus_tool';
-      },
       tmdb_credential_status: () => ({ configured: window.__goldenCredentials.tmdb.configured, secureStoreAvailable: true, message: null }),
       save_tmdb_read_token: (args) => { window.__goldenRepairCalls.push({ command: 'save_tmdb_read_token', token: args.token }); window.__goldenCredentials.tmdb = { configured: true, token: args.token }; return null; },
       reveal_tmdb_read_token: () => { window.__goldenRepairCalls.push({ command: 'reveal_tmdb_read_token' }); return window.__goldenCredentials.tmdb.token ?? ''; },

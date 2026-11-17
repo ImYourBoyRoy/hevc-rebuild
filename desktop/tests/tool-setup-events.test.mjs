@@ -28,64 +28,29 @@ test("handleRepairFinished ignores other jobs", async () => {
   assert.deepEqual([h.host.repairId, h.invokes.length], ["job", 0]);
 });
 
-test("handleRepairFinished success for a toolchain job rechecks and reports completion", async () => {
-  const h = finishHarness({ packageJobKind: "toolchain", repairToolChecksBefore: [check("ffmpeg", { available: false })], repairAffectedToolKeys: ["ffmpeg"] });
+test("handleRepairFinished success rechecks, records outcomes and reports completion", async () => {
+  const h = finishHarness({ packageJobKind: "provision", repairToolChecksBefore: [check("ffmpeg", { available: false })], repairAffectedToolKeys: ["ffmpeg"] });
   await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null, logWarning: "w" });
   assert.deepEqual([h.host.repairId, h.host.packageJobKind, h.host.repairLogWarning, h.host.repairSummaryIsError], ["", null, "w", false]);
   assert.equal(h.host.repairSummary, "Setup complete. All required media tools are ready.");
   assert.deepEqual([h.host.repairToolChecksBefore, h.host.repairAffectedToolKeys], [null, []]);
   assert.equal(h.host.repairToolOutcomes[0].key, "ffmpeg");
-  assert.deepEqual(notices(h)[0], ["success", "Reviewed Ubuntu package setup completed. Rechecking installed tools."]);
-  assert.deepEqual(h.invokes.map((call) => call.command), ["list_tool_setup_logs", "inspect_environment", "check_ubuntu_package_updates"]);
+  assert.deepEqual(notices(h)[0], ["success", "Setup and updates completed. Rechecking installed tools."]);
+  assert.deepEqual(h.invokes.map((call) => call.command), ["list_tool_setup_logs", "inspect_environment", "check_ubuntu_package_updates", "provision_plan"]);
 });
 
 test("handleRepairFinished reports remaining attention when tools are still not ready", async () => {
-  const h = finishHarness({ packageJobKind: "upgrade" }, { inspect_environment: aptEnvironment({ ready: false }) });
+  const h = finishHarness({ packageJobKind: "provision" }, { inspect_environment: aptEnvironment({ ready: false }) });
   await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
-  assert.equal(h.host.repairSummary, "Package work completed. One or more required tools still need attention; check their status in Settings.");
-  assert.deepEqual(notices(h)[0], ["success", "Ubuntu package upgrades completed."]);
+  assert.equal(h.host.repairSummary, "Setup finished. One or more required tools still need attention; check their status in Settings.");
 });
 
-test("handleRepairFinished failure shows the error and clears the follow-up flags", async () => {
-  const h = finishHarness({ packageJobKind: "toolchain", installHdrHelperAfterPackages: true, continueToolchainSetupAfterRefresh: true });
+test("handleRepairFinished failure shows the error, or a generic message when none is given", async () => {
+  const h = finishHarness({ packageJobKind: "provision" });
   await h.controller.handleRepairFinished({ jobId: "job", success: false, error: "apt exited 100" });
-  assert.deepEqual([h.host.repairSummary, h.host.repairSummaryIsError, h.host.installHdrHelperAfterPackages], ["apt exited 100", true, false]);
+  assert.deepEqual([h.host.repairSummary, h.host.repairSummaryIsError], ["apt exited 100", true]);
   assert.deepEqual(notices(h)[0], ["error", "apt exited 100"]);
-  const generic = finishHarness({ packageJobKind: "catalog-refresh", continueToolchainSetupAfterRefresh: true });
+  const generic = finishHarness({ packageJobKind: "provision" });
   await generic.controller.handleRepairFinished({ jobId: "job", success: false, error: null });
-  assert.equal(generic.host.repairSummary, "The package operation did not finish successfully.");
-  assert.equal(generic.host.continueToolchainSetupAfterRefresh, false);
-});
-
-test("handleRepairFinished for a catalog refresh continues the setup when asked", async () => {
-  const h = finishHarness({ packageJobKind: "catalog-refresh", continueToolchainSetupAfterRefresh: true, aptUpdates: { packages: [{ name: "ffmpeg" }], catalog_stale: true } }, { check_ubuntu_package_updates: { packages: [{ name: "ffmpeg" }], catalog_stale: false } });
-  await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
-  assert.equal(h.host.continueToolchainSetupAfterRefresh, false);
-  assert.equal(h.host.repairConfirmOpen, true, "the reviewed list is shown after the refresh");
-  assert.deepEqual(notices(h)[0], ["success", "Ubuntu package catalog refreshed."]);
-});
-
-test("handleRepairFinished installs the HDR10+ helper after a successful toolchain job", async () => {
-  const h = finishHarness({ packageJobKind: "toolchain", installHdrHelperAfterPackages: true }, {
-    inspect_environment: aptEnvironment({ checks: [check("pkexec"), check("hdr10plus_tool", { available: false })] }),
-    install_hdr10plus: "/home/u/hdr10plus_tool",
-  });
-  await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
-  assert.equal(h.host.installHdrHelperAfterPackages, false);
-  assert.equal(h.invokes.some((call) => call.command === "install_hdr10plus"), true);
-  assert.notEqual(h.host.repairSummary, "Setup complete. All required media tools are ready.");
-});
-
-test("handleRepairFinished skips the helper when it is already available", async () => {
-  const h = finishHarness({ packageJobKind: "toolchain", installHdrHelperAfterPackages: true });
-  await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
-  assert.equal(h.host.installHdrHelperAfterPackages, false);
-  assert.equal(h.invokes.some((call) => call.command === "install_hdr10plus"), false);
-  assert.equal(h.host.repairSummary, "Setup complete. All required media tools are ready.");
-});
-
-test("handleRepairFinished uses the generic wording for unknown job kinds", async () => {
-  const h = finishHarness({ packageJobKind: null });
-  await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
-  assert.deepEqual(notices(h)[0], ["success", "Package repair completed. Rechecking the installed tools."]);
+  assert.equal(generic.host.repairSummary, "The setup did not finish successfully.");
 });

@@ -12,7 +12,7 @@ pub(crate) struct NativeOutcome {
 /// Shared shell for runs that execute fully in Rust: resource monitoring,
 /// line forwarding, and the `run-finished` event.
 fn run_native_job(
-    app: &AppHandle,
+    app: &Events,
     state: &RunState,
     run_id: &str,
     disk_path: PathBuf,
@@ -82,7 +82,7 @@ fn run_native_job(
 
 /// Metadata-only MKV runs execute fully in Rust.
 pub(crate) fn run_native_metadata_job(
-    app: &AppHandle,
+    app: &Events,
     state: &RunState,
     run_id: &str,
     options: metadata_run::MetadataRunOptions,
@@ -130,7 +130,7 @@ pub(crate) fn run_native_metadata_job(
 /// YouTube exports execute fully in Rust: FFmpeg is spawned and supervised
 /// in-process.
 pub(crate) fn run_native_youtube_job(
-    app: &AppHandle,
+    app: &Events,
     state: &RunState,
     run_id: &str,
     options: youtube_run::YoutubeRunOptions,
@@ -177,7 +177,7 @@ pub(crate) fn run_native_youtube_job(
 
 /// Short-test and full rebuilds execute fully in Rust.
 pub(crate) fn run_native_rebuild_job(
-    app: &AppHandle,
+    app: &Events,
     state: &RunState,
     run_id: &str,
     options: rebuild_run::RebuildRunOptions,

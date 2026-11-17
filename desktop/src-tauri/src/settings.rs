@@ -96,10 +96,14 @@ fn load_effective_settings_at(
     })
 }
 
+/// The documented safe default quality (CRF 21). The settings default, the engine fallback and the
+/// encode planner fallback must all use this one value.
+pub(crate) const DEFAULT_CRF: i64 = 21;
+
 pub(crate) fn default_settings() -> Value {
     json!({
         "video": {
-            "crf": 21,
+            "crf": DEFAULT_CRF,
             "preset": "slow",
             "promote_8bit_to_10bit": false
         },
@@ -532,6 +536,22 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn the_documented_default_quality_is_crf_21_everywhere() {
+        assert_eq!(DEFAULT_CRF, 21, "the project's documented safe default");
+        assert_eq!(default_settings()["video"]["crf"], DEFAULT_CRF);
+        let temp = ScratchDir::new();
+        let options = crate::rebuild_run::RebuildRunOptions::from_engine_args(&[temp
+            .0
+            .to_string_lossy()
+            .into_owned()])
+        .unwrap();
+        assert_eq!(
+            options.crf, DEFAULT_CRF,
+            "engine fallback must match the settings default"
+        );
     }
 
     #[test]

@@ -30,7 +30,7 @@ function harness({ desktop = true, scanResponse, hostOverrides = {}, workspaceSe
     metadataLookupClaimed: true, metadataLookupPending: false, metadataLookupStatus: { stale: true }, search: "x", mediaPage: 3, libraryBrowse: { seriesRoot: "/s", season: 1 },
     fileTuneOverrides: {}, fileStreamOverrides: {}, queueMatchSuggestions: {}, queueMovieReviews: {}, queueSeriesReviews: {},
     appPreferences: { filenameIncludePatterns: ["inc"], filenameExcludePatterns: ["old"], fileOutputDirs: {} },
-    settingsChanged: false, workflowBusy: false, repairId: "", hdrInstalling: false,
+    settingsChanged: false, workflowBusy: false, repairId: "",
     setNotice: (message, kind = "info") => calls.push(["notice", kind, message]),
     persistPreferences: async (patch) => { calls.push(["prefs", patch]); return true; },
     openPage: (page) => calls.push(["openPage", page]),
@@ -65,7 +65,7 @@ test("scanning needs the desktop app and a path, and is skipped while busy", asy
   const blank = harness();
   await blank.controller.scanQueueSource("   ", true, false);
   assert.deepEqual(blank.calls, [["notice", "error", "Choose a media file or folder first."]]);
-  for (const busy of [{ scanning: true }, { repairId: "job" }, { hdrInstalling: true }]) {
+  for (const busy of [{ scanning: true }, { repairId: "job" }]) {
     const h = harness({ hostOverrides: busy });
     await h.controller.scanQueueSource("/r", true, false);
     assert.deepEqual([h.calls, h.invokes], [[], []], JSON.stringify(busy));

@@ -18,17 +18,16 @@ export function harness({ desktop = true, invokeImpl = {}, hostOver = {}, saveRe
   const invokes = [];
   const state = {
     environment: aptEnvironment(), environmentLoading: false, environmentError: "",
-    aptUpdates: null, aptChecking: false, repairConfirmOpen: false, setupConfirmOpen: false, setupPlan: null, setupUpdates: null, repairId: "", activeToolSetupLogId: "", packageJobKind: null,
+    aptUpdates: null, aptChecking: false, setupConfirmOpen: false, setupPlan: null, setupUpdates: null, repairId: "", activeToolSetupLogId: "", packageJobKind: null,
     repairLines: [], repairSummary: "", repairSummaryIsError: false, repairLogWarning: "",
     toolSetupLogs: [], selectedToolSetupLog: "", viewedToolSetupLog: "", toolSetupLogLoading: false, toolSetupLogError: "", toolSetupLogExporting: false,
-    repairToolChecksBefore: null, repairAffectedToolKeys: [], repairToolOutcomes: [], hdrInstalling: false,
-    continueToolchainSetupAfterRefresh: false, installHdrHelperAfterPackages: false,
-    scanning: false, runId: "", runStarting: false,
+    repairToolChecksBefore: null, repairAffectedToolKeys: [], repairToolOutcomes: [],
+    scanning: false, runId: "", runStarting: false, autoUpdateTools: false,
     ...hostOver,
   };
   const host = state;
   Object.defineProperty(host, "aptHost", { get: () => state.environment?.os.supported === true && state.environment?.os.package_manager === "apt" && state.environment?.os.package_manager_available !== false });
-  Object.defineProperty(host, "workflowBusy", { get: () => Boolean(state.scanning || state.runStarting || state.runId || state.repairId || state.hdrInstalling) });
+  Object.defineProperty(host, "workflowBusy", { get: () => Boolean(state.scanning || state.runStarting || state.runId || state.repairId) });
   host.setNotice = (message, kind = "info") => log.push(["notice", kind, message]);
   host.currentToolPaths = () => ({ ffmpeg: "/opt/ffmpeg", ffprobe: null });
   const invoke = async (command, args) => {
@@ -48,5 +47,5 @@ export const notices = (h) => h.log.filter((entry) => entry[0] === "notice").map
 
 export const finishHarness = (hostOver = {}, invokeImpl = {}) => harness({
   hostOver: { repairId: "job", ...hostOver },
-  invokeImpl: { inspect_environment: aptEnvironment({ ready: true }), list_tool_setup_logs: [], check_ubuntu_package_updates: { packages: [], catalog_stale: false }, ...invokeImpl },
+  invokeImpl: { inspect_environment: aptEnvironment({ ready: true }), list_tool_setup_logs: [], check_ubuntu_package_updates: { packages: [], catalog_stale: false }, provision_plan: { nothing_to_do: true, install_packages: [], upgrade_packages: [], helper: { action: "current" } }, ...invokeImpl },
 });

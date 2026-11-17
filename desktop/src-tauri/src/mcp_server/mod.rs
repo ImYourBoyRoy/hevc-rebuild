@@ -3,9 +3,8 @@
 //! live in the sibling modules declared below.
 
 use super::{
-    append_tool_path_arguments, executable_in_path, file_settings_override_arguments,
-    settings_arguments, stream_override_arguments, validate_apt_update_confirmation,
-    validate_apt_upgrade_plan, youtube_hdr10plus_loss_arguments, ToolPaths, APT_ALLOWLIST,
+    append_tool_path_arguments, file_settings_override_arguments, settings_arguments,
+    stream_override_arguments, youtube_hdr10plus_loss_arguments, ToolPaths,
 };
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -18,13 +17,27 @@ use std::{
     fs::{self, File},
     io::Read,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     sync::{Arc, Mutex},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 type Jobs = Arc<Mutex<HashMap<String, Job>>>;
+
+/// What a running job last reported for its current file, beyond "file N of M": phase, percentages,
+/// speed, ETA and sizes. Polled by agents (`get_job`) and sent to the browser as `run-progress`.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub(crate) struct ProgressDetail {
+    pub(crate) phase: String,
+    pub(crate) file_percent: Option<f64>,
+    pub(crate) queue_percent: Option<f64>,
+    pub(crate) speed: Option<f64>,
+    pub(crate) eta_seconds: Option<f64>,
+    pub(crate) elapsed_seconds: Option<f64>,
+    pub(crate) input_bytes: Option<u64>,
+    pub(crate) output_bytes: Option<u64>,
+    pub(crate) estimated_output_bytes: Option<u64>,
+}
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -35,6 +48,8 @@ struct Job {
     current: usize,
     total: usize,
     last_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    progress_detail: Option<ProgressDetail>,
     last_lines: Vec<String>,
     exit_code: Option<i32>,
     log_path: Option<String>,
@@ -44,6 +59,9 @@ struct Job {
     queue_sync_warning: Option<String>,
     #[serde(skip_serializing)]
     stop_file: Option<PathBuf>,
+    /// Lines ever recorded (`last_lines` keeps only the newest 120); lets the web bridge send each once.
+    #[serde(skip_serializing)]
+    lines_total: u64,
     result: Option<Value>,
     /// Live per-file results and disk use for rebuild jobs, plus a closing report.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -51,6 +69,20 @@ struct Job {
 }
 
 impl Job {
+    /// Record where the job is and what it last reported for the current file.
+    fn set_progress(
+        &mut self,
+        current: usize,
+        total: usize,
+        file_path: String,
+        detail: ProgressDetail,
+    ) {
+        self.current = current;
+        self.total = total;
+        self.last_file = Some(file_path);
+        self.progress_detail = Some(detail);
+    }
+
     fn new(id: String, kind: &str) -> Self {
         Self {
             id,
@@ -59,6 +91,7 @@ impl Job {
             current: 0,
             total: 0,
             last_file: None,
+            progress_detail: None,
             last_lines: Vec::new(),
             exit_code: None,
             log_path: None,
@@ -67,6 +100,7 @@ impl Job {
             resource_snapshot: None,
             queue_sync_warning: None,
             stop_file: None,
+            lines_total: 0,
             result: None,
             batch: None,
         }
@@ -78,8 +112,10 @@ impl Job {
 const EXIT_PAUSED: i32 = 75;
 
 #[derive(Clone)]
-struct McpServer {
+pub(crate) struct McpServer {
     jobs: Jobs,
+    /// Set when hosted inside the web server: one job slot and event bus shared with the browser.
+    shared: Option<shared::Shared>,
     plans: Arc<Mutex<crate::batch_plan::PlanBook>>,
     #[allow(dead_code)]
     tool_router: ToolRouter<Self>,
@@ -89,8 +125,31 @@ impl McpServer {
     fn new() -> Self {
         Self {
             jobs: Arc::new(Mutex::new(HashMap::new())),
+            shared: None,
             plans: Arc::new(Mutex::new(crate::batch_plan::PlanBook::default())),
             tool_router: Self::tool_router(),
+        }
+    }
+
+    /// An MCP server hosted by the web server (`/mcp`): it takes turns with the browser on the single job
+    /// slot and its jobs appear on the shared event bus.
+    pub(crate) fn new_shared(shared: shared::Shared) -> Self {
+        let mut server = Self::new();
+        server.shared = Some(shared);
+        server
+    }
+
+    /// Start publishing this server's job changes as events. Call once, after `new_shared`.
+    pub(crate) fn start_event_bridge(&self) {
+        if let Some(shared) = self.shared.clone() {
+            shared::spawn(self.jobs.clone(), shared);
+        }
+    }
+
+    fn privilege(&self) -> super::provision::Privilege {
+        match &self.shared {
+            Some(shared) => (shared.privilege)(),
+            None => super::provision::Privilege::Desktop,
         }
     }
 
@@ -136,9 +195,27 @@ impl McpServer {
                 jobs.remove(&id);
             }
         }
+        if let Some(shared) = &self.shared {
+            shared.claim(&jobs, &job)?;
+        }
         jobs.insert(job.id.clone(), job);
         Ok(())
     }
+}
+
+/// The setup plan reads the network and the package database with blocking clients, which must not run
+/// on the async runtime that serves MCP requests (it panics when the blocking client is dropped there).
+async fn plan_off_the_runtime(
+    privilege: super::provision::Privilege,
+) -> Result<(super::provision::ProvisionPlan, Option<String>), ErrorData> {
+    tokio::task::spawn_blocking(move || {
+        super::provision::current_plan_for(ToolPaths::default(), privilege)
+    })
+    .await
+    .map_err(|error| {
+        ErrorData::internal_error(format!("The setup plan task failed: {error}"), None)
+    })?
+    .map_err(|error| ErrorData::internal_error(error, None))
 }
 
 fn job_id() -> String {
@@ -167,6 +244,7 @@ fn record_line(jobs: &Jobs, id: &str, line: String) {
                 job.report_path = Some(path.trim().to_string());
             }
             job.last_lines.push(line);
+            job.lines_total += 1;
             if job.last_lines.len() > 120 {
                 job.last_lines.drain(..job.last_lines.len() - 120);
             }
@@ -1187,181 +1265,24 @@ impl McpServer {
     }
 
     #[tool(
-        name = "refresh_ubuntu_package_catalog",
-        description = "Refresh the locally configured Ubuntu APT package catalog after the caller explicitly sets confirm_refresh=true. This contacts the configured package repositories and changes only local package-index metadata; it does not install or upgrade packages. Starts an administrator-authenticated job."
-    )]
-    fn refresh_ubuntu_package_catalog(
-        &self,
-        Parameters(params): Parameters<AptRefreshParams>,
-    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        if !params.confirm_refresh {
-            return Err(ErrorData::invalid_params(
-                "Set confirm_refresh=true to refresh the package catalog.",
-                None,
-            ));
-        }
-        let environment = super::environment::inspect_environment(ToolPaths::default(), None)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        if environment
-            .pointer("/os/supported")
-            .and_then(Value::as_bool)
-            != Some(true)
-        {
-            return Err(ErrorData::invalid_params(
-                "APT catalog refresh is limited to supported Ubuntu and Linux Mint releases.",
-                None,
-            ));
-        }
-        if environment
-            .pointer("/os/package_manager")
-            .and_then(Value::as_str)
-            != Some("apt")
-            || environment
-                .pointer("/os/package_manager_available")
-                .and_then(Value::as_bool)
-                != Some(true)
-        {
-            return Err(ErrorData::invalid_params(
-                "APT catalog refresh is available only when APT is installed on Linux.",
-                None,
-            ));
-        }
-        if unsafe { geteuid() } != 0 && !executable_in_path("pkexec") {
-            return Err(ErrorData::invalid_params(
-                "Desktop administrator authentication (pkexec) is not installed.",
-                None,
-            ));
-        }
-        let id = job_id();
-        let mut job = Job::new(id.clone(), "apt_catalog_refresh");
-        job.status = "running".into();
-        self.insert_job(job)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        let jobs = self.jobs.clone();
-        let worker_id = id.clone();
-        thread::spawn(move || {
-            run_apt_command_job(jobs, worker_id, vec!["apt-get".into(), "update".into()])
-        });
-        Ok(rmcp::handler::server::wrapper::Json(
-            json!({"job_id":id,"status":"running","poll_with":"get_job"}),
-        ))
-    }
-
-    #[tool(
-        name = "upgrade_ubuntu_packages",
-        description = "Install only the available upgrades from the fixed Ubuntu package allowlist. First call check_ubuntu_package_updates, then pass confirmed_package_names exactly equal to its current package list. The server rechecks that list and simulates the APT transaction; it refuses if APT would change any extra package or remove anything. No catalog refresh happens automatically. Starts an administrator-authenticated job."
-    )]
-    fn upgrade_ubuntu_packages(
-        &self,
-        Parameters(params): Parameters<RepairParams>,
-    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        let status = super::dependencies::apt_update_status()
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        let packages = validate_apt_update_confirmation(&status, params.confirmed_package_names)
-            .map_err(|error| ErrorData::invalid_params(error, None))?;
-        validate_apt_upgrade_plan(&packages)
-            .map_err(|error| ErrorData::invalid_params(error, None))?;
-        if unsafe { geteuid() } != 0 && !executable_in_path("pkexec") {
-            return Err(ErrorData::invalid_params(
-                "Desktop administrator authentication (pkexec) is not installed.",
-                None,
-            ));
-        }
-        let id = job_id();
-        let mut job = Job::new(id.clone(), "package_update");
-        job.status = "running".into();
-        self.insert_job(job)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        let jobs = self.jobs.clone();
-        let worker_id = id.clone();
-        thread::spawn(move || run_apt_update_job(jobs, worker_id, packages));
-        Ok(rmcp::handler::server::wrapper::Json(
-            json!({"job_id":id,"status":"running","poll_with":"get_job"}),
-        ))
-    }
-
-    #[tool(
-        name = "repair_system_dependencies",
-        description = "Plan and optionally install only the currently missing packages from HEVC Rebuild's fixed Ubuntu allowlist. First inspect_environment; then pass confirmed_package_names exactly equal to its missing_apt_packages list. This starts an administrator-authenticated APT repair job."
-    )]
-    fn repair_system_dependencies(
-        &self,
-        Parameters(params): Parameters<RepairParams>,
-    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        let environment = super::environment::inspect_environment(ToolPaths::default(), None)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        if environment
-            .pointer("/os/supported")
-            .and_then(Value::as_bool)
-            != Some(true)
-        {
-            return Err(ErrorData::invalid_params(
-                "Automatic package repair is limited to supported Ubuntu and Linux Mint releases.",
-                None,
-            ));
-        }
-        let mut missing: Vec<String> = environment
-            .get("missing_apt_packages")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .map(str::to_string)
-            .collect();
-        missing.sort();
-        missing.dedup();
-        let provided_count = params.confirmed_package_names.len();
-        let mut confirmed = params.confirmed_package_names;
-        confirmed.sort();
-        confirmed.dedup();
-        if confirmed.len() != provided_count {
-            return Err(ErrorData::invalid_params(
-                "Each package can appear only once in confirmed_package_names.",
-                None,
-            ));
-        }
-        if missing.is_empty() {
-            return Ok(rmcp::handler::server::wrapper::Json(
-                json!({"status":"already_ready","packages":[]}),
-            ));
-        }
-        if missing
-            .iter()
-            .any(|package| !APT_ALLOWLIST.contains(&package.as_str()))
-            || missing != confirmed
-        {
-            return Err(ErrorData::invalid_params(json!({"message":"For system repair, confirm the exact missing-package list returned by inspect_environment.","missing_apt_packages":missing}).to_string(), None));
-        }
-        let id = job_id();
-        let mut job = Job::new(id.clone(), "system_repair");
-        job.status = "running".into();
-        self.insert_job(job)
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        let jobs = self.jobs.clone();
-        let worker_id = id.clone();
-        thread::spawn(move || run_apt_job(jobs, worker_id, missing));
-        Ok(rmcp::handler::server::wrapper::Json(
-            json!({"job_id":id,"status":"running","poll_with":"get_job"}),
-        ))
-    }
-
-    #[tool(
         name = "plan_system_setup",
         description = "Read-only. Returns the one-pass setup plan: missing and upgradable packages from the fixed Ubuntu allowlist, whether the package catalog needs a refresh, the HDR10+ helper action (install, update, current), and whether one administrator password prompt is needed. Call this first, show the steps to the user, then call provision_system."
     )]
-    fn plan_system_setup(
+    async fn plan_system_setup(
         &self,
     ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
-        let (plan, error) = super::provision::current_plan(ToolPaths::default())
-            .map_err(|error| ErrorData::internal_error(error, None))?;
-        Ok(rmcp::handler::server::wrapper::Json(super::provision::plan_json(&plan, error.as_deref())))
+        let privilege = self.privilege();
+        let (plan, error) = plan_off_the_runtime(privilege).await?;
+        let mut value = super::provision::plan_json(&plan, error.as_deref());
+        super::apt_commands::annotate_plan_json(&mut value, privilege);
+        Ok(rmcp::handler::server::wrapper::Json(value))
     }
 
     #[tool(
         name = "provision_system",
         description = "Install and update everything in one pass after the user approves the plan from plan_system_setup (set confirm_plan=true). At most ONE administrator prompt appears on the user's desktop covering the catalog refresh, missing packages and package updates; the HDR10+ helper is installed or updated in user space with no password. The server recomputes the plan itself, so no package list is accepted. The model never sees or handles the password."
     )]
-    fn provision_system(
+    async fn provision_system(
         &self,
         Parameters(params): Parameters<ProvisionParams>,
     ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
@@ -1371,8 +1292,8 @@ impl McpServer {
                 None,
             ));
         }
-        let (plan, _) = super::provision::current_plan(ToolPaths::default())
-            .map_err(|error| ErrorData::internal_error(error, None))?;
+        let privilege = self.privilege();
+        let (plan, _) = plan_off_the_runtime(privilege).await?;
         if plan.nothing_to_do() {
             return Ok(rmcp::handler::server::wrapper::Json(
                 json!({"status":"already_ready"}),
@@ -1385,7 +1306,7 @@ impl McpServer {
             .map_err(|error| ErrorData::internal_error(error, None))?;
         let jobs = self.jobs.clone();
         let worker_id = id.clone();
-        thread::spawn(move || apt::run_provision_job(jobs, worker_id, plan));
+        thread::spawn(move || apt::run_provision_job(jobs, worker_id, plan, privilege));
         Ok(rmcp::handler::server::wrapper::Json(
             json!({"job_id":id,"status":"running","poll_with":"get_job"}),
         ))
@@ -1434,7 +1355,7 @@ impl McpServer {
 #[tool_handler(
     name = "hevc-rebuild-studio",
     version = "1.4.1",
-    instructions = "Local Ubuntu-first media library analysis and HEVC rebuild MCP server. Inspect first; analysis is read-only. Runs default to check mode. Require explicit confirmation flags before short-test or full rebuild outputs. System package repair requires the exact package list from inspect_environment. Only process media the user owns or is authorized to use."
+    instructions = "Local Ubuntu-first media library analysis and HEVC rebuild MCP server. Inspect first; analysis is read-only. Runs default to check mode. Require explicit confirmation flags before short-test or full rebuild outputs. System setup is plan_system_setup then provision_system after the user approves the plan. Only process media the user owns or is authorized to use."
 )]
 impl ServerHandler for McpServer {}
 
@@ -1476,6 +1397,7 @@ mod prepare;
 mod queue_sync;
 #[cfg(test)]
 mod queue_sync_tests;
+pub(crate) mod shared;
 
 pub(crate) use self::queue_sync::queue_run_json_cli;
-use self::{apt::*, batch::*, exec::*, params::*, prepare::*, queue_sync::*};
+use self::{batch::*, exec::*, params::*, prepare::*, queue_sync::*};

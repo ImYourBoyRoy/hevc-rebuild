@@ -22,7 +22,7 @@ Only host integration varies by operating system:
 
 | Concern | Linux | Windows | macOS |
 | --- | --- | --- | --- |
-| Tool setup | APT review/repair in the desktop | `winget` setup through the desktop | Homebrew setup through the desktop |
+| Tool setup | One-pass APT install and update (one password) | One-pass `winget` install and update (one approval) | One-pass Homebrew install and update (no password; Command Line Tools and Homebrew are checked first) |
 | Required media tools | FFmpeg/FFprobe, MediaInfo, MKVToolNix; HDR10+ helper when dynamic HDR10+ preservation is needed | Same capabilities, resolved from PATH or selected `.exe` paths | Same capabilities, resolved from PATH or selected paths |
 | HDR10+ helper | Verified upstream `.tar.gz` | Verified upstream `.zip` | Verified universal macOS `.zip` |
 | Settings/profile paths | XDG config/state, or writable AppImage sidecar | Windows application/local-data folders | `Library/Application Support` and `Library/Logs` |

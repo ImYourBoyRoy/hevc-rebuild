@@ -15,8 +15,19 @@ CLI, installed CLI, and stdio MCP server enter the same Rust services.
   saved preferences in `app_preferences`; per-user folders in `app_paths` and
   `work_directory`; the `json` and apt CLI actions in `cli_json`/`cli_apt`; and
   process entry points in `cli_modes`.
-- desktop/src-tauri/src/main.rs routes GUI launch, CLI/JSON actions, MCP, and
-  the opt-in agent-control client mode.
+- desktop/src-tauri/src/main.rs routes GUI launch, CLI/JSON actions, MCP, the
+  headless `serve` mode, and the opt-in agent-control client mode.
+- desktop/src-tauri/src/web_server/ is the headless server (`serve`): an axum
+  router that serves the built GUI with an injected browser shim
+  (`web_shim.js`, which fakes the Tauri runtime), maps `POST /api/invoke/{command}`
+  onto the same command functions through a classified dispatch table
+  (`commands.rs`), and streams events over Server-Sent Events. Commands that
+  held a Tauri `State` or `AppHandle` are split into a Tauri wrapper plus a
+  runtime-free `*_with(Events, &RunState, ...)` function; job runners emit into
+  the `Events` sink (`job_state.rs`), which is the window in the desktop app and
+  the server's event bus under `serve`. `/mcp` mounts the same `McpServer` as
+  `--mcp`; `mcp_server/shared.rs` gives it the server's job slot and turns its
+  job registry into bus events. See docs/maintainer/SERVE_MODE.md.
 - Rust modules own discovery, profiles, settings, resource planning, process
   supervision, HDR policy, validation, transactions, reports, and queue state.
 - desktop/src-tauri/tauri.conf.json contains no script-runtime bundle or

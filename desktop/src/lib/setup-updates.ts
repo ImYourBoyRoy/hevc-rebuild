@@ -16,6 +16,10 @@ export interface SetupUpdateSummary {
 /** A stale catalog alone is not an update: only missing packages, package updates and helper work count. */
 export function setupUpdateSummary(plan: ProvisionPlan | null): SetupUpdateSummary | null {
   if (!plan) return null;
+  if (plan.blockers.length) {
+    const needs = plan.blockers.map((blocker) => `${blocker.label}: ${blocker.remedy}`).join(" ");
+    return { count: plan.blockers.length, label: "SETUP NEEDED", detail: `${needs} Select to review.` };
+  }
   const helperWork = plan.helper.action === "install" || plan.helper.action === "update";
   const count = plan.install_packages.length + plan.upgrade_packages.length + (helperWork ? 1 : 0);
   if (!count) return null;

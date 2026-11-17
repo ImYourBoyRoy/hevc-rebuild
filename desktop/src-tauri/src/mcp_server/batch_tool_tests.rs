@@ -1,6 +1,7 @@
 //! Tests for the unattended batch tools, driven through the same methods the router calls.
 
 use super::*;
+use std::process::Command;
 
 const MEDIA_TOOLS: [&str; 5] = ["ffmpeg", "ffprobe", "mediainfo", "mkvmerge", "mkvextract"];
 

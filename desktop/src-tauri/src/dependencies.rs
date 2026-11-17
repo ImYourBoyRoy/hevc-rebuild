@@ -235,9 +235,8 @@ fn fetch_latest_hdr10plus_release(client: &reqwest::blocking::Client) -> Result<
         &["api.github.com"],
         MAX_RELEASE_JSON_BYTES,
     )?;
-    serde_json::from_slice(&release_bytes).map_err(|error| {
-        format!("The official HDR10+ release response was invalid JSON: {error}")
-    })
+    serde_json::from_slice(&release_bytes)
+        .map_err(|error| format!("The official HDR10+ release response was invalid JSON: {error}"))
 }
 
 /// Latest published hdr10plus_tool version (for example "1.7.1"), or an error when offline.

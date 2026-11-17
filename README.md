@@ -21,7 +21,7 @@ the rest of the media file intact. Review the plan, run a safe test, and only
 replace the original after the output passes validation.
 
 <p align="center">
-  <img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="HEVC Rebuild Studio Home screen in the Dark theme" width="1200" />
+  <img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="HEVC Rebuild Studio Library screen in the Dark theme" width="1200" />
 </p>
 
 <p align="center"><em>Native Tauri desktop app. v1.4.1 is the latest published release; clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
@@ -33,7 +33,9 @@ replace the original after the output passes validation.
 - Create a validated metadata-only MKV without re-encoding video.
 - Review filenames, titles, posters, TV episodes, and output destinations before writing.
 - Prepare a separate YouTube copy without changing the source.
-- Use the same local workflows through the GUI, CLI, or stdio MCP server.
+- Use the same local workflows through the GUI, CLI, or stdio MCP server, or run it headless (`serve`): the GUI in a browser and an MCP endpoint over HTTP share the same jobs (see [USAGE.md](docs/USAGE.md#headless-server)).
+- Install and update every tool it needs in one pass: one password on Linux, one approval on Windows, none on macOS, shared by the GUI, CLI and MCP. It also checks for updates at launch and every six hours, and can keep password-free updates current automatically (off by default).
+- Explain its own settings in plain language: what CRF, presets, content tune and film grain mean, with warnings before a choice that will make files much larger.
 
 ## Quick start
 
@@ -47,7 +49,7 @@ pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-The desktop build needs FFmpeg/FFprobe, MediaInfo, and MKVToolNix. Check only,
+The desktop build needs FFmpeg/FFprobe, MediaInfo, and MKVToolNix, and the app installs and updates them for you (**Settings > Install & update everything**, or `hevc-rebuild-studio json provision-plan` then `json provision --confirm`). Check only,
 integrity, Metadata-only MKV, short tests, full rebuilds, and YouTube upload
 preparation run through the native Rust engine. See [tool setup](docs/TOOLS.md)
 and the [platform support contract](docs/PLATFORM-SUPPORT.md).
@@ -163,11 +165,10 @@ If an automatic source-adjacent folder cannot be created, the app-state
 
 ## Themes
 
-Choose Light, Dark, Cinema, OLED, DOS, Phosphor, Ion, or Breach from
-the app's global appearance control (Cinema, OLED and DOS have no
-native captures yet; `?fixture=themes` on the UI fixture server shows all eight). These captures were made from the native app after it reached
-`SYSTEM READY`, using isolated profiles so existing user settings were not
-changed.
+Choose Light, Dark, Cinema, OLED, DOS, Phosphor, Ion, or Breach from the app's
+global appearance control. These captures render the app's real Library screen
+and sidebar in an isolated browser fixture with sample titles (no personal
+library, settings or media), at 1440 x 900.
 
 <table>
   <tr>
@@ -175,14 +176,27 @@ changed.
     <td align="center"><strong>Dark</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="Dark theme" width="480"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Phosphor</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-phosphor.png" alt="Phosphor theme" width="480"></td>
-    <td align="center"><strong>Ion</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-ion.png" alt="Ion theme" width="480"></td>
+    <td align="center"><strong>Cinema</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-cinema.png" alt="Cinema theme with red velvet curtains and a reel projector" width="480"></td>
+    <td align="center"><strong>OLED</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-oled.png" alt="OLED theme" width="480"></td>
   </tr>
   <tr>
+    <td align="center"><strong>DOS</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-dos.png" alt="DOS terminal theme" width="480"></td>
+    <td align="center"><strong>Phosphor</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-phosphor.png" alt="Phosphor theme" width="480"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Ion</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-ion.png" alt="Ion theme" width="480"></td>
     <td align="center"><strong>Breach</strong><br><img src="docs/screenshots/HEVC-Rebuild-Studio-breach.png" alt="Breach theme" width="480"></td>
-    <td></td>
   </tr>
 </table>
+
+## Setup in one pass
+
+One button installs and updates everything the app needs, and asks for your
+administrator password once (Linux), one Windows approval (Windows), or nothing
+(macOS, where Homebrew runs as you). The same plan is available from the CLI and
+MCP; see [tool setup](docs/TOOLS.md).
+
+<p align="center"><img src="docs/screenshots/HEVC-Rebuild-Studio-setup.png" alt="The Install and update everything dialog listing packages to install and update and the HDR10+ helper" width="520" /></p>
 
 ## Installers and updates
 

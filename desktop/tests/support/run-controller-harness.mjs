@@ -31,6 +31,7 @@ export function harness({ invokeImpl, hostOverrides = {}, workspaceSetup, persis
     openPage: (page) => calls.push(["openPage", page]),
     currentToolPaths: () => ({ ffmpeg: null }),
     loadReports: async () => { calls.push(["loadReports"]); },
+    loadMediaQueue: async () => { calls.push(["loadMediaQueue"]); },
     selectedPosterOverrides: (entries) => Object.fromEntries(entries.map((item) => [item.path, "poster"])),
     selectedMetadataOverrides: (entries) => Object.fromEntries(entries.map((item) => [item.path, { title: "T" }])),
     fileTuneOverridesForBatch: (entries) => Object.fromEntries(entries.map((item) => [item.path, "none"])),

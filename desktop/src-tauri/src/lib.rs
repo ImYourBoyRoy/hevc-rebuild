@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 #[cfg(unix)]
@@ -35,7 +35,6 @@ mod commands_queue;
 mod commands_workspace;
 mod content;
 mod dependencies;
-mod provision;
 mod encode_plan;
 mod encode_run;
 mod encode_supervisor;
@@ -63,6 +62,8 @@ mod output_targets;
 mod packet_verify;
 mod process_output;
 mod profile_cache;
+mod provision;
+mod provision_run;
 mod quality_gate;
 mod rebuild_run;
 mod reports;
@@ -80,6 +81,7 @@ mod stop_control;
 mod tool_diagnostics;
 mod transactions;
 mod validation;
+mod web_server;
 mod work_directory;
 mod youtube;
 mod youtube_arguments;
@@ -103,16 +105,14 @@ pub(crate) use app_paths::{
 };
 pub(crate) use app_preferences::app_preferences_file;
 pub(crate) use apt_commands::libc_geteuid;
-pub(crate) use apt_policy::{
-    validate_apt_toolchain_confirmation, validate_apt_update_confirmation,
-    validate_apt_upgrade_plan, APT_ALLOWLIST,
-};
-pub(crate) use cli_apt::{run_json_cli_apt_refresh, run_json_cli_apt_upgrade, run_json_cli_provision};
+pub(crate) use apt_policy::APT_ALLOWLIST;
+pub(crate) use cli_apt::run_json_cli_provision;
 pub(crate) use cli_json::run_json_cli;
 pub use cli_modes::{cli_mode, internal_cli_mode, mcp_mode, metadata_cli_mode, organizer_cli_mode};
 pub(crate) use executable_lookup::executable_in_path;
 pub(crate) use job_state::{
-    child_tracker, claim_job, new_active_job, new_job_id, release_job, RunFinished, RunLine,
+    active_job_info, child_tracker, claim_job, kind_for_run_mode, new_active_job,
+    new_active_job_of, new_job_id, release_job, ActiveJobInfo, Events, RunFinished, RunLine,
     RunProgress, RunResourceEvent, RunState,
 };
 pub(crate) use run_checks::{start_check_run, start_integrity_run};
@@ -120,6 +120,7 @@ pub(crate) use run_commands::RunRequest;
 pub(crate) use run_native::{
     run_native_metadata_job, run_native_rebuild_job, run_native_youtube_job,
 };
+pub use web_server::serve_mode;
 pub(crate) use work_directory::{
     media_work_directory, preview_work_directory, resolve_work_directory, WorkDirectoryPreview,
 };
@@ -189,6 +190,12 @@ pub(crate) fn test_dir(label: &str) -> PathBuf {
     let path = test_temp_base().join(format!("hevc-rebuild-{label}-{}", new_job_id()));
     fs::create_dir_all(&path).expect("create isolated test directory");
     path
+}
+
+/// The generated Tauri context (config plus the embedded frontend). Built in one place so the desktop
+/// window and the headless server share a single embedded copy of the GUI files.
+pub(crate) fn tauri_context() -> tauri::Context<tauri::Wry> {
+    tauri::generate_context!()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -267,16 +274,12 @@ pub fn run() {
             run_commands::request_stop,
             run_commands::request_abort,
             commands_workspace::cancel_scan,
+            commands_workspace::active_job,
             apt_commands::check_ubuntu_package_updates,
-            apt_commands::refresh_ubuntu_package_catalog,
-            apt_commands::upgrade_ubuntu_packages,
-            apt_commands::install_ubuntu_toolchain,
-            apt_commands::install_apt_tools,
-            apt_commands::install_hdr10plus,
             apt_commands::provision_plan,
             apt_commands::provision_toolchain,
         ])
-        .build(tauri::generate_context!())
+        .build(tauri_context())
         .expect("error while building HEVC Rebuild Studio")
         .run(|_, event| {
             if matches!(event, tauri::RunEvent::Exit) {

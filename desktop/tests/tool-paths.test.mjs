@@ -15,7 +15,7 @@ function harness({ pick = null, hostOver = {}, persistResult = true, loadResult 
   const written = [];
   const state = {
     ffmpegPath: "", ffprobePath: "", mediainfoPath: "", mkvpropeditPath: "", mkvmergePath: "", mkvextractPath: "", desktopShell: true, runId: "", runStarting: false,
-    repairId: "", hdrInstalling: false, workflowBusy: false, hostSetupCommand: "sudo apt install ffmpeg", hostSetupShell: "Terminal", ...hostOver,
+    repairId: "", workflowBusy: false, hostSetupCommand: "sudo apt install ffmpeg", hostSetupShell: "Terminal", ...hostOver,
   };
   const host = state;
   host.setNotice = (message, kind = "info") => log.push([kind, message]);
@@ -84,7 +84,7 @@ test("chooseToolPath stores the picked executable and saves", async () => {
   const cancelled = harness({ pick: null });
   await cancelled.ctl.chooseToolPath("ffmpeg", "FFmpeg");
   assert.deepEqual([cancelled.host.ffmpegPath, cancelled.calls.length], ["", 0]);
-  for (const hostOver of [{ desktopShell: false }, { runId: "r" }, { runStarting: true }, { repairId: "j" }, { hdrInstalling: true }]) {
+  for (const hostOver of [{ desktopShell: false }, { runId: "r" }, { runStarting: true }, { repairId: "j" }]) {
     const blocked = harness({ pick: "/x", hostOver });
     await blocked.ctl.chooseToolPath("ffmpeg", "FFmpeg");
     assert.equal(blocked.dialogs.length, 0);

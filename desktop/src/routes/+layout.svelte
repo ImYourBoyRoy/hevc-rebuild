@@ -8,6 +8,7 @@
   import "../styles/instrument/instrument-2.css";
   import "../styles/type-scale.css";
   import "../styles/components/workspace-redesign.css";
+  import "../styles/components/info-tip.css";
   import "../styles/themes/theme-core.css";
   import "../styles/themes/theme-motion.css";
   import "../styles/themes/theme-ambient.css";

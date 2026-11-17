@@ -4,7 +4,6 @@
   import { metadataTextChanges, optimizeSummary } from './report-view.js';
   interface Props {
     repairId: string;
-    hdrInstalling: boolean;
     reportDeleteBusy: boolean;
     reportDeleteConfirm: boolean;
     failedRows: ReportRow[];
@@ -25,13 +24,13 @@
     copyLog: () => unknown;
     openPage: (page: Page) => void;
   }
-  let { repairId, hdrInstalling, reportDeleteBusy, reportDeleteConfirm = $bindable(), failedRows, loadReports, deleteReportHistory, reports, activeReport, logLoading, selectedLog, hasScan, fileName, bytes, isFailure, isSuccess, outcomeLabel, chooseReport, openLog, copyLog, openPage }: Props = $props();
+  let { repairId, reportDeleteBusy, reportDeleteConfirm = $bindable(), failedRows, loadReports, deleteReportHistory, reports, activeReport, logLoading, selectedLog, hasScan, fileName, bytes, isFailure, isSuccess, outcomeLabel, chooseReport, openLog, copyLog, openPage }: Props = $props();
 </script>
 <!-- the app stylesheets (src/styles/app) scopes report and diagnostic families. This view never scans, mutates a report, or resumes a job. -->
         <section class="page-heading">
           <div><div class="eyebrow">AUDIT TRAIL</div><h1>Reports & <em>errors.</em></h1><p>Review completed runs, per-file outcomes, and diagnostic logs from the media engine.</p></div>
           <div class="heading-actions">
-            <button class="button secondary" disabled={Boolean(repairId) || hdrInstalling || reportDeleteBusy} onclick={loadReports}><RefreshCw size={16} /> Refresh history</button>
+            <button class="button secondary" disabled={Boolean(repairId) || reportDeleteBusy} onclick={loadReports}><RefreshCw size={16} /> Refresh history</button>
             {#if reportDeleteConfirm}
               <button class="button danger-outline" type="button" disabled={reportDeleteBusy} onclick={deleteReportHistory}>{reportDeleteBusy ? "Deleting…" : "Delete permanently"}</button>
               <button class="button secondary" type="button" disabled={reportDeleteBusy} onclick={() => (reportDeleteConfirm = false)}>Cancel</button>

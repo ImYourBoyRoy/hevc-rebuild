@@ -5,6 +5,7 @@ release maintenance. They are not required for ordinary installation or use.
 
 - [Review and release evidence](REVIEW.md)
 - [Architecture notes](TECHNICAL.md)
+- [Headless server mode (`serve`)](SERVE_MODE.md)
 - [Native Rust architecture record](RUST_MIGRATION.md)
 - [Retired-runtime cleanup record](python-rust-convert.md)
 - [Dependency notes](DEPENDENCIES.md)

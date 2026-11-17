@@ -19,9 +19,17 @@ pub(super) fn run_integrity_job(
         |progress| {
             if let Ok(mut jobs) = jobs.lock() {
                 if let Some(job) = jobs.get_mut(&id) {
-                    job.current = progress.current;
-                    job.total = progress.total;
-                    job.last_file = Some(progress.file_path);
+                    job.set_progress(
+                        progress.current,
+                        progress.total,
+                        progress.file_path,
+                        ProgressDetail {
+                            phase: progress.phase.to_string(),
+                            file_percent: progress.file_percent,
+                            queue_percent: progress.queue_percent,
+                            ..ProgressDetail::default()
+                        },
+                    );
                 }
             }
         },
@@ -131,9 +139,17 @@ pub(super) fn execute_native_check(
         |progress| {
             if let Ok(mut jobs) = jobs.lock() {
                 if let Some(job) = jobs.get_mut(id) {
-                    job.current = progress.current;
-                    job.total = progress.total;
-                    job.last_file = Some(progress.file_path);
+                    job.set_progress(
+                        progress.current,
+                        progress.total,
+                        progress.file_path,
+                        ProgressDetail {
+                            phase: progress.phase.to_string(),
+                            file_percent: progress.file_percent,
+                            queue_percent: progress.queue_percent,
+                            ..ProgressDetail::default()
+                        },
+                    );
                 }
             }
         },
@@ -182,9 +198,20 @@ pub(super) fn execute_native_metadata_args(
         |progress| {
             if let Ok(mut registry) = jobs.lock() {
                 if let Some(job) = registry.get_mut(id) {
-                    job.current = progress.current;
-                    job.total = progress.total;
-                    job.last_file = Some(progress.file_path);
+                    job.set_progress(
+                        progress.current,
+                        progress.total,
+                        progress.file_path,
+                        ProgressDetail {
+                            phase: progress.phase,
+                            file_percent: progress.file_percent,
+                            queue_percent: Some(progress.queue_percent),
+                            elapsed_seconds: Some(progress.elapsed_seconds),
+                            input_bytes: progress.input_bytes,
+                            output_bytes: progress.output_bytes,
+                            ..ProgressDetail::default()
+                        },
+                    );
                 }
             }
         },
@@ -248,9 +275,22 @@ pub(super) fn execute_native_youtube_args(
         |progress| {
             if let Ok(mut registry) = jobs.lock() {
                 if let Some(job) = registry.get_mut(id) {
-                    job.current = progress.current;
-                    job.total = progress.total;
-                    job.last_file = Some(progress.file_path);
+                    job.set_progress(
+                        progress.current,
+                        progress.total,
+                        progress.file_path,
+                        ProgressDetail {
+                            phase: progress.phase,
+                            file_percent: progress.file_percent,
+                            queue_percent: Some(progress.queue_percent),
+                            speed: progress.speed,
+                            eta_seconds: progress.eta_seconds,
+                            elapsed_seconds: Some(progress.elapsed_seconds),
+                            input_bytes: progress.input_bytes,
+                            output_bytes: progress.output_bytes,
+                            estimated_output_bytes: progress.estimated_output_bytes,
+                        },
+                    );
                 }
             }
         },
@@ -325,9 +365,22 @@ pub(super) fn execute_native_rebuild_args(
             tracker.borrow_mut().set_total(progress.total);
             if let Ok(mut registry) = jobs.lock() {
                 if let Some(job) = registry.get_mut(id) {
-                    job.current = progress.current;
-                    job.total = progress.total;
-                    job.last_file = Some(progress.file_path);
+                    job.set_progress(
+                        progress.current,
+                        progress.total,
+                        progress.file_path,
+                        ProgressDetail {
+                            phase: progress.phase,
+                            file_percent: progress.file_percent,
+                            queue_percent: Some(progress.queue_percent),
+                            speed: progress.speed,
+                            eta_seconds: progress.eta_seconds,
+                            elapsed_seconds: Some(progress.elapsed_seconds),
+                            input_bytes: progress.input_bytes,
+                            output_bytes: progress.output_bytes,
+                            estimated_output_bytes: progress.estimated_output_bytes,
+                        },
+                    );
                 }
             }
         },

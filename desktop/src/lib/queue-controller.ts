@@ -53,7 +53,6 @@ export interface QueueHost {
   readonly settingsChanged: boolean;
   readonly workflowBusy: boolean;
   readonly repairId: string;
-  readonly hdrInstalling: boolean;
   setNotice(message: string, kind?: "info" | "success" | "error"): void;
   persistPreferences(patch: Partial<AppPreferences>): Promise<boolean>;
   openPage(page: Page): void;
@@ -165,7 +164,7 @@ export function createQueueController(deps: QueueControllerDeps) {
       h.setNotice("Open HEVC Rebuild Studio from the desktop app to inspect this computer and connect to the media tools.", "error");
       return;
     }
-    if (workspace.run.id || workspace.run.starting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (workspace.run.id || workspace.run.starting || h.repairId || h.scanning) return;
     const requestedRoot = path.trim();
     if (!requestedRoot) {
       h.setNotice("Choose a media file or folder first.", "error");

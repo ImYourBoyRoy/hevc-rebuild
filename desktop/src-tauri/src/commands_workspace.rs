@@ -54,11 +54,23 @@ pub(crate) async fn scan_folder(
     state: State<'_, RunState>,
     options: ScanFolderOptions,
 ) -> Result<Value, String> {
+    scan_folder_with(Events::from_tauri(app), state.inner(), options).await
+}
+
+/// Runtime-free body of `scan_folder`, shared with the headless server.
+pub(crate) async fn scan_folder_with(
+    app: Events,
+    state: &RunState,
+    options: ScanFolderOptions,
+) -> Result<Value, String> {
     let id = new_job_id();
     let stop_token = stop_control::StopToken::new()?;
     let stop_file = stop_token.path().to_path_buf();
-    claim_job(&state, new_active_job(id.clone(), Some(stop_file.clone())))?;
-    let run_state = (*state).clone();
+    claim_job(
+        state,
+        new_active_job_of(id.clone(), Some(stop_file.clone()), "folder_analysis"),
+    )?;
+    let run_state = state.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         media_scan::scan_media(
             media_scan::ScanOptions {
@@ -85,8 +97,20 @@ pub(crate) async fn scan_folder(
     result?
 }
 
+/// The job holding the single slot, if any. A window that did not start it (a job started over MCP in
+/// server mode, or from a second tab) uses this to follow it.
+#[tauri::command]
+pub(crate) fn active_job(state: State<'_, RunState>) -> Option<ActiveJobInfo> {
+    active_job_info(&state)
+}
+
 #[tauri::command]
 pub(crate) fn cancel_scan(state: State<'_, RunState>) -> Result<(), String> {
+    cancel_scan_with(&state)
+}
+
+/// Runtime-free body of `cancel_scan`, shared with the headless server.
+pub(crate) fn cancel_scan_with(state: &RunState) -> Result<(), String> {
     let path = {
         let current = state
             .0
@@ -103,6 +127,13 @@ pub(crate) fn cancel_scan(state: State<'_, RunState>) -> Result<(), String> {
 #[tauri::command]
 pub(crate) async fn reconcile_interrupted_runs(
     state: State<'_, RunState>,
+) -> Result<media_queue::InterruptedRecovery, String> {
+    reconcile_interrupted_runs_with(&state).await
+}
+
+/// Runtime-free body of `reconcile_interrupted_runs`, shared with the headless server.
+pub(crate) async fn reconcile_interrupted_runs_with(
+    state: &RunState,
 ) -> Result<media_queue::InterruptedRecovery, String> {
     let job_active = state.0.lock().map(|guard| guard.is_some()).unwrap_or(true);
     let queue_file = media_queue_file()?;

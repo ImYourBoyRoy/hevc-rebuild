@@ -74,14 +74,40 @@ Settings (Run page, **HDR & stream safety**; or `quality.ssim_gate` and
 - **Report only**: measure and record, but always install.
 - **Off**: no measurement.
 
-What the score means. On the sample library at the default settings (CRF 22,
-slow, 10-bit) good encodes scored 0.977 to 0.993 (clean CGI 0.993, live action
+What the score means. On the sample library at CRF 22 (the default is now the
+slightly higher-quality CRF 21; the scores below were measured at 22), slow,
+10-bit, good encodes scored 0.977 to 0.993 (clean CGI 0.993, live action
 0.988 to 0.990, hand-drawn film 0.979). A deliberately poor encode of clean CGI
 (CRF 40) still scored 0.965, so SSIM is a safety net against broken output (wrong
 filter, frames out of sync, bitrate collapse), not proof that nothing is
 visible: CRF choice remains the main quality control. Very grainy sources can
 score lower without looking worse; for those, lower the minimum or use report
 only. Raise the minimum (for example 0.975) for a stricter check.
+
+### Choosing quality, preset and tune
+
+The Run page explains each control in place (select the **i** beside it). In
+short:
+
+- **Quality (CRF)** is one dial for the whole video. Lower keeps more detail and
+  makes bigger files; higher discards fine detail. The default is **21**
+  (recommended). 18-20 is very high quality for archiving, 23-24 gives noticeably
+  smaller files that still look excellent on most films, 25-28 is a space saver
+  that softens dark or grainy scenes, and anything above 28 is for previews.
+- **Preset** trades time for size. **slow** is the recommended balance; slower
+  presets add a small saving for a lot of time.
+- **Content tune**: **Automatic** applies animation tuning only when the file is
+  reliably known to be animated and never turns on film grain. **Normal** has
+  no special tuning. **Film grain** keeps the grain texture and makes files much
+  larger: in a test on a dark 4K film clip (8 seconds, CRF 21, preset slow,
+  10-bit), Normal produced 10.5 MB, Film grain produced 33.4 MB (about 3.2x as
+  much) and Normal's SSIM was the higher of the two. On the same clip CRF 24
+  produced 5.8 MB (SSIM 0.968 against 0.969 at CRF 21), so raising CRF is the
+  far better lever for a bigger saving than changing the tune. If a dark or grainy film
+  barely shrinks, check that Film grain is not selected for it (the per-file
+  override in the file settings also offers it).
+- The app warns beside the settings when Film grain is chosen or the CRF is at
+  an extreme, so a surprising choice is explained before a long run.
 
 ### What is carried over
 
@@ -178,6 +204,61 @@ originals, so the batch planner never includes them, and discovery always skips
 the hidden folder. Other MCP and command-line runs also skip a legacy `old`
 folder unless `filename_exclude_patterns` is passed explicitly. A full rebuild started through `start_media_run` with a zero disk
 reserve is given the same default floor.
+
+## Headless server
+
+`hevc-rebuild-studio serve` runs the app without a desktop session and serves
+the same GUI to a browser. It is a fourth interface over the same Rust
+commands; the design and safety model are in
+[`maintainer/SERVE_MODE.md`](maintainer/SERVE_MODE.md).
+
+```bash
+hevc-rebuild-studio serve                       # 127.0.0.1:8437, new token each start
+hevc-rebuild-studio serve --read-only           # observe only
+hevc-rebuild-studio serve --token-file ~/.config/hevc-serve-token --web-root desktop/build
+```
+
+The server prints a login link (`http://127.0.0.1:8437/?token=...`). Opening it
+sets an `HttpOnly`, `SameSite=Strict` session cookie and removes the token from
+the address bar; scripts and agents send `Authorization: Bearer <token>`. There
+is no way to turn authentication off.
+
+- It listens on loopback only. `--host 0.0.0.0` is refused unless
+  `--allow-remote` and at least one `--allowed-host NAME` are also given. Put a
+  reverse proxy (Caddy, nginx, a tunnel) in front for TLS; the server marks the
+  cookie `Secure` when the proxy sends `X-Forwarded-Proto: https`.
+- `--read-only` refuses every command that changes state (preferences, queue,
+  renames, artwork, reports) and still serves environment checks, plans,
+  reports, logs and searches.
+- Metadata credentials are never sent over the API; configure them with the
+  desktop app or the environment variables, not through the browser.
+- File and folder pickers become a browser dialog that browses the *server's*
+  disk, so paths always mean paths on the machine that runs the encodes.
+- Runs, scans and one-pass setup started from the browser use the same engines
+  as the desktop and stream their events live. Setup cannot show a password
+  prompt: run the server as root, or allow the user passwordless sudo
+  (`sudo -n`). Without either, the setup plan reports a `headless-privilege`
+  blocker with the fix and nothing is installed.
+- An agent connects to `http://HOST:PORT/mcp` (streamable HTTP MCP) with the
+  same token. A job it starts shares the single job slot and appears live in
+  every open browser tab, which switches to the Run page by itself; a run
+  started in the browser makes the agent's start fail with "already active".
+  `--read-only` servers do not offer `/mcp`.
+
+  ```json
+  {
+    "mcpServers": {
+      "hevc-rebuild": {
+        "type": "http",
+        "url": "http://127.0.0.1:8437/mcp",
+        "headers": { "Authorization": "Bearer <token>" }
+      }
+    }
+  }
+  ```
+- A tab that opens while a run is active follows it, including its recent
+  output, progress and ETA; the saved queue refreshes as the run advances.
+- Status: stages 1-3. A library-free headless build is still open.
 
 ## Modes
 

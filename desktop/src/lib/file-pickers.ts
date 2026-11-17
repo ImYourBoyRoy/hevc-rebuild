@@ -16,7 +16,6 @@ export interface FilePickersHost {
   readonly runId: string;
   readonly runStarting: boolean;
   readonly repairId: string;
-  readonly hdrInstalling: boolean;
   readonly scanning: boolean;
   readonly workflowBusy: boolean;
   setNotice(message: string, kind?: "info" | "success" | "error"): void;
@@ -41,7 +40,7 @@ export function createFilePickers(deps: FilePickersDeps) {
   const setNotice = h.setNotice.bind(h);
 
   async function browseFolder() {
-    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.scanning) return;
     let defaultPath = h.root.trim() || h.activeRoot || h.appPreferences.root || undefined;
     if (defaultPath && /\.(mkv|mp4|m4v|mov|avi|ts|m2ts|mts|webm)$/i.test(defaultPath)) {
       const separator = Math.max(defaultPath.lastIndexOf("/"), defaultPath.lastIndexOf("\\"));
@@ -56,7 +55,7 @@ export function createFilePickers(deps: FilePickersDeps) {
   }
 
   async function browseFile() {
-    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.scanning) return;
     const picked = await openDialog({
       directory: false,
       multiple: true,
@@ -68,7 +67,7 @@ export function createFilePickers(deps: FilePickersDeps) {
   }
 
   async function chooseYoutubeOutput() {
-    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.hdrInstalling || h.scanning) return;
+    if (!h.desktopShell || h.runId || h.runStarting || h.repairId || h.scanning) return;
     const picked = await openDialog({ directory: true, multiple: false, title: "Choose the YouTube export folder" });
     if (typeof picked !== "string") return;
     h.youtubeOutputDir = picked;

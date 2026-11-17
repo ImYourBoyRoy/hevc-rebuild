@@ -55,6 +55,15 @@ pub(crate) fn start_run(
     state: State<'_, RunState>,
     request: RunRequest,
 ) -> Result<String, String> {
+    start_run_with(Events::from_tauri(app), state.inner(), request)
+}
+
+/// Runtime-free body of `start_run`, shared with the headless server: events go to `app`.
+pub(crate) fn start_run_with(
+    app: Events,
+    state: &RunState,
+    request: RunRequest,
+) -> Result<String, String> {
     if request.minimum_size_mib > 4096 {
         return Err("Minimum input size must be 4096 MiB or less.".into());
     }
@@ -298,12 +307,16 @@ pub(crate) fn start_run(
         None
     };
     claim_job(
-        state.inner(),
-        new_active_job(id.clone(), Some(stop_file.clone())),
+        state,
+        new_active_job_of(
+            id.clone(),
+            Some(stop_file.clone()),
+            kind_for_run_mode(&request.mode),
+        ),
     )?;
 
     let app_handle = app.clone();
-    let run_state = state.inner().clone();
+    let run_state = state.clone();
     let worker_id = id.clone();
     thread::spawn(move || {
         let _stop_token = stop_token;
@@ -358,6 +371,11 @@ pub(crate) fn start_run(
 
 #[tauri::command]
 pub(crate) fn request_stop(state: State<'_, RunState>, run_id: String) -> Result<(), String> {
+    request_stop_with(&state, run_id)
+}
+
+/// Runtime-free body of `request_stop`, shared with the headless server.
+pub(crate) fn request_stop_with(state: &RunState, run_id: String) -> Result<(), String> {
     let path = {
         let current = state
             .0
@@ -376,6 +394,11 @@ pub(crate) fn request_stop(state: State<'_, RunState>, run_id: String) -> Result
 
 #[tauri::command]
 pub(crate) fn request_abort(state: State<'_, RunState>, run_id: String) -> Result<(), String> {
+    request_abort_with(&state, run_id)
+}
+
+/// Runtime-free body of `request_abort`, shared with the headless server.
+pub(crate) fn request_abort_with(state: &RunState, run_id: String) -> Result<(), String> {
     let (stop_file, child_pid) = {
         let current = state
             .0

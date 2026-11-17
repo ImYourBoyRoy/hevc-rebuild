@@ -77,10 +77,22 @@ pub(crate) async fn purge_unused_app_artwork_cache(
     preview_id: String,
     confirmed: bool,
 ) -> Result<library_artwork::ArtworkCachePurgeResult, String> {
+    purge_unused_app_artwork_cache_with(state.inner(), preview_id, confirmed).await
+}
+
+/// Runtime-free body of `purge_unused_app_artwork_cache`, shared with the headless server.
+pub(crate) async fn purge_unused_app_artwork_cache_with(
+    state: &RunState,
+    preview_id: String,
+    confirmed: bool,
+) -> Result<library_artwork::ArtworkCachePurgeResult, String> {
     let id = new_job_id();
-    claim_job(state.inner(), new_active_job(id.clone(), None))?;
+    claim_job(
+        state,
+        new_active_job_of(id.clone(), None, "artwork_cache_purge"),
+    )?;
     let result = library_artwork::purge_unused_app_artwork_cache(&preview_id, confirmed).await;
-    release_job(state.inner(), &id);
+    release_job(state, &id);
     result
 }
 

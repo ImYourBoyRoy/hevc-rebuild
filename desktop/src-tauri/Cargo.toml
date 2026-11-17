@@ -28,9 +28,13 @@ tauri-plugin-updater = "^2.14.1"
 serde = { version = "^1.0.229", features = ["derive"] }
 serde_json = "^1.0.154"
 regex = "^1.13.1"
-rmcp = { version = "^3.8.0", features = ["schemars", "transport-io"] }
+rmcp = { version = "^3.8.0", features = ["schemars", "transport-io", "transport-streamable-http-server"] }
 reqwest = { version = "^0.13.5", default-features = false, features = ["blocking", "json", "query", "rustls", "system-proxy"] }
-tokio = { version = "^1.54.1", features = ["macros", "rt-multi-thread", "io-std", "io-util", "sync"] }
+tokio = { version = "^1.54.1", features = ["macros", "rt-multi-thread", "io-std", "io-util", "sync", "net", "time", "signal"] }
+# Headless server mode (`serve`): HTTP, Server-Sent Events, token generation.
+axum = { version = "^0.8.9", default-features = false, features = ["http1", "tokio", "json", "query"] }
+tokio-stream = { version = "^0.1.17", default-features = false, features = ["sync"] }
+getrandom = "^0.3.4"
 libc = "^0.2.191"
 unicode-normalization = "^0.1.26"
 toml = "^1.2.0"
@@ -46,6 +50,9 @@ interprocess = "^2.4.7"
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 sysinfo = { version = "^0.39.3", default-features = false, features = ["system"] }
 
+
+[dev-dependencies]
+tower = { version = "^0.5.3", features = ["util"] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

@@ -50,6 +50,7 @@ function harness({ desktop = true, invokeImpl = {}, hostOver = {}, storage = {},
     refreshTmdbCredentialStatus: act("refreshTmdbCredentialStatus"), refreshTvdbCredentialStatus: act("refreshTvdbCredentialStatus"), checkUbuntuPackageUpdates: act("checkUbuntuPackageUpdates"), checkSetupUpdates: act("checkSetupUpdates"),
     noteRunProgress: (payload) => calls.push(["noteRunProgress", payload]), finishRun: act("finishRun"), handleRepairLine: (p) => calls.push(["repairLine", p]),
     handleRepairLogWarning: (p) => calls.push(["repairWarning", p]), handleRepairFinished: act("repairFinished"), addQueueSources: act("addQueueSources"), openPage: (p) => calls.push(["openPage", p]),
+    adoptActiveRun: (job) => { calls.push(["adoptActiveRun", job]); return true; },
     scheduleWindowStateSave: () => calls.push(["scheduleWindowStateSave"]), handleAgentControlRequest: act("agentRequest"), handleUtilityContextMenu: () => {}, closeContextMenu: () => calls.push(["closeContextMenu"]),
   };
   const invoke = async (command, args) => {
@@ -203,13 +204,13 @@ test("startApp on desktop reports readiness, hooks agent control and registers e
   assert.deepEqual(h.docListeners.map((entry) => entry[0]), ["contextmenu", "click"]);
   await flush();
   assert.equal(h.invokes[0].command, "frontend_ready");
-  assert.deepEqual(Object.keys(h.listeners).sort(), ["agent-control-request", "repair-finished", "repair-line", "repair-log-warning", "run-finished", "run-line", "run-progress", "run-resources", "scan-progress"]);
+  assert.deepEqual(Object.keys(h.listeners).sort(), ["agent-control-request", "job-started", "repair-finished", "repair-line", "repair-log-warning", "run-finished", "run-line", "run-progress", "run-resources", "scan-progress"]);
   assert.equal(typeof h.windowHandlers.drag, "function");
   assert.equal(h.host.booting, false, "initialize ran after registration");
   h.env.window.__hevcAgentControl({ id: "r1", action: "state" });
   assert.deepEqual(h.calls.find((call) => call[0] === "agentRequest"), ["agentRequest", { id: "r1", action: "state" }]);
   cleanup();
-  assert.equal(h.unlistened.length, 11);
+  assert.equal(h.unlistened.length, 12);
   assert.deepEqual(h.docRemoved.map((entry) => entry[0]).sort(), ["click", "contextmenu"]);
   assert.equal(names(h).includes("closeContextMenu"), true);
 });
@@ -367,4 +368,30 @@ test("openExternalLink reports a failure to open the browser", async () => {
   failing.openExternalLink(event);
   await flush();
   assert.deepEqual(h.log.at(-1), ["notice", "error", "Could not open example.org in your browser: Error: no browser"]);
+});
+
+test("a job another client starts is adopted when the server announces it", async () => {
+  const h = harness({ invokeImpl: { load_app_preferences: stored() } });
+  const cleanup = h.boot.startApp();
+  await flush();
+  h.listeners["job-started"]({ payload: { runId: "job-7", kind: "integrity_check" } });
+  assert.deepEqual(h.calls.find((call) => call[0] === "adoptActiveRun"), ["adoptActiveRun", { id: "job-7", kind: "integrity_check" }]);
+  cleanup();
+});
+
+test("on boot the window asks which job is active and follows it; an idle server or an old backend changes nothing", async () => {
+  const active = harness({ invokeImpl: { load_app_preferences: stored(), active_job: { id: "job-3", kind: "media_run" } } });
+  active.boot.startApp();
+  await flush();
+  assert.deepEqual(active.calls.find((call) => call[0] === "adoptActiveRun"), ["adoptActiveRun", { id: "job-3", kind: "media_run" }]);
+  assert.equal(active.host.booting, false);
+  const idle = harness({ invokeImpl: { load_app_preferences: stored(), active_job: null } });
+  idle.boot.startApp();
+  await flush();
+  assert.equal(idle.calls.some((call) => call[0] === "adoptActiveRun"), false);
+  const old = harness({ invokeImpl: { load_app_preferences: stored(), active_job: () => { throw new Error("command active_job not found"); } } });
+  old.boot.startApp();
+  await flush();
+  assert.equal(old.calls.some((call) => call[0] === "adoptActiveRun"), false);
+  assert.equal(old.host.booting, false, "a missing command must not stop the app booting");
 });

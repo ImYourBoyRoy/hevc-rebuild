@@ -49,7 +49,6 @@ test("confirmSetup starts exactly one provisioning job and snapshots the checks"
   assert.deepEqual([h.host.repairId, h.host.packageJobKind, h.host.setupConfirmOpen], ["job-9", "provision", false]);
   assert.ok(h.host.repairAffectedToolKeys.includes("hdr10plus_tool") && h.host.repairAffectedToolKeys.includes("mediainfo"));
   assert.equal(h.host.repairToolChecksBefore.length, 4);
-  assert.equal(h.host.installHdrHelperAfterPackages, false, "the helper is part of the same job, not a follow-up");
 });
 
 test("confirmSetup without a reviewed plan does nothing and failures reset the job state", async () => {
@@ -93,4 +92,44 @@ test("a finished provisioning job refreshes the update notice", async () => {
   const h = finishHarness({ packageJobKind: "provision" }, { provision_plan: plan({ nothing_to_do: true, install_packages: [], upgrade_packages: [], helper: { action: "current", installed: "1.7.2", latest: "1.7.2" } }) });
   await h.controller.handleRepairFinished({ jobId: "job", success: true, error: null });
   assert.deepEqual(h.host.setupUpdates.install_packages, []);
+});
+
+const autoPlan = (over = {}) => plan({ manager: "apt", blockers: [], advisories: [], refresh_catalog: false, install_packages: [], upgrade_packages: [], helper: { action: "update", installed: "1.7.0", latest: "1.7.2" }, needs_password: false, nothing_to_do: false, ...over });
+
+test("automatic updates apply only the password-free part, only when idle, and only when switched on", async () => {
+  const on = harness({ hostOver: { autoUpdateTools: true }, invokeImpl: { provision_plan: autoPlan(), provision_toolchain: "job-auto" } });
+  await on.controller.checkSetupUpdates();
+  assert.deepEqual(on.invokes.map((call) => call.command), ["provision_plan", "provision_toolchain"]);
+  assert.deepEqual(on.invokes[1].args, { toolPaths: { ffmpeg: "/opt/ffmpeg", ffprobe: null }, userSpaceOnly: true });
+  assert.deepEqual([on.host.repairId, on.host.packageJobKind], ["job-auto", "provision"]);
+  assert.equal(on.host.setupConfirmOpen, false, "no dialog interrupts the user");
+
+  const off = harness({ hostOver: { autoUpdateTools: false }, invokeImpl: { provision_plan: autoPlan() } });
+  await off.controller.checkSetupUpdates();
+  assert.deepEqual(off.invokes.map((call) => call.command), ["provision_plan"]);
+});
+
+test("automatic updates never start during a run, a scan or another setup job", async () => {
+  for (const hostOver of [{ runId: "r" }, { runStarting: true }, { scanning: true }, { repairId: "j" }]) {
+    const h = harness({ hostOver: { autoUpdateTools: true, ...hostOver }, invokeImpl: { provision_plan: autoPlan(), provision_toolchain: "job" } });
+    await h.controller.checkSetupUpdates();
+    assert.equal(h.invokes.length, 0, JSON.stringify(hostOver));
+  }
+});
+
+test("automatic updates ignore work that needs a password, but Homebrew counts as password-free", async () => {
+  const aptOnly = harness({ hostOver: { autoUpdateTools: true }, invokeImpl: { provision_plan: autoPlan({ helper: { action: "current", installed: "1.7.2", latest: "1.7.2" }, upgrade_packages: ["ffmpeg"], needs_password: true }) } });
+  await aptOnly.controller.checkSetupUpdates();
+  assert.deepEqual(aptOnly.invokes.map((call) => call.command), ["provision_plan"]);
+  const brew = harness({ hostOver: { autoUpdateTools: true }, invokeImpl: { provision_plan: autoPlan({ manager: "brew", helper: { action: "current", installed: "1.7.2", latest: "1.7.2" }, upgrade_packages: ["ffmpeg"], refresh_catalog: true }), provision_toolchain: "job-brew" } });
+  await brew.controller.checkSetupUpdates();
+  assert.deepEqual(brew.invokes.map((call) => call.command), ["provision_plan", "provision_toolchain"]);
+});
+
+test("the same automatic plan is not retried in a loop after a failure", async () => {
+  const h = harness({ hostOver: { autoUpdateTools: true }, invokeImpl: { provision_plan: autoPlan(), provision_toolchain: "job-1" } });
+  await h.controller.checkSetupUpdates();
+  h.host.repairId = "";
+  await h.controller.checkSetupUpdates();
+  assert.equal(h.invokes.filter((call) => call.command === "provision_toolchain").length, 1);
 });

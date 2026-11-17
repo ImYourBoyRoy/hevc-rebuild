@@ -79,7 +79,17 @@ export interface ArtworkCachePurgeResult {
 }
 
 /** The one-pass setup plan from `provision_plan`: what runs and whether one password prompt is needed. */
+export interface ProvisionBlocker {
+  key: string;
+  label: string;
+  remedy: string;
+  command: string | null;
+}
+
 export interface ProvisionPlan {
+  manager: "apt" | "brew" | "winget" | "none";
+  blockers: ProvisionBlocker[];
+  advisories: string[];
   refresh_catalog: boolean;
   install_packages: string[];
   upgrade_packages: string[];

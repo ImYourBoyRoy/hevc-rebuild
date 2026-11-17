@@ -249,6 +249,25 @@ pub(crate) fn inspect_environment(
             },
         ]);
     }
+    #[cfg(target_os = "macos")]
+    {
+        // Homebrew cannot install anything until Apple's command line tools exist.
+        let present = run_capture("xcode-select", &["-p"], Duration::from_secs(5))
+            .is_ok_and(|output| output.success);
+        extra_checks.push(Check {
+            key: "xcode_clt",
+            label: "Xcode Command Line Tools",
+            path: None,
+            version: None,
+            available: present,
+            required: false,
+            detail: if present {
+                "Installed".into()
+            } else {
+                "Required by Homebrew: run xcode-select --install".into()
+            },
+        });
+    }
     checks.extend(extra_checks);
 
     let available = |key: &str| {
@@ -281,6 +300,7 @@ pub(crate) fn inspect_environment(
             .filter(|check| check.required)
             .all(|check| check.available);
     let missing_apt_packages = missing_apt_packages(&checks, custom_ffmpeg);
+    let missing_packages = missing_packages_for(std::env::consts::OS, &checks, custom_ffmpeg);
     let memory = memory_stats();
 
     Ok(json!({
@@ -306,6 +326,7 @@ pub(crate) fn inspect_environment(
         "metadata_ready": metadata_ready,
         "ready": ready,
         "missing_apt_packages": missing_apt_packages,
+        "missing_packages": missing_packages,
     }))
 }
 
@@ -781,9 +802,13 @@ fn preferred_version_line(text: &str) -> Option<String> {
         .map(str::to_string)
 }
 
+/// Resolve a tool on PATH or in the package-manager directories a desktop-launched app misses.
+pub(crate) fn find_tool_path(name: &str) -> Option<String> {
+    find_in_path(name)
+}
+
 fn find_in_path(name: &str) -> Option<String> {
-    let path = std::env::var_os("PATH")?;
-    for directory in std::env::split_paths(&path) {
+    for directory in crate::executable_lookup::search_directories() {
         let candidate = directory.join(executable_name(name));
         if let Some(executable) = canonical_executable(&candidate) {
             return Some(executable);
@@ -1318,6 +1343,38 @@ fn missing_apt_packages(checks: &[Check], custom_ffmpeg: bool) -> Vec<String> {
     output
 }
 
+/// Logical package names (`ffmpeg`, `mediainfo`, `mkvtoolnix`) to install with the host's manager.
+/// Linux keeps the apt list (with its fontconfig and certificates); macOS and Windows have no
+/// equivalent extras, and the names map to Homebrew formulae and winget ids in `provision.rs`.
+fn missing_packages_for(os: &str, checks: &[Check], custom_ffmpeg: bool) -> Vec<String> {
+    if os == "linux" {
+        return missing_apt_packages(checks, custom_ffmpeg);
+    }
+    if os != "macos" && os != "windows" {
+        return Vec::new();
+    }
+    let missing = checks
+        .iter()
+        .filter(|check| check.required && !check.available)
+        .map(|check| check.key)
+        .collect::<BTreeSet<_>>();
+    let packages: &[(&str, &[&str])] = &[
+        ("ffmpeg", &["ffmpeg", "ffprobe"]),
+        ("mediainfo", &["mediainfo"]),
+        ("mkvtoolnix", &["mkvpropedit", "mkvmerge", "mkvextract"]),
+    ];
+    let mut output = Vec::new();
+    for (package, commands) in packages {
+        if *package == "ffmpeg" && custom_ffmpeg && !missing.contains("ffprobe") {
+            continue;
+        }
+        if commands.iter().any(|command| missing.contains(command)) {
+            output.push((*package).to_string());
+        }
+    }
+    output
+}
+
 fn package_installed(package: &str) -> bool {
     run_capture(
         "dpkg-query",
@@ -1359,6 +1416,35 @@ mod tests {
     fn no_distro_packages_are_suggested_off_linux() {
         let checks = [tool_check("ffmpeg", true), tool_check("ffprobe", false)];
         assert!(missing_apt_packages(&checks, true).is_empty());
+    }
+
+    #[test]
+    fn brew_and_winget_hosts_get_logical_package_names_for_missing_tools() {
+        let checks = [
+            tool_check("ffmpeg", false),
+            tool_check("ffprobe", false),
+            tool_check("mediainfo", false),
+            tool_check("mkvmerge", true),
+            tool_check("mkvpropedit", false),
+        ];
+        for os in ["macos", "windows"] {
+            assert_eq!(
+                missing_packages_for(os, &checks, false),
+                vec!["ffmpeg", "mediainfo", "mkvtoolnix"],
+                "{os}: mkvtoolnix is missing because one of its tools is"
+            );
+        }
+        let ready = [
+            tool_check("ffmpeg", true),
+            tool_check("ffprobe", true),
+            tool_check("mediainfo", true),
+        ];
+        assert!(missing_packages_for("macos", &ready, false).is_empty());
+        let only_ffprobe = [tool_check("ffmpeg", true), tool_check("ffprobe", false)];
+        assert!(
+            missing_packages_for("windows", &only_ffprobe, true).contains(&"ffmpeg".to_string())
+        );
+        assert!(missing_packages_for("freebsd", &checks, false).is_empty());
     }
 
     #[test]

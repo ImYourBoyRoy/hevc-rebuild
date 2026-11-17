@@ -42,6 +42,7 @@ jobs:
       - name: Run frontend contract tests
         run: |
           pnpm test:metadata-matching
+          pnpm test:web-shim
           pnpm test:modal
           pnpm test:home-help
           pnpm test:library

@@ -187,19 +187,7 @@ pub(super) struct StopParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct RepairParams {
-    pub(super) confirmed_package_names: Vec<String>,
-}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub(super) struct AptUpdateParams {}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub(super) struct AptRefreshParams {
-    pub(super) confirm_refresh: bool,
-}
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]

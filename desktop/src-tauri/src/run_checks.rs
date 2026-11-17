@@ -3,8 +3,8 @@
 use super::*;
 
 pub(crate) fn start_integrity_run(
-    app: AppHandle,
-    state: State<'_, RunState>,
+    app: Events,
+    state: &RunState,
     request: RunRequest,
     root: PathBuf,
 ) -> Result<String, String> {
@@ -32,11 +32,11 @@ pub(crate) fn start_integrity_run(
     let stop_token = stop_control::StopToken::new()?;
     let stop_file = stop_token.path().to_path_buf();
     claim_job(
-        state.inner(),
-        new_active_job(id.clone(), Some(stop_file.clone())),
+        state,
+        new_active_job_of(id.clone(), Some(stop_file.clone()), "integrity_check"),
     )?;
     let app_handle = app.clone();
-    let run_state = state.inner().clone();
+    let run_state = state.clone();
     let worker_id = id.clone();
     thread::spawn(move || {
         let _stop_token = stop_token;
@@ -170,8 +170,8 @@ pub(crate) fn start_integrity_run(
 }
 
 pub(crate) fn start_check_run(
-    app: AppHandle,
-    state: State<'_, RunState>,
+    app: Events,
+    state: &RunState,
     request: RunRequest,
     root: PathBuf,
 ) -> Result<String, String> {
@@ -205,11 +205,11 @@ pub(crate) fn start_check_run(
     let stop_token = stop_control::StopToken::new()?;
     let stop_file = stop_token.path().to_path_buf();
     claim_job(
-        state.inner(),
-        new_active_job(id.clone(), Some(stop_file.clone())),
+        state,
+        new_active_job_of(id.clone(), Some(stop_file.clone()), "media_run"),
     )?;
     let app_handle = app.clone();
-    let run_state = state.inner().clone();
+    let run_state = state.clone();
     let worker_id = id.clone();
     thread::spawn(move || {
         let _stop_token = stop_token;
