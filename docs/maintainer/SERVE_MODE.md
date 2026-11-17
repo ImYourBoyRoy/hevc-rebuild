@@ -200,7 +200,7 @@ line is covered by the command-builder tests.
 ### 7. Stage 4 details
 
 **Headless build.** `cargo build --no-default-features --bin hevc-rebuild-studio`
-links only libc, libm and libgcc (5 shared libraries, against 124 for the window
+links only libc, libm and libgcc (release-profile binary: 15.7 MB) (5 shared libraries, against 124 for the window
 build, none of them GUI libraries; the dependency graph has no tauri, wry, tao,
 webkit or gtk). Everything non-GUI is shared: `#[tauri::command]` is applied only with
 the feature (`cfg_attr`), the wrappers that take `State`/`AppHandle` exist only with
