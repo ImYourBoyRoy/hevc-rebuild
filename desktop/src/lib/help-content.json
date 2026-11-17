@@ -1,0 +1,291 @@
+{
+  "crf": {
+    "default": 21,
+    "explanation": "CRF is one quality dial for the whole video. A lower number keeps more detail and makes a bigger file; a higher number discards fine detail to make a smaller file. Typical choices are 18 to 26.",
+    "stepsToHalveSize": 6,
+    "bands": [
+      {
+        "max": 17,
+        "label": "Near-lossless",
+        "summary": "Keeps almost everything, including noise. Files can be larger than the original. Rarely worth it.",
+        "recommended": false
+      },
+      {
+        "max": 20,
+        "label": "Very high quality",
+        "summary": "Fine detail is kept. Large files, a good choice for archiving.",
+        "recommended": false
+      },
+      {
+        "max": 22,
+        "label": "Recommended",
+        "summary": "Looks the same as the original to most people, with a good saving. The default is 21.",
+        "recommended": true
+      },
+      {
+        "max": 24,
+        "label": "Smaller files",
+        "summary": "Noticeably smaller. Still excellent for most films; dark scenes and grain may look slightly softer.",
+        "recommended": false
+      },
+      {
+        "max": 28,
+        "label": "Space saver",
+        "summary": "Much smaller. Expect softer detail and banding in dark or grainy scenes.",
+        "recommended": false
+      },
+      {
+        "max": 51,
+        "label": "Low quality",
+        "summary": "Very small files with visible loss everywhere. Not recommended for anything you want to keep.",
+        "recommended": false
+      }
+    ]
+  },
+  "tunes": {
+    "auto": {
+      "title": "Automatic",
+      "summary": "Applies animation tuning only when the file is reliably known to be animated.",
+      "detail": "Automatic looks for trustworthy animation information in the file. Everything else gets no special tuning. Automatic never turns on film grain; that is always your explicit choice."
+    },
+    "animation": {
+      "title": "Animation",
+      "summary": "For cartoons and anime: flat colors and sharp lines.",
+      "detail": "Tunes the encoder for flat areas of color and crisp edges, which are common in cartoons, anime and CGI. Do not use it for live-action films."
+    },
+    "grain": {
+      "title": "Film grain",
+      "summary": "Keeps every speck of grain. Files stay much larger.",
+      "detail": "Film grain is the fine, random speckle you see in footage shot on film, especially in dark scenes. Because it is random, it is very expensive to store: this setting spends extra data keeping it, so files can come out far larger than without it. Use it only when you want to preserve the grain look exactly. It is the wrong choice if your goal is to shrink a dark or grainy film."
+    },
+    "none": {
+      "title": "Normal",
+      "summary": "General-purpose settings for live-action video.",
+      "detail": "No special tuning. The encoder treats grain as detail it may soften slightly, which is what gives the best size savings on most films."
+    }
+  },
+  "presets": {
+    "ultrafast": "Fastest, but files come out much larger. Only for quick tests.",
+    "superfast": "Very fast, but files are noticeably larger.",
+    "veryfast": "Fast with larger files than slower presets.",
+    "faster": "Faster than normal; files are somewhat larger.",
+    "fast": "A little faster than normal; files are slightly larger.",
+    "medium": "Balanced. Quicker than slow, with slightly larger files.",
+    "slow": "Recommended. Takes more time to find a smaller file at the same quality.",
+    "slower": "Slower again for a small extra saving.",
+    "veryslow": "Much slower for a very small extra saving. Rarely worth the wait.",
+    "placebo": "Extremely slow with almost no benefit. Avoid."
+  },
+  "presetFallback": "Compression effort: slower presets take longer and make smaller files at the same quality.",
+  "shortTest": "Encodes a 5-second sample of each file with the same quality settings as the full rebuild, so its size and look preview the real result. Your original is never touched.",
+  "settings": {
+    "libx265": {
+      "title": "What is libx265?",
+      "text": "It is the open-source encoder that turns your video into HEVC (also called H.265), a format that keeps the same picture in a much smaller file. It runs on your computer's processor, so long films take a while."
+    },
+    "detectAnimation": {
+      "title": "Detect animation",
+      "text": "When the content tune is Automatic, the app looks for trustworthy signs that a file is a cartoon or anime and then applies animation tuning. Turn it off if you want Normal tuning for everything."
+    },
+    "hdr10plus": {
+      "title": "HDR10+ dynamic metadata",
+      "text": "HDR10+ adds brightness instructions for every scene so a compatible TV can show the picture as the creators intended. When this is on, the app keeps it automatically and checks the result afterwards. Off deliberately leaves it out; ordinary HDR still works."
+    },
+    "dolbyVision": {
+      "title": "Dolby Vision policy",
+      "text": "Dolby Vision is another premium HDR format that is easy to damage. Safe preservation keeps Dolby Vision that can be verified; anything unsupported is skipped, not damaged. Skip (all files, or just this one in the per-file editor) leaves Dolby Vision files alone. Verified HDR10 fallback converts to ordinary HDR10, dropping the Dolby Vision layer, only when the file has a safe HDR10 version underneath."
+    },
+    "secondaryVideo": {
+      "title": "Secondary video tracks",
+      "text": "A few files carry more than one video track, such as an alternate angle. Encode all selected tracks converts each one, which takes longer. Copy additional tracks keeps the extra ones exactly as they are. Keep primary track only leaves the extras out."
+    },
+    "dataStreams": {
+      "title": "Data streams",
+      "text": "Some files carry extra tracks that are neither picture nor sound, for example timecode. Preserve keeps them in the new file. Drop leaves them out, which is fine for normal viewing."
+    },
+    "copyVerification": {
+      "title": "Verify copied audio and subtitles",
+      "text": "Audio and subtitles are never re-encoded; they are copied across untouched. This option then reads the copies back and compares a fingerprint (SHA-256) of each with the original to prove they are identical. It adds a little time and is worth leaving on."
+    },
+    "qualityCheck": {
+      "title": "Picture quality check",
+      "text": "After encoding, the app compares sampled scenes of the new file with the original using SSIM, a score from 0 to 1 where 1 means identical. Enforce keeps your original and rejects the new file if the score falls below the minimum. Report only records the scores. Off skips the check."
+    },
+    "minSsim": {
+      "title": "Minimum SSIM",
+      "text": "The lowest SSIM score the new file may get compared with the original (1 means identical). 0.95 catches broken output without being fussy; a higher number is stricter. Very grainy films score lower even when they look fine, so do not set it too high for them."
+    },
+    "youtubeBitrateProfile": {
+      "title": "Bitrate profile",
+      "text": "Bitrate is how much data each second of video gets. Balanced sizes the upload copy from your original's bitrate, using the size target below. YouTube bitrate guidance uses the rates YouTube itself recommends, which can make much larger files."
+    },
+    "youtubeSizeTarget": {
+      "title": "Balanced size target",
+      "text": "How much video data the upload copy gets compared with your original: 2× means about twice the original's bitrate. It is a target, not a strict size limit, and YouTube's recommended rate is the ceiling."
+    },
+    "youtubeShrink": {
+      "title": "Shrink oversized files",
+      "text": "Optimize keeps healthy files as they are and only re-encodes ones that are far bigger than YouTube needs. Auto re-encodes only when a file is far above YouTube's guidance. Off always copies and never re-encodes. Aggressive re-encodes anything above the guidance."
+    },
+    "youtubeQualityCheck": {
+      "title": "Quality check after re-encode",
+      "text": "A re-encoded file is accepted only if sampled scenes score at least the minimum SSIM against the original (a score from 0 to 1; 1 is identical). Strict needs 0.990, Standard 0.985, Relaxed 0.975. Off trusts the encoder without checking."
+    },
+    "youtubeSdrCodec": {
+      "title": "SDR codec",
+      "text": "The video format for normal (non-HDR) uploads. H.264 works everywhere and is the safe default. HEVC makes smaller files, but YouTube may take longer to process them. HDR videos always use HEVC."
+    }
+  },
+  "guide": {
+    "workflow": {
+      "title": "A typical agent workflow",
+      "summary": "Inspect first, start small, confirm before anything is written.",
+      "items": [
+        {
+          "title": "1. Check the computer",
+          "text": "Call inspect_environment to see which media tools are installed and ready. If something is missing, call plan_system_setup and show the plan to the user before provision_system."
+        },
+        {
+          "title": "2. Choose and analyze",
+          "text": "Call inspect_work_directory for the folder, then start_folder_analysis and poll get_job. Analysis only reads files."
+        },
+        {
+          "title": "3. Select and preview",
+          "text": "set_media_selection saves which files to run. preview_media_outputs shows where outputs would be written before anything starts."
+        },
+        {
+          "title": "4. Start small",
+          "text": "Run mode check first (read-only), then mode test (5-second samples, needs confirm_test_output). A full rebuild needs confirm_full_rebuild."
+        },
+        {
+          "title": "5. Follow the job",
+          "text": "get_job and list_jobs show progress, per-file results and the log. request_safe_stop finishes the current file and stops."
+        },
+        {
+          "title": "6. Review",
+          "text": "list_reports and read_diagnostic_log show what happened. For a whole library use plan_library_batch, show the plan to the user, then start_planned_batch."
+        }
+      ]
+    },
+    "modes": {
+      "title": "Run modes",
+      "summary": "What each mode does and what it needs.",
+      "items": [
+        {
+          "title": "check",
+          "text": "Read-only analysis of streams, HDR and the memory plan. Writes nothing. This is the default."
+        },
+        {
+          "title": "integrity",
+          "text": "Looks for damaged containers or bitstreams. Quick checks structure and a short decode; full decodes every stream. Writes nothing."
+        },
+        {
+          "title": "metadata",
+          "text": "Copies each file to a new MKV with reviewed titles and artwork. No video is encoded and the source stays in place."
+        },
+        {
+          "title": "test",
+          "text": "Encodes a 5-second sample of each file at the full rebuild's quality settings, to preview size and confirm tracks, HDR and timing survive. Needs confirm_test_output."
+        },
+        {
+          "title": "full",
+          "text": "Rebuilds each file as validated HEVC. The original moves to a hidden .hevc-rebuild-originals folder beside it. Needs confirm_full_rebuild."
+        },
+        {
+          "title": "youtube",
+          "text": "Creates separate upload copies and never changes the originals. Needs confirm_youtube_upload."
+        }
+      ]
+    },
+    "safety": {
+      "title": "What keeps your files safe",
+      "summary": "These rules hold in the app, the command line and the MCP server alike.",
+      "items": [
+        {
+          "title": "Originals are protected",
+          "text": "A full rebuild keeps the original in a hidden .hevc-rebuild-originals folder until the new file has passed validation. Existing outputs are never overwritten."
+        },
+        {
+          "title": "Results are checked",
+          "text": "Every output is validated, and the picture quality check compares sampled scenes with the original. A failed late-stage output stays marked as an error file and the original is untouched."
+        },
+        {
+          "title": "Audio and subtitles are copied",
+          "text": "They are never re-encoded, and the copies can be verified against the originals with a SHA-256 fingerprint."
+        },
+        {
+          "title": "HDR is handled carefully",
+          "text": "HDR10 is kept and HDR10+ is preserved and verified. Dolby Vision follows your policy; anything unsupported is skipped rather than damaged."
+        },
+        {
+          "title": "Stopping",
+          "text": "Stop after this file finishes the current file first. Stop now ends the encode immediately; the source stays in place."
+        },
+        {
+          "title": "Secrets and passwords",
+          "text": "Metadata credentials and administrator passwords are never sent through the server API or MCP. The app never sees a sudo password."
+        }
+      ]
+    },
+    "headless": {
+      "title": "Run it headless or in a browser",
+      "summary": "hevc-rebuild-studio serve runs the app without a desktop and shows the same screens in a web browser, on the same jobs.",
+      "items": [
+        {
+          "title": "Start it",
+          "text": "Run hevc-rebuild-studio serve. It listens on this computer only (127.0.0.1:8437) and prints a login link. Open the link once: it signs this browser in and hides the token from the address bar."
+        },
+        {
+          "title": "Sign in",
+          "text": "Every request needs the token. A browser uses the login link; scripts and agents send Authorization: Bearer <token>. Use --token-file to keep the same token between starts."
+        },
+        {
+          "title": "Look but do not touch",
+          "text": "Add --read-only to refuse everything that changes state: preferences, queue, renames, artwork and runs. Reports, logs and plans stay available. The MCP endpoint is not offered in this mode."
+        },
+        {
+          "title": "Limit it to some folders",
+          "text": "Add --root FOLDER (repeatable) to keep the folder chooser and every media and output path inside those folders. It is a guard rail, not a sandbox; use a dedicated user or container for strong isolation."
+        },
+        {
+          "title": "Connect an agent",
+          "text": "Point an MCP client at http://HOST:8437/mcp with the same bearer token. A job the agent starts appears live in every open browser tab, and a run started in the browser makes the agent's start fail with \"already active\"."
+        },
+        {
+          "title": "Use it from another computer",
+          "text": "Listening beyond this computer needs --host, --allow-remote and --allowed-host NAME. Put a reverse proxy (Caddy, nginx, a tunnel) in front for HTTPS; the server does not do TLS itself."
+        },
+        {
+          "title": "Set up tools without a desktop",
+          "text": "There is no password prompt. Run the server as root, or give this user passwordless sudo. Otherwise the setup plan says exactly what to change and installs nothing."
+        },
+        {
+          "title": "Build without GUI libraries",
+          "text": "cargo build --no-default-features builds the same program with no window and no webkit or GTK; it serves the GUI from a web folder next to the program."
+        }
+      ]
+    },
+    "mcp": {
+      "title": "Using the MCP server",
+      "summary": "Two transports, one tool set, one shared view of the jobs.",
+      "items": [
+        {
+          "title": "Two ways to connect",
+          "text": "Local: start hevc-rebuild-studio --mcp (stdio). Remote or shared: use /mcp on a running serve with a bearer token."
+        },
+        {
+          "title": "One job at a time",
+          "text": "Only one run, scan or setup job is active at once. Starting another reports that one is already active, whether it was started by an agent or in the browser."
+        },
+        {
+          "title": "Ask the app, not the web",
+          "text": "explain_settings returns the same plain-language explanations the app shows (CRF, presets, tune, HDR and the rest). app_guide returns the workflow, modes, safety rules and headless notes."
+        },
+        {
+          "title": "Confirmations are required",
+          "text": "Short tests, full rebuilds, renames, artwork saves and package setup each need their own confirmation field. Show the plan or preview to the user first."
+        }
+      ]
+    }
+  }
+}

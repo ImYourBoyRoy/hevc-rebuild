@@ -12,10 +12,10 @@ Static wiring is evidence of the path in source. It is not proof that a native p
 | Measure | Count |
 |---|---:|
 | Svelte files scanned | 37 |
-| Template controls | 474 |
-| Buttons | 271 |
-| Clickable controls | 328 |
-| Click handlers | 270 |
+| Template controls | 476 |
+| Buttons | 273 |
+| Clickable controls | 330 |
+| Click handlers | 272 |
 | Links | 23 |
 | Form controls | 147 |
 | Disclosure controls | 33 |
@@ -217,17 +217,19 @@ Every source control is listed below. `Trace` is the static handler call chain; 
 
 | Source | Kind | Label | Event / trace | Destination | Guards |
 |---|---|---|---|---|---|
-| [L151](../desktop/src/lib/HelpCenter.svelte#L151) | button | Copy Linux install command | click: `() => copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Linux command")`<br>`copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Linux command")` | — | always |
-| [L154](../desktop/src/lib/HelpCenter.svelte#L154) | button | Copy Windows install command | click: `() => copyText("winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\nwin…`<br>`copyText("winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\nwinget install --e…, "Windows command")` | — | always |
-| [L155](../desktop/src/lib/HelpCenter.svelte#L155) | button | Copy macOS install command | click: `() => copyText("brew install ffmpeg mediainfo mkvtoolnix fontconfig", "macOS command")`<br>`copyText("brew install ffmpeg mediainfo mkvtoolnix fontconfig", "macOS command")` | — | always |
-| [L158](../desktop/src/lib/HelpCenter.svelte#L158) | link | FFmpeg downloads | href `https://www.ffmpeg.org/download.html` | external:https://www.ffmpeg.org/download.html | always |
-| [L159](../desktop/src/lib/HelpCenter.svelte#L159) | link | MediaInfo downloads | href `https://mediaarea.net/en/MediaInfo/Download` | external:https://mediaarea.net/en/MediaInfo/Download | always |
-| [L160](../desktop/src/lib/HelpCenter.svelte#L160) | link | MediaArea package repository | href `https://mediaarea.net/en/Repos` | external:https://mediaarea.net/en/Repos | always |
-| [L161](../desktop/src/lib/HelpCenter.svelte#L161) | link | MKVToolNix downloads | href `https://mkvtoolnix.download/downloads.html` | external:https://mkvtoolnix.download/downloads.html | always |
-| [L162](../desktop/src/lib/HelpCenter.svelte#L162) | link | HDR10+ helper | href `https://github.com/quietvoid/hdr10plus_tool/releases/latest` | external:https://github.com/quietvoid/hdr10plus_tool/releases/latest | always |
-| [L177](../desktop/src/lib/HelpCenter.svelte#L177) | button | Copy CLI examples | click: `() => copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json integrity --file \"/path/to/Film.mkv\" --level quick\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-stud…`<br>`copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json integrity --file \"/path/to/Film.mkv\" --level quick\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-studio cli \"/path/…, "CLI examples")` | — | always |
-| [L192](../desktop/src/lib/HelpCenter.svelte#L192) | button | Copy MCP configuration | click: `() => copyText(mcpConfig, "MCP configuration")`<br>`copyText(mcpConfig, "MCP configuration")` | — | always |
-| [L194](../desktop/src/lib/HelpCenter.svelte#L194) | link | MCP server and stdio overview | href `https://modelcontextprotocol.io/docs/develop/build-server` | external:https://modelcontextprotocol.io/docs/develop/build-server | always |
+| [L167](../desktop/src/lib/HelpCenter.svelte#L167) | button | Copy Linux install command | click: `() => copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Linux command")`<br>`copyText("sudo apt update\nsudo apt install ffmpeg mediainfo mkvtoolnix", "Linux command")` | — | always |
+| [L170](../desktop/src/lib/HelpCenter.svelte#L170) | button | Copy Windows install command | click: `() => copyText("winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\nwin…`<br>`copyText("winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\nwinget install --e…, "Windows command")` | — | always |
+| [L171](../desktop/src/lib/HelpCenter.svelte#L171) | button | Copy macOS install command | click: `() => copyText("brew install ffmpeg mediainfo mkvtoolnix fontconfig", "macOS command")`<br>`copyText("brew install ffmpeg mediainfo mkvtoolnix fontconfig", "macOS command")` | — | always |
+| [L174](../desktop/src/lib/HelpCenter.svelte#L174) | link | FFmpeg downloads | href `https://www.ffmpeg.org/download.html` | external:https://www.ffmpeg.org/download.html | always |
+| [L175](../desktop/src/lib/HelpCenter.svelte#L175) | link | MediaInfo downloads | href `https://mediaarea.net/en/MediaInfo/Download` | external:https://mediaarea.net/en/MediaInfo/Download | always |
+| [L176](../desktop/src/lib/HelpCenter.svelte#L176) | link | MediaArea package repository | href `https://mediaarea.net/en/Repos` | external:https://mediaarea.net/en/Repos | always |
+| [L177](../desktop/src/lib/HelpCenter.svelte#L177) | link | MKVToolNix downloads | href `https://mkvtoolnix.download/downloads.html` | external:https://mkvtoolnix.download/downloads.html | always |
+| [L178](../desktop/src/lib/HelpCenter.svelte#L178) | link | HDR10+ helper | href `https://github.com/quietvoid/hdr10plus_tool/releases/latest` | external:https://github.com/quietvoid/hdr10plus_tool/releases/latest | always |
+| [L193](../desktop/src/lib/HelpCenter.svelte#L193) | button | Copy CLI examples | click: `() => copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json integrity --file \"/path/to/Film.mkv\" --level quick\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-stud…`<br>`copyText("hevc-rebuild-studio json environment\nhevc-rebuild-studio json integrity --file \"/path/to/Film.mkv\" --level quick\nhevc-rebuild-studio json scan --root \"/path/to/Media\" --recursive\nhevc-rebuild-studio cli \"/path/…, "CLI examples")` | — | always |
+| [L208](../desktop/src/lib/HelpCenter.svelte#L208) | button | Copy MCP configuration | click: `() => copyText(mcpConfig, "MCP configuration")`<br>`copyText(mcpConfig, "MCP configuration")` | — | always |
+| [L210](../desktop/src/lib/HelpCenter.svelte#L210) | link | MCP server and stdio overview | href `https://modelcontextprotocol.io/docs/develop/build-server` | external:https://modelcontextprotocol.io/docs/develop/build-server | always |
+| [L223](../desktop/src/lib/HelpCenter.svelte#L223) | button | Copy serve examples | click: `() => copyText("hevc-rebuild-studio serve\nhevc-rebuild-studio serve --read-only\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token", "Serve examples")`<br>`copyText("hevc-rebuild-studio serve\nhevc-rebuild-studio serve --read-only\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token", "Serve examples")` | — | always |
+| [L225](../desktop/src/lib/HelpCenter.svelte#L225) | button | Copy HTTP MCP configuration | click: `() => copyText(mcpHttpConfig, "HTTP MCP configuration")`<br>`copyText(mcpHttpConfig, "HTTP MCP configuration")` | — | always |
 
 ### `desktop/src/lib/HomeDashboard.svelte`
 

@@ -169,6 +169,15 @@ metadata writes,
 renames, poster saves, package repair, and stop requests have separate
 confirmation fields and should be shown to the user before execution.
 
+### Letting the model look things up
+
+The server describes itself, so an agent does not need this document. `app_guide` returns the typical workflow,
+what each run mode does and needs, the safety rules and the headless notes (`section` = `workflow`, `modes`,
+`safety`, `headless`, `mcp`). `explain_settings` returns the same plain-language explanations the app shows next to
+its settings: `topic=crf` with `crf=27` gives that number's quality band and a rough size, `topic=hdr10plus` explains
+one setting, and no topic returns everything. Both read `desktop/src/lib/help-content.json`, the file the GUI's Help and
+settings tips are rendered from, so they cannot disagree with it.
+
 ### Rebuilding a whole library unattended
 
 For "here is my media folder, rebuild everything and tell me how it went", an

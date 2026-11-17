@@ -326,3 +326,132 @@ async fn mcp_is_not_offered_with_a_root_unless_the_operator_asks_for_it() {
     );
     std::fs::remove_dir_all(base).ok();
 }
+
+#[tokio::test]
+async fn a_model_can_ask_the_app_what_its_settings_mean_and_how_to_use_it() {
+    let ctx = test_context(false);
+    let app = app(&ctx);
+    let session = initialize(&app).await;
+    let listed = app
+        .clone()
+        .oneshot(post(
+            Some(&session),
+            json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+        ))
+        .await
+        .unwrap();
+    let tools = rpc(&text(listed).await);
+    let names: Vec<&str> = tools["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["name"].as_str())
+        .collect();
+    assert!(
+        names.contains(&"explain_settings") && names.contains(&"app_guide"),
+        "{names:?}"
+    );
+
+    let crf = call_tool(
+        &app,
+        &session,
+        3,
+        "explain_settings",
+        json!({"topic": "crf", "crf": 27}),
+    )
+    .await;
+    let content = &crf["result"]["structuredContent"];
+    assert_eq!(
+        content["for_value"]["band"]["label"], "Space saver",
+        "{crf}"
+    );
+    assert_eq!(content["for_value"]["size_vs_default"], 0.5);
+
+    let setting = call_tool(
+        &app,
+        &session,
+        4,
+        "explain_settings",
+        json!({"topic": "hdr10plus"}),
+    )
+    .await;
+    assert!(
+        setting["result"]["structuredContent"]["text"]
+            .as_str()
+            .unwrap()
+            .contains("brightness"),
+        "{setting}"
+    );
+
+    let wrong = call_tool(
+        &app,
+        &session,
+        5,
+        "explain_settings",
+        json!({"topic": "sharpness"}),
+    )
+    .await;
+    assert!(
+        wrong["error"].is_object() || wrong["result"]["isError"] == true,
+        "an unknown topic is an error: {wrong}"
+    );
+    assert!(
+        wrong.to_string().contains("Topics:"),
+        "the error lists the valid topics: {wrong}"
+    );
+
+    let index = call_tool(&app, &session, 6, "app_guide", json!({})).await;
+    assert_eq!(
+        index["result"]["structuredContent"]["sections"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5,
+        "{index}"
+    );
+    let headless = call_tool(
+        &app,
+        &session,
+        7,
+        "app_guide",
+        json!({"section": "headless"}),
+    )
+    .await;
+    assert!(
+        headless["result"]["structuredContent"]["items"]
+            .to_string()
+            .contains("/mcp"),
+        "{headless}"
+    );
+}
+
+#[tokio::test]
+async fn the_server_instructions_tell_a_model_how_this_server_works() {
+    let ctx = test_context(false);
+    let response = app(&ctx)
+        .oneshot(post(None, json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}}})))
+        .await
+        .unwrap();
+    let reply = rpc(&text(response).await);
+    let instructions = reply["result"]["instructions"]
+        .as_str()
+        .expect("instructions");
+    for needle in [
+        "explain_settings",
+        "app_guide",
+        "already active",
+        "browser",
+        "read-only",
+        "confirm",
+    ] {
+        assert!(
+            instructions.contains(needle),
+            "instructions should mention {needle}: {instructions}"
+        );
+    }
+    assert!(
+        instructions.len() < 1800,
+        "kept short enough to read every time ({})",
+        instructions.len()
+    );
+}

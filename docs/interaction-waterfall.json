@@ -6257,11 +6257,11 @@
           "all": true,
           "label": "Copy command/configuration actions",
           "control": {
-            "id": "desktop/src/lib/HelpCenter.svelte:button:151:52",
+            "id": "desktop/src/lib/HelpCenter.svelte:button:167:52",
             "file": "desktop/src/lib/HelpCenter.svelte",
-            "line": 151,
+            "line": 167,
             "column": 52,
-            "source": "desktop/src/lib/HelpCenter.svelte:151:52",
+            "source": "desktop/src/lib/HelpCenter.svelte:167:52",
             "kind": "button",
             "label": "Copy command/configuration actions",
             "guards": [],
@@ -6275,11 +6275,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:button:151:52",
+              "id": "desktop/src/lib/HelpCenter.svelte:button:167:52",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 151,
+              "line": 167,
               "column": 52,
-              "source": "desktop/src/lib/HelpCenter.svelte:151:52",
+              "source": "desktop/src/lib/HelpCenter.svelte:167:52",
               "kind": "button",
               "label": "Copy command/configuration actions",
               "guards": [],
@@ -6292,11 +6292,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:button:154:114",
+              "id": "desktop/src/lib/HelpCenter.svelte:button:170:114",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 154,
+              "line": 170,
               "column": 114,
-              "source": "desktop/src/lib/HelpCenter.svelte:154:114",
+              "source": "desktop/src/lib/HelpCenter.svelte:170:114",
               "kind": "button",
               "label": "Copy command/configuration actions",
               "guards": [],
@@ -6309,11 +6309,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:button:155:76",
+              "id": "desktop/src/lib/HelpCenter.svelte:button:171:76",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 155,
+              "line": 171,
               "column": 76,
-              "source": "desktop/src/lib/HelpCenter.svelte:155:76",
+              "source": "desktop/src/lib/HelpCenter.svelte:171:76",
               "kind": "button",
               "label": "Copy command/configuration actions",
               "guards": [],
@@ -6326,11 +6326,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:button:177:92",
+              "id": "desktop/src/lib/HelpCenter.svelte:button:193:92",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 177,
+              "line": 193,
               "column": 92,
-              "source": "desktop/src/lib/HelpCenter.svelte:177:92",
+              "source": "desktop/src/lib/HelpCenter.svelte:193:92",
               "kind": "button",
               "label": "Copy command/configuration actions",
               "guards": [],
@@ -6343,17 +6343,51 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:button:192:36",
+              "id": "desktop/src/lib/HelpCenter.svelte:button:208:36",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 192,
+              "line": 208,
               "column": 36,
-              "source": "desktop/src/lib/HelpCenter.svelte:192:36",
+              "source": "desktop/src/lib/HelpCenter.svelte:208:36",
               "kind": "button",
               "label": "Copy command/configuration actions",
               "guards": [],
               "targets": [],
               "trace": [
                 "copyText(mcpConfig, \"MCP configuration\")"
+              ],
+              "instances": 1,
+              "conditional": false,
+              "note": null
+            },
+            {
+              "id": "desktop/src/lib/HelpCenter.svelte:button:223:84",
+              "file": "desktop/src/lib/HelpCenter.svelte",
+              "line": 223,
+              "column": 84,
+              "source": "desktop/src/lib/HelpCenter.svelte:223:84",
+              "kind": "button",
+              "label": "Copy command/configuration actions",
+              "guards": [],
+              "targets": [],
+              "trace": [
+                "copyText(\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\", \"Serve examples\")"
+              ],
+              "instances": 1,
+              "conditional": false,
+              "note": null
+            },
+            {
+              "id": "desktop/src/lib/HelpCenter.svelte:button:225:40",
+              "file": "desktop/src/lib/HelpCenter.svelte",
+              "line": 225,
+              "column": 40,
+              "source": "desktop/src/lib/HelpCenter.svelte:225:40",
+              "kind": "button",
+              "label": "Copy command/configuration actions",
+              "guards": [],
+              "targets": [],
+              "trace": [
+                "copyText(mcpHttpConfig, \"HTTP MCP configuration\")"
               ],
               "instances": 1,
               "conditional": false,
@@ -6370,11 +6404,11 @@
           "label": "External installation and protocol links",
           "kind": "external-link",
           "control": {
-            "id": "desktop/src/lib/HelpCenter.svelte:link:158:9",
+            "id": "desktop/src/lib/HelpCenter.svelte:link:174:9",
             "file": "desktop/src/lib/HelpCenter.svelte",
-            "line": 158,
+            "line": 174,
             "column": 9,
-            "source": "desktop/src/lib/HelpCenter.svelte:158:9",
+            "source": "desktop/src/lib/HelpCenter.svelte:174:9",
             "kind": "external-link",
             "label": "External installation and protocol links",
             "guards": [],
@@ -6392,11 +6426,11 @@
           },
           "controls": [
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:158:9",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:174:9",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 158,
+              "line": 174,
               "column": 9,
-              "source": "desktop/src/lib/HelpCenter.svelte:158:9",
+              "source": "desktop/src/lib/HelpCenter.svelte:174:9",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6413,11 +6447,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:159:9",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:175:9",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 159,
+              "line": 175,
               "column": 9,
-              "source": "desktop/src/lib/HelpCenter.svelte:159:9",
+              "source": "desktop/src/lib/HelpCenter.svelte:175:9",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6434,11 +6468,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:160:9",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:176:9",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 160,
+              "line": 176,
               "column": 9,
-              "source": "desktop/src/lib/HelpCenter.svelte:160:9",
+              "source": "desktop/src/lib/HelpCenter.svelte:176:9",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6455,11 +6489,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:161:9",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:177:9",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 161,
+              "line": 177,
               "column": 9,
-              "source": "desktop/src/lib/HelpCenter.svelte:161:9",
+              "source": "desktop/src/lib/HelpCenter.svelte:177:9",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6476,11 +6510,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:162:9",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:178:9",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 162,
+              "line": 178,
               "column": 9,
-              "source": "desktop/src/lib/HelpCenter.svelte:162:9",
+              "source": "desktop/src/lib/HelpCenter.svelte:178:9",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6497,11 +6531,11 @@
               "note": null
             },
             {
-              "id": "desktop/src/lib/HelpCenter.svelte:link:194:7",
+              "id": "desktop/src/lib/HelpCenter.svelte:link:210:7",
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 194,
+              "line": 210,
               "column": 7,
-              "source": "desktop/src/lib/HelpCenter.svelte:194:7",
+              "source": "desktop/src/lib/HelpCenter.svelte:210:7",
               "kind": "external-link",
               "label": "External installation and protocol links",
               "guards": [],
@@ -6524,8 +6558,8 @@
       "disabledControls": [],
       "systemControls": [],
       "summary": {
-        "activeTemplateControls": 17,
-        "activeRuntimeControls": 20,
+        "activeTemplateControls": 19,
+        "activeRuntimeControls": 22,
         "conditionalTemplateControls": 0,
         "disabledTemplateControls": 0
       }
@@ -10293,7 +10327,7 @@
     "states": 17,
     "flows": 11,
     "flowSteps": 58,
-    "activeTemplateControls": 103,
+    "activeTemplateControls": 105,
     "warnings": 0
   }
 }

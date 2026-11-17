@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { BookOpen, Check, Copy, ExternalLink, FolderOpen, HelpCircle, Layers, Play, Settings2, ShieldCheck, Video } from "@lucide/svelte";
+  import { BookOpen, Check, Copy, ExternalLink, FolderOpen, HelpCircle, Layers, Play, Server, Settings2, ShieldCheck, Video } from "@lucide/svelte";
+  import { guideSection } from "./explanations.js";
+
+  // The headless and safety text is the same file the MCP tools `app_guide` and `explain_settings` return.
+  const headless = guideSection("headless");
+  const safety = guideSection("safety");
+  const mcpGuide = guideSection("mcp");
 
   let copied = $state("");
 
@@ -8,6 +14,16 @@
       "hevc-rebuild-studio": {
         command: "/absolute/path/to/hevc-rebuild-studio",
         args: ["--mcp"],
+      },
+    },
+  }, null, 2);
+
+  const mcpHttpConfig = JSON.stringify({
+    mcpServers: {
+      "hevc-rebuild-studio": {
+        type: "http",
+        url: "http://127.0.0.1:8437/mcp",
+        headers: { Authorization: "Bearer <token printed by serve>" },
       },
     },
   }, null, 2);
@@ -192,6 +208,32 @@ hevc-rebuild-studio cli "/path/to/Media" --recursive --output-dir "/path/to/Rebu
       <pre><code>{mcpConfig}</code><button type="button" class="help-copy" aria-label="Copy MCP configuration" onclick={() => copyText(mcpConfig, "MCP configuration")}><Copy size={15} /> Copy</button></pre>
         <p>Available MCP tools include environment/settings inspection, <code>inspect_work_directory</code> for dynamic source-specific scratch-path discovery, folder analysis, <code>start_integrity_check</code> for native Quick/Full corruption checks, metadata and artwork lookup, <code>inspect_media_queue</code> for paged saved-library state, <code>set_media_selection</code> for the shared global selection, <code>inspect_local_library_assets</code> for read-only artwork details, <code>preview_media_outputs</code> for queue-wide destination/collision review, safe rename previews, job status, stop-after-current, and reports. Pass analyzed absolute paths in <code>selected_files</code> to limit a run; omit it to include every eligible file. <code>start_media_run.work_root</code> accepts the same <code>auto</code> or absolute-folder policy as the GUI and CLI. For test or full rebuilds, <code>output_dir</code> sets the default destination and <code>file_output_dirs</code> overrides it for individual files. <code>file_poster_overrides</code> maps media paths to selected local image paths within the same library. The server runs as a local process over stdio.</p>
       <a class="help-doc-link" href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noreferrer">MCP server and stdio overview <ExternalLink size={13} /></a>
+    </article>
+
+    <article class="help-card help-card-wide">
+      <div class="help-card-icon"><Server size={18} /></div>
+      <div class="eyebrow">HEADLESS · BROWSER · MCP OVER HTTP</div>
+      <h2>{headless.title}</h2>
+      <p>{headless.summary}</p>
+      <dl class="help-map">
+        {#each headless.items as item (item.title)}<div><dt>{item.title}</dt><dd>{item.text}</dd></div>{/each}
+      </dl>
+      <pre><code>hevc-rebuild-studio serve
+hevc-rebuild-studio serve --read-only
+hevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token</code><button type="button" class="help-copy" aria-label="Copy serve examples" onclick={() => copyText("hevc-rebuild-studio serve\nhevc-rebuild-studio serve --read-only\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token", "Serve examples")}><Copy size={15} /> Copy</button></pre>
+      <p>To let an agent use a running server, add this MCP client entry. {mcpGuide.items[1]?.text}</p>
+      <pre><code>{mcpHttpConfig}</code><button type="button" class="help-copy" aria-label="Copy HTTP MCP configuration" onclick={() => copyText(mcpHttpConfig, "HTTP MCP configuration")}><Copy size={15} /> Copy</button></pre>
+      <p>{mcpGuide.items[2]?.text}</p>
+    </article>
+
+    <article class="help-card help-card-wide">
+      <div class="help-card-icon"><ShieldCheck size={18} /></div>
+      <div class="eyebrow">SAFETY</div>
+      <h2>{safety.title}</h2>
+      <p>{safety.summary}</p>
+      <dl class="help-map">
+        {#each safety.items as item (item.title)}<div><dt>{item.title}</dt><dd>{item.text}</dd></div>{/each}
+      </dl>
     </article>
 
     <article class="help-card help-card-wide">

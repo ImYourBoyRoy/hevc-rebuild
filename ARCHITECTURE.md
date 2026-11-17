@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 584 |
-| Text lines | 229,311 |
-| Size on disk | 17075.8 KiB |
+| Files | 587 |
+| Text lines | 230,422 |
+| Size on disk | 17121.9 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,891 lines · 221.9 KiB
+16 files · 1,939 lines · 225.5 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -36,6 +36,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `.mcp.json` | 8 | 130 B | Claude Code project MCP servers: the local Svelte MCP (svelte-autofixer, docs). |
 | `.nvmrc` | 1 | 8 B | Recommended Node LTS for builds. |
 | `AGENTS.md` | 178 | 9.0 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
+| `CHANGELOG.md` | 48 | 3.6 KiB | User-facing changes since the last published release. |
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
@@ -258,7 +259,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/`
 
-72 files · 33,094 lines · 1150.4 KiB
+73 files · 33,345 lines · 1159.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -287,9 +288,10 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `environment.rs` | 1,549 | 50.7 KiB | **over budget** — Native, read-only host and media-tool inspection. |
 | `executable_lookup.rs` | 146 | 4.8 KiB | PATH lookup used to decide whether a helper tool can be launched. |
 | `hdr_metadata.rs` | 1,193 | 41.3 KiB | HDR10+ extraction/verification and Dolby Vision preservation or fallback eligibility. |
+| `help_content.rs` | 250 | 9.2 KiB | Shared help for MCP: embeds desktop/src/lib/help-content.json and answers explain_settings and app_guide (CRF bands and size rule, topics, guide sections). |
 | `integrity.rs` | 985 | 31.5 KiB | Native read-only media integrity checks. |
 | `job_state.rs` | 312 | 9.8 KiB | The single active-job slot behind the desktop run controls, the `Events` sink job runners emit into (the desktop window or the headless server's bus), and the e |
-| `lib.rs` | 300 | 11.2 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
+| `lib.rs` | 301 | 11.2 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
 | `library_artwork.rs` | 396 | 15.8 KiB | Confirmed provider/local artwork saves, cache inspection and reviewed purge. |
 | `library_assets.rs` | 628 | 20.4 KiB | Bounded adjacent-artwork inspection (never reads NFO sidecars). |
 | `library_metadata.rs` | 234 | 7.1 KiB | Bounded public-provider requests, title-clue parser and metadata review data. |
@@ -376,7 +378,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/mcp_server/`
 
-10 files · 4,865 lines · 193.4 KiB
+10 files · 4,908 lines · 196.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -384,8 +386,8 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `batch_tool_tests.rs` | 432 | 16.1 KiB | Tests for the unattended batch tools, driven through the same methods the router calls. |
 | `batch.rs` | 227 | 8.6 KiB | Planning helpers for unattended library batches: which files, how much disk, what free-space floor, and whether a plan can still start. |
 | `exec.rs` | 688 | 24.5 KiB | Job executors: run a prepared request on the native Rust engines, publish live progress and per-file results into the job registry, and set the final status. |
-| `mod.rs` | 1,403 | 64.8 KiB | Typed local stdio MCP server: tool router, tracked jobs, bounded output, startup. |
-| `params.rs` | 256 | 10.7 KiB | Request parameter types for the MCP tools. |
+| `mod.rs` | 1,429 | 67.1 KiB | Typed local stdio MCP server: tool router, tracked jobs, bounded output, startup. |
+| `params.rs` | 273 | 11.4 KiB | Request parameter types for the MCP tools. |
 | `prepare.rs` | 475 | 18.7 KiB | Turns a tool request into validated engine arguments (`prepare_media_run`) and checks a queue of such runs together before anything starts. |
 | `queue_sync_tests.rs` | 224 | 7.7 KiB | Tests for queue status synchronization. |
 | `queue_sync.rs` | 458 | 15.3 KiB | Keeps the saved GUI/MCP media queue in step with run results: marks entries running, then records outcomes from each run's own CSV report, never assuming comple |
@@ -477,7 +479,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/web_server/`
 
-11 files · 4,229 lines · 161.4 KiB
+11 files · 4,358 lines · 164.7 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -487,7 +489,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `config.rs` | 572 | 20.8 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
 | `events.rs` | 319 | 11.2 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
 | `fs_browse.rs` | 227 | 8.2 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
-| `mcp_tests.rs` | 328 | 11.1 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
+| `mcp_tests.rs` | 457 | 14.5 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
 | `mod.rs` | 395 | 14.3 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
 | `router_tests.rs` | 434 | 14.6 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
 | `scope.rs` | 365 | 13.3 KiB | `--root` confinement: canonical root set, symlink/`..`-safe path check, and the table of which command arguments carry media or output paths. |
@@ -509,7 +511,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/lib/`
 
-87 files · 13,259 lines · 712.2 KiB
+88 files · 13,523 lines · 723.8 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -522,12 +524,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `browser-preferences.ts` | 110 | 8.6 KiB | Parser for the browser-preview preferences in localStorage (older shapes, per-field validation, legacy keys, never throws) extracted from the route; tested by test:browser-preferences. |
 | `credentials-controller.ts` | 190 | 7.2 KiB | TMDB token and TheTVDB key/PIN status, save, reveal, show/hide and remove extracted from the route; typed CredentialsHost, injected bridge. |
 | `entry-display.ts` | 82 | 3.8 KiB | Pure display helpers extracted from the route (profile and media-info lines, durations, HDR10+ signal and consent text, metadata value formatting, status labels, stream classification, animation hint); tested by test:entry-display. |
-| `explanations.ts` | 192 | 11.4 KiB | Plain-language help for the encoder settings, written for people who have never heard of CRF, presets or film grain. |
+| `explanations.ts` | 123 | 4.9 KiB | Plain-language help for the encoder settings, written for people who have never heard of CRF, presets or film grain. |
 | `file-pickers.ts` | 137 | 5.8 KiB | Native file and folder pickers extracted from the route (add folder or files to the queue, YouTube, default rebuild and per-file output folders, typed-path analyze, rescan, open file location, cancel scan); typed FilePickersHost, injected dialog and bridge. |
 | `file-settings.ts` | 249 | 12.6 KiB | Per-file run settings extracted from the route (YouTube estimates, resource forecasts, tune overrides, effective settings, default and chosen streams, run-settings editor, current-run overrides, HDR10+ loss approvals); typed FileSettingsHost. |
 | `filename-template.ts` | 133 | 5.6 KiB | Organizer filename templating ({token:02}, [[optional]] groups), proposed names and destination preview extracted from the route; tested by test:filename-template. |
 | `format.ts` | 26 | 1017 B | Byte, duration and disk-floor display formatters extracted from the route; tested by test:format. |
-| `HelpCenter.svelte` | 242 | 26.5 KiB | Help view: workflow guidance and command examples. |
+| `help-content.json` | 291 | 16.1 KiB | Single source of the plain-language settings help and the application guide; read by explanations.ts (GUI) and help_content.rs (MCP). |
+| `HelpCenter.svelte` | 284 | 28.6 KiB | Help view: workflow guidance and command examples. |
 | `HomeDashboard.svelte` | 239 | 9.9 KiB | Home view: environment status, counts, recent activity. |
 | `InfoTip.svelte` | 25 | 1.2 KiB | The small "i" help popover that explains a setting in plain language. |
 | `latest-outcomes.ts` | 54 | 2.6 KiB | Which failures still count. |
@@ -763,7 +766,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-80 files · 10,766 lines · 722.2 KiB
+80 files · 10,823 lines · 725.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -779,12 +782,12 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `browser-server.mjs` | 18 | 904 B | Isolated browser fixtures; native IPC, user profiles and media are never mounted. |
 | `credentials-controller.test.mjs` | 201 | 14.3 KiB | Node tests for credentials-controller.ts with fake invoke and host drafts. |
 | `entry-display.test.mjs` | 102 | 6.1 KiB | Node tests for entry-display.ts. |
-| `explanations.test.mjs` | 126 | 6.7 KiB | Plain-language help for encoder settings and the advisories shown beside them. |
+| `explanations.test.mjs` | 183 | 9.7 KiB | Plain-language help for encoder settings and the advisories shown beside them. |
 | `file-pickers.test.mjs` | 175 | 9.8 KiB | Node tests for file-pickers.ts with fake dialog, invoke, host and actions. |
 | `file-settings.test.mjs` | 227 | 15.5 KiB | Node tests for file-settings.ts with a fake host. |
 | `filename-template.test.mjs` | 127 | 8.9 KiB | Node characterization tests for filename-template.ts, including pinned quirks. |
 | `format.test.mjs` | 48 | 1.7 KiB | Node characterization tests for format.ts (unit and hour rollover boundaries). |
-| `home-help-contract.mjs` | 28 | 2.2 KiB | Browser contract: Home and Help. |
+| `home-help-contract.mjs` | 28 | 2.4 KiB | Browser contract: Home and Help. |
 | `info-tip-css.test.mjs` | 46 | 2.4 KiB | Static test that the help popover is hidden with visibility (row styles override display) and opens only on hover, focus or pin. |
 | `latest-outcomes.test.mjs` | 79 | 5.2 KiB | Contract for which failures still count (src/lib/latest-outcomes.ts): a file is failed only when its most recent decisive outcome is a failure. |
 | `library-actions.test.mjs` | 201 | 15.2 KiB | Node tests for library-actions.ts with a fake host and actions. |
@@ -908,23 +911,23 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,405 lines · 2652.3 KiB
+13 files · 78,724 lines · 2664.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `architecture-descriptions.json` | 321 | 49.1 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
-| `interaction-map.json` | 63,496 | 1930.1 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
-| `interaction-map.md` | 851 | 179.4 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
+| `architecture-descriptions.json` | 324 | 49.5 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
+| `interaction-map.json` | 63,765 | 1938.7 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
+| `interaction-map.md` | 853 | 180.0 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
 | `interaction-tasks.json` | 320 | 9.8 KiB | Reviewed task journey selectors used to compute shortest click paths and over-tap deltas. |
-| `interaction-waterfall.json` | 10,299 | 334.5 KiB | Generated machine-readable state inventories, source-resolved waterfall steps, click formulas and native/system boundaries. |
-| `interaction-waterfall.md` | 767 | 67.8 KiB | Generated human-readable multiflow waterfall map with active controls, transitions and minimum click formulas. |
+| `interaction-waterfall.json` | 10,333 | 335.9 KiB | Generated machine-readable state inventories, source-resolved waterfall steps, click formulas and native/system boundaries. |
+| `interaction-waterfall.md` | 769 | 68.1 KiB | Generated human-readable multiflow waterfall map with active controls, transitions and minimum click formulas. |
 | `interaction-waterfalls.json` | 1,579 | 42.4 KiB | Reviewed state/action/flow configuration for the reusable Svelte/Tauri interaction waterfall tool. |
 | `PLATFORM-SUPPORT.md` | 68 | 4.0 KiB | Platform support contract |
 | `PROJECT-STRUCTURE.md` | 60 | 3.2 KiB | Project structure |
 | `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 149 | 7.4 KiB | Installation and external tools |
-| `USAGE.md` | 345 | 17.3 KiB | Human usage guide |
+| `USAGE.md` | 354 | 18.0 KiB | Human usage guide |
 
 ### `docs/maintainer/`
 

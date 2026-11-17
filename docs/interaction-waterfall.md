@@ -14,7 +14,7 @@ The cardinal rule is evaluated as a minimum click formula. `x` means native file
 | Reviewed states | 17 |
 | Reviewed flows | 11 |
 | Waterfall steps | 58 |
-| Active source-template entries across states | 103 |
+| Active source-template entries across states | 105 |
 | Map warnings | 0 |
 
 ## The three click buckets
@@ -405,7 +405,7 @@ Notes:
 **State ID:** `help-page`
 **Source condition:** page === help
 
-Active source templates: **17** · estimated runtime controls: **20** · disabled source controls listed: **0**.
+Active source templates: **19** · estimated runtime controls: **22** · disabled source controls listed: **0**.
 
 ### Active controls
 
@@ -417,17 +417,19 @@ Active source templates: **17** · estimated runtime controls: **20** · disable
 | Appearance | form-control | [desktop/src/lib/views/ShellHeader.svelte:41:7](../desktop/src/lib/views/ShellHeader.svelte#L41) | — | A select action is available but is not a click in the task budgets. |
 | Refresh environment | app-click | [desktop/src/lib/views/ShellHeader.svelte:50:7](../desktop/src/lib/views/ShellHeader.svelte#L50) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
 | Help and commands | app-click | [desktop/src/lib/views/ShellHeader.svelte:50:7](../desktop/src/lib/views/ShellHeader.svelte#L50) | callback:openToolchainSettings (boundary) | else(environment?.ready); else(environmentLoading \|\| booting) |
-| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:151:52](../desktop/src/lib/HelpCenter.svelte#L151) | — | always |
-| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:154:114](../desktop/src/lib/HelpCenter.svelte#L154) | — | always |
-| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:155:76](../desktop/src/lib/HelpCenter.svelte#L155) | — | always |
-| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:177:92](../desktop/src/lib/HelpCenter.svelte#L177) | — | always |
-| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:192:36](../desktop/src/lib/HelpCenter.svelte#L192) | — | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:158:9](../desktop/src/lib/HelpCenter.svelte#L158) | external:https://www.ffmpeg.org/download.html | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:159:9](../desktop/src/lib/HelpCenter.svelte#L159) | external:https://mediaarea.net/en/MediaInfo/Download | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:160:9](../desktop/src/lib/HelpCenter.svelte#L160) | external:https://mediaarea.net/en/Repos | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:161:9](../desktop/src/lib/HelpCenter.svelte#L161) | external:https://mkvtoolnix.download/downloads.html | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:162:9](../desktop/src/lib/HelpCenter.svelte#L162) | external:https://github.com/quietvoid/hdr10plus_tool/releases/latest | always |
-| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:194:7](../desktop/src/lib/HelpCenter.svelte#L194) | external:https://modelcontextprotocol.io/docs/develop/build-server | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:167:52](../desktop/src/lib/HelpCenter.svelte#L167) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:170:114](../desktop/src/lib/HelpCenter.svelte#L170) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:171:76](../desktop/src/lib/HelpCenter.svelte#L171) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:193:92](../desktop/src/lib/HelpCenter.svelte#L193) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:208:36](../desktop/src/lib/HelpCenter.svelte#L208) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:223:84](../desktop/src/lib/HelpCenter.svelte#L223) | — | always |
+| Copy command/configuration actions | button | [desktop/src/lib/HelpCenter.svelte:225:40](../desktop/src/lib/HelpCenter.svelte#L225) | — | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:174:9](../desktop/src/lib/HelpCenter.svelte#L174) | external:https://www.ffmpeg.org/download.html | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:175:9](../desktop/src/lib/HelpCenter.svelte#L175) | external:https://mediaarea.net/en/MediaInfo/Download | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:176:9](../desktop/src/lib/HelpCenter.svelte#L176) | external:https://mediaarea.net/en/Repos | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:177:9](../desktop/src/lib/HelpCenter.svelte#L177) | external:https://mkvtoolnix.download/downloads.html | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:178:9](../desktop/src/lib/HelpCenter.svelte#L178) | external:https://github.com/quietvoid/hdr10plus_tool/releases/latest | always |
+| External installation and protocol links | external-link | [desktop/src/lib/HelpCenter.svelte:210:7](../desktop/src/lib/HelpCenter.svelte#L210) | external:https://modelcontextprotocol.io/docs/develop/build-server | always |
 
 ### Settings page control surface
 

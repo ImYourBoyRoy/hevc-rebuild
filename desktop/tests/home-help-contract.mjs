@@ -20,9 +20,9 @@ async function contract(page) {
     if (!await illustration.isVisible() || await illustration.locator('svg').count() !== 1) throw new Error(`${theme} illustration missing`);
   }
   await page.getByRole('button', { name: 'Toggle Home/Help' }).click();
-  for (const phrase of ['metadata-only', 'HDR10+', '--mcp', 'Stop safely']) {
+  for (const phrase of ['metadata-only', 'HDR10+', '--mcp', 'Stop safely', 'Run it headless or in a browser', 'What keeps your files safe', '--read-only', '--root', '/mcp', 'reverse proxy', '.hevc-rebuild-originals', 'explain_settings']) {
     if (!(await page.locator('.help-page').textContent()).includes(phrase)) throw new Error(`Help lost ${phrase}`);
   }
-  return { emptyAndPopulated: true, toolsMissingReady: true, actions: 8, recentReport: true, setupLog: true, skins: 8, helpModes: true };
+  return { emptyAndPopulated: true, toolsMissingReady: true, actions: 8, recentReport: true, setupLog: true, skins: 8, helpModes: true, helpHeadlessAndSafety: true };
 }
 await runBrowserContract('home', contract);

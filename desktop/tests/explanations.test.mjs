@@ -5,7 +5,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   crfBand, crfSizeHint, crfSizeRatio, encoderAdvisories, presetHelp, tuneHelp, settingHelp, SETTING_HELP_KEYS, SHORT_TEST_HELP, CRF_DEFAULT,
+  GUIDE_SECTIONS, guideSection, CRF_BAND_TABLE,
 } from "../src/lib/explanations.ts";
+import { readFileSync } from "node:fs";
 
 test("every CRF from 0 to 51 maps to exactly one named band, and the default is the recommended one", () => {
   const labels = new Set();
@@ -123,4 +125,59 @@ test("the YouTube options say what each choice does to the file", () => {
 test("an unknown help key reads as a harmless generic note instead of throwing", () => {
   const help = settingHelp("not-a-setting");
   assert.ok(help.title && help.text);
+});
+
+const shared = JSON.parse(readFileSync(new URL("../src/lib/help-content.json", import.meta.url), "utf8"));
+
+test("the GUI and the MCP server read one file, so what the app says and what a model is told cannot drift", () => {
+  assert.equal(CRF_DEFAULT, shared.crf.default);
+  assert.deepEqual(CRF_BAND_TABLE, shared.crf.bands);
+  for (const key of SETTING_HELP_KEYS) assert.deepEqual(settingHelp(key), shared.settings[key], key);
+  for (const tune of Object.keys(shared.tunes)) assert.deepEqual(tuneHelp(tune), shared.tunes[tune], tune);
+  for (const preset of Object.keys(shared.presets)) assert.equal(presetHelp(preset), shared.presets[preset], preset);
+  assert.equal(SHORT_TEST_HELP, shared.shortTest);
+});
+
+test("the CRF band table covers 0 to 51 once, in order, and marks exactly the default's band as recommended", () => {
+  let previous = -1;
+  for (const band of shared.crf.bands) {
+    assert.ok(band.max > previous, "bands are in increasing order");
+    previous = band.max;
+  }
+  assert.equal(previous, 51, "the last band reaches 51");
+  assert.equal(shared.crf.bands.filter((band) => band.recommended).length, 1);
+  assert.equal(crfBand(shared.crf.default).recommended, true);
+});
+
+test("the guide has five sections, each titled, summarised and made of short readable items", () => {
+  assert.deepEqual([...GUIDE_SECTIONS].sort(), ["headless", "mcp", "modes", "safety", "workflow"]);
+  for (const key of GUIDE_SECTIONS) {
+    const section = guideSection(key);
+    assert.ok(section.title && section.summary, key);
+    assert.ok(section.items.length >= 3, `${key} has several items`);
+    for (const item of section.items) {
+      assert.ok(item.title.length >= 2, `${key}: ${item.title}`);
+      assert.ok(item.text.length >= 40 && item.text.length <= 620, `${key}/${item.title}: ${item.text.length} characters`);
+    }
+  }
+  assert.equal(guideSection("not-a-section").items.length, 0, "an unknown section is empty, not an error");
+});
+
+test("the headless guide covers sign-in, read-only, folders, agents, HTTPS and the no-password rule", () => {
+  const text = guideSection("headless").items.map((item) => `${item.title} ${item.text}`).join("\n");
+  for (const needle of ["serve", "127.0.0.1:8437", "login link", "Bearer", "--read-only", "--root", "/mcp", "reverse proxy", "--allow-remote", "passwordless sudo", "--no-default-features"]) {
+    assert.ok(text.includes(needle), `mentions ${needle}`);
+  }
+  assert.match(text, /no password prompt/i);
+});
+
+test("the agent workflow starts read-only and never skips confirmation", () => {
+  const workflow = guideSection("workflow").items.map((item) => item.text).join(" ");
+  assert.match(workflow, /inspect_environment/);
+  assert.match(workflow, /check/);
+  assert.match(workflow, /confirm_full_rebuild/);
+  const mcp = guideSection("mcp").items.map((item) => item.text).join(" ");
+  assert.match(mcp, /explain_settings/);
+  assert.match(mcp, /app_guide/);
+  assert.match(mcp, /already active/);
 });

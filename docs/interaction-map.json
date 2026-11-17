@@ -4,24 +4,24 @@
   "tasksFile": "docs/interaction-tasks.json",
   "summary": {
     "files": 37,
-    "controls": 474,
-    "buttons": 271,
-    "clickable": 328,
+    "controls": 476,
+    "buttons": 273,
+    "clickable": 330,
     "links": 23,
     "formControls": 147,
     "disclosures": 33,
-    "clickEvents": 270,
+    "clickEvents": 272,
     "duplicateDestinations": 46,
     "duplicateUserFacingDestinations": 44,
     "duplicateLabels": 43
   },
   "controls": [
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:button:151:52",
+      "id": "desktop/src/lib/HelpCenter.svelte:button:167:52",
       "ordinal": 1,
       "kind": "button",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 151,
+      "line": 167,
       "column": 52,
       "label": "Copy Linux install command",
       "role": null,
@@ -36,15 +36,15 @@
           "expression": "() => copyText(\"sudo apt update\\nsudo apt install ffmpeg mediainfo mkvtoolnix\", \"Linux command\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 15815,
-            "end": 15911,
+            "start": 16367,
+            "end": 16463,
             "loc": {
               "start": {
-                "line": 151,
+                "line": 167,
                 "column": 140
               },
               "end": {
-                "line": 151,
+                "line": 167,
                 "column": 236
               }
             },
@@ -55,29 +55,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 15821,
-              "end": 15911,
+              "start": 16373,
+              "end": 16463,
               "loc": {
                 "start": {
-                  "line": 151,
+                  "line": 167,
                   "column": 146
                 },
                 "end": {
-                  "line": 151,
+                  "line": 167,
                   "column": 236
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 15821,
-                "end": 15829,
+                "start": 16373,
+                "end": 16381,
                 "loc": {
                   "start": {
-                    "line": 151,
+                    "line": 167,
                     "column": 146
                   },
                   "end": {
-                    "line": 151,
+                    "line": 167,
                     "column": 154
                   }
                 },
@@ -86,15 +86,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 15830,
-                  "end": 15893,
+                  "start": 16382,
+                  "end": 16445,
                   "loc": {
                     "start": {
-                      "line": 151,
+                      "line": 167,
                       "column": 155
                     },
                     "end": {
-                      "line": 151,
+                      "line": 167,
                       "column": 218
                     }
                   },
@@ -103,15 +103,15 @@
                 },
                 {
                   "type": "Literal",
-                  "start": 15895,
-                  "end": 15910,
+                  "start": 16447,
+                  "end": 16462,
                   "loc": {
                     "start": {
-                      "line": 151,
+                      "line": 167,
                       "column": 220
                     },
                     "end": {
-                      "line": 151,
+                      "line": 167,
                       "column": 235
                     }
                   },
@@ -138,7 +138,7 @@
                 }
               ],
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 151,
+              "line": 167,
               "via": "handler"
             }
           ]
@@ -152,11 +152,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:button:154:114",
+      "id": "desktop/src/lib/HelpCenter.svelte:button:170:114",
       "ordinal": 2,
       "kind": "button",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 154,
+      "line": 170,
       "column": 114,
       "label": "Copy Windows install command",
       "role": null,
@@ -171,15 +171,15 @@
           "expression": "() => copyText(\"winget install --exact --id Gyan.FFmpeg --accept-source-agreements --accept-package-agreements\\nwinget install --exact --id MediaArea.MediaInfo --accept-source-agreements --accept-package-agreements\\nwin…",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 16371,
-            "end": 16714,
+            "start": 16923,
+            "end": 17266,
             "loc": {
               "start": {
-                "line": 154,
+                "line": 170,
                 "column": 204
               },
               "end": {
-                "line": 154,
+                "line": 170,
                 "column": 547
               }
             },
@@ -190,29 +190,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 16377,
-              "end": 16714,
+              "start": 16929,
+              "end": 17266,
               "loc": {
                 "start": {
-                  "line": 154,
+                  "line": 170,
                   "column": 210
                 },
                 "end": {
-                  "line": 154,
+                  "line": 170,
                   "column": 547
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 16377,
-                "end": 16385,
+                "start": 16929,
+                "end": 16937,
                 "loc": {
                   "start": {
-                    "line": 154,
+                    "line": 170,
                     "column": 210
                   },
                   "end": {
-                    "line": 154,
+                    "line": 170,
                     "column": 218
                   }
                 },
@@ -221,15 +221,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 16386,
-                  "end": 16694,
+                  "start": 16938,
+                  "end": 17246,
                   "loc": {
                     "start": {
-                      "line": 154,
+                      "line": 170,
                       "column": 219
                     },
                     "end": {
-                      "line": 154,
+                      "line": 170,
                       "column": 527
                     }
                   },
@@ -238,15 +238,15 @@
                 },
                 {
                   "type": "Literal",
-                  "start": 16696,
-                  "end": 16713,
+                  "start": 17248,
+                  "end": 17265,
                   "loc": {
                     "start": {
-                      "line": 154,
+                      "line": 170,
                       "column": 529
                     },
                     "end": {
-                      "line": 154,
+                      "line": 170,
                       "column": 546
                     }
                   },
@@ -273,7 +273,7 @@
                 }
               ],
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 154,
+              "line": 170,
               "via": "handler"
             }
           ]
@@ -287,11 +287,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:button:155:76",
+      "id": "desktop/src/lib/HelpCenter.svelte:button:171:76",
       "ordinal": 3,
       "kind": "button",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 155,
+      "line": 171,
       "column": 76,
       "label": "Copy macOS install command",
       "role": null,
@@ -306,15 +306,15 @@
           "expression": "() => copyText(\"brew install ffmpeg mediainfo mkvtoolnix fontconfig\", \"macOS command\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 16919,
-            "end": 17005,
+            "start": 17471,
+            "end": 17557,
             "loc": {
               "start": {
-                "line": 155,
+                "line": 171,
                 "column": 164
               },
               "end": {
-                "line": 155,
+                "line": 171,
                 "column": 250
               }
             },
@@ -325,29 +325,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 16925,
-              "end": 17005,
+              "start": 17477,
+              "end": 17557,
               "loc": {
                 "start": {
-                  "line": 155,
+                  "line": 171,
                   "column": 170
                 },
                 "end": {
-                  "line": 155,
+                  "line": 171,
                   "column": 250
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 16925,
-                "end": 16933,
+                "start": 17477,
+                "end": 17485,
                 "loc": {
                   "start": {
-                    "line": 155,
+                    "line": 171,
                     "column": 170
                   },
                   "end": {
-                    "line": 155,
+                    "line": 171,
                     "column": 178
                   }
                 },
@@ -356,15 +356,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 16934,
-                  "end": 16987,
+                  "start": 17486,
+                  "end": 17539,
                   "loc": {
                     "start": {
-                      "line": 155,
+                      "line": 171,
                       "column": 179
                     },
                     "end": {
-                      "line": 155,
+                      "line": 171,
                       "column": 232
                     }
                   },
@@ -373,15 +373,15 @@
                 },
                 {
                   "type": "Literal",
-                  "start": 16989,
-                  "end": 17004,
+                  "start": 17541,
+                  "end": 17556,
                   "loc": {
                     "start": {
-                      "line": 155,
+                      "line": 171,
                       "column": 234
                     },
                     "end": {
-                      "line": 155,
+                      "line": 171,
                       "column": 249
                     }
                   },
@@ -408,7 +408,7 @@
                 }
               ],
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 155,
+              "line": 171,
               "via": "handler"
             }
           ]
@@ -422,11 +422,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:158:9",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:174:9",
       "ordinal": 4,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 158,
+      "line": 174,
       "column": 9,
       "label": "FFmpeg downloads",
       "role": null,
@@ -448,11 +448,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:159:9",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:175:9",
       "ordinal": 5,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 159,
+      "line": 175,
       "column": 9,
       "label": "MediaInfo downloads",
       "role": null,
@@ -474,11 +474,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:160:9",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:176:9",
       "ordinal": 6,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 160,
+      "line": 176,
       "column": 9,
       "label": "MediaArea package repository",
       "role": null,
@@ -500,11 +500,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:161:9",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:177:9",
       "ordinal": 7,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 161,
+      "line": 177,
       "column": 9,
       "label": "MKVToolNix downloads",
       "role": null,
@@ -526,11 +526,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:162:9",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:178:9",
       "ordinal": 8,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 162,
+      "line": 178,
       "column": 9,
       "label": "HDR10+ helper",
       "role": null,
@@ -552,11 +552,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:button:177:92",
+      "id": "desktop/src/lib/HelpCenter.svelte:button:193:92",
       "ordinal": 9,
       "kind": "button",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 177,
+      "line": 193,
       "column": 92,
       "label": "Copy CLI examples",
       "role": null,
@@ -571,15 +571,15 @@
           "expression": "() => copyText(\"hevc-rebuild-studio json environment\\nhevc-rebuild-studio json integrity --file \\\"/path/to/Film.mkv\\\" --level quick\\nhevc-rebuild-studio json scan --root \\\"/path/to/Media\\\" --recursive\\nhevc-rebuild-stud…",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 19319,
-            "end": 19795,
+            "start": 19871,
+            "end": 20347,
             "loc": {
               "start": {
-                "line": 177,
+                "line": 193,
                 "column": 171
               },
               "end": {
-                "line": 177,
+                "line": 193,
                 "column": 647
               }
             },
@@ -590,29 +590,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 19325,
-              "end": 19795,
+              "start": 19877,
+              "end": 20347,
               "loc": {
                 "start": {
-                  "line": 177,
+                  "line": 193,
                   "column": 177
                 },
                 "end": {
-                  "line": 177,
+                  "line": 193,
                   "column": 647
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 19325,
-                "end": 19333,
+                "start": 19877,
+                "end": 19885,
                 "loc": {
                   "start": {
-                    "line": 177,
+                    "line": 193,
                     "column": 177
                   },
                   "end": {
-                    "line": 177,
+                    "line": 193,
                     "column": 185
                   }
                 },
@@ -621,15 +621,15 @@
               "arguments": [
                 {
                   "type": "Literal",
-                  "start": 19334,
-                  "end": 19778,
+                  "start": 19886,
+                  "end": 20330,
                   "loc": {
                     "start": {
-                      "line": 177,
+                      "line": 193,
                       "column": 186
                     },
                     "end": {
-                      "line": 177,
+                      "line": 193,
                       "column": 630
                     }
                   },
@@ -638,15 +638,15 @@
                 },
                 {
                   "type": "Literal",
-                  "start": 19780,
-                  "end": 19794,
+                  "start": 20332,
+                  "end": 20346,
                   "loc": {
                     "start": {
-                      "line": 177,
+                      "line": 193,
                       "column": 632
                     },
                     "end": {
-                      "line": 177,
+                      "line": 193,
                       "column": 646
                     }
                   },
@@ -673,7 +673,7 @@
                 }
               ],
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 177,
+              "line": 193,
               "via": "handler"
             }
           ]
@@ -687,11 +687,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:button:192:36",
+      "id": "desktop/src/lib/HelpCenter.svelte:button:208:36",
       "ordinal": 10,
       "kind": "button",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 192,
+      "line": 208,
       "column": 36,
       "label": "Copy MCP configuration",
       "role": null,
@@ -706,15 +706,15 @@
           "expression": "() => copyText(mcpConfig, \"MCP configuration\")",
           "expressionNode": {
             "type": "ArrowFunctionExpression",
-            "start": 21419,
-            "end": 21465,
+            "start": 21971,
+            "end": 22017,
             "loc": {
               "start": {
-                "line": 192,
+                "line": 208,
                 "column": 120
               },
               "end": {
-                "line": 192,
+                "line": 208,
                 "column": 166
               }
             },
@@ -725,29 +725,29 @@
             "params": [],
             "body": {
               "type": "CallExpression",
-              "start": 21425,
-              "end": 21465,
+              "start": 21977,
+              "end": 22017,
               "loc": {
                 "start": {
-                  "line": 192,
+                  "line": 208,
                   "column": 126
                 },
                 "end": {
-                  "line": 192,
+                  "line": 208,
                   "column": 166
                 }
               },
               "callee": {
                 "type": "Identifier",
-                "start": 21425,
-                "end": 21433,
+                "start": 21977,
+                "end": 21985,
                 "loc": {
                   "start": {
-                    "line": 192,
+                    "line": 208,
                     "column": 126
                   },
                   "end": {
-                    "line": 192,
+                    "line": 208,
                     "column": 134
                   }
                 },
@@ -756,15 +756,15 @@
               "arguments": [
                 {
                   "type": "Identifier",
-                  "start": 21434,
-                  "end": 21443,
+                  "start": 21986,
+                  "end": 21995,
                   "loc": {
                     "start": {
-                      "line": 192,
+                      "line": 208,
                       "column": 135
                     },
                     "end": {
-                      "line": 192,
+                      "line": 208,
                       "column": 144
                     }
                   },
@@ -772,15 +772,15 @@
                 },
                 {
                   "type": "Literal",
-                  "start": 21445,
-                  "end": 21464,
+                  "start": 21997,
+                  "end": 22016,
                   "loc": {
                     "start": {
-                      "line": 192,
+                      "line": 208,
                       "column": 146
                     },
                     "end": {
-                      "line": 192,
+                      "line": 208,
                       "column": 165
                     }
                   },
@@ -807,7 +807,7 @@
                 }
               ],
               "file": "desktop/src/lib/HelpCenter.svelte",
-              "line": 192,
+              "line": 208,
               "via": "handler"
             }
           ]
@@ -821,11 +821,11 @@
       "clickable": true
     },
     {
-      "id": "desktop/src/lib/HelpCenter.svelte:link:194:7",
+      "id": "desktop/src/lib/HelpCenter.svelte:link:210:7",
       "ordinal": 11,
       "kind": "link",
       "file": "desktop/src/lib/HelpCenter.svelte",
-      "line": 194,
+      "line": 210,
       "column": 7,
       "label": "MCP server and stdio overview",
       "role": null,
@@ -844,6 +844,275 @@
         }
       ],
       "trace": [],
+      "clickable": true
+    },
+    {
+      "id": "desktop/src/lib/HelpCenter.svelte:button:223:84",
+      "ordinal": 12,
+      "kind": "button",
+      "file": "desktop/src/lib/HelpCenter.svelte",
+      "line": 223,
+      "column": 84,
+      "label": "Copy serve examples",
+      "role": null,
+      "region": "Copy serve examples",
+      "heading": "{headless.title}",
+      "guards": [],
+      "disabled": null,
+      "href": null,
+      "events": [
+        {
+          "name": "click",
+          "expression": "() => copyText(\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\", \"Serve examples\")",
+          "expressionNode": {
+            "type": "ArrowFunctionExpression",
+            "start": 24076,
+            "end": 24254,
+            "loc": {
+              "start": {
+                "line": 223,
+                "column": 165
+              },
+              "end": {
+                "line": 223,
+                "column": 343
+              }
+            },
+            "id": null,
+            "expression": true,
+            "generator": false,
+            "async": false,
+            "params": [],
+            "body": {
+              "type": "CallExpression",
+              "start": 24082,
+              "end": 24254,
+              "loc": {
+                "start": {
+                  "line": 223,
+                  "column": 171
+                },
+                "end": {
+                  "line": 223,
+                  "column": 343
+                }
+              },
+              "callee": {
+                "type": "Identifier",
+                "start": 24082,
+                "end": 24090,
+                "loc": {
+                  "start": {
+                    "line": 223,
+                    "column": 171
+                  },
+                  "end": {
+                    "line": 223,
+                    "column": 179
+                  }
+                },
+                "name": "copyText"
+              },
+              "arguments": [
+                {
+                  "type": "Literal",
+                  "start": 24091,
+                  "end": 24235,
+                  "loc": {
+                    "start": {
+                      "line": 223,
+                      "column": 180
+                    },
+                    "end": {
+                      "line": 223,
+                      "column": 324
+                    }
+                  },
+                  "value": "hevc-rebuild-studio serve\nhevc-rebuild-studio serve --read-only\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token",
+                  "raw": "\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\""
+                },
+                {
+                  "type": "Literal",
+                  "start": 24237,
+                  "end": 24253,
+                  "loc": {
+                    "start": {
+                      "line": 223,
+                      "column": 326
+                    },
+                    "end": {
+                      "line": 223,
+                      "column": 342
+                    }
+                  },
+                  "value": "Serve examples",
+                  "raw": "\"Serve examples\""
+                }
+              ],
+              "optional": false
+            }
+          },
+          "targets": [],
+          "callCount": 2,
+          "calls": [
+            {
+              "name": "copyText",
+              "args": [
+                {
+                  "text": "\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\"",
+                  "literal": "hevc-rebuild-studio serve\nhevc-rebuild-studio serve --read-only\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token"
+                },
+                {
+                  "text": "\"Serve examples\"",
+                  "literal": "Serve examples"
+                }
+              ],
+              "file": "desktop/src/lib/HelpCenter.svelte",
+              "line": 223,
+              "via": "handler"
+            }
+          ]
+        }
+      ],
+      "source": "<button type=\"button\" class=\"help-copy\" aria-label=\"Copy serve examples\" onclick={() => copyText(\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\", \"Serve examples\")}><Copy size={15} /> Copy</button>",
+      "targets": [],
+      "trace": [
+        "copyText(\"hevc-rebuild-studio serve\\nhevc-rebuild-studio serve --read-only\\nhevc-rebuild-studio serve --root /srv/media --token-file ~/.hevc-serve-token\", \"Serve examples\")"
+      ],
+      "clickable": true
+    },
+    {
+      "id": "desktop/src/lib/HelpCenter.svelte:button:225:40",
+      "ordinal": 13,
+      "kind": "button",
+      "file": "desktop/src/lib/HelpCenter.svelte",
+      "line": 225,
+      "column": 40,
+      "label": "Copy HTTP MCP configuration",
+      "role": null,
+      "region": "Copy HTTP MCP configuration",
+      "heading": "{headless.title}",
+      "guards": [],
+      "disabled": null,
+      "href": null,
+      "events": [
+        {
+          "name": "click",
+          "expression": "() => copyText(mcpHttpConfig, \"HTTP MCP configuration\")",
+          "expressionNode": {
+            "type": "ArrowFunctionExpression",
+            "start": 24528,
+            "end": 24583,
+            "loc": {
+              "start": {
+                "line": 225,
+                "column": 129
+              },
+              "end": {
+                "line": 225,
+                "column": 184
+              }
+            },
+            "id": null,
+            "expression": true,
+            "generator": false,
+            "async": false,
+            "params": [],
+            "body": {
+              "type": "CallExpression",
+              "start": 24534,
+              "end": 24583,
+              "loc": {
+                "start": {
+                  "line": 225,
+                  "column": 135
+                },
+                "end": {
+                  "line": 225,
+                  "column": 184
+                }
+              },
+              "callee": {
+                "type": "Identifier",
+                "start": 24534,
+                "end": 24542,
+                "loc": {
+                  "start": {
+                    "line": 225,
+                    "column": 135
+                  },
+                  "end": {
+                    "line": 225,
+                    "column": 143
+                  }
+                },
+                "name": "copyText"
+              },
+              "arguments": [
+                {
+                  "type": "Identifier",
+                  "start": 24543,
+                  "end": 24556,
+                  "loc": {
+                    "start": {
+                      "line": 225,
+                      "column": 144
+                    },
+                    "end": {
+                      "line": 225,
+                      "column": 157
+                    }
+                  },
+                  "name": "mcpHttpConfig"
+                },
+                {
+                  "type": "Literal",
+                  "start": 24558,
+                  "end": 24582,
+                  "loc": {
+                    "start": {
+                      "line": 225,
+                      "column": 159
+                    },
+                    "end": {
+                      "line": 225,
+                      "column": 183
+                    }
+                  },
+                  "value": "HTTP MCP configuration",
+                  "raw": "\"HTTP MCP configuration\""
+                }
+              ],
+              "optional": false
+            }
+          },
+          "targets": [],
+          "callCount": 2,
+          "calls": [
+            {
+              "name": "copyText",
+              "args": [
+                {
+                  "text": "mcpHttpConfig",
+                  "literal": null
+                },
+                {
+                  "text": "\"HTTP MCP configuration\"",
+                  "literal": "HTTP MCP configuration"
+                }
+              ],
+              "file": "desktop/src/lib/HelpCenter.svelte",
+              "line": 225,
+              "via": "handler"
+            }
+          ]
+        }
+      ],
+      "source": "<button type=\"button\" class=\"help-copy\" aria-label=\"Copy HTTP MCP configuration\" onclick={() => copyText(mcpHttpConfig, \"HTTP MCP configuration\")}><Copy size={15} /> Copy</button>",
+      "targets": [],
+      "trace": [
+        "copyText(mcpHttpConfig, \"HTTP MCP configuration\")"
+      ],
       "clickable": true
     },
     {
@@ -62413,7 +62682,7 @@
     {
       "destination": "external:https://github.com/quietvoid/hdr10plus_tool/releases/latest",
       "controls": [
-        "desktop/src/lib/HelpCenter.svelte:link:162:9",
+        "desktop/src/lib/HelpCenter.svelte:link:178:9",
         "desktop/src/lib/views/EnvironmentPanel.svelte:link:106:235"
       ]
     },
@@ -62810,7 +63079,7 @@
     {
       "destination": "external:https://github.com/quietvoid/hdr10plus_tool/releases/latest",
       "controls": [
-        "desktop/src/lib/HelpCenter.svelte:link:162:9",
+        "desktop/src/lib/HelpCenter.svelte:link:178:9",
         "desktop/src/lib/views/EnvironmentPanel.svelte:link:106:235"
       ]
     },

@@ -43,6 +43,7 @@ mod encode_supervisor;
 mod environment;
 mod executable_lookup;
 mod hdr_metadata;
+mod help_content;
 mod integrity;
 mod job_state;
 mod library_artwork;

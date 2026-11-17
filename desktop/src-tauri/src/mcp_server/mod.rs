@@ -758,6 +758,32 @@ impl McpServer {
     }
 
     #[tool(
+        name = "explain_settings",
+        description = "Read-only. Plain-language explanations of the encoder settings, exactly as the app shows them to people: what CRF means (pass topic=crf and crf=<0-51> for that number's quality band and rough size), presets, content tune, short test, and individual settings such as hdr10plus, dolbyVision, secondaryVideo, copyVerification, qualityCheck, minSsim and the YouTube options. Omit topic for everything. Use this to explain a choice to the user before changing it."
+    )]
+    fn explain_settings(
+        &self,
+        Parameters(params): Parameters<ExplainParams>,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        super::help_content::explain(params.topic.as_deref(), params.crf)
+            .map(rmcp::handler::server::wrapper::Json)
+            .map_err(|error| ErrorData::invalid_params(error, None))
+    }
+
+    #[tool(
+        name = "app_guide",
+        description = "Read-only. The application guide from the app itself: section=workflow (a typical agent workflow), modes (what each run mode does and which confirm field it needs), safety (what protects the user's files), headless (running the app in a browser or on a server: sign-in, read-only, --root, HTTPS, setup without a password) or mcp (how this server behaves). Omit section to list them."
+    )]
+    fn app_guide(
+        &self,
+        Parameters(params): Parameters<GuideParams>,
+    ) -> Result<rmcp::handler::server::wrapper::Json<Value>, ErrorData> {
+        super::help_content::guide(params.section.as_deref())
+            .map(rmcp::handler::server::wrapper::Json)
+            .map_err(|error| ErrorData::invalid_params(error, None))
+    }
+
+    #[tool(
         name = "get_job",
         description = "Get scan, encode, repair, or helper-install progress. For media runs, resource_snapshot contains the latest Rust-observed system RAM/swap pressure, CPU/load, disk free space, and engine/FFmpeg process memory where supported; active safety guards and pressure retries run in the native Rust coordinators. For folder analysis, request bounded result pages with offset and limit (maximum 250). Includes recent diagnostic lines, job status, and per-file errors. For rebuild jobs, batch holds live per-file results, space written and originals retained in .hevc-rebuild-originals, free space now, an ETA, the reason for any halt, and a closing report. Status paused means the run stopped itself to protect the disk or after repeated failures; remaining files were not touched. completed_with_failures means every file was attempted and some failed safely (see batch.failures)."
     )]
@@ -1355,7 +1381,7 @@ impl McpServer {
 #[tool_handler(
     name = "hevc-rebuild-studio",
     version = "1.4.1",
-    instructions = "Local Ubuntu-first media library analysis and HEVC rebuild MCP server. Inspect first; analysis is read-only. Runs default to check mode. Require explicit confirmation flags before short-test or full rebuild outputs. System setup is plan_system_setup then provision_system after the user approves the plan. Only process media the user owns or is authorized to use."
+    instructions = "Local HEVC rebuild MCP server (Linux, macOS and Windows). Inspect first: inspect_environment, then analyze; analysis is read-only and runs default to check mode. Short tests, full rebuilds, renames, artwork saves and package setup each need their own confirm field: show the plan or preview to the user before setting it. Only one run, scan or setup job is active at a time; a second start reports it is already active, whether it was started here or in the app's browser view, which shows this server's jobs live. Poll get_job. System setup is plan_system_setup then provision_system after the user approves; no password is ever requested, so on a server without a desktop the plan reports what to change. To explain a choice to the user call explain_settings (CRF, presets, tune, HDR and the rest); for the workflow, run modes, safety rules and headless notes call app_guide. A read-only server does not offer this endpoint. Only process media the user owns or is authorized to use."
 )]
 impl ServerHandler for McpServer {}
 

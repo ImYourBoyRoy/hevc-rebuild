@@ -47,6 +47,23 @@ pub(super) struct IntegrityParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub(super) struct ExplainParams {
+    /// A topic (`all`, `crf`, `tune`, `preset`, `settings`, `short_test`) or one setting name such as `hdr10plus`,
+    /// `dolbyVision`, `qualityCheck` or `minSsim`. Omit for everything.
+    pub(super) topic: Option<String>,
+    /// With topic `crf`: also return the quality band and rough file size for this CRF number (0 to 51).
+    pub(super) crf: Option<i64>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub(super) struct GuideParams {
+    /// `workflow`, `modes`, `safety`, `headless` or `mcp`. Omit to list the sections.
+    pub(super) section: Option<String>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub(super) struct JobParams {
     pub(super) job_id: String,
     pub(super) offset: Option<usize>,
