@@ -258,7 +258,21 @@ is no way to turn authentication off.
   ```
 - A tab that opens while a run is active follows it, including its recent
   output, progress and ETA; the saved queue refreshes as the run advances.
-- Status: stages 1-3. A library-free headless build is still open.
+- `--root DIR` (repeatable) keeps the browser API inside those folders: the path
+  browser starts there and cannot leave, and media/output paths in commands are
+  checked. It is a guard rail, not a sandbox (tool paths and the MCP tools are not
+  confined, so `/mcp` is off with `--root` unless `--allow-mcp-with-root`). Use a
+  dedicated user or a container for real isolation.
+- Right-click in the browser opens the same menu as the desktop window.
+
+### Headless install (no webkit/GTK)
+
+`cargo build --release --no-default-features --bin hevc-rebuild-studio` builds the
+server without any GUI library; `tools/package-headless.sh` also builds the
+frontend and writes `dist/hevc-rebuild-studio-headless.tar.gz` (`bin/` and
+`share/hevc-rebuild-studio/web/`). Unpack anywhere and run
+`bin/hevc-rebuild-studio serve`; it finds `web/` by itself, or pass `--web-root`.
+This build has no window, so run it with `serve`, `--mcp`, `cli` or `json`.
 
 ## Modes
 

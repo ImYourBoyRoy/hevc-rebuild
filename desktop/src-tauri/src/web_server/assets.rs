@@ -174,7 +174,9 @@ pub(crate) fn prepare_index(html: &str) -> String {
 }
 
 /// Embedded frontend files by relative path, decompressed. Empty when this build did not embed a
-/// frontend (a plain debug build uses the dev server instead).
+/// frontend (a plain debug build uses the dev server instead), and always empty in the headless build,
+/// which serves the GUI from a folder (`--web-root`, or `web/` next to the executable).
+#[cfg(feature = "desktop")]
 pub(crate) fn embedded_assets() -> HashMap<String, Vec<u8>> {
     let context = crate::tauri_context();
     let assets = context.assets();
@@ -186,6 +188,11 @@ pub(crate) fn embedded_assets() -> HashMap<String, Vec<u8>> {
         }
     }
     files
+}
+
+#[cfg(not(feature = "desktop"))]
+pub(crate) fn embedded_assets() -> HashMap<String, Vec<u8>> {
+    HashMap::new()
 }
 
 #[cfg(test)]

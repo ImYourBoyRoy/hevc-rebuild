@@ -1,5 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// The headless build is a console program (it prints the login link), so only the window build hides the console.
+#![cfg_attr(
+    all(not(debug_assertions), feature = "desktop"),
+    windows_subsystem = "windows"
+)]
 
 fn main() {
     let mut args = std::env::args_os().skip(1);
@@ -7,6 +11,7 @@ fn main() {
     if mode.as_deref().is_some_and(|arg| arg == "internal") {
         std::process::exit(hevc_rebuild_studio_lib::internal_cli_mode(args.collect()));
     }
+    #[cfg(feature = "desktop")]
     if mode.as_deref().is_some_and(|arg| arg == "agent-control") {
         std::process::exit(hevc_rebuild_studio_lib::agent_control_mode(args.collect()));
     }
@@ -34,6 +39,12 @@ fn main() {
             println!("  hevc-rebuild-studio agent-control ...       Control an opted-in native app walkthrough");
             println!("HEVC Rebuild Studio\n\nUsage:\n  hevc-rebuild-studio                         Launch the desktop app\n  hevc-rebuild-studio serve [options]         Run headless: serve the GUI and commands over HTTP (see serve --help)\n  hevc-rebuild-studio cli [engine options]    Run the shared native media workflow\n  hevc-rebuild-studio json [bridge action]    Return machine-readable JSON\n  hevc-rebuild-studio json work-directory --root PATH\n                                             Resolve the dynamic per-source work folder\n  hevc-rebuild-studio json queue [options]    Read a page of the saved media queue\n  hevc-rebuild-studio json artwork-cache inspect\n                                             Review private poster-cache size and purgeable items\n  hevc-rebuild-studio json artwork-cache purge --preview-id ID --confirm\n                                             Remove reviewed unused app-managed posters\n  hevc-rebuild-studio json queue-select --request SELECTION.json\n                                             Save global selection from analyzed paths\n  hevc-rebuild-studio json queue-run --request RUNS.json\n                                             Run selected files from one or more roots\n  hevc-rebuild-studio json output-plan --request REQUEST.json\n                                             Preview multi-source output paths\n  hevc-rebuild-studio json integrity --file PATH [--level quick|full]\n                                             Native container/bitstream integrity check\n  hevc-rebuild-studio json check --file PATH\n                                             Native read-only analysis; writes a report, not media\n  hevc-rebuild-studio metadata ...            Search public metadata\n  hevc-rebuild-studio organize ...            Scan, preview, or confirm a rename plan\n  hevc-rebuild-studio --mcp                   Start the local MCP stdio server\n");
         }
+        #[cfg(feature = "desktop")]
         _ => hevc_rebuild_studio_lib::run(),
+        #[cfg(not(feature = "desktop"))]
+        _ => {
+            eprintln!("This build has no desktop window (built without the `desktop` feature). Use `serve` to run the GUI in a browser, or `--help` for the other modes.");
+            std::process::exit(2);
+        }
     }
 }

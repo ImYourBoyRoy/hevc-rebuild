@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "desktop"), allow(dead_code))] // save/reveal/remove serve the desktop window only
 use keyring::{Entry, Error as KeyringError};
 use serde::{Deserialize, Serialize};
 

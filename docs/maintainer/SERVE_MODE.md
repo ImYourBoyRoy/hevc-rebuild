@@ -1,6 +1,6 @@
 # Headless server mode (`hevc-rebuild-studio serve`)
 
-Status: stages 1-3 implemented (2026-11-16/17); stage 4 is optional and planned below.
+Status: stages 1-4 implemented (2026-11-16/17).
 
 ## Goal
 
@@ -192,15 +192,48 @@ line is covered by the command-builder tests.
 3. **Done (stage 3):** `/mcp` over streamable HTTP sharing the job slot and bus
    (section 6); `active_job` plus GUI adoption of a job another client started;
    fix for the stdio `plan_system_setup`/`provision_system` panic.
-4. Optional: build without the Tauri/GTK runtime (cargo feature) for boxes
-   without webkit libraries; `--root` confinement for the path browser;
-   server-side update check.
+4. **Done (stage 4):** a `desktop` cargo feature (default on) gates Tauri, its
+   plugins, the embedded GUI and the agent-control channel; `--no-default-features`
+   builds the same executable as a headless server with no webkit/GTK; `--root`
+   confinement; a DOM right-click menu in the shim (section 7).
+
+### 7. Stage 4 details
+
+**Headless build.** `cargo build --no-default-features --bin hevc-rebuild-studio`
+links only libc, libm and libgcc (5 shared libraries, against 124 for the window
+build, none of them GUI libraries; the dependency graph has no tauri, wry, tao,
+webkit or gtk). Everything non-GUI is shared: `#[tauri::command]` is applied only with
+the feature (`cfg_attr`), the wrappers that take `State`/`AppHandle` exist only with
+it, and blocking work goes through `runtime::spawn_blocking` (Tauri's runtime in the
+window build, Tokio's in the headless one). Without `desktop` there is no embedded GUI: the server
+serves a folder, found in this order: `--web-root`, `web/` or
+`../share/hevc-rebuild-studio/web` next to the executable, then (window build only)
+the embedded copy. `tools/package-headless.sh` builds the frontend and the release
+binary and writes `hevc-rebuild-studio-headless.tar.gz` with that layout. Running the
+binary with no arguments prints that it has no window; `agent-control` is
+window-build only. CI builds, lints, tests the headless configuration and fails if
+the binary links a GUI library.
+
+**`--root DIR` (repeatable).** A guard rail for the browser API, not a sandbox. The path
+browser starts in the first root and cannot go above it (symlinks that lead out are
+hidden), `default_media_root` is the first root, and before a command runs every media or
+output path in its arguments (table in `web_server/scope.rs`: roots, selected files,
+output folders, per-file override keys, queue selection, rename roots, log export
+destination, ...) must resolve inside a root, following symlinks and rejecting `..` and
+relative paths; a file to be created is judged by where it would land. Not confined:
+tool paths (a token holder can point at any executable), data inside the queue
+document, and the MCP tools, which take paths anywhere, so `/mcp` is not offered with
+`--root` unless `--allow-mcp-with-root` is also given. For real isolation run the server
+as a dedicated user or in a container.
+
+**Right-click menu.** The GUI's native context menu is built with the Tauri `Menu`
+API; the shim records the items and their channel handlers, draws them as a menu at the
+pointer, runs the chosen action through its channel (once, in order), runs Cut / Copy /
+Paste / Select all through the browser, and closes on a choice, click outside or Escape.
 
 ## Open questions for the owner (defaults chosen, change on request)
 
 - Port 8437, loopback only, remote binding needs `--allow-remote`.
 - TLS through a reverse proxy only (no in-process TLS).
-- The Linux binary still links the webkit/GTK libraries because it is the same
-  executable as the desktop app; `serve` never initialises them. Stage 4 would
-  remove that if a library-free headless build is wanted.
+- Resolved in stage 4: the headless build has no webkit/GTK dependency at all.
 - Credentials: refuse over the API and use env vars/desktop app instead.

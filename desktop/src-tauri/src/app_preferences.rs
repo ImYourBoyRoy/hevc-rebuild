@@ -422,7 +422,7 @@ fn preference_payload(
     })
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn load_app_preferences() -> Result<AppPreferencesPayload, String> {
     let path = app_preferences_file()?;
     let has_saved_settings = path.is_file();
@@ -438,7 +438,7 @@ pub(crate) fn load_app_preferences() -> Result<AppPreferencesPayload, String> {
     preference_payload(preferences, has_saved_settings)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn save_app_preferences(preferences: Value) -> Result<AppPreferencesPayload, String> {
     let normalized = normalize_app_preferences(preferences)?;
     let _guard = PREFERENCES_WRITE_LOCK

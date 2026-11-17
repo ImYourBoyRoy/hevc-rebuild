@@ -13,6 +13,7 @@ mod fs_browse;
 mod mcp_tests;
 #[cfg(test)]
 mod router_tests;
+mod scope;
 
 use crate::mcp_server::McpServer;
 use crate::{Events, RunState};
@@ -47,6 +48,10 @@ pub(crate) struct AppContext {
     pub(crate) events: Events,
     /// The MCP server behind `/mcp`: one instance for every session, sharing `run_state` and `events`.
     pub(crate) mcp: McpServer,
+    /// `--root` folders; unrestricted by default (see scope.rs).
+    pub(crate) scope: scope::PathScope,
+    /// `--allow-mcp-with-root`: offer `/mcp` even though its tools are not confined to the roots.
+    pub(crate) mcp_with_root: bool,
     /// How the privileged setup step is authorised on this host; probed per call, replaceable in tests.
     pub(crate) privilege_route: PrivilegeProbe,
     pub(crate) read_only: bool,
@@ -102,6 +107,8 @@ pub(crate) fn test_context(read_only: bool) -> AppContext {
     let privilege_route: PrivilegeProbe = Arc::new(|| crate::provision::HeadlessRoute::Unavailable);
     AppContext {
         mcp: mcp_for(&run_state, &events, &privilege_route),
+        scope: scope::PathScope::default(),
+        mcp_with_root: false,
         run_state,
         events,
         bus,
@@ -126,6 +133,9 @@ fn mcp_routes(router: Router<AppContext>, ctx: &AppContext) -> Router<AppContext
                 )
             }),
         );
+    }
+    if ctx.scope.is_restricted() && !ctx.mcp_with_root {
+        return router.route("/mcp", axum::routing::any(|| async { plain(StatusCode::FORBIDDEN, "The MCP endpoint is not offered with --root: its tools take paths anywhere on the server. Start with --allow-mcp-with-root to offer it anyway.") }));
     }
     use rmcp::transport::streamable_http_server::{
         session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,

@@ -97,6 +97,7 @@ pub(crate) struct Events(Arc<EventSink>);
 type EventSink = dyn Fn(&str, Value) + Send + Sync;
 
 impl Events {
+    #[cfg(feature = "desktop")]
     pub(crate) fn from_tauri(app: AppHandle) -> Events {
         Events::from_fn(move |event, payload| {
             let _ = app.emit(event, payload);

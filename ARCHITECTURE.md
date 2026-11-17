@@ -9,9 +9,9 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 
 | Measure | Value |
 |---|---|
-| Files | 580 |
-| Text lines | 227,740 |
-| Size on disk | 16997.2 KiB |
+| Files | 583 |
+| Text lines | 228,832 |
+| Size on disk | 17046.6 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-15 files · 1,878 lines · 216.4 KiB
+15 files · 1,883 lines · 218.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -35,14 +35,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `.gitignore` | 82 | 1.2 KiB | Ignore rules: build output, dependencies, local notes (MEMORY.md, todos.md), artifact drop, credentials. |
 | `.mcp.json` | 8 | 130 B | Claude Code project MCP servers: the local Svelte MCP (svelte-autofixer, docs). |
 | `.nvmrc` | 1 | 8 B | Recommended Node LTS for builds. |
-| `AGENTS.md` | 175 | 8.7 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
+| `AGENTS.md` | 178 | 9.0 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 865 | 176.5 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 867 | 177.7 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
-| `README.md` | 291 | 14.9 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
+| `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
 | `todos.md` | 15 | 1.1 KiB | Tracked backlog of unscheduled feature ideas (interactive tutorial guide). |
 | `uninstall.sh` | 18 | 502 B | Linux launcher uninstaller that preserves application data. |
 | `VERSION` | 1 | 6 B | Single-line product version; keep aligned with package.json, Cargo.toml and tauri.conf.json. |
@@ -65,11 +65,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `.github/workflows/`
 
-2 files · 443 lines · 16.4 KiB
+2 files · 454 lines · 17.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `ci.yml` | 236 | 7.8 KiB | CI: source gates (Rust fmt/clippy/tests, frontend check, browser contracts) on every push and pull request. |
+| `ci.yml` | 247 | 8.5 KiB | CI: source gates (Rust fmt/clippy/tests, frontend check, browser contracts) on every push and pull request. |
 | `release.yml` | 207 | 8.6 KiB | Release pipeline: builds, signs and publishes platform bundles and updater artifacts. |
 
 ### `App/`
@@ -115,14 +115,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/`
 
-11 files · 6,375 lines · 151.9 KiB
+11 files · 6,394 lines · 152.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitignore` | 7 | 166 B | Rust build output ignore rules. |
-| `build.rs` | 23 | 1.2 KiB | Tauri build script; also embeds the Windows manifest into every target so the unit-test executable can load Common Controls v6. |
+| `build.rs` | 26 | 1.4 KiB | Tauri build script; also embeds the Windows manifest into every target so the unit-test executable can load Common Controls v6. |
 | `Cargo.lock` | 6,164 | 144.4 KiB | Rust dependency lockfile (committed). |
-| `Cargo.toml` | 63 | 2.4 KiB | Rust crate manifest: Tauri 2 app, library and dependency floors. |
+| `Cargo.toml` | 79 | 3.2 KiB | Rust crate manifest: Tauri 2 app, library and dependency floors. |
 | `linux-post-install.sh` | 18 | 577 B | Debian package post-install hook. |
 | `linux-post-remove.sh` | 11 | 294 B | Debian package post-remove hook. |
 | `linux.desktop.hbs` | 9 | 171 B | Linux .desktop entry template. |
@@ -258,14 +258,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/`
 
-71 files · 32,882 lines · 1140.8 KiB
+72 files · 32,973 lines · 1145.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `agent_control.rs` | 585 | 20.0 KiB | Opt-in local Unix-socket or Windows named-pipe control channel for native maintainer walkthroughs; bounded keyboard/state protocol only. |
 | `app_paths.rs` | 225 | 8.1 KiB | Per-user application config, state, cache and queue locations, including AppImage portable storage. |
-| `app_preferences.rs` | 698 | 28.1 KiB | Saved application preferences: defaults, normalization and the load/save commands. |
-| `apt_commands.rs` | 184 | 6.4 KiB | Tauri commands that check, refresh, upgrade and repair Ubuntu packages and install HDR10+ tooling. |
+| `app_preferences.rs` | 698 | 28.2 KiB | Saved application preferences: defaults, normalization and the load/save commands. |
+| `apt_commands.rs` | 185 | 6.5 KiB | Tauri commands that check, refresh, upgrade and repair Ubuntu packages and install HDR10+ tooling. |
 | `apt_policy.rs` | 9 | 225 B | The fixed Ubuntu package allowlist shared by the GUI, CLI and MCP one-pass setup. |
 | `argument_tests.rs` | 372 | 12.7 KiB | Characterization tests for the engine arguments built from settings, selections and overrides. |
 | `backup_folder.rs` | 143 | 5.5 KiB | Where the originals go after a rebuild. |
@@ -274,11 +274,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `cli_apt.rs` | 54 | 1.9 KiB | The `json provision-plan` and `json provision --confirm` actions. |
 | `cli_json.rs` | 570 | 19.1 KiB | The installed `json` command: scan, queue, work-directory, artwork-cache, environment and report actions. |
 | `cli_modes.rs` | 238 | 8.8 KiB | Process entry points for the `cli`, `json`, internal, metadata, organizer and MCP command-line modes. |
-| `commands_library.rs` | 144 | 4.5 KiB | Tauri commands for library artwork, local asset scans, folder organizing and file reveal. |
-| `commands_logs.rs` | 108 | 3.9 KiB | Tauri commands for reports, tool-setup logs and confined diagnostic log reads. |
-| `commands_metadata.rs` | 218 | 7.0 KiB | Tauri commands for filename clues, public film/TV lookups and TMDb/TVDB credentials. |
-| `commands_queue.rs` | 79 | 2.8 KiB | Tauri commands that load and save the persisted library queue and preview output targets. |
-| `commands_workspace.rs` | 148 | 5.0 KiB | Tauri commands for environment inspection, effective settings, work directory and folder scans. |
+| `commands_library.rs` | 146 | 4.9 KiB | Tauri commands for library artwork, local asset scans, folder organizing and file reveal. |
+| `commands_logs.rs` | 108 | 4.0 KiB | Tauri commands for reports, tool-setup logs and confined diagnostic log reads. |
+| `commands_metadata.rs` | 221 | 7.7 KiB | Tauri commands for filename clues, public film/TV lookups and TMDb/TVDB credentials. |
+| `commands_queue.rs` | 79 | 3.0 KiB | Tauri commands that load and save the persisted library queue and preview output targets. |
+| `commands_workspace.rs` | 152 | 5.2 KiB | Tauri commands for environment inspection, effective settings, work directory and folder scans. |
 | `content.rs` | 335 | 11.8 KiB | Read-only content genre and x265 tune decisions shared by the scanner and the encoder planning. |
 | `dependencies.rs` | 943 | 35.0 KiB | Read-only cached APT installed/candidate version report. |
 | `encode_plan.rs` | 902 | 33.3 KiB | Rust-owned FFmpeg/x265 argument planning. |
@@ -288,13 +288,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `executable_lookup.rs` | 146 | 4.8 KiB | PATH lookup used to decide whether a helper tool can be launched. |
 | `hdr_metadata.rs` | 1,193 | 41.3 KiB | HDR10+ extraction/verification and Dolby Vision preservation or fallback eligibility. |
 | `integrity.rs` | 985 | 31.5 KiB | Native read-only media integrity checks. |
-| `job_state.rs` | 311 | 9.8 KiB | The single active-job slot behind the desktop run controls, the `Events` sink job runners emit into (the desktop window or the headless server's bus), and the e |
-| `lib.rs` | 293 | 11.0 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
+| `job_state.rs` | 312 | 9.8 KiB | The single active-job slot behind the desktop run controls, the `Events` sink job runners emit into (the desktop window or the headless server's bus), and the e |
+| `lib.rs` | 300 | 11.2 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
 | `library_artwork.rs` | 396 | 15.8 KiB | Confirmed provider/local artwork saves, cache inspection and reviewed purge. |
 | `library_assets.rs` | 628 | 20.4 KiB | Bounded adjacent-artwork inspection (never reads NFO sidecars). |
 | `library_metadata.rs` | 234 | 7.1 KiB | Bounded public-provider requests, title-clue parser and metadata review data. |
 | `library_organizer.rs` | 45 | 1.3 KiB | Local name/episode scans, validated templates, rename preview and collision-safe apply. |
-| `main.rs` | 39 | 3.6 KiB | Executable entry: GUI, `cli`, `json`, `metadata`, `internal`, `agent-control` and `--mcp` mode dispatch. |
+| `main.rs` | 50 | 4.0 KiB | Executable entry: GUI, `cli`, `json`, `metadata`, `internal`, `agent-control` and `--mcp` mode dispatch. |
 | `matroska_apply.rs` | 376 | 12.8 KiB | Native `apply_metadata`: reviewed tag merge, poster, and text scrub. |
 | `matroska_poster.rs` | 489 | 16.3 KiB | Native poster selection, JPEG normalization, and cover attachment. |
 | `matroska_scrub.rs` | 582 | 19.3 KiB | Native output text scrub for Matroska files. |
@@ -302,7 +302,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `matroska_verify.rs` | 298 | 10.6 KiB | Native post-write expectation checks for a metadata-tagged Matroska output (T4.3d). |
 | `media_queue.rs` | 373 | 15.0 KiB | Durable, local queue state for scanned media sources. |
 | `media_scan.rs` | 517 | 18.6 KiB | Rust-owned, read-only media discovery and stream profiling. |
-| `metadata_credentials.rs` | 207 | 7.5 KiB | OS credential-manager storage for TMDB/TheTVDB secrets (desktop UI only). |
+| `metadata_credentials.rs` | 208 | 7.6 KiB | OS credential-manager storage for TMDB/TheTVDB secrets (desktop UI only). |
 | `metadata_run.rs` | 405 | 12.6 KiB | Native Metadata-only MKV run coordinator. |
 | `metadata_text.rs` | 619 | 19.7 KiB | Case-insensitive glob cleanup and release-group suffix policy for metadata text. |
 | `output_targets.rs` | 559 | 20.7 KiB | Read-only output planning shared by the desktop UI, JSON CLI, and MCP. |
@@ -318,10 +318,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `resource_plan.rs` | 570 | 20.7 KiB | Shared Rust profile-aware resource planning for preflight and engine runs. |
 | `run_arguments.rs` | 464 | 18.1 KiB | Validated engine request arguments shared by GUI and MCP callers. |
 | `run_checks.rs` | 342 | 11.9 KiB | Integrity and tool-check runs started from the desktop run controls. |
-| `run_commands.rs` | 426 | 15.5 KiB | Tauri commands that start, stop and abort a desktop run. |
+| `run_commands.rs` | 429 | 15.6 KiB | Tauri commands that start, stop and abort a desktop run. |
 | `run_coordinator.rs` | 554 | 18.6 KiB | Native media-run coordinator. |
 | `run_native.rs` | 223 | 7.4 KiB | Native job runners that drive metadata, YouTube and rebuild runs for the desktop window. |
 | `runtime_guard.rs` | 465 | 16.1 KiB | Stateful live memory and disk guard policy for encode runs. |
+| `runtime.rs` | 58 | 1.9 KiB | The one place that picks the async runtime for blocking work: Tauri's in the window build, Tokio's in the headless build. |
 | `settings_arguments.rs` | 316 | 10.3 KiB | Validated settings-to-engine CLI contract shared by GUI and MCP. |
 | `settings.rs` | 629 | 20.1 KiB | Effective-settings resolver: built-in, user TOML, app profile, folder TOML. |
 | `stop_control.rs` | 153 | 5.3 KiB | Private per-job safe-stop marker; no predictable shared /tmp file is opened. |
@@ -476,20 +477,21 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/web_server/`
 
-10 files · 3,344 lines · 126.3 KiB
+11 files · 4,167 lines · 159.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `assets.rs` | 269 | 10.0 KiB | GUI files for the server (embedded Tauri assets or --web-root): index rewrite (shim injection, Tauri CSP removed), inline-script CSP hashes, traversal-safe lookup. |
+| `assets.rs` | 276 | 10.3 KiB | GUI files for the server (embedded Tauri assets or --web-root): index rewrite (shim injection, Tauri CSP removed), inline-script CSP hashes, traversal-safe lookup. |
 | `auth.rs` | 207 | 7.3 KiB | Server token (256-bit, constant-time compare), bearer/cookie extraction, session cookie, Host allow-list and Origin match. |
-| `commands.rs` | 617 | 27.3 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
-| `config.rs` | 390 | 13.8 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
+| `commands.rs` | 669 | 29.9 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
+| `config.rs` | 560 | 20.5 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
 | `events.rs` | 319 | 11.2 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
-| `fs_browse.rs` | 135 | 4.5 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
-| `mcp_tests.rs` | 292 | 9.7 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
-| `mod.rs` | 385 | 13.7 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
-| `router_tests.rs` | 413 | 13.9 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
-| `web_shim.js` | 317 | 14.9 KiB | Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab. |
+| `fs_browse.rs` | 193 | 7.0 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
+| `mcp_tests.rs` | 319 | 10.6 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
+| `mod.rs` | 395 | 14.3 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
+| `router_tests.rs` | 427 | 14.5 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
+| `scope.rs` | 365 | 13.3 KiB | `--root` confinement: canonical root set, symlink/`..`-safe path check, and the table of which command arguments carry media or output paths. |
+| `web_shim.js` | 437 | 20.3 KiB | Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab. |
 
 ### `desktop/src-tauri/src/youtube_run/`
 
@@ -761,7 +763,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-79 files · 10,600 lines · 712.8 KiB
+79 files · 10,650 lines · 715.7 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -840,7 +842,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `tool-setup-logs.test.mjs` | 73 | 4.4 KiB | Tool setup: saved setup logs (list, open, export). |
 | `tool-setup-provision.test.mjs` | 135 | 9.0 KiB | Tool setup: the one-pass "install and update everything" review and apply flow (one password). |
 | `tool-setup-repair.test.mjs` | 49 | 2.8 KiB | Tool setup: update checks, catalog refresh and the repair-apt flow. |
-| `web-shim.test.mjs` | 167 | 7.7 KiB | Contract tests running the real @tauri-apps/api modules against the web shim. |
+| `web-shim.test.mjs` | 217 | 10.6 KiB | Contract tests running the real @tauri-apps/api modules against the web shim. |
 | `window-state.test.mjs` | 237 | 11.8 KiB | Node tests for window-state-controller.ts with fake window, monitor, invoke, storage and timers. |
 | `workspace-state.test.mjs` | 50 | 3.3 KiB | Unit tests for the workspace state module. |
 | `youtube-contract.mjs` | 16 | 2.2 KiB | Browser contract: YouTube prep. |
@@ -905,11 +907,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,386 lines · 2651.8 KiB
+13 files · 78,403 lines · 2653.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `architecture-descriptions.json` | 317 | 48.4 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
+| `architecture-descriptions.json` | 320 | 48.9 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
 | `interaction-map.json` | 63,496 | 1930.4 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
 | `interaction-map.md` | 851 | 180.3 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
 | `interaction-tasks.json` | 320 | 9.8 KiB | Reviewed task journey selectors used to compute shortest click paths and over-tap deltas. |
@@ -921,11 +923,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 149 | 7.4 KiB | Installation and external tools |
-| `USAGE.md` | 330 | 16.3 KiB | Human usage guide |
+| `USAGE.md` | 344 | 17.2 KiB | Human usage guide |
 
 ### `docs/maintainer/`
 
-8 files · 740 lines · 39.0 KiB
+8 files · 777 lines · 41.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -935,8 +937,8 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `README.md` | 15 | 654 B | Maintainer notes |
 | `REVIEW.md` | 93 | 3.8 KiB | Review and release evidence |
 | `RUST_MIGRATION.md` | 92 | 4.8 KiB | Native Rust architecture record |
-| `SERVE_MODE.md` | 206 | 12.5 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
-| `TECHNICAL.md` | 174 | 8.7 KiB | Technical architecture |
+| `SERVE_MODE.md` | 239 | 14.8 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
+| `TECHNICAL.md` | 178 | 9.0 KiB | Technical architecture |
 
 ### `docs/screenshots/`
 
@@ -964,7 +966,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `tools/`
 
-14 files · 1,771 lines · 87.4 KiB
+15 files · 1,810 lines · 89.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -978,6 +980,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `interaction-waterfall-report.mjs` | 133 | 9.3 KiB | Renders state control inventories and multiflow click waterfalls as Markdown. |
 | `interaction-waterfall.mjs` | 69 | 3.3 KiB | CLI entry point that generates or checks the state-oriented interaction waterfall map. |
 | `normalize-linux-appimage.sh` | 108 | 3.9 KiB | Post-processes the Linux AppImage for portability. |
+| `package-headless.sh` | 39 | 1.8 KiB | Builds the headless server (no webkit/GTK) and the GUI and assembles the install tree and tarball the server discovers by itself. |
 | `serve-setup-sandbox.sh` | 69 | 4.3 KiB | Real privileged setup through the headless server as a namespace root (bubblewrap) on private apt copies; verifies plan, apt-get run, events and that the host apt state is unchanged. |
 | `tasklist-check.mjs` | 113 | 4.4 KiB | Validates dated tasklists (newest wins), lists open items, flags missing Files/Open questions/Supersedes. |
 | `tauri-linux-release.sh` | 16 | 519 B | Builds the Linux release bundles. |

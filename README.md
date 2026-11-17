@@ -33,7 +33,7 @@ replace the original after the output passes validation.
 - Create a validated metadata-only MKV without re-encoding video.
 - Review filenames, titles, posters, TV episodes, and output destinations before writing.
 - Prepare a separate YouTube copy without changing the source.
-- Use the same local workflows through the GUI, CLI, or stdio MCP server, or run it headless (`serve`): the GUI in a browser and an MCP endpoint over HTTP share the same jobs (see [USAGE.md](docs/USAGE.md#headless-server)).
+- Use the same local workflows through the GUI, CLI, or stdio MCP server, or run it headless (`serve`, also as a build with no GUI libraries): the GUI in a browser and an MCP endpoint over HTTP share the same jobs (see [USAGE.md](docs/USAGE.md#headless-server)).
 - Install and update every tool it needs in one pass: one password on Linux, one approval on Windows, none on macOS, shared by the GUI, CLI and MCP. It also checks for updates at launch and every six hours, and can keep password-free updates current automatically (off by default).
 - Explain its own settings in plain language: what CRF, presets, content tune and film grain mean, with warnings before a choice that will make files much larger.
 

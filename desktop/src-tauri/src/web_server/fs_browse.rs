@@ -1,6 +1,7 @@
 //! Server-side folder listing behind the browser's replacement for the native file/folder pickers.
 //! Read-only: it lists names, never contents.
 
+use super::scope::PathScope;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
@@ -24,11 +25,14 @@ pub(crate) struct DirectoryListing {
     pub(crate) truncated: bool,
 }
 
-fn start_directory(requested: Option<&str>) -> Result<PathBuf, String> {
+fn start_directory(requested: Option<&str>, scope: &PathScope) -> Result<PathBuf, String> {
     let requested = requested.map(str::trim).filter(|path| !path.is_empty());
     let path = match requested {
         Some(path) => PathBuf::from(path),
-        None => PathBuf::from(crate::commands_workspace::default_media_root()?),
+        None => match scope.first_root() {
+            Some(root) => root.to_path_buf(),
+            None => PathBuf::from(crate::commands_workspace::default_media_root()?),
+        },
     };
     // A file path (a remembered default) lists its folder.
     let directory = if path.is_file() {
@@ -44,8 +48,10 @@ fn start_directory(requested: Option<&str>) -> Result<PathBuf, String> {
 pub(crate) fn list_directory(
     path: Option<&str>,
     show_hidden: bool,
+    scope: &PathScope,
 ) -> Result<DirectoryListing, String> {
-    let directory = start_directory(path)?;
+    let directory = start_directory(path, scope)?;
+    scope.check(&directory.to_string_lossy())?;
     if !directory.is_dir() {
         return Err(format!("{} is not a folder.", directory.display()));
     }
@@ -61,6 +67,9 @@ pub(crate) fn list_directory(
         if entries.len() >= MAX_ENTRIES {
             truncated = true;
             break;
+        }
+        if !scope.contains(&item.path()) {
+            continue; // a symlink that leads outside the root
         }
         let metadata = item.metadata().ok();
         let is_dir = item.path().is_dir();
@@ -84,6 +93,7 @@ pub(crate) fn list_directory(
         path: directory.to_string_lossy().into_owned(),
         parent: directory
             .parent()
+            .filter(|parent| scope.contains(parent))
             .map(|parent| parent.to_string_lossy().into_owned()),
         entries,
         truncated,
@@ -101,7 +111,7 @@ mod tests {
         std::fs::create_dir(root.join("A-folder")).unwrap();
         std::fs::write(root.join("movie.mkv"), b"12345").unwrap();
         std::fs::write(root.join(".hidden"), b"x").unwrap();
-        let listing = list_directory(root.to_str(), false).unwrap();
+        let listing = list_directory(root.to_str(), false, &PathScope::default()).unwrap();
         let names: Vec<_> = listing
             .entries
             .iter()
@@ -114,7 +124,7 @@ mod tests {
             listing.parent.as_deref(),
             root.parent().and_then(Path::to_str)
         );
-        let with_hidden = list_directory(root.to_str(), true).unwrap();
+        let with_hidden = list_directory(root.to_str(), true, &PathScope::default()).unwrap();
         assert!(with_hidden
             .entries
             .iter()
@@ -123,13 +133,61 @@ mod tests {
     }
 
     #[test]
+    fn a_scoped_browser_starts_in_the_first_root_and_cannot_climb_out_of_it() {
+        let base = crate::test_dir("web-browse-scope");
+        let media = base.join("media");
+        std::fs::create_dir_all(media.join("films")).unwrap();
+        std::fs::create_dir_all(base.join("secret")).unwrap();
+        let scope = PathScope::new(std::slice::from_ref(&media)).unwrap();
+        let start = list_directory(None, false, &scope).expect("starts in the root");
+        assert_eq!(start.path, media.canonicalize().unwrap().to_string_lossy());
+        assert_eq!(start.parent, None, "the root has no way up");
+        let films = list_directory(media.join("films").to_str(), false, &scope).unwrap();
+        assert_eq!(
+            films.parent.as_deref(),
+            media.canonicalize().unwrap().to_str(),
+            "inside the root, up works"
+        );
+        assert!(list_directory(base.join("secret").to_str(), false, &scope)
+            .unwrap_err()
+            .contains("--root"));
+        assert!(
+            list_directory(base.to_str(), false, &scope).is_err(),
+            "the parent of the root is out of bounds"
+        );
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_scoped_listing_hides_symlinks_that_lead_outside() {
+        let base = crate::test_dir("web-browse-link");
+        let media = base.join("media");
+        std::fs::create_dir_all(&media).unwrap();
+        std::fs::create_dir_all(base.join("secret")).unwrap();
+        std::fs::create_dir_all(media.join("real")).unwrap();
+        std::os::unix::fs::symlink(base.join("secret"), media.join("escape")).unwrap();
+        let scope = PathScope::new(std::slice::from_ref(&media)).unwrap();
+        let listing = list_directory(media.to_str(), false, &scope).unwrap();
+        let names: Vec<_> = listing
+            .entries
+            .iter()
+            .map(|entry| entry.name.as_str())
+            .collect();
+        assert_eq!(names, ["real"]);
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
     fn a_file_path_lists_its_folder_and_a_missing_path_is_an_error() {
         let root = crate::test_dir("web-browse-file");
         let file = root.join("clip.mkv");
         std::fs::write(&file, b"x").unwrap();
-        let listing = list_directory(file.to_str(), false).unwrap();
+        let listing = list_directory(file.to_str(), false, &PathScope::default()).unwrap();
         assert_eq!(listing.path, root.to_string_lossy());
-        assert!(list_directory(root.join("missing").to_str(), false).is_err());
+        assert!(
+            list_directory(root.join("missing").to_str(), false, &PathScope::default()).is_err()
+        );
         std::fs::remove_dir_all(root).ok();
     }
 }

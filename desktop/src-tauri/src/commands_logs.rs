@@ -2,9 +2,9 @@
 
 use super::*;
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn delete_reports() -> Result<usize, String> {
-    tauri::async_runtime::spawn_blocking(|| {
+    crate::runtime::spawn_blocking(|| {
         let directory = state_log_directory()?;
         reports::delete_saved_reports(&directory)
     })
@@ -12,9 +12,9 @@ pub(crate) async fn delete_reports() -> Result<usize, String> {
     .map_err(|error| format!("Report deletion task failed: {error}"))?
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn list_reports(limit: u8) -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::runtime::spawn_blocking(move || {
         let directory = state_log_directory()?;
         Ok(reports::list_reports(
             &directory,
@@ -25,17 +25,17 @@ pub(crate) async fn list_reports(limit: u8) -> Result<Value, String> {
     .map_err(|error| format!("Report listing task failed: {error}"))?
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn list_tool_setup_logs() -> Result<Vec<tool_diagnostics::ToolSetupLogSummary>, String> {
     tool_diagnostics::list(&tool_setup_log_directory()?)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn read_tool_setup_log(job_id: String) -> Result<String, String> {
     tool_diagnostics::read(&tool_setup_log_directory()?, &job_id)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn export_tool_setup_log(job_id: String, destination: String) -> Result<String, String> {
     tool_diagnostics::export(
         &tool_setup_log_directory()?,
@@ -44,7 +44,7 @@ pub(crate) fn export_tool_setup_log(job_id: String, destination: String) -> Resu
     )
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn read_log(path: String) -> Result<String, String> {
     let allowed = state_log_directory()?
         .canonicalize()

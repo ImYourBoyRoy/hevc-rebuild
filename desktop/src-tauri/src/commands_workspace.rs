@@ -2,23 +2,23 @@
 
 use super::*;
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn inspect_environment(tool_paths: Option<ToolPaths>) -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::runtime::spawn_blocking(move || {
         environment::inspect_environment(tool_paths.unwrap_or_default(), None)
     })
     .await
     .map_err(|error| format!("Environment scan task failed: {error}"))?
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn load_settings(root: String) -> Result<settings::EffectiveSettings, String> {
-    tauri::async_runtime::spawn_blocking(move || settings::load_effective_settings(&root))
+    crate::runtime::spawn_blocking(move || settings::load_effective_settings(&root))
         .await
         .map_err(|error| format!("Settings load task failed: {error}"))?
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn resolve_work_directory_command(
     root: String,
     work_root: Option<String>,
@@ -26,7 +26,7 @@ pub(crate) fn resolve_work_directory_command(
     resolve_work_directory(&root, work_root.as_deref())
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn default_media_root() -> Result<String, String> {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
@@ -48,6 +48,7 @@ pub(crate) struct ScanFolderOptions {
     tool_paths: Option<ToolPaths>,
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) async fn scan_folder(
     app: AppHandle,
@@ -71,7 +72,7 @@ pub(crate) async fn scan_folder_with(
         new_active_job_of(id.clone(), Some(stop_file.clone()), "folder_analysis"),
     )?;
     let run_state = state.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    let result = crate::runtime::spawn_blocking(move || {
         media_scan::scan_media(
             media_scan::ScanOptions {
                 root: options.root,
@@ -99,11 +100,13 @@ pub(crate) async fn scan_folder_with(
 
 /// The job holding the single slot, if any. A window that did not start it (a job started over MCP in
 /// server mode, or from a second tab) uses this to follow it.
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) fn active_job(state: State<'_, RunState>) -> Option<ActiveJobInfo> {
     active_job_info(&state)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) fn cancel_scan(state: State<'_, RunState>) -> Result<(), String> {
     cancel_scan_with(&state)
@@ -124,6 +127,7 @@ pub(crate) fn cancel_scan_with(state: &RunState) -> Result<(), String> {
     stop_control::request(&path)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) async fn reconcile_interrupted_runs(
     state: State<'_, RunState>,
@@ -137,7 +141,7 @@ pub(crate) async fn reconcile_interrupted_runs_with(
 ) -> Result<media_queue::InterruptedRecovery, String> {
     let job_active = state.0.lock().map(|guard| guard.is_some()).unwrap_or(true);
     let queue_file = media_queue_file()?;
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::runtime::spawn_blocking(move || {
         if job_active {
             return media_queue::interrupted_recovery_skipped(&queue_file);
         }

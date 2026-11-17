@@ -8,7 +8,7 @@ use super::{router, AppContext};
 use crate::RunState;
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub(crate) const DEFAULT_PORT: u16 = 8437;
@@ -25,8 +25,14 @@ Options:\n\
   --read-only           Observation only: refuse every command that changes state\n\
   --token-file PATH     Read the access token from a file instead of generating one\n\
                         (or set HEVC_REBUILD_SERVE_TOKEN)\n\
-  --web-root DIR        Serve the GUI from DIR (for example desktop/build) instead of the\n\
-                        copy embedded in this executable (or set HEVC_REBUILD_WEB_ROOT)\n\
+  --web-root DIR        Serve the GUI from DIR (for example desktop/build); by default `web/`\n\
+                        next to the executable, or the copy embedded in a desktop build\n\
+                        (or set HEVC_REBUILD_WEB_ROOT)\n\
+  --root DIR            Confine the browser API to DIR (repeatable): the path browser and\n\
+                        every media/output path in a command must lie inside. A guard rail,\n\
+                        not a sandbox: tool paths are not confined, and /mcp is not offered\n\
+                        unless --allow-mcp-with-root is also given\n\
+  --allow-mcp-with-root Offer /mcp even with --root (its tools take paths anywhere)\n\
   -h, --help            Show this help\n\n\
 The server needs a token for every request. Without --token-file it generates a new one and\n\
 prints a login link. Use a reverse proxy for TLS; see docs/maintainer/SERVE_MODE.md.\n";
@@ -38,6 +44,8 @@ pub(crate) struct ServeConfig {
     pub(crate) token: Option<Token>,
     pub(crate) allowed_hosts: Vec<String>,
     pub(crate) web_root: Option<PathBuf>,
+    pub(crate) roots: Vec<PathBuf>,
+    pub(crate) allow_mcp_with_root: bool,
 }
 
 impl std::fmt::Debug for Token {
@@ -71,6 +79,8 @@ pub(crate) fn parse_args(
     let mut read_only = false;
     let mut allowed_hosts = Vec::new();
     let mut token_file: Option<PathBuf> = None;
+    let mut roots: Vec<PathBuf> = Vec::new();
+    let mut allow_mcp_with_root = false;
     let mut web_root = env_web_root
         .filter(|value| !value.trim().is_empty())
         .map(PathBuf::from);
@@ -108,6 +118,11 @@ pub(crate) fn parse_args(
                 token_file = Some(PathBuf::from(value_of(args, index, "--token-file")?));
                 index += 1;
             }
+            "--root" => {
+                roots.push(PathBuf::from(value_of(args, index, "--root")?));
+                index += 1;
+            }
+            "--allow-mcp-with-root" => allow_mcp_with_root = true,
             "--web-root" => {
                 web_root = Some(PathBuf::from(value_of(args, index, "--web-root")?));
                 index += 1;
@@ -147,22 +162,60 @@ pub(crate) fn parse_args(
         token,
         allowed_hosts,
         web_root,
+        roots,
+        allow_mcp_with_root,
     }))
 }
 
-fn asset_source(web_root: Option<PathBuf>) -> Result<AssetSource, String> {
-    let source = match web_root {
-        Some(root) => AssetSource::Directory(root),
-        None => AssetSource::Memory(assets::embedded_assets()),
+/// Where an installed copy keeps the built GUI: beside the executable, under `share/` for a system
+/// install (`bin/` and `share/` siblings), or one level up.
+pub(crate) fn default_web_roots(exe: &Path) -> Vec<PathBuf> {
+    let Some(bin) = exe.parent() else {
+        return Vec::new();
     };
-    if source.has_index() {
-        return Ok(source);
+    vec![
+        bin.join("web"),
+        bin.join("../share/hevc-rebuild-studio/web"),
+        bin.join("../web"),
+    ]
+}
+
+/// The GUI files to serve: `--web-root` if given; otherwise a folder installed beside this executable;
+/// otherwise (desktop build only) the copy embedded in the executable.
+fn asset_source(web_root: Option<PathBuf>, exe: Option<PathBuf>) -> Result<AssetSource, String> {
+    if let Some(root) = web_root {
+        let source = AssetSource::Directory(root);
+        return if source.has_index() {
+            Ok(source)
+        } else {
+            Err("The --web-root folder has no index.html. Build the frontend (`pnpm --dir desktop build`) and pass --web-root desktop/build.".into())
+        };
     }
-    Err("No GUI files were found. Build the frontend (`pnpm --dir desktop build`) and pass --web-root desktop/build, or use an executable built with the embedded frontend.".into())
+    let tried = exe.as_deref().map(default_web_roots).unwrap_or_default();
+    for candidate in &tried {
+        let source = AssetSource::Directory(candidate.clone());
+        if source.has_index() {
+            return Ok(source);
+        }
+    }
+    let embedded = AssetSource::Memory(assets::embedded_assets());
+    if embedded.has_index() {
+        return Ok(embedded);
+    }
+    let places = tried
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Err(format!(
+        "No GUI files were found. Pass --web-root DIR (for example desktop/build after `pnpm --dir desktop build`) or install them next to the executable; looked in: {}.",
+        if places.is_empty() { "(no executable path)".to_string() } else { places }
+    ))
 }
 
 async fn run(
     config: ServeConfig,
+    scope: super::scope::PathScope,
     generated: bool,
     token: Token,
     source: AssetSource,
@@ -187,6 +240,8 @@ async fn run(
         token: Arc::new(token.clone()),
         allowed_hosts: Arc::new(config.allowed_hosts),
         assets: Arc::new(source),
+        scope,
+        mcp_with_root: config.allow_mcp_with_root,
     };
     println!("HEVC Rebuild Studio server listening on http://{bound}");
     if generated {
@@ -200,6 +255,17 @@ async fn run(
         );
     } else {
         println!("Authenticate with the configured token: open http://{bound}/?token=<token>, or send `Authorization: Bearer <token>`.");
+    }
+    if let Some(first) = ctx.scope.first_root() {
+        println!(
+            "Confined to --root folders (starting in {}); /mcp is {}.",
+            first.display(),
+            if config.allow_mcp_with_root {
+                "offered (its tools are not confined)"
+            } else {
+                "not offered"
+            }
+        );
     }
     if config.read_only {
         println!("Read-only mode: commands that change state are refused.");
@@ -234,7 +300,14 @@ pub fn serve_mode(args: Vec<OsString>) -> i32 {
             return 2;
         }
     };
-    let source = match asset_source(config.web_root.clone()) {
+    let scope = match super::scope::PathScope::new(&config.roots) {
+        Ok(scope) => scope,
+        Err(message) => {
+            eprintln!("{message}");
+            return 2;
+        }
+    };
+    let source = match asset_source(config.web_root.clone(), std::env::current_exe().ok()) {
         Ok(source) => source,
         Err(message) => {
             eprintln!("{message}");
@@ -261,7 +334,7 @@ pub fn serve_mode(args: Vec<OsString>) -> i32 {
             return 1;
         }
     };
-    match runtime.block_on(run(config, generated, token, source)) {
+    match runtime.block_on(run(config, scope, generated, token, source)) {
         Ok(()) => 0,
         Err(message) => {
             eprintln!("{message}");
@@ -366,6 +439,28 @@ mod tests {
     }
 
     #[test]
+    fn roots_are_repeatable_must_exist_and_keep_mcp_off_unless_asked() {
+        let base = crate::test_dir("serve-roots");
+        let one = base.join("one");
+        let two = base.join("two");
+        std::fs::create_dir_all(&one).unwrap();
+        std::fs::create_dir_all(&two).unwrap();
+        let config = config(&[
+            "--root",
+            one.to_str().unwrap(),
+            "--root",
+            two.to_str().unwrap(),
+        ]);
+        assert_eq!(config.roots, vec![one.clone(), two.clone()]);
+        assert!(!config.allow_mcp_with_root);
+        let both = self::config(&["--root", one.to_str().unwrap(), "--allow-mcp-with-root"]);
+        assert!(both.allow_mcp_with_root);
+        assert!(self::config(&[]).roots.is_empty());
+        assert!(parse(&["--root"]).unwrap_err().contains("needs a value"));
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
     fn read_only_and_web_root_options_are_recorded() {
         let config = config(&["--read-only", "--web-root", "desktop/build"]);
         assert!(config.read_only);
@@ -376,15 +471,90 @@ mod tests {
         }
     }
 
+    fn gui_directory(label: &str) -> PathBuf {
+        let directory = crate::test_dir(label);
+        std::fs::write(directory.join("index.html"), "<html></html>").unwrap();
+        directory
+    }
+
+    #[test]
+    fn candidate_gui_folders_sit_beside_the_executable_or_under_share() {
+        let candidates = default_web_roots(Path::new("/opt/studio/bin/hevc-rebuild-studio"));
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from("/opt/studio/bin/web"),
+                PathBuf::from("/opt/studio/bin/../share/hevc-rebuild-studio/web"),
+                PathBuf::from("/opt/studio/bin/../web"),
+            ]
+        );
+    }
+
+    #[test]
+    fn without_an_explicit_folder_the_gui_is_found_next_to_the_executable() {
+        let install = crate::test_dir("serve-install");
+        let bin = install.join("bin");
+        std::fs::create_dir_all(bin.join("web")).unwrap();
+        std::fs::write(bin.join("web").join("index.html"), "<html></html>").unwrap();
+        let source = asset_source(None, Some(bin.join("hevc-rebuild-studio")))
+            .expect("found beside the executable");
+        assert!(source.has_index());
+        std::fs::remove_dir_all(install).ok();
+    }
+
+    #[test]
+    fn the_share_folder_layout_of_a_system_install_is_found_too() {
+        let install = crate::test_dir("serve-share");
+        std::fs::create_dir_all(install.join("bin")).unwrap();
+        let web = install.join("share/hevc-rebuild-studio/web");
+        std::fs::create_dir_all(&web).unwrap();
+        std::fs::write(web.join("index.html"), "<html></html>").unwrap();
+        assert!(asset_source(None, Some(install.join("bin/hevc-rebuild-studio"))).is_ok());
+        std::fs::remove_dir_all(install).ok();
+    }
+
+    #[test]
+    fn an_explicit_folder_wins_over_the_default_locations() {
+        let explicit = gui_directory("serve-explicit");
+        std::fs::write(explicit.join("marker.txt"), "explicit").unwrap();
+        let install = crate::test_dir("serve-explicit-install");
+        std::fs::create_dir_all(install.join("bin/web")).unwrap();
+        std::fs::write(install.join("bin/web/index.html"), "<html></html>").unwrap();
+        let source = asset_source(
+            Some(explicit.clone()),
+            Some(install.join("bin/hevc-rebuild-studio")),
+        )
+        .unwrap();
+        assert!(
+            source.read("marker.txt").is_some(),
+            "the explicit folder was used"
+        );
+        std::fs::remove_dir_all(explicit).ok();
+        std::fs::remove_dir_all(install).ok();
+    }
+
+    #[test]
+    fn a_missing_gui_names_every_place_that_was_tried() {
+        let error = asset_source(
+            None,
+            Some(PathBuf::from("/nonexistent/bin/hevc-rebuild-studio")),
+        )
+        .err()
+        .expect("nothing to serve");
+        assert!(error.contains("--web-root"), "{error}");
+        assert!(error.contains("/nonexistent/bin/web"), "{error}");
+        assert!(error.contains("share/hevc-rebuild-studio/web"), "{error}");
+    }
+
     #[test]
     fn a_missing_gui_directory_is_a_clear_error() {
         let directory = crate::test_dir("serve-no-gui");
-        let error = asset_source(Some(directory.clone()))
+        let error = asset_source(Some(directory.clone()), None)
             .err()
             .expect("no index.html");
         assert!(error.contains("--web-root"));
         std::fs::write(directory.join("index.html"), "<html></html>").unwrap();
-        assert!(asset_source(Some(directory.clone())).is_ok());
+        assert!(asset_source(Some(directory.clone()), None).is_ok());
         std::fs::remove_dir_all(directory).ok();
     }
 }

@@ -15,6 +15,10 @@ CLI, installed CLI, and stdio MCP server enter the same Rust services.
   saved preferences in `app_preferences`; per-user folders in `app_paths` and
   `work_directory`; the `json` and apt CLI actions in `cli_json`/`cli_apt`; and
   process entry points in `cli_modes`.
+- The `desktop` cargo feature (default) holds Tauri, its plugins, the embedded GUI
+  and agent-control; `--no-default-features` is the headless build (see
+  docs/maintainer/SERVE_MODE.md, section 7). `runtime.rs` is the one place that picks
+  the async runtime for blocking work.
 - desktop/src-tauri/src/main.rs routes GUI launch, CLI/JSON actions, MCP, the
   headless `serve` mode, and the opt-in agent-control client mode.
 - desktop/src-tauri/src/web_server/ is the headless server (`serve`): an axum

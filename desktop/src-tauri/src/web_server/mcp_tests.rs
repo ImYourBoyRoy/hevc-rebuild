@@ -290,3 +290,30 @@ async fn while_the_browser_runs_a_job_an_agents_job_is_refused() {
     assert!(message.contains("already active"), "{message}");
     std::fs::remove_dir_all(media).ok();
 }
+
+#[tokio::test]
+async fn mcp_is_not_offered_with_a_root_unless_the_operator_asks_for_it() {
+    let base = crate::test_dir("web-scope-mcp");
+    let mut ctx = test_context(false);
+    ctx.scope = super::scope::PathScope::new(std::slice::from_ref(&base)).unwrap();
+    let response = app(&ctx)
+        .oneshot(post(
+            None,
+            json!({"jsonrpc": "2.0", "id": 1, "method": "initialize"}),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body = text(response).await;
+    assert!(
+        body.contains("--root") && body.contains("--allow-mcp-with-root"),
+        "{body}"
+    );
+    ctx.mcp_with_root = true;
+    let session = initialize(&app(&ctx)).await;
+    assert!(
+        !session.is_empty(),
+        "offered when the operator accepts that MCP paths are not confined"
+    );
+    std::fs::remove_dir_all(base).ok();
+}

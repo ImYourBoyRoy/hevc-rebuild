@@ -104,6 +104,9 @@ cargo fmt --manifest-path desktop/src-tauri/Cargo.toml --all -- --check
 cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked --lib
 cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked --bin hevc-rebuild-studio
+# Headless build (no Tauri/webkit/GTK): same code, server/CLI/MCP only
+cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked --lib --no-default-features --target-dir desktop/src-tauri/target/headless
+cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --all-targets --locked --no-default-features --target-dir desktop/src-tauri/target/headless -- -D warnings
 sha256sum --check --quiet SHA256SUMS
 ```
 

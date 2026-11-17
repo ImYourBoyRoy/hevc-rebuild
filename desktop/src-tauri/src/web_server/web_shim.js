@@ -237,6 +237,113 @@
     });
   }
 
+  // ---- context menus (the GUI's native right-click menu, drawn in the page) ----------------------
+  var menus = new Map(); // rid -> model
+  var openMenu = { model: [], element: null };
+  var channelIndex = new Map(); // channel id -> next message index (Tauri channels are ordered)
+  var lastPoint = { x: 20, y: 20 };
+
+  function menuModel(options) {
+    var items = (options && options.items) || [];
+    return items.filter(function (entry) { return entry && !Array.isArray(entry); }).map(function (entry) {
+      if (entry.item === "Separator") return { type: "separator" };
+      if (typeof entry.item === "string") return { type: "builtin", name: entry.item };
+      return {
+        type: "item",
+        id: entry.id,
+        text: entry.text || "",
+        enabled: entry.enabled !== false,
+        channel: entry.handler && entry.handler.id,
+      };
+    });
+  }
+  function fireChannel(channelId, message) {
+    var callback = callbacks.get(channelId);
+    if (!callback) return;
+    var index = channelIndex.get(channelId) || 0;
+    channelIndex.set(channelId, index + 1);
+    callback({ index: index, message: message });
+  }
+  function closeMenu() {
+    if (openMenu.element && openMenu.element.remove) openMenu.element.remove();
+    openMenu = { model: [], element: null };
+  }
+  function runBuiltin(name) {
+    var doc = win.document;
+    if (!doc || !doc.execCommand) return;
+    if (name === "Copy") doc.execCommand("copy");
+    else if (name === "Cut") doc.execCommand("cut");
+    else if (name === "SelectAll") doc.execCommand("selectAll");
+    else if (name === "Paste") {
+      var clipboard = win.navigator && win.navigator.clipboard;
+      if (clipboard && clipboard.readText) clipboard.readText().then(function (text) { doc.execCommand("insertText", false, text); }, function () { doc.execCommand("paste"); });
+      else doc.execCommand("paste");
+    }
+  }
+  function activateItem(id) {
+    var entry = openMenu.model.filter(function (candidate) { return candidate.type === "item" && candidate.id === id; })[0];
+    if (!entry || !entry.enabled) return false;
+    closeMenu();
+    if (entry.channel !== undefined) fireChannel(entry.channel, id);
+    return true;
+  }
+  function activateBuiltin(name) {
+    closeMenu();
+    runBuiltin(name);
+  }
+  function renderMenu(model) {
+    var doc = win.document;
+    if (!doc || !doc.body || !doc.createElement) return;
+    var box = doc.createElement("div");
+    box.setAttribute("role", "menu");
+    box.setAttribute("data-hevc-web-menu", "");
+    box.style.cssText = "position:fixed;z-index:2147483001;min-width:200px;padding:4px;border-radius:8px;background:var(--surface,#1f2330);color:var(--text,#e8eaf2);border:1px solid var(--border,#3a4052);box-shadow:0 8px 28px rgba(0,0,0,.45);font:13px system-ui,sans-serif";
+    model.forEach(function (entry) {
+      if (entry.type === "separator") {
+        var rule = doc.createElement("div");
+        rule.style.cssText = "height:1px;margin:4px 2px;background:var(--border,#3a4052)";
+        box.appendChild(rule);
+        return;
+      }
+      var label = entry.type === "builtin" ? ({ SelectAll: "Select all" })[entry.name] || entry.name : entry.text;
+      var row = doc.createElement("button");
+      row.type = "button";
+      row.setAttribute("role", "menuitem");
+      row.textContent = label;
+      row.disabled = entry.type === "item" && !entry.enabled;
+      row.style.cssText = "display:block;width:100%;text-align:left;padding:6px 10px;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;cursor:" + (row.disabled ? "default" : "pointer") + ";opacity:" + (row.disabled ? ".45" : "1");
+      row.addEventListener("click", function (event) {
+        event.stopPropagation();
+        if (entry.type === "builtin") activateBuiltin(entry.name); else activateItem(entry.id);
+      });
+      box.appendChild(row);
+    });
+    doc.body.appendChild(box);
+    var width = box.offsetWidth || 220, height = box.offsetHeight || 200;
+    box.style.left = Math.max(4, Math.min(lastPoint.x, (win.innerWidth || 1280) - width - 4)) + "px";
+    box.style.top = Math.max(4, Math.min(lastPoint.y, (win.innerHeight || 800) - height - 4)) + "px";
+    openMenu.element = box;
+    var dismiss = function (event) {
+      if (box.contains && box.contains(event.target)) return;
+      closeMenu();
+      doc.removeEventListener("mousedown", dismiss, true);
+      doc.removeEventListener("keydown", onKey, true);
+    };
+    var onKey = function (event) { if (event.key === "Escape") dismiss({ target: null }); };
+    doc.addEventListener("mousedown", dismiss, true);
+    doc.addEventListener("keydown", onKey, true);
+  }
+  function popupMenu(rid) {
+    var model = menus.get(rid);
+    closeMenu();
+    if (!model) return;
+    openMenu = { model: model, element: null };
+    renderMenu(model);
+  }
+  if (win.document && win.document.addEventListener) {
+    win.document.addEventListener("contextmenu", function (event) { lastPoint = { x: event.clientX || 0, y: event.clientY || 0 }; }, true);
+  }
+
   // ---- plugin commands -------------------------------------------------------------------------
   function windowCommand(name) {
     switch (name) {
@@ -287,8 +394,17 @@
       case "window": case "webview":
         return windowCommand(name);
       case "menu": case "resources":
-        if (name === "new") { var rid = nextResourceId++; return Promise.resolve([rid, "menu-" + rid]); }
-        return Promise.resolve(null); // popup/close: a browser keeps its own context menu behaviour
+        if (plugin === "menu" && name === "new") {
+          var rid = nextResourceId++;
+          menus.set(rid, menuModel(args.options));
+          return Promise.resolve([rid, "menu-" + rid]);
+        }
+        if (plugin === "menu" && name === "popup") { popupMenu(args.rid); return Promise.resolve(null); }
+        if (plugin === "resources" && name === "close") {
+          if (menus.get(args.rid) === openMenu.model) closeMenu();
+          menus.delete(args.rid);
+        }
+        return Promise.resolve(null);
       default:
         return failure("Not available in server mode: " + command);
     }
@@ -313,5 +429,9 @@
   };
   win.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: removeListener };
   win.isTauri = true;
-  win.__HEVC_WEB_SERVER__ = { loadInfo: loadInfo, helpers: { joinPath: joinPath, extensionAllowed: extensionAllowed } };
+  win.__HEVC_WEB_SERVER__ = {
+    loadInfo: loadInfo,
+    helpers: { joinPath: joinPath, extensionAllowed: extensionAllowed },
+    menu: { current: function () { return openMenu.model.map(function (entry) { return Object.assign({}, entry); }); }, activate: activateItem, activateBuiltin: activateBuiltin },
+  };
 })(window, typeof fetch === "function" ? fetch.bind(window) : undefined, typeof EventSource === "function" ? EventSource : undefined);

@@ -13,8 +13,10 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(feature = "desktop")]
 use tauri::{AppHandle, Emitter, State};
 
+#[cfg(feature = "desktop")]
 mod agent_control;
 mod app_paths;
 mod app_preferences;
@@ -74,6 +76,7 @@ mod run_checks;
 mod run_commands;
 mod run_coordinator;
 mod run_native;
+mod runtime;
 mod runtime_guard;
 mod settings;
 mod settings_arguments;
@@ -110,6 +113,7 @@ pub(crate) use cli_apt::run_json_cli_provision;
 pub(crate) use cli_json::run_json_cli;
 pub use cli_modes::{cli_mode, internal_cli_mode, mcp_mode, metadata_cli_mode, organizer_cli_mode};
 pub(crate) use executable_lookup::executable_in_path;
+#[cfg_attr(not(feature = "desktop"), allow(unused_imports))]
 pub(crate) use job_state::{
     active_job_info, child_tracker, claim_job, kind_for_run_mode, new_active_job,
     new_active_job_of, new_job_id, release_job, ActiveJobInfo, Events, RunFinished, RunLine,
@@ -194,10 +198,12 @@ pub(crate) fn test_dir(label: &str) -> PathBuf {
 
 /// The generated Tauri context (config plus the embedded frontend). Built in one place so the desktop
 /// window and the headless server share a single embedded copy of the GUI files.
+#[cfg(feature = "desktop")]
 pub(crate) fn tauri_context() -> tauri::Context<tauri::Wry> {
     tauri::generate_context!()
 }
 
+#[cfg(feature = "desktop")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let agent_control_state = agent_control::AgentControlState::default();
@@ -288,6 +294,7 @@ pub fn run() {
         });
 }
 
+#[cfg(feature = "desktop")]
 pub fn agent_control_mode(args: Vec<std::ffi::OsString>) -> i32 {
     agent_control::client_mode(args)
 }

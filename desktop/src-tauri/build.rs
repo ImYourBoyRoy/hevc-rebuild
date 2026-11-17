@@ -9,9 +9,12 @@
 //! not to add its copy, so the application binary still carries it exactly once.
 
 fn main() {
-    let windows = tauri_build::WindowsAttributes::new_without_app_manifest();
-    tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
-        .expect("failed to run tauri-build");
+    // A build script sees the package's features only as environment variables.
+    if std::env::var_os("CARGO_FEATURE_DESKTOP").is_some() {
+        let windows = tauri_build::WindowsAttributes::new_without_app_manifest();
+        tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
+            .expect("failed to run tauri-build");
+    }
 
     println!("cargo:rerun-if-changed=windows-app.rc");
     println!("cargo:rerun-if-changed=windows-app.manifest");

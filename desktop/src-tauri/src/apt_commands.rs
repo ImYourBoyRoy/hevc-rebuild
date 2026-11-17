@@ -18,9 +18,9 @@ fn emit_repair_line(
     );
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn check_ubuntu_package_updates() -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(dependencies::apt_update_status)
+    crate::runtime::spawn_blocking(dependencies::apt_update_status)
         .await
         .map_err(|error| format!("Ubuntu package update check failed: {error}"))?
 }
@@ -38,7 +38,8 @@ pub(crate) unsafe fn libc_geteuid() -> u32 {
     1
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
+#[cfg_attr(not(feature = "desktop"), allow(dead_code))]
 pub(crate) async fn provision_plan(tool_paths: ToolPaths) -> Result<Value, String> {
     provision_plan_for(tool_paths, provision::Privilege::Desktop).await
 }
@@ -59,7 +60,7 @@ pub(crate) async fn provision_plan_for(
     tool_paths: ToolPaths,
     privilege: provision::Privilege,
 ) -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::runtime::spawn_blocking(move || {
         provision::current_plan_for(tool_paths, privilege).map(|(plan, error)| {
             let mut value = provision::plan_json(&plan, error.as_deref());
             annotate_plan_json(&mut value, privilege);
@@ -73,6 +74,7 @@ pub(crate) async fn provision_plan_for(
 /// Install and update everything in one pass: a single administrator prompt covers the catalog
 /// refresh, missing packages and package updates; the HDR10+ helper is then installed or updated
 /// in user space. The plan is recomputed here so the job never runs a stale or caller-supplied list.
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) async fn provision_toolchain(
     app: AppHandle,
@@ -103,11 +105,10 @@ pub(crate) async fn provision_toolchain_with(
         provision::Privilege::Desktop => provision_run::Elevation::Pkexec,
         provision::Privilege::Headless(_) => provision_run::Elevation::SudoNonInteractive,
     };
-    let (plan, _) = tauri::async_runtime::spawn_blocking(move || {
-        provision::current_plan_for(tool_paths, privilege)
-    })
-    .await
-    .map_err(|error| format!("Setup plan failed: {error}"))??;
+    let (plan, _) =
+        crate::runtime::spawn_blocking(move || provision::current_plan_for(tool_paths, privilege))
+            .await
+            .map_err(|error| format!("Setup plan failed: {error}"))??;
     // Automatic updates pass `userSpaceOnly`: the backend itself drops anything that needs a password.
     let plan = if user_space_only == Some(true) {
         plan.user_space_only()

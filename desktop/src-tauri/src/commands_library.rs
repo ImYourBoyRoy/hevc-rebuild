@@ -2,7 +2,8 @@
 
 use super::*;
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
+#[cfg_attr(not(feature = "desktop"), allow(dead_code))]
 pub(crate) fn open_file_location(path: String) -> Result<(), String> {
     let path = PathBuf::from(path.trim());
     if !path.is_absolute() {
@@ -37,40 +38,41 @@ pub(crate) fn open_file_location(path: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn save_library_artwork(
     request: library_artwork::ArtworkSaveRequest,
 ) -> Result<library_artwork::ArtworkSaveResult, String> {
     library_artwork::save_artwork(request.candidate, request.root, request.targets).await
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn cache_library_artwork(
     candidate: library_metadata::ArtworkCandidate,
 ) -> Result<library_artwork::ArtworkSaveResult, String> {
     library_artwork::save_artwork_to_cache(candidate).await
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn save_local_library_artwork(
     request: library_artwork::LocalArtworkSaveRequest,
 ) -> Result<library_artwork::LocalArtworkSaveResult, String> {
     library_artwork::save_local_artwork(request)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn cache_local_library_artwork(
     source_path: String,
 ) -> Result<library_artwork::LocalArtworkSaveResult, String> {
     library_artwork::save_local_artwork_to_cache(source_path).await
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) async fn inspect_app_artwork_cache() -> Result<library_artwork::ArtworkCacheInfo, String>
 {
     library_artwork::inspect_app_artwork_cache().await
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) async fn purge_unused_app_artwork_cache(
     state: State<'_, RunState>,
@@ -96,28 +98,28 @@ pub(crate) async fn purge_unused_app_artwork_cache_with(
     result
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn scan_local_library_assets(
     request: library_assets::LocalAssetsRequest,
 ) -> Result<library_assets::LocalAssetsScan, String> {
     library_assets::scan_local_assets(request)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn read_local_library_artwork_preview(
     request: library_assets::ArtworkPreviewRequest,
 ) -> Result<library_assets::ArtworkPreview, String> {
     library_assets::read_artwork_preview(request)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn scan_organizer_folder(
     root: String,
 ) -> Result<library_organizer::OrganizerFolderScan, String> {
     library_organizer::scan_organizer_folder(root)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn preview_library_rename(
     root: String,
     items: Vec<library_organizer::RenameTemplateInput>,
@@ -126,7 +128,7 @@ pub(crate) fn preview_library_rename(
     library_organizer::preview_rename_batch_with_patterns(root, items, text_blacklist_patterns)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "desktop", tauri::command)]
 pub(crate) fn apply_library_rename(
     root: String,
     items: Vec<library_organizer::RenameTemplateInput>,

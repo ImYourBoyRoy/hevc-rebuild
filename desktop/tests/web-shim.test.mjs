@@ -114,6 +114,56 @@ test("two listeners on the same event both receive it", async () => {
   assert.deepEqual([a, b], [1, 1]);
 });
 
+test("a context menu built with the real Menu API opens in the page and runs the chosen action", async () => {
+  const { win } = install();
+  const executed = [];
+  win.document = { execCommand: (command) => { executed.push(command); return true; } };
+  const { Menu } = await import("@tauri-apps/api/menu");
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  const picked = [];
+  const menu = await Menu.new({
+    items: [
+      { id: "choose-folder", text: "Choose media folder", enabled: true, action: (id) => picked.push(["choose-folder", id]) },
+      { item: "Separator" },
+      { id: "library", text: "Library", enabled: false, action: () => picked.push(["library"]) },
+      { id: "copy-path", text: "Copy library path", action: (id) => picked.push(["copy-path", id]) },
+      { item: "Copy" },
+    ],
+  });
+  await menu.popup(undefined, getCurrentWindow());
+  const shown = win.__HEVC_WEB_SERVER__.menu.current();
+  assert.deepEqual(shown.map((entry) => [entry.type, entry.text ?? entry.name ?? null, entry.enabled ?? true]), [
+    ["item", "Choose media folder", true], ["separator", null, true], ["item", "Library", false], ["item", "Copy library path", true], ["builtin", "Copy", true],
+  ]);
+  assert.equal(win.__HEVC_WEB_SERVER__.menu.activate("choose-folder"), true);
+  assert.deepEqual(win.__HEVC_WEB_SERVER__.menu.current(), [], "choosing an item closes the menu");
+  await menu.popup();
+  assert.equal(win.__HEVC_WEB_SERVER__.menu.activate("copy-path"), true);
+  await menu.popup();
+  assert.deepEqual(picked, [["choose-folder", "choose-folder"], ["copy-path", "copy-path"]], "each action receives its item id once");
+  assert.equal(win.__HEVC_WEB_SERVER__.menu.activate("library"), false, "a disabled item does nothing");
+  assert.equal(win.__HEVC_WEB_SERVER__.menu.activate("nope"), false);
+  assert.equal(picked.length, 2);
+  win.__HEVC_WEB_SERVER__.menu.activateBuiltin("Copy");
+  win.__HEVC_WEB_SERVER__.menu.activateBuiltin("SelectAll");
+  win.__HEVC_WEB_SERVER__.menu.activateBuiltin("Cut");
+  assert.deepEqual(executed, ["copy", "selectAll", "cut"]);
+  await menu.popup();
+  await menu.close();
+  assert.deepEqual(win.__HEVC_WEB_SERVER__.menu.current(), [], "closing the menu resource forgets it");
+});
+
+test("opening a second menu replaces the first and an editing menu offers only the built-in items", async () => {
+  const { win } = install();
+  win.document = { execCommand: () => true };
+  const { Menu } = await import("@tauri-apps/api/menu");
+  const first = await Menu.new({ items: [{ id: "a", text: "A", action: () => {} }] });
+  await first.popup();
+  const editing = await Menu.new({ items: [{ item: "Cut" }, { item: "Copy" }, { item: "Paste" }, { item: "Separator" }, { item: "SelectAll" }] });
+  await editing.popup();
+  assert.deepEqual(win.__HEVC_WEB_SERVER__.menu.current().map((entry) => entry.type === "builtin" ? entry.name : entry.type), ["Cut", "Copy", "Paste", "separator", "SelectAll"]);
+});
+
 test("window, webview and menu calls the GUI makes at boot are inert but do not fail", async () => {
   install();
   const { getCurrentWindow, currentMonitor } = await import("@tauri-apps/api/window");

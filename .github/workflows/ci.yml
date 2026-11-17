@@ -109,6 +109,17 @@ jobs:
         run: cargo check --locked --bin hevc-rebuild-studio
       - name: Run Clippy
         run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Headless build (no desktop feature) tests and Clippy
+        # The same code without Tauri/webkit/GTK: the server, CLI and MCP must keep building and passing.
+        env:
+          HEVC_REQUIRE_MEDIA_TOOLS: "1"
+        run: |
+          cargo test --locked --lib --no-default-features --target-dir target/headless
+          cargo clippy --all-targets --locked --no-default-features --target-dir target/headless -- -D warnings
+      - name: Headless binary links no GUI libraries
+        run: |
+          cargo build --locked --no-default-features --target-dir target/headless --bin hevc-rebuild-studio
+          ! ldd target/headless/debug/hevc-rebuild-studio | grep -E 'webkit|gtk|soup|javascriptcore|gdk'
 
   rust-tests-cross-platform:
     # The native-build job below only compiles on Windows and macOS. This one

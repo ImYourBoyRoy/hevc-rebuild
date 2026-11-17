@@ -49,6 +49,7 @@ pub(crate) struct RunRequest {
     pub(crate) integrity_level: Option<String>,
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) fn start_run(
     app: AppHandle,
@@ -369,6 +370,7 @@ pub(crate) fn start_run_with(
     Ok(id)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) fn request_stop(state: State<'_, RunState>, run_id: String) -> Result<(), String> {
     request_stop_with(&state, run_id)
@@ -392,6 +394,7 @@ pub(crate) fn request_stop_with(state: &RunState, run_id: String) -> Result<(), 
     stop_control::request(&path)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub(crate) fn request_abort(state: State<'_, RunState>, run_id: String) -> Result<(), String> {
     request_abort_with(&state, run_id)

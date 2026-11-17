@@ -95,7 +95,7 @@ fn respond<T: Serialize>(result: Result<T, String>) -> Result<Value, CommandErro
 
 async fn probe_route(ctx: &AppContext) -> Result<crate::provision::HeadlessRoute, CommandError> {
     let probe = ctx.privilege_route.clone();
-    tauri::async_runtime::spawn_blocking(move || probe())
+    crate::runtime::spawn_blocking(move || probe())
         .await
         .map_err(|error| CommandError::Failed(format!("The privilege check failed: {error}")))
 }
@@ -110,7 +110,7 @@ macro_rules! run_async {
 macro_rules! run_blocking {
     ($args:ident, $function:path $(, $name:ident)*) => {{
         $( let $name = arg(&$args, stringify!($name))?; )*
-        let result = tauri::async_runtime::spawn_blocking(move || $function($($name),*))
+        let result = crate::runtime::spawn_blocking(move || $function($($name),*))
             .await
             .map_err(|error| CommandError::Failed(format!("The command task failed: {error}")))?;
         respond(result)
@@ -139,7 +139,8 @@ registry! { |ctx, args|
     "list_directory", Read => {
         let path: Option<String> = arg(&args, "path")?;
         let show_hidden: Option<bool> = arg(&args, "show_hidden")?;
-        let result = tauri::async_runtime::spawn_blocking(move || fs_browse::list_directory(path.as_deref(), show_hidden.unwrap_or(false)))
+        let scope = ctx.scope.clone();
+        let result = crate::runtime::spawn_blocking(move || fs_browse::list_directory(path.as_deref(), show_hidden.unwrap_or(false), &scope))
             .await
             .map_err(|error| CommandError::Failed(format!("The command task failed: {error}")))?;
         respond(result)
@@ -148,7 +149,10 @@ registry! { |ctx, args|
     "inspect_environment", Read => run_async!(args, crate::commands_workspace::inspect_environment, tool_paths);
     "load_settings", Read => run_async!(args, crate::commands_workspace::load_settings, root);
     "resolve_work_directory_command", Read => run_blocking!(args, crate::commands_workspace::resolve_work_directory_command, root, work_root);
-    "default_media_root", Read => respond(crate::commands_workspace::default_media_root());
+    "default_media_root", Read => match ctx.scope.first_root() {
+        Some(root) => Ok(json!(root.to_string_lossy())),
+        None => respond(crate::commands_workspace::default_media_root()),
+    };
     "load_app_preferences", Read => run_blocking!(args, crate::app_preferences::load_app_preferences);
     "save_app_preferences", Write => run_blocking!(args, crate::app_preferences::save_app_preferences, preferences);
     "check_ubuntu_package_updates", Read => run_async!(args, crate::apt_commands::check_ubuntu_package_updates);
@@ -216,7 +220,7 @@ registry! { |ctx, args|
         let request: crate::run_commands::RunRequest = arg(&args, "request")?;
         let events = ctx.events.clone();
         let state = ctx.run_state.clone();
-        let result = tauri::async_runtime::spawn_blocking(move || crate::run_commands::start_run_with(events, &state, request))
+        let result = crate::runtime::spawn_blocking(move || crate::run_commands::start_run_with(events, &state, request))
             .await
             .map_err(|error| CommandError::Failed(format!("The command task failed: {error}")))?;
         respond(result)
@@ -278,6 +282,8 @@ pub(crate) async fn dispatch(
             "The server is read-only; `{name}` changes state."
         )));
     }
+    // Paths are checked before the command runs, so a refused call never touches the job slot or the disk.
+    super::scope::check_command(&ctx.scope, name, &args).map_err(CommandError::Forbidden)?;
     run(ctx, name, args).await
 }
 
@@ -597,6 +603,52 @@ mod tests {
             .await
             .expect("environment check");
         assert!(environment.pointer("/os").is_some(), "{environment}");
+    }
+
+    #[tokio::test]
+    async fn with_a_root_the_browser_api_refuses_paths_outside_it_before_anything_runs() {
+        let base = crate::test_dir("web-scope-dispatch");
+        let media = base.join("media");
+        std::fs::create_dir_all(&media).unwrap();
+        std::fs::create_dir_all(base.join("private")).unwrap();
+        std::fs::write(base.join("private/x.mkv"), b"x").unwrap();
+        let mut ctx = test_context(false);
+        ctx.scope = crate::web_server::scope::PathScope::new(std::slice::from_ref(&media)).unwrap();
+
+        let outside = dispatch(
+            &ctx,
+            "list_directory",
+            json!({"path": base.join("private").to_str().unwrap()}),
+        )
+        .await
+        .unwrap_err();
+        assert!(matches!(outside, CommandError::Forbidden(_)), "{outside:?}");
+        let start = dispatch(&ctx, "list_directory", json!({}))
+            .await
+            .expect("the default is the root");
+        assert_eq!(start["parent"], Value::Null);
+
+        let scan = dispatch(&ctx, "scan_folder", json!({"options": {"root": base.join("private").to_str().unwrap(), "recursive": false, "minimumSizeMib": 0, "filenameIncludePatterns": [], "filenameExcludePatterns": []}})).await.unwrap_err();
+        assert!(matches!(scan, CommandError::Forbidden(_)), "{scan:?}");
+        let run = dispatch(&ctx, "start_run", json!({"request": run_request(media.to_str().unwrap(), "integrity", &[base.join("private/x.mkv").to_str().unwrap()], 0)})).await.unwrap_err();
+        assert!(matches!(run, CommandError::Forbidden(_)), "{run:?}");
+        assert!(
+            ctx.run_state.0.lock().unwrap().is_none(),
+            "a refused run never takes the job slot"
+        );
+        // Calls that name no paths still work, and the GUI's default media folder is the first root, so its
+        // first settings load at boot is not refused.
+        let default = dispatch(&ctx, "default_media_root", json!({}))
+            .await
+            .unwrap();
+        assert_eq!(
+            default,
+            json!(media.canonicalize().unwrap().to_string_lossy())
+        );
+        assert!(dispatch(&ctx, "load_settings", json!({"root": default}))
+            .await
+            .is_ok());
+        std::fs::remove_dir_all(base).ok();
     }
 
     #[tokio::test]
