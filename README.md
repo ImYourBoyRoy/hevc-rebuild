@@ -24,7 +24,7 @@ replace the original after the output passes validation.
   <img src="docs/screenshots/HEVC-Rebuild-Studio-dark.png" alt="HEVC Rebuild Studio Library screen in the Dark theme" width="1200" />
 </p>
 
-<p align="center"><em>Native Tauri desktop app. v1.4.1 is the latest published release; clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
+<p align="center"><em>Native Tauri desktop app. v1.5.0 is the newest release (v1.4.1 was the previous one); clean-install, full GUI, real-media, and live-update acceptance remain separate gates.</em></p>
 
 ## What it is for
 

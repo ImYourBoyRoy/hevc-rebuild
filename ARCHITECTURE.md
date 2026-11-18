@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 587 |
-| Text lines | 231,149 |
-| Size on disk | 17154.9 KiB |
+| Text lines | 231,154 |
+| Size on disk | 17066.3 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-16 files · 1,949 lines · 228.0 KiB
+16 files · 1,948 lines · 228.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -36,11 +36,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `.mcp.json` | 8 | 130 B | Claude Code project MCP servers: the local Svelte MCP (svelte-autofixer, docs). |
 | `.nvmrc` | 1 | 8 B | Recommended Node LTS for builds. |
 | `AGENTS.md` | 178 | 9.0 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
-| `CHANGELOG.md` | 56 | 4.4 KiB | User-facing changes since the last published release. |
+| `CHANGELOG.md` | 54 | 4.2 KiB | User-facing changes since the last published release. |
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 877 | 183.2 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 878 | 183.8 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -479,7 +479,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/web_server/`
 
-11 files · 4,943 lines · 188.6 KiB
+11 files · 4,943 lines · 188.8 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -488,7 +488,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `commands.rs` | 717 | 31.9 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
 | `config.rs` | 701 | 25.6 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
 | `events.rs` | 406 | 14.5 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
-| `fs_browse.rs` | 227 | 8.2 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
+| `fs_browse.rs` | 227 | 8.4 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
 | `mcp_tests.rs` | 457 | 14.5 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
 | `mod.rs` | 387 | 14.1 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
 | `router_tests.rs` | 451 | 15.9 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
@@ -766,7 +766,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-80 files · 10,925 lines · 730.4 KiB
+80 files · 10,930 lines · 730.8 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -823,7 +823,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `responsive-contract.mjs` | 45 | 4.3 KiB | Browser contract: six-width responsive snapshots across all themes. |
 | `review-factories.test.mjs` | 113 | 6.1 KiB | Node characterization tests for review-factories.ts. |
 | `review-notes.test.mjs` | 221 | 16.0 KiB | Node tests for review-notes.ts. |
-| `route-golden-contract.mjs` | 108 | 6.3 KiB | Route-level golden: accessibility tree and DOM fingerprint of the real route in browser-preview mode and with a fake Tauri bridge (populated queue, reviews, posters), every page plus review and queue-edit, refresh-scan and run-lifecycle, launch-dialog (output preview, collisions, recovery review, stop-now) review-editing (series, season, episode, film) and window/preferences (restore clamp, resize, maximize, themes, legacy browser preferences) flows (engine events played by the contract) with recorded queue writes, start/stop calls and per-file overrides, light/dark, 360/1024 px. The scenario sections live in `desktop/tests/route-golden/` and are serialized into the contract. |
+| `route-golden-contract.mjs` | 113 | 6.7 KiB | Route-level golden: accessibility tree and DOM fingerprint of the real route in browser-preview mode and with a fake Tauri bridge (populated queue, reviews, posters), every page plus review and queue-edit, refresh-scan and run-lifecycle, launch-dialog (output preview, collisions, recovery review, stop-now) review-editing (series, season, episode, film) and window/preferences (restore clamp, resize, maximize, themes, legacy browser preferences) flows (engine events played by the contract) with recorded queue writes, start/stop calls and per-file overrides, light/dark, 360/1024 px. The scenario sections live in `desktop/tests/route-golden/` and are serialized into the contract. |
 | `route-server.mjs` | 18 | 948 B | Vite server for the real SvelteKit route in browser-preview mode (no Tauri bridge); used by the route golden. |
 | `run-contract.mjs` | 15 | 1.9 KiB | Browser contract: Run setup and progress. |
 | `run-controller-adopt.test.mjs` | 108 | 6.0 KiB | Run controller tests for following a run another client started (adoptActiveRun). |
@@ -871,21 +871,21 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/golden/`
 
-3 files · 37,686 lines · 4464.0 KiB
+3 files · 37,686 lines · 4374.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `make-route-fixtures.mjs` | 62 | 5.9 KiB | Regenerates route-fixtures.json from a real json scan of a synthetic library (paths, timestamps and host data sanitized). |
 | `route-fixtures.json` | 3,900 | 119.1 KiB | Sanitized fixtures for the fake Tauri bridge: a real json scan of a synthetic three-file library, queue, reviews, settings, preferences. |
-| `route-golden.json` | 33,724 | 4338.9 KiB | Stored route golden snapshots (406); refresh only for an intended UI change with pnpm test:route-golden -- --update. |
+| `route-golden.json` | 33,724 | 4249.2 KiB | Stored route golden snapshots (406); refresh only for an intended UI change with pnpm test:route-golden -- --update. |
 
 ### `desktop/tests/route-golden/`
 
-14 files · 764 lines · 63.1 KiB
+14 files · 765 lines · 63.2 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `bridge.mjs` | 193 | 17.3 KiB | Route golden section (T10.3): the fake Tauri bridge: blocks external requests and answers every native command from the fixtures. |
+| `bridge.mjs` | 194 | 17.3 KiB | Route golden section (T10.3): the fake Tauri bridge: blocks external requests and answers every native command from the fixtures. |
 | `page-helpers.mjs` | 38 | 1.9 KiB | Route golden section (T10.3): DOM fingerprint and the settle wait used by every snapshot. |
 | `preview-preferences.mjs` | 30 | 2.9 KiB | Route golden section (T10.3): browser-preview preferences: older saved shapes, legacy keys, corrupt storage and what a theme change writes. |
 | `seeded-boot-input.mjs` | 47 | 3.1 KiB | Route golden section (T10.3): Boot and input: keyboard shortcuts, the agent-control channel, drag-and-drop and external events. |
@@ -911,7 +911,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,726 lines · 2664.9 KiB
+13 files · 78,726 lines · 2665.0 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|

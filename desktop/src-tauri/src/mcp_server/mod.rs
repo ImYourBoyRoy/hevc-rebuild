@@ -1380,7 +1380,7 @@ impl McpServer {
 
 #[tool_handler(
     name = "hevc-rebuild-studio",
-    version = "1.4.1",
+    version = "1.5.0",
     instructions = "Local HEVC rebuild MCP server (Linux, macOS and Windows). Inspect first: inspect_environment, then analyze; analysis is read-only and runs default to check mode. Short tests, full rebuilds, renames, artwork saves and package setup each need their own confirm field: show the plan or preview to the user before setting it. Only one run, scan or setup job is active at a time; a second start reports it is already active, whether it was started here or in the app's browser view, which shows this server's jobs live. Poll get_job. System setup is plan_system_setup then provision_system after the user approves; no password is ever requested, so on a server without a desktop the plan reports what to change. To explain a choice to the user call explain_settings (CRF, presets, tune, HDR and the rest); for the workflow, run modes, safety rules and headless notes call app_guide. A read-only server does not offer this endpoint. Only process media the user owns or is authorized to use."
 )]
 impl ServerHandler for McpServer {}

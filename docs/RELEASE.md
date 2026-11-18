@@ -6,7 +6,7 @@ the release-only config enables them in CI.
 
 ## Published packages
 
-`v1.4.1` is the current published release:
+`v1.4.1` is the last published release (v1.5.0 is being prepared):
 https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.4.1. Its 13 release
 assets cover Windows x64 NSIS, macOS Intel and Apple Silicon DMG/updater bundles,
 Linux x64 AppImage/deb, updater signatures, and `latest.json`. The release

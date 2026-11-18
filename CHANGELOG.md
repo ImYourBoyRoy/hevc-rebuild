@@ -1,10 +1,8 @@
 # Changelog
 
-All notable changes to HEVC Rebuild Studio. The newest version is first. Version numbers are chosen at
-release time; everything under "Unreleased" has been committed since `v1.4.1` and is not yet in a published
-package.
+All notable changes to HEVC Rebuild Studio. The newest version is first.
 
-## Unreleased (since v1.4.1)
+## 1.5.0
 
 ### Security (headless server)
 - Found by an independent review and fixed: tool-path arguments can no longer make a `--read-only` or `--root` server run a
