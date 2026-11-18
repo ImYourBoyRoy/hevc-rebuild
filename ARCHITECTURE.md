@@ -699,11 +699,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/styles/app/`
 
-5 files · 2,123 lines · 200.0 KiB
+5 files · 2,123 lines · 200.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `app-base.css` | 450 | 55.4 KiB | Shared application CSS, part 1 of 5 (loaded first by +layout.svelte): root tokens and fallbacks, global resets, the 360px viewport floor and the base shell and form rules. |
+| `app-base.css` | 450 | 55.5 KiB | Shared application CSS, part 1 of 5 (loaded first by +layout.svelte): root tokens and fallbacks, global resets, the 360px viewport floor and the base shell and form rules. |
 | `app-design-system-1.css` | 416 | 33.1 KiB | Shared application CSS, part 2 of 5: the product design system, first third (readable type, calmer surfaces, theme palettes, shell and navigation). |
 | `app-design-system-2.css` | 423 | 42.9 KiB | Shared application CSS, part 3 of 5: the product design system, middle third (run, upload and settings families, keyframes). |
 | `app-design-system-3.css` | 408 | 49.7 KiB | Shared application CSS, part 4 of 5: the product design system, last third (reports, repair, recovery and responsive overrides). |
