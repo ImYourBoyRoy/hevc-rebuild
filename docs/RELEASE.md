@@ -6,16 +6,18 @@ the release-only config enables them in CI.
 
 ## Published packages
 
-`v1.4.1` is the last published release (v1.5.0 is being prepared):
-https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.4.1. Its 13 release
-assets cover Windows x64 NSIS, macOS Intel and Apple Silicon DMG/updater bundles,
+`v1.5.0` is the current published release:
+https://github.com/ImYourBoyRoy/hevc-rebuild/releases/tag/v1.5.0 (`v1.4.1` is the
+previous one). Its 13 release assets cover Windows x64 NSIS, macOS Intel and Apple Silicon DMG/updater bundles,
 Linux x64 AppImage/deb, updater signatures, and `latest.json`. The release
 workflow verified the signed manifest against four platform entries and
 confirmed no MSI asset is present. The `v1.4.0` tag remains an unreleased,
 superseded candidate because its frontend responsive contract failed; the tag
 was preserved and no GitHub Release was created for it.
 
-Version 1.4.1 contains the Rust-only migration, dynamic per-source work-directory
+Version 1.5.0 adds the headless `serve` mode (bearer-token login, read-only and
+`--root` scoping, MCP over HTTP), the expanded in-app help and the security pass
+recorded in `CHANGELOG.md`. Version 1.4.1 contained the Rust-only migration, dynamic per-source work-directory
 discovery, native HDR10+ validation, YouTube preparation updates,
 cross-platform stop-now reporting, and responsive layout fixes.
 
@@ -94,7 +96,7 @@ No release tag or upload is performed by local development builds.
 
 ## Current validation boundary
 
-The v1.4.1 release workflow passed Rust and frontend contracts, Linux source
+The v1.5.0 release workflow (run 44234474392, all 14 jobs) and v1.4.1 before it passed Rust and frontend contracts, Linux source
 installation, native compile lanes for Windows/macOS/Linux, the Ubuntu 24.04
 AppImage rebuild-and-launch gate, and all four platform packaging lanes. The
 Windows NSIS artifact and macOS DMGs were produced without MSI or Apple
