@@ -18,7 +18,24 @@ export async function toolSetup(ctx) {
       ]],
       ['repair-stale', { apt: aptStatus({ catalog_stale: true }) }, [
         ['review-includes-catalog-refresh', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],
-        ['cancel-review', async () => { await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click(); }],
+        ['cancel-review', async () => {
+          const cancel = page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true });
+          try { await cancel.click({ timeout: 8000 }); } catch (error) {
+            // Say what is on top of the button, in which theme and width, so a CI-only failure can be diagnosed.
+            const info = await page.evaluate(() => {
+              const button = [...document.querySelectorAll('dialog[open] button')].find((node) => node.textContent.trim() === 'Cancel');
+              const dialog = button?.closest('dialog');
+              const box = button?.getBoundingClientRect();
+              const top = box ? document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) : null;
+              const d = dialog?.getBoundingClientRect();
+              return { theme: document.documentElement.dataset.theme, instrument: document.documentElement.dataset.instrument, viewport: [innerWidth, innerHeight],
+                button: box && [box.x, box.y, box.width, box.height].map(Math.round), dialog: d && [d.x, d.y, d.width, d.height].map(Math.round),
+                dialogScroll: dialog && [dialog.scrollTop, dialog.scrollHeight, dialog.clientHeight], topElement: top && `${top.tagName}.${top.className}`,
+                buttonPointerEvents: button && getComputedStyle(button).pointerEvents, buttonDisabled: button?.disabled, dialogCount: document.querySelectorAll('dialog[open]').length };
+            });
+            throw new Error(`Cancel is not clickable at ${theme}/${width}: ${JSON.stringify(info)}`, { cause: error });
+          }
+        }],
       ]],
       ['repair-failure', { apt: aptStatus() }, [
         ['review-setup', async () => { await page.getByRole('button', { name: 'Install & update everything', exact: true }).click(); }],

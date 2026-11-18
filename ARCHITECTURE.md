@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 587 |
-| Text lines | 231,154 |
-| Size on disk | 17066.3 KiB |
+| Text lines | 231,171 |
+| Size on disk | 17067.8 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -881,7 +881,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/route-golden/`
 
-14 files · 765 lines · 63.2 KiB
+14 files · 782 lines · 64.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -897,7 +897,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `seeded-review-flows.mjs` | 26 | 1.2 KiB | Route golden section (T10.3): Review dialogs (film, series, season) opened and closed on the seeded library. |
 | `seeded-run-lifecycle.mjs` | 30 | 3.1 KiB | Route golden section (T10.3): Run lifecycle: start an integrity check, feed engine events, request a safe stop, finish, then a second run that fails. |
 | `seeded-settings.mjs` | 72 | 7.2 KiB | Route golden section (T10.3): Credentials, artwork cache and settings: TMDB/TVDB, cache purge, language, filename filters, work root, Run-page settings. |
-| `seeded-tool-setup.mjs` | 53 | 4.8 KiB | Route golden section (T10.3): Tool setup (package repair) on fresh loads of the Settings page: update check, reviewed toolchain, live output, outcomes. |
+| `seeded-tool-setup.mjs` | 70 | 6.2 KiB | Route golden section (T10.3): Tool setup (package repair) on fresh loads of the Settings page: update check, reviewed toolchain, live output, outcomes. |
 | `seeded-window-preferences.mjs` | 42 | 2.8 KiB | Route golden section (T10.3): Window and preferences: restore clamp, resize/maximize saving, no-op saves, themes, YouTube rows. |
 
 ### `desktop/tests/support/`
