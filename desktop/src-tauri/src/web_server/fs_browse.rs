@@ -154,10 +154,9 @@ mod tests {
         assert_eq!(names, ["A-folder", "b-folder", "movie.mkv"]);
         assert_eq!(listing.entries[2].size, Some(5));
         assert!(listing.entries[0].is_dir && listing.entries[0].size.is_none());
-        assert_eq!(
-            listing.parent.as_deref(),
-            root.parent().and_then(Path::to_str)
-        );
+        // Windows temp paths can be verbatim (`\\?\C:\...`); the listing shows the ordinary form.
+        let expected_parent = root.parent().and_then(Path::to_str).map(display_path);
+        assert_eq!(listing.parent, expected_parent);
         let with_hidden = list_directory(root.to_str(), true, &PathScope::default()).unwrap();
         assert!(with_hidden
             .entries
@@ -174,12 +173,13 @@ mod tests {
         std::fs::create_dir_all(base.join("secret")).unwrap();
         let scope = PathScope::new(std::slice::from_ref(&media)).unwrap();
         let start = list_directory(None, false, &scope).expect("starts in the root");
-        assert_eq!(start.path, media.canonicalize().unwrap().to_string_lossy());
+        let shown_root = display_path(&media.canonicalize().unwrap().to_string_lossy());
+        assert_eq!(start.path, shown_root);
         assert_eq!(start.parent, None, "the root has no way up");
         let films = list_directory(media.join("films").to_str(), false, &scope).unwrap();
         assert_eq!(
             films.parent.as_deref(),
-            media.canonicalize().unwrap().to_str(),
+            Some(shown_root.as_str()),
             "inside the root, up works"
         );
         assert!(list_directory(base.join("secret").to_str(), false, &scope)
@@ -218,7 +218,7 @@ mod tests {
         let file = root.join("clip.mkv");
         std::fs::write(&file, b"x").unwrap();
         let listing = list_directory(file.to_str(), false, &PathScope::default()).unwrap();
-        assert_eq!(listing.path, root.to_string_lossy());
+        assert_eq!(listing.path, display_path(&root.to_string_lossy()));
         assert!(
             list_directory(root.join("missing").to_str(), false, &PathScope::default()).is_err()
         );

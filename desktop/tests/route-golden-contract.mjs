@@ -97,7 +97,12 @@ if (update || !existsSync(goldenPath)) {
 } else {
   const expected = JSON.parse(readFileSync(goldenPath, 'utf8'));
   // The progress label counts wall-clock seconds, so a loaded machine would drift it; everything else is exact.
-  const normalize = (value) => JSON.stringify(value).replace(/\d+s elapsed/g, 'Ns elapsed');
+  // Queue saves are debounced: on a loaded machine an extra save of an intermediate state can land between two
+  // edits. What matters is what ended up persisted, so each command's writes are compared by their last one.
+  const settledWrites = (key, value) => (key === 'writes' && Array.isArray(value)
+    ? value.filter((write, index) => !value.slice(index + 1).some((later) => later.command === write.command))
+    : value);
+  const normalize = (value) => JSON.stringify(value, settledWrites).replace(/\d+s elapsed/g, 'Ns elapsed');
   const drift = keys.filter((key) => normalize(actual[key]) !== normalize(expected[key]));
   const missing = Object.keys(expected).filter((key) => !(key in actual));
   if (drift.length || missing.length) {

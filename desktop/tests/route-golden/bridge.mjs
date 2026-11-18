@@ -74,6 +74,7 @@ export async function installBridge(page, FIXTURES, tinyPng) {
       'plugin:updater|check': () => null,
       'plugin:app|version': () => '0.0.0-fixture',
       frontend_ready: () => null,
+      active_job: () => null,
       load_app_preferences: () => {
         const payload = clone(fixtures.preferences);
         payload.preferences.theme = sessionStorage.getItem('goldenTheme') || 'light';
