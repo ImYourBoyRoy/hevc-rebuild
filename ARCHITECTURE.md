@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 587 |
-| Text lines | 231,171 |
-| Size on disk | 17067.8 KiB |
+| Text lines | 231,175 |
+| Size on disk | 17068.1 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -766,7 +766,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-80 files · 10,930 lines · 730.8 KiB
+80 files · 10,934 lines · 731.1 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -823,7 +823,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `responsive-contract.mjs` | 45 | 4.3 KiB | Browser contract: six-width responsive snapshots across all themes. |
 | `review-factories.test.mjs` | 113 | 6.1 KiB | Node characterization tests for review-factories.ts. |
 | `review-notes.test.mjs` | 221 | 16.0 KiB | Node tests for review-notes.ts. |
-| `route-golden-contract.mjs` | 113 | 6.7 KiB | Route-level golden: accessibility tree and DOM fingerprint of the real route in browser-preview mode and with a fake Tauri bridge (populated queue, reviews, posters), every page plus review and queue-edit, refresh-scan and run-lifecycle, launch-dialog (output preview, collisions, recovery review, stop-now) review-editing (series, season, episode, film) and window/preferences (restore clamp, resize, maximize, themes, legacy browser preferences) flows (engine events played by the contract) with recorded queue writes, start/stop calls and per-file overrides, light/dark, 360/1024 px. The scenario sections live in `desktop/tests/route-golden/` and are serialized into the contract. |
+| `route-golden-contract.mjs` | 117 | 7.0 KiB | Route-level golden: accessibility tree and DOM fingerprint of the real route in browser-preview mode and with a fake Tauri bridge (populated queue, reviews, posters), every page plus review and queue-edit, refresh-scan and run-lifecycle, launch-dialog (output preview, collisions, recovery review, stop-now) review-editing (series, season, episode, film) and window/preferences (restore clamp, resize, maximize, themes, legacy browser preferences) flows (engine events played by the contract) with recorded queue writes, start/stop calls and per-file overrides, light/dark, 360/1024 px. The scenario sections live in `desktop/tests/route-golden/` and are serialized into the contract. |
 | `route-server.mjs` | 18 | 948 B | Vite server for the real SvelteKit route in browser-preview mode (no Tauri bridge); used by the route golden. |
 | `run-contract.mjs` | 15 | 1.9 KiB | Browser contract: Run setup and progress. |
 | `run-controller-adopt.test.mjs` | 108 | 6.0 KiB | Run controller tests for following a run another client started (adoptActiveRun). |

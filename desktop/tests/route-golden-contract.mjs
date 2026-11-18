@@ -102,7 +102,11 @@ if (update || !existsSync(goldenPath)) {
   const settledWrites = (key, value) => (key === 'writes' && Array.isArray(value)
     ? value.filter((write, index) => !value.slice(index + 1).some((later) => later.command === write.command))
     : value);
-  const normalize = (value) => JSON.stringify(value, settledWrites).replace(/\d+s elapsed/g, 'Ns elapsed');
+  // The app shows times in the viewer's timezone, so the same fixture timestamp reads differently on a laptop and on
+  // a UTC runner. Date-times are compared as a token; the rest of the sentence stays exact.
+  const normalize = (value) => JSON.stringify(value, settledWrites)
+    .replace(/\d+s elapsed/g, 'Ns elapsed')
+    .replace(/\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2}\s?[AP]M/g, 'DATETIME');
   const drift = keys.filter((key) => normalize(actual[key]) !== normalize(expected[key]));
   const missing = Object.keys(expected).filter((key) => !(key in actual));
   if (drift.length || missing.length) {
