@@ -4,12 +4,18 @@
 
 use serde_json::Value;
 use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 
 const BACKLOG: usize = 1000;
 /// Output lines kept per run for a tab that opens mid-run.
 const REPLAY_LINES: usize = 240;
+/// Runs whose output is remembered at once; the oldest is forgotten first, so a run that never reports
+/// `run-finished` cannot grow the store without bound.
+const MAX_REPLAYED_RUNS: usize = 16;
+/// Open event streams at once.
+const MAX_LISTENERS: usize = 64;
 const CHANNEL: usize = 1024;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +28,17 @@ pub(crate) struct ServerEvent {
 #[derive(Clone)]
 pub(crate) struct EventBus {
     inner: Arc<Mutex<Inner>>,
+    listeners: Arc<AtomicUsize>,
+    listener_limit: usize,
+}
+
+/// A place among the open event streams, held for as long as the stream lives.
+pub(crate) struct ListenerPermit(Arc<AtomicUsize>);
+
+impl Drop for ListenerPermit {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
 }
 
 /// What a window that opens during a run needs to catch up: the newest lines, the latest progress and
@@ -35,6 +52,7 @@ struct RunReplay {
 
 struct Inner {
     replay: HashMap<String, RunReplay>,
+    replay_order: VecDeque<String>,
     next_id: u64,
     backlog: VecDeque<ServerEvent>,
     sender: broadcast::Sender<ServerEvent>,
@@ -44,8 +62,11 @@ impl Default for EventBus {
     fn default() -> Self {
         let (sender, _) = broadcast::channel(CHANNEL);
         EventBus {
+            listeners: Arc::new(AtomicUsize::new(0)),
+            listener_limit: MAX_LISTENERS,
             inner: Arc::new(Mutex::new(Inner {
                 replay: HashMap::new(),
+                replay_order: VecDeque::new(),
                 next_id: 1,
                 backlog: VecDeque::new(),
                 sender,
@@ -54,7 +75,40 @@ impl Default for EventBus {
     }
 }
 
+impl Inner {
+    /// The replay record for a run, forgetting the oldest run once too many are remembered.
+    fn replay_entry(inner: &mut Inner, run: String) -> &mut RunReplay {
+        if !inner.replay.contains_key(&run) {
+            inner.replay_order.push_back(run.clone());
+            while inner.replay_order.len() > MAX_REPLAYED_RUNS {
+                if let Some(oldest) = inner.replay_order.pop_front() {
+                    inner.replay.remove(&oldest);
+                }
+            }
+        }
+        inner.replay.entry(run).or_default()
+    }
+}
+
 impl EventBus {
+    #[cfg(test)]
+    pub(crate) fn with_listener_limit(limit: usize) -> EventBus {
+        EventBus {
+            listener_limit: limit,
+            ..EventBus::default()
+        }
+    }
+
+    /// Claim a place for a new event stream, or `None` when too many are open.
+    pub(crate) fn try_listen(&self) -> Option<ListenerPermit> {
+        let taken = self.listeners.fetch_add(1, Ordering::SeqCst);
+        if taken >= self.listener_limit {
+            self.listeners.fetch_sub(1, Ordering::SeqCst);
+            return None;
+        }
+        Some(ListenerPermit(Arc::clone(&self.listeners)))
+    }
+
     pub(crate) fn publish(&self, event: &str, payload: Value) -> u64 {
         let mut inner = self
             .inner
@@ -66,7 +120,7 @@ impl EventBus {
         match event {
             "run-line" | "repair-line" => {
                 if let Some(run) = run_key("runId") {
-                    let replay = inner.replay.entry(run).or_default();
+                    let replay = Inner::replay_entry(&mut inner, run);
                     replay.lines.push_back((event.to_string(), payload.clone()));
                     while replay.lines.len() > REPLAY_LINES {
                         replay.lines.pop_front();
@@ -75,22 +129,24 @@ impl EventBus {
             }
             "run-progress" => {
                 if let Some(run) = run_key("runId") {
-                    inner.replay.entry(run).or_default().progress = Some(payload.clone());
+                    Inner::replay_entry(&mut inner, run).progress = Some(payload.clone());
                 }
             }
             "run-resources" => {
                 if let Some(run) = run_key("runId") {
-                    inner.replay.entry(run).or_default().resources = Some(payload.clone());
+                    Inner::replay_entry(&mut inner, run).resources = Some(payload.clone());
                 }
             }
             "run-finished" => {
                 if let Some(run) = run_key("runId") {
                     inner.replay.remove(&run);
+                    inner.replay_order.retain(|queued| queued != &run);
                 }
             }
             "repair-finished" => {
                 if let Some(run) = run_key("jobId") {
                     inner.replay.remove(&run);
+                    inner.replay_order.retain(|queued| queued != &run);
                 }
             }
             _ => {}
@@ -304,6 +360,37 @@ mod tests {
         assert_eq!(seen.len(), REPLAY_LINES);
         assert_eq!(seen.first().unwrap(), "l30");
         assert_eq!(seen.last().unwrap(), &format!("l{}", REPLAY_LINES + 29));
+    }
+
+    #[test]
+    fn event_streams_are_capped_and_a_closed_stream_frees_its_place() {
+        let bus = EventBus::with_listener_limit(2);
+        let first = bus.try_listen().expect("first");
+        let _second = bus.try_listen().expect("second");
+        assert!(bus.try_listen().is_none(), "the third is refused");
+        drop(first);
+        assert!(bus.try_listen().is_some(), "a place is free again");
+    }
+
+    #[test]
+    fn the_replay_store_remembers_a_bounded_number_of_runs_so_a_run_that_never_finishes_cannot_leak(
+    ) {
+        let bus = EventBus::default();
+        for run in 0..(MAX_REPLAYED_RUNS + 10) {
+            bus.publish(
+                "run-line",
+                json!({"runId": format!("run-{run}"), "line": "x"}),
+            );
+        }
+        let (old, _) = bus.subscribe_active(Some(("run-0".into(), "media_run".into())));
+        assert_eq!(
+            old.len(),
+            1,
+            "the oldest run's lines were evicted; only job-started remains"
+        );
+        let newest = format!("run-{}", MAX_REPLAYED_RUNS + 9);
+        let (recent, _) = bus.subscribe_active(Some((newest, "media_run".into())));
+        assert_eq!(recent.len(), 2, "the newest run is still replayed");
     }
 
     #[test]

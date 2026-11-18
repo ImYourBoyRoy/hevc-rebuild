@@ -112,8 +112,8 @@
           <div class="metadata-artwork-grid">
             {#each searchState.detail.artwork as image (image.id)}
               <article class="metadata-artwork" class:selected={organizerState.selectedArtwork[searchState.mediaKind === "movie" ? "movie" : "series"] === image.id}>
-                <a href={image.sourceUrl} target="_blank" rel="noreferrer"><img src={image.thumbnailUrl} alt={image.title} loading="lazy" /></a>
-                <div><strong>{image.title}</strong><small>{image.attribution ?? image.provider}{#if image.license} · {image.license}{/if}</small>{#if image.licenseUrl}<a href={image.licenseUrl} target="_blank" rel="noreferrer">Review image license</a>{/if}</div>
+                <a href={safeHttpUrl(image.sourceUrl) ?? undefined} target="_blank" rel="noreferrer"><img src={image.thumbnailUrl} alt={image.title} loading="lazy" /></a>
+                <div><strong>{image.title}</strong><small>{image.attribution ?? image.provider}{#if image.license} · {image.license}{/if}</small>{#if image.licenseUrl}<a href={safeHttpUrl(image.licenseUrl) ?? undefined} target="_blank" rel="noreferrer">Review image license</a>{/if}</div>
                 <button class="metadata-artwork-choice" disabled={artworkSaveState.artworkBusy} onclick={() => searchState.mediaKind === "tv" ? chooseSeriesProviderPoster(image.id) : (organizerState.selectedArtwork = { ...organizerState.selectedArtwork, movie: image.id }, artworkSaveState.pendingArtworkSave = null, artworkSaveState.artworkMessage = "")}>
                   {organizerState.selectedArtwork[searchState.mediaKind === "movie" ? "movie" : "series"] === image.id ? "Selected" : searchState.mediaKind === "movie" ? "Use film poster" : "Use series poster"}
                 </button>
@@ -168,7 +168,7 @@
           {/each}</section>
         {/if}
         {#if searchState.detail.episodes.length}
-          <details class="metadata-episodes"><summary>Episode metadata · {searchState.detail.episodes.length} entries</summary><div>{#each searchState.detail.episodes as episode (String(episode.season) + "-" + episode.episode)}<article><strong>S{String(episode.season).padStart(2, "0")}E{String(episode.episode).padStart(2, "0")} · {episode.title}</strong><small>{episode.airdate ?? "Air date unknown"}{#if episode.summary} · {episode.summary}{/if}</small><a href={episode.sourceUrl} target="_blank" rel="noreferrer">Open source</a></article>{/each}</div></details>
+          <details class="metadata-episodes"><summary>Episode metadata · {searchState.detail.episodes.length} entries</summary><div>{#each searchState.detail.episodes as episode (String(episode.season) + "-" + episode.episode)}<article><strong>S{String(episode.season).padStart(2, "0")}E{String(episode.episode).padStart(2, "0")} · {episode.title}</strong><small>{episode.airdate ?? "Air date unknown"}{#if episode.summary} · {episode.summary}{/if}</small><a href={safeHttpUrl(episode.sourceUrl) ?? undefined} target="_blank" rel="noreferrer">Open source</a></article>{/each}</div></details>
         {/if}
 
         <section class="metadata-organizer" class:compact-item-organizer={compactItemMode}>
@@ -186,7 +186,7 @@
           <div class="metadata-folder-summary"><strong>{organizerState.organizerScan.root}</strong><span>{organizerState.organizerScan.files.length} video files · {organizerState.organizerScan.seasonDirectories.length} season folders</span>
               <div><button class="link-button" onclick={() => selectAllMedia(true)}>{compactItemMode ? searchState.mediaKind === "movie" ? "Select this film" : "Select this episode" : searchState.mediaKind === "movie" ? "Select these files" : "Select supported episodes"}</button><button class="link-button" onclick={() => selectAllMedia(false)}>Clear selection here</button><small>{selectedPathsInOrganizer().length} selected here · shared with Media library</small>{#if searchState.mediaKind === "tv"}<button class="link-button" disabled={!derived.desktop} onclick={searchCurrentSeriesRecord}><Search size={14} /> Search another series title</button>{/if}</div>
               {#if searchState.mediaKind === "tv" && organizerState.organizerScan.files.some((file) => file.multipleEpisodes)}<small class="metadata-warning">Multi-episode files stay out of this rename plan because one filename cannot safely represent several episode matches.</small>{/if}
-              {#if searchState.mediaKind === "tv" && organizerState.organizerScan.episodeGaps.length}<small class="metadata-warning">Possible gaps in the filename numbering: {#each organizerState.organizerScan.episodeGaps as gap, index}{#if index > 0} · {/if}Season {gap.season}: {gap.examples.map((episode) => String(episode).padStart(2, "0")).join(", ")}{#if gap.missingCount > gap.examples.length} and {gap.missingCount - gap.examples.length} more{/if}{/each}. Check against the episodes you expect; this filename check cannot identify specials or alternate episode orders.</small>{/if}
+              {#if searchState.mediaKind === "tv" && organizerState.organizerScan.episodeGaps.length}<small class="metadata-warning">Possible gaps in the filename numbering: {#each organizerState.organizerScan.episodeGaps as gap, index (index)}{#if index > 0} · {/if}Season {gap.season}: {gap.examples.map((episode) => String(episode).padStart(2, "0")).join(", ")}{#if gap.missingCount > gap.examples.length} and {gap.missingCount - gap.examples.length} more{/if}{/each}. Check against the episodes you expect; this filename check cannot identify specials or alternate episode orders.</small>{/if}
               {#if organizerState.organizerScan.truncated}<small class="metadata-warning">The 10,000-file scan limit was reached; series-wide rename is disabled.</small>{/if}
             {#if organizerState.organizerScan.errors.length}<small class="metadata-warning">{organizerState.organizerScan.errors.length} entries could not be read. Resolve those before a series-wide rename.</small>{/if}
             </div>
@@ -302,7 +302,7 @@
                 <div class="metadata-rename-table"><div><strong>Current path</strong><strong>After confirmation</strong></div>
                   {#each renameState.renamePreview.items as item (item.sourcePath)}<div class:unchanged={item.unchanged}><span>{item.sourcePath}</span><span>{item.targetPath}{#if item.unchanged}<small>Unchanged</small>{/if}</span></div>{/each}
                 </div>
-                {#if renameState.renamePreview.conflicts.length}<div class="metadata-conflicts"><strong>Rename blocked · resolve every duplicate or occupied destination</strong>{#each renameState.renamePreview.conflicts as conflict}<p>{conflict.reason}<small>{conflict.targetPath}</small></p>{/each}</div>
+                {#if renameState.renamePreview.conflicts.length}<div class="metadata-conflicts"><strong>Rename blocked · resolve every duplicate or occupied destination</strong>{#each renameState.renamePreview.conflicts as conflict, index (index)}<p>{conflict.reason}<small>{conflict.targetPath}</small></p>{/each}</div>
                 {:else if !renameState.renamePreview.canApply}<small>Every selected name is already correct; no changes will be made.</small>{/if}
               </div>
             {/if}

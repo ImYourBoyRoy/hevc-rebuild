@@ -194,13 +194,6 @@ fn is_json_request(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
-fn token_in_query(query: &str) -> Option<String> {
-    query
-        .split('&')
-        .find_map(|pair| pair.strip_prefix("token="))
-        .map(str::to_string)
-}
-
 /// Host check, authentication, cross-site checks and security headers for every request.
 async fn guard(State(ctx): State<AppContext>, request: Request, next: Next) -> Response {
     let headers = request.headers();
@@ -211,37 +204,20 @@ async fn guard(State(ctx): State<AppContext>, request: Request, next: Next) -> R
             "This host name is not allowed. Start the server with --allowed-host for it.",
         );
     }
-    let secure = header_text(
-        headers,
-        header::HeaderName::from_static("x-forwarded-proto"),
-    ) == Some("https");
-
-    // A login link: verify the token, set the session cookie, and drop the token from the address bar.
-    if request.method() == Method::GET && request.uri().path() == "/" {
-        if let Some(candidate) = request.uri().query().and_then(token_in_query) {
-            if !ctx.token.verify(&candidate) {
-                return plain(StatusCode::UNAUTHORIZED, "That token is not valid.");
-            }
-            let mut response = Response::builder()
-                .status(StatusCode::SEE_OTHER)
-                .header(header::LOCATION, "/")
-                .header(header::CACHE_CONTROL, "no-store")
-                .header(header::REFERRER_POLICY, "no-referrer")
-                .body(axum::body::Body::empty())
-                .expect("redirect");
-            if let Ok(cookie) = HeaderValue::from_str(&auth::session_cookie(&ctx.token, secure)) {
-                response.headers_mut().insert(header::SET_COOKIE, cookie);
-            }
-            return response;
-        }
+    // The built GUI files hold nothing secret, so they are public: the page signs itself in with the token it
+    // is given (in the URL fragment, which is never sent to a server) and sends it as a bearer header on every
+    // call. Everything that acts or reveals state needs the token.
+    if !requires_token(request.uri().path()) {
+        let mut response = next.run(request).await;
+        add_security_headers(response.headers_mut());
+        return response;
     }
-
     let authorized = auth::credential_from_headers(headers)
         .is_some_and(|candidate| ctx.token.verify(&candidate));
     if !authorized {
         return plain(
             StatusCode::UNAUTHORIZED,
-            "Authentication required. Open the login link printed when the server started, or send `Authorization: Bearer <token>`.",
+            "Authentication required: send `Authorization: Bearer <token>`. In a browser, open the login link printed when the server started.",
         );
     }
 
@@ -257,7 +233,11 @@ async fn guard(State(ctx): State<AppContext>, request: Request, next: Next) -> R
     }
 
     let mut response = next.run(request).await;
-    let headers = response.headers_mut();
+    add_security_headers(response.headers_mut());
+    response
+}
+
+fn add_security_headers(headers: &mut HeaderMap) {
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
@@ -266,7 +246,11 @@ async fn guard(State(ctx): State<AppContext>, request: Request, next: Next) -> R
         header::REFERRER_POLICY,
         HeaderValue::from_static("no-referrer"),
     );
-    response
+}
+
+/// Routes that act or reveal state. Everything else is the public, static GUI.
+fn requires_token(path: &str) -> bool {
+    path == "/api" || path.starts_with("/api/") || path == "/mcp" || path.starts_with("/mcp/")
 }
 
 async fn info(State(ctx): State<AppContext>) -> Json<Value> {
@@ -316,6 +300,12 @@ fn sse_event(event: &events::ServerEvent) -> Event {
 }
 
 async fn events_stream(State(ctx): State<AppContext>, headers: HeaderMap) -> Response {
+    let Some(permit) = ctx.bus.try_listen() else {
+        return plain(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Too many event streams are open. Close another tab and retry.",
+        );
+    };
     let last_id = header_text(&headers, header::HeaderName::from_static("last-event-id"))
         .and_then(|value| value.parse::<u64>().ok());
     // A reconnecting window resumes from its last id. A new window catches up on the active run instead.
@@ -340,7 +330,9 @@ async fn events_stream(State(ctx): State<AppContext>, headers: HeaderMap) -> Res
         }
     };
     let replay = tokio_stream::iter(replay.into_iter().map(Ok::<Event, Infallible>));
-    let live = BroadcastStream::new(receiver).filter_map(|item| {
+    // The permit lives as long as the stream: dropping the connection frees the place.
+    let live = BroadcastStream::new(receiver).filter_map(move |item| {
+        let _held = &permit;
         item.ok()
             .map(|event| Ok::<Event, Infallible>(sse_event(&event)))
     });

@@ -6,11 +6,19 @@ package.
 
 ## Unreleased (since v1.4.1)
 
+### Security (headless server)
+- Found by an independent review and fixed: tool-path arguments can no longer make a `--read-only` or `--root` server run a
+  program of its choosing; paths nested anywhere inside a command's arguments are checked against `--root`; dangling
+  symlinks are refused; the login token no longer travels in a cookie (cookies are shared across ports); a token file other
+  users can read is refused; the token is removed from the server's environment after start; open event streams and
+  replayed runs are capped; the page policy lists every artwork host the app downloads from. `rmcp` updated to 3.11.0.
+
 ### Added
 - **Headless server mode.** `hevc-rebuild-studio serve` runs the app without a desktop and shows the same GUI in a
   web browser, on the same jobs. Token sign-in (a login link, or a bearer token), `--read-only`, `--root` to keep the
   folder chooser and media paths inside chosen folders, a server-side file and folder chooser, live events, and the
-  browser's right-click menu. Listening beyond the local computer needs `--allow-remote` and `--allowed-host`, and
+  browser's right-click menu. The login link keeps the token in the URL fragment, so the browser never sends it to the
+  server; the page holds it for that tab only and uses a bearer header (no cookies). Listening beyond the local computer needs `--allow-remote` and `--allowed-host`, and
   HTTPS comes from a reverse proxy. See `docs/maintainer/SERVE_MODE.md`.
 - **MCP over HTTP.** A running server offers the whole MCP tool set at `/mcp` with the same token. A job an agent starts
   appears live in every open browser tab, and only one run, scan or setup job is active at a time across both.

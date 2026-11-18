@@ -1,10 +1,9 @@
-//! Token, cookie, Host and Origin checks for the headless server. Pure functions so every rule is tested
+//! Token, Host and Origin checks for the headless server. Pure functions so every rule is tested
 //! without sockets. The token is the only credential; it is never logged by the server.
 
 use axum::http::{header, HeaderMap};
 use sha2::{Digest, Sha256};
 
-pub(crate) const COOKIE_NAME: &str = "hevc_session";
 const MIN_TOKEN_LENGTH: usize = 16;
 
 /// The shared secret. Compared through SHA-256 digests with a fold over every byte, so the time taken
@@ -53,32 +52,14 @@ impl Token {
     }
 }
 
-/// The credential a request carries: `Authorization: Bearer` first, then the session cookie.
+/// The credential a request carries: `Authorization: Bearer <token>` and nothing else. A cookie would be sent
+/// to every port on the same host name, so the token never travels as one.
 pub(crate) fn credential_from_headers(headers: &HeaderMap) -> Option<String> {
-    if let Some(value) = headers
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-    {
-        if let Some(token) = value
-            .strip_prefix("Bearer ")
-            .or_else(|| value.strip_prefix("bearer "))
-        {
-            return Some(token.trim().to_string());
-        }
-    }
-    let cookies = headers.get(header::COOKIE)?.to_str().ok()?;
-    cookies.split(';').find_map(|pair| {
-        let (name, value) = pair.trim().split_once('=')?;
-        (name == COOKIE_NAME).then(|| value.to_string())
-    })
-}
-
-pub(crate) fn session_cookie(token: &Token, secure: bool) -> String {
-    format!(
-        "{COOKIE_NAME}={}; Path=/; HttpOnly; SameSite=Strict{}",
-        token.expose(),
-        if secure { "; Secure" } else { "" }
-    )
+    let value = headers.get(header::AUTHORIZATION)?.to_str().ok()?;
+    let token = value
+        .strip_prefix("Bearer ")
+        .or_else(|| value.strip_prefix("bearer "))?;
+    Some(token.trim().to_string())
 }
 
 fn host_without_port(host: &str) -> String {
@@ -138,39 +119,28 @@ mod tests {
     }
 
     #[test]
-    fn credentials_come_from_bearer_header_or_session_cookie() {
+    fn the_credential_is_the_bearer_header_only() {
         let mut headers = HeaderMap::new();
         assert_eq!(credential_from_headers(&headers), None);
         headers.insert(
             header::COOKIE,
-            HeaderValue::from_static("theme=dark; hevc_session=abc123; other=1"),
+            HeaderValue::from_static("hevc_session=abc123"),
         );
-        assert_eq!(credential_from_headers(&headers).as_deref(), Some("abc123"));
+        assert_eq!(
+            credential_from_headers(&headers),
+            None,
+            "a cookie is never a credential"
+        );
         headers.insert(
             header::AUTHORIZATION,
             HeaderValue::from_static("Bearer tok-1"),
         );
-        assert_eq!(
-            credential_from_headers(&headers).as_deref(),
-            Some("tok-1"),
-            "bearer wins over the cookie"
-        );
-        let mut wrong = HeaderMap::new();
-        wrong.insert(
+        assert_eq!(credential_from_headers(&headers).as_deref(), Some("tok-1"));
+        headers.insert(
             header::AUTHORIZATION,
             HeaderValue::from_static("Basic dXNlcjpwYXNz"),
         );
-        assert_eq!(credential_from_headers(&wrong), None);
-    }
-
-    #[test]
-    fn session_cookie_is_http_only_same_site_strict() {
-        let token = Token::from_secret("a-long-enough_secret.value").unwrap();
-        let cookie = session_cookie(&token, false);
-        assert!(cookie.starts_with("hevc_session=a-long-enough_secret.value;"));
-        assert!(cookie.contains("HttpOnly") && cookie.contains("SameSite=Strict"));
-        assert!(!cookie.contains("Secure"));
-        assert!(session_cookie(&token, true).ends_with("; Secure"));
+        assert_eq!(credential_from_headers(&headers), None);
     }
 
     #[test]

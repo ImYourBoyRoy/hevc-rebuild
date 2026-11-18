@@ -16,6 +16,7 @@ use unicode_normalization::UnicodeNormalization;
 mod cache;
 mod types;
 mod validate;
+pub(crate) use validate::image_hosts as artwork_image_hosts;
 
 use cache::*;
 pub(crate) use cache::{

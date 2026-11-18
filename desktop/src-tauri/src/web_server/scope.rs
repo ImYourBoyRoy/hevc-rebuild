@@ -54,6 +54,11 @@ impl PathScope {
                 }
                 return Ok(full);
             }
+            // A symlink that does not resolve (dangling) is a way to create files elsewhere later: refuse it.
+            if std::fs::symlink_metadata(&existing).is_ok_and(|meta| meta.file_type().is_symlink())
+            {
+                return Err(OUTSIDE.into());
+            }
             match (
                 existing.file_name().map(|name| name.to_owned()),
                 existing.parent(),
@@ -75,7 +80,7 @@ impl PathScope {
         if !self.is_restricted() {
             return Ok(());
         }
-        let resolved = Self::resolve(Path::new(path.trim()))?;
+        let resolved = Self::resolve(Path::new(path))?;
         if resolved
             .components()
             .any(|part| matches!(part, Component::ParentDir))
@@ -186,13 +191,93 @@ pub(crate) fn command_paths(command: &str, args: &Value) -> Vec<String> {
     found
 }
 
-/// Refuse the call before it runs if any named path is outside the scope.
+fn looks_like_path(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    text.starts_with('/')
+        || text.starts_with("\\\\")
+        || (bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'\\' | b'/'))
+}
+
+/// Keys that hold executables the user picked. They are never media paths and are neutralised by
+/// `strip_tool_paths` where they would run, so the scan leaves them out.
+const TOOL_KEYS: &[&str] = &["toolPaths", "ffmpegPath"];
+
+fn collect_deep(value: &Value, found: &mut Vec<String>) {
+    match value {
+        Value::String(text) if looks_like_path(text) => found.push(text.clone()),
+        Value::Array(items) => items.iter().for_each(|item| collect_deep(item, found)),
+        Value::Object(map) => {
+            for (key, item) in map {
+                if TOOL_KEYS.contains(&key.as_str()) {
+                    continue;
+                }
+                if looks_like_path(key) {
+                    found.push(key.clone());
+                }
+                collect_deep(item, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Every absolute-looking path string or map key anywhere in the arguments, whichever command it is for. This
+/// is what keeps a command that is missing from the table (or a nested setting such as a work folder) inside
+/// the roots.
+pub(crate) fn deep_paths(args: &Value) -> Vec<String> {
+    let mut found = Vec::new();
+    collect_deep(args, &mut found);
+    found
+}
+
+/// Commands whose tool-path overrides would be executed (to print a version, or to run a job).
+const RUNS_TOOLS: &[&str] = &[
+    "inspect_environment",
+    "provision_plan",
+    "provision_toolchain",
+    "scan_folder",
+    "start_run",
+];
+
+/// Replace the override with its "none given" value, keeping the argument present so commands that require it
+/// still accept the call.
+fn neutralise_tool_keys(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            for (key, item) in map.iter_mut() {
+                match key.as_str() {
+                    "toolPaths" => *item = Value::Object(Default::default()),
+                    "ffmpegPath" => *item = Value::Null,
+                    _ => neutralise_tool_keys(item),
+                }
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(neutralise_tool_keys),
+        _ => {}
+    }
+}
+
+/// In read-only or `--root` mode a client may not choose which program runs: tool-path overrides are emptied
+/// and the tools found on the server's own PATH are used. Commands that only store them are left alone.
+pub(crate) fn strip_tool_paths(command: &str, args: &mut Value) {
+    if RUNS_TOOLS.contains(&command) {
+        neutralise_tool_keys(args);
+    }
+}
+
+/// Refuse the call before it runs if any path it names, in the table or anywhere in its arguments, is
+/// outside the scope.
 pub(crate) fn check_command(scope: &PathScope, command: &str, args: &Value) -> Result<(), String> {
     if !scope.is_restricted() {
         return Ok(());
     }
-    for path in command_paths(command, args) {
-        if path.trim().is_empty() {
+    let mut paths = command_paths(command, args);
+    paths.extend(deep_paths(args));
+    for path in paths {
+        if path.is_empty() {
             continue;
         }
         scope.check(&path)?;
@@ -335,6 +420,157 @@ mod tests {
         );
         assert!(command_paths("default_media_root", &json!({})).is_empty());
         assert!(command_paths("start_run", &json!({})).is_empty());
+    }
+
+    #[test]
+    fn the_deep_scan_finds_absolute_paths_anywhere_in_the_arguments_and_ignores_the_rest() {
+        let args = json!({
+            "request": {
+                "root": "/m",
+                "settings": {"paths": {"work_root": "/scratch"}, "video": {"crf": 21}, "text": "plain words"},
+                "targets": [{"directory": "/posters/a"}, {"directory": "relative/dir"}],
+                "byFile": {"/m/a.mkv": {"note": "x"}},
+                "link": "https://image.tmdb.org/t/p/original/abc.jpg",
+                "win": ["C:\\Media\\a.mkv", "\\\\server\\share\\b.mkv", "c:/lower/c.mkv"],
+                "toolPaths": {"ffmpeg": "/usr/bin/ffmpeg"},
+                "ffmpegPath": "/usr/bin/ffmpeg",
+            }
+        });
+        let mut found = deep_paths(&args);
+        found.sort();
+        assert_eq!(
+            found,
+            [
+                "/m",
+                "/m/a.mkv",
+                "/posters/a",
+                "/scratch",
+                "C:\\Media\\a.mkv",
+                "\\\\server\\share\\b.mkv",
+                "c:/lower/c.mkv"
+            ]
+        );
+    }
+
+    #[test]
+    fn commands_that_were_missing_from_the_table_are_still_confined_by_the_deep_scan() {
+        let (base, media, scope) = tree();
+        let outside = base.join("private");
+        let outside = outside.to_str().unwrap();
+        let inside = media.to_str().unwrap();
+        let cases = [
+            (
+                "read_local_library_artwork_preview",
+                json!({"request": {"root": outside, "mediaPath": format!("{inside}/a.mkv")}}),
+            ),
+            (
+                "scan_local_library_assets",
+                json!({"request": {"root": "/", "mediaPaths": [format!("{inside}/a.mkv")]}}),
+            ),
+            (
+                "save_library_artwork",
+                json!({"request": {"root": inside, "targets": [{"directory": outside}]}}),
+            ),
+            (
+                "save_local_library_artwork",
+                json!({"request": {"root": inside, "sourcePath": format!("{outside}/p.jpg")}}),
+            ),
+            (
+                "preview_queue_output_targets",
+                json!({"request": {"outputDir": outside}}),
+            ),
+            (
+                "start_run",
+                json!({"request": {"root": inside, "settings": {"paths": {"work_root": outside}}}}),
+            ),
+            (
+                "start_run",
+                json!({"request": {"root": inside, "fileSettingsOverrides": {(format!("{inside}/a.mkv")): {"paths": {"work_root": outside}}}}}),
+            ),
+        ];
+        for (command, args) in cases {
+            assert!(
+                check_command(&scope, command, &args).is_err(),
+                "{command} must be refused: {args}"
+            );
+        }
+        let fine = json!({"request": {"root": inside, "targets": [{"directory": format!("{inside}/art")}], "settings": {"paths": {"work_root": "auto"}}}});
+        assert!(check_command(&scope, "save_library_artwork", &fine).is_ok());
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
+    fn tool_path_overrides_do_not_trip_the_scan_because_they_are_neutralised_separately() {
+        let (base, media, scope) = tree();
+        let args = json!({"request": {"root": media.to_str().unwrap(), "toolPaths": {"ffmpeg": "/usr/bin/ffmpeg"}, "ffmpegPath": "/usr/bin/ffmpeg"}});
+        assert!(check_command(&scope, "start_run", &args).is_ok());
+        let preferences = json!({"preferences": {"toolPaths": {"ffmpeg": "/usr/bin/ffmpeg"}, "root": media.to_str().unwrap()}});
+        assert!(
+            check_command(&scope, "save_app_preferences", &preferences).is_ok(),
+            "saving preferences keeps working"
+        );
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
+    fn executable_overrides_are_emptied_only_where_they_would_run_something() {
+        let mut args = json!({"toolPaths": {"ffmpeg": "/bin/sh"}, "request": {"toolPaths": {"ffprobe": "/bin/sh"}, "ffmpegPath": "/bin/sh", "root": "/m"}});
+        strip_tool_paths("start_run", &mut args);
+        assert_eq!(
+            args,
+            json!({"toolPaths": {}, "request": {"toolPaths": {}, "ffmpegPath": null, "root": "/m"}}),
+            "overrides are emptied, the arguments stay present, nothing else changes"
+        );
+        // Saving preferences stores the user's tool paths; it never runs them, so they are left alone.
+        let mut preferences = json!({"preferences": {"toolPaths": {"ffmpeg": "/usr/bin/ffmpeg"}}});
+        strip_tool_paths("save_app_preferences", &mut preferences);
+        assert_eq!(
+            preferences["preferences"]["toolPaths"]["ffmpeg"],
+            "/usr/bin/ffmpeg"
+        );
+        for command in [
+            "inspect_environment",
+            "provision_plan",
+            "provision_toolchain",
+            "scan_folder",
+        ] {
+            let mut value = json!({"toolPaths": {"ffmpeg": "/bin/sh"}, "options": {"toolPaths": {"ffmpeg": "/bin/sh"}}});
+            strip_tool_paths(command, &mut value);
+            assert!(
+                value["toolPaths"].as_object().unwrap().is_empty()
+                    && value["options"]["toolPaths"]
+                        .as_object()
+                        .unwrap()
+                        .is_empty(),
+                "{command}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_path_with_surrounding_whitespace_is_judged_as_written_not_trimmed() {
+        let (base, media, scope) = tree();
+        let padded = format!(" {}", media.display());
+        assert!(
+            scope.check(&padded).is_err(),
+            "the command would run on the untrimmed string"
+        );
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_dangling_symlink_that_points_outside_is_refused() {
+        let (base, media, scope) = tree();
+        std::os::unix::fs::symlink(base.join("private/will-be-created"), media.join("dangling"))
+            .unwrap();
+        assert!(scope
+            .check(media.join("dangling").to_str().unwrap())
+            .is_err());
+        assert!(scope
+            .check(media.join("dangling/inside.mkv").to_str().unwrap())
+            .is_err());
+        std::fs::remove_dir_all(base).ok();
     }
 
     #[test]

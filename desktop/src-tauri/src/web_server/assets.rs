@@ -147,9 +147,17 @@ pub(crate) fn content_security_policy(hashes: &[String]) -> String {
     } else {
         format!(" {}", hashes.join(" "))
     };
+    // The image hosts are the ones the artwork downloader accepts, plus the movie database's own site.
+    let mut hosts = crate::library_artwork::artwork_image_hosts();
+    hosts.push("www.themoviedb.org");
+    let images = hosts
+        .iter()
+        .map(|host| format!("https://{host}"))
+        .collect::<Vec<_>>()
+        .join(" ");
     format!(
         "default-src 'self'; script-src 'self'{scripts}; style-src 'self' 'unsafe-inline'; \
-         img-src 'self' data: blob: https://image.tmdb.org https://static.tvmaze.com https://upload.wikimedia.org https://www.themoviedb.org; \
+         img-src 'self' data: blob: {images}; \
          font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     )
 }
@@ -217,6 +225,30 @@ mod tests {
         let head = page.find("<head>").unwrap() + "<head>".len();
         assert!(page[head..].starts_with(r#"<script src="/__hevc/web-shim.js"></script>"#));
         assert!(page.contains("/_app/start.js"));
+    }
+
+    #[test]
+    fn the_csp_allows_every_host_the_app_downloads_artwork_from() {
+        // The downloader and the browser page must agree, or a provider's posters work in the desktop app
+        // and are silently blocked in the browser.
+        let policy = content_security_policy(&[]);
+        let img = policy
+            .split(';')
+            .find(|part| part.trim().starts_with("img-src"))
+            .expect("img-src");
+        let hosts = crate::library_artwork::artwork_image_hosts();
+        assert!(hosts.len() >= 4, "{hosts:?}");
+        for host in hosts {
+            assert!(
+                img.contains(&format!("https://{host}")),
+                "{host} is missing from img-src: {img}"
+            );
+        }
+        assert!(img.contains("https://artworks.thetvdb.com"), "TVDB posters");
+        assert!(
+            !img.contains('*') && !img.contains("http://"),
+            "no wildcards and no plain http"
+        );
     }
 
     #[test]

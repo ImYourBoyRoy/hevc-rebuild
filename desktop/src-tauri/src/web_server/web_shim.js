@@ -2,11 +2,12 @@
 // the headless server (`hevc-rebuild-studio serve`). It installs the object `@tauri-apps/api` calls
 // (`window.__TAURI_INTERNALS__`) and translates:
 //   invoke("command", args)        -> POST /api/invoke/command
-//   listen("event", handler)       -> one Server-Sent Events stream, GET /api/events
+//   listen("event", handler)       -> one Server-Sent Events stream, GET /api/events (read with fetch, so the
+//                                     token can travel in a header)
 //   dialog open/save               -> a folder browser backed by the server's filesystem
 //   window/menu/updater/process    -> inert answers (a browser tab has no native window)
 // Served first in <head> by the server; see docs/maintainer/SERVE_MODE.md.
-(function (win, fetchImpl, EventSourceImpl) {
+(function (win, fetchImpl) {
   "use strict";
   if (win.__TAURI_INTERNALS__) return;
 
@@ -16,8 +17,7 @@
   var nextEventId = 1;
   var nextResourceId = 1;
   var info = null;
-  var source = null;
-
+  
   function transformCallback(callback, once) {
     var id = nextCallbackId++;
     callbacks.set(id, function (data) {
@@ -34,9 +34,43 @@
 
   function failure(message) { return Promise.reject(typeof message === "string" ? message : String(message)); }
 
+  // ---- sign-in: a bearer token kept for this tab only --------------------------------------------
+  // The login link carries the token in the URL fragment (`#token=...`), which browsers never send to a server
+  // or a proxy log. It is moved into sessionStorage (gone when the tab closes), removed from the address bar,
+  // and sent as `Authorization: Bearer` on every call. No cookie is used: a cookie would be sent to every
+  // port on the same host name.
+  var TOKEN_KEY = "hevc.token";
+  var token = null;
+  function readToken() {
+    var found = null;
+    var location = win.location || {};
+    var hash = String(location.hash || "");
+    var search = String(location.search || "");
+    var hashMatch = /^#(?:.*&)?token=([^&]+)/.exec(hash);
+    var queryMatch = /^\?(?:.*&)?token=([^&]+)/.exec(search);
+    if (hashMatch) found = decodeURIComponent(hashMatch[1]);
+    else if (queryMatch) found = decodeURIComponent(queryMatch[1]);
+    if (found) {
+      try { win.sessionStorage.setItem(TOKEN_KEY, found); } catch (error) { /* kept in memory only */ }
+      try {
+        var rest = search.replace(/^\?/, "").split("&").filter(function (part) { return part && part.indexOf("token=") !== 0; }).join("&");
+        win.history.replaceState(null, "", (location.pathname || "/") + (rest ? "?" + rest : ""));
+      } catch (error) { /* the address bar keeps the fragment */ }
+      return found;
+    }
+    try { return win.sessionStorage.getItem(TOKEN_KEY); } catch (error) { return null; }
+  }
+  token = readToken();
+  function authHeaders(extra) {
+    var headers = extra || {};
+    if (token) headers.Authorization = "Bearer " + token;
+    return headers;
+  }
+  var SIGN_IN_MESSAGE = "This tab is not signed in. Open the login link printed when the server started (it ends in #token=...).";
+
   function loadInfo() {
     if (!info) {
-      info = fetchImpl("/api/info", { credentials: "same-origin" })
+      info = fetchImpl("/api/info", { credentials: "omit", headers: authHeaders() })
         .then(function (response) { return response.ok ? response.json() : { version: "0.0.0", readOnly: false }; })
         .catch(function () { return { version: "0.0.0", readOnly: false }; });
     }
@@ -46,15 +80,15 @@
   function post(command, args) {
     return fetchImpl("/api/invoke/" + encodeURIComponent(command), {
       method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
+      credentials: "omit",
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(args === undefined || args === null ? {} : args),
     }).then(function (response) {
       return response.text().then(function (text) {
         var body = null;
         try { body = text ? JSON.parse(text) : null; } catch (error) { body = null; }
         if (response.ok) return body;
-        if (response.status === 401) return failure("The server session ended. Open the login link printed by the server again.");
+        if (response.status === 401) return failure(SIGN_IN_MESSAGE);
         return failure(body && body.error ? body.error : "The server answered " + response.status + ".");
       });
     }, function (error) { return failure("Could not reach the server: " + (error && error.message ? error.message : error)); });
@@ -68,15 +102,55 @@
       runCallback(callbackId, { event: event, id: eventId, payload: payload });
     });
   }
+
+  // One Server-Sent Events stream, read with fetch so the bearer header can be sent. It reconnects with the last
+  // event id, so a dropped connection loses and repeats nothing the server still remembers.
+  var streaming = false;
+  var lastEventId = null;
+  function handleFrame(frame) {
+    var data = [];
+    frame.split(/\r?\n/).forEach(function (line) {
+      if (line.indexOf("id:") === 0) lastEventId = line.slice(3).trim();
+      else if (line.indexOf("data:") === 0) data.push(line.slice(5).replace(/^ /, ""));
+    });
+    if (!data.length) return; // a keep-alive comment
+    try {
+      var parsed = JSON.parse(data.join("\n"));
+      deliver(parsed.event, parsed.payload);
+    } catch (error) { /* ignore a malformed frame */ }
+  }
+  function retryDelay(failed) { return win.__HEVC_SSE_RETRY_MS__ || (failed ? 5000 : 1500); }
+  function runEventStream() {
+    var headers = authHeaders({ Accept: "text/event-stream" });
+    if (lastEventId) headers["Last-Event-ID"] = lastEventId;
+    var failed = false;
+    fetchImpl("/api/events", { credentials: "omit", headers: headers }).then(function (response) {
+      if (!response.ok || !response.body) { failed = true; throw new Error("status " + response.status); }
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = "";
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) return;
+          buffer += decoder.decode(chunk.value, { stream: true });
+          var boundary;
+          while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
+            var frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary).replace(/^\r?\n\r?\n/, "");
+            handleFrame(frame);
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function () { failed = true; }).then(function () {
+      setTimeout(runEventStream, retryDelay(failed));
+    });
+  }
   function ensureEventStream() {
-    if (source || !EventSourceImpl) return;
-    source = new EventSourceImpl("/api/events", { withCredentials: true });
-    source.onmessage = function (message) {
-      try {
-        var parsed = JSON.parse(message.data);
-        deliver(parsed.event, parsed.payload);
-      } catch (error) { /* ignore a malformed frame */ }
-    };
+    if (streaming || !fetchImpl) return;
+    streaming = true;
+    runEventStream();
   }
   function addListener(args) {
     ensureEventStream();
@@ -434,4 +508,4 @@
     helpers: { joinPath: joinPath, extensionAllowed: extensionAllowed },
     menu: { current: function () { return openMenu.model.map(function (entry) { return Object.assign({}, entry); }); }, activate: activateItem, activateBuiltin: activateBuiltin },
   };
-})(window, typeof fetch === "function" ? fetch.bind(window) : undefined, typeof EventSource === "function" ? EventSource : undefined);
+})(window, typeof fetch === "function" ? fetch.bind(window) : undefined);

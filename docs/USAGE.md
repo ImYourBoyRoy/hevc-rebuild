@@ -227,15 +227,17 @@ hevc-rebuild-studio serve --read-only           # observe only
 hevc-rebuild-studio serve --token-file ~/.config/hevc-serve-token --web-root desktop/build
 ```
 
-The server prints a login link (`http://127.0.0.1:8437/?token=...`). Opening it
-sets an `HttpOnly`, `SameSite=Strict` session cookie and removes the token from
-the address bar; scripts and agents send `Authorization: Bearer <token>`. There
-is no way to turn authentication off.
+The server prints a login link (`http://127.0.0.1:8437/#token=...`). The token
+sits in the URL *fragment*, so the browser never sends it to the server; the page
+keeps it for that tab only (`sessionStorage`), removes it from the address bar and
+sends it as `Authorization: Bearer <token>` on every call. There are no cookies, so
+nothing can leak to other programs on the same host (cookies ignore ports). Scripts
+and agents send the same header. The GUI's own files are public; the API and `/mcp`
+need the token. There is no way to turn authentication off.
 
 - It listens on loopback only. `--host 0.0.0.0` is refused unless
   `--allow-remote` and at least one `--allowed-host NAME` are also given. Put a
-  reverse proxy (Caddy, nginx, a tunnel) in front for TLS; the server marks the
-  cookie `Secure` when the proxy sends `X-Forwarded-Proto: https`.
+  reverse proxy (Caddy, nginx, a tunnel) in front for TLS.
 - `--read-only` refuses every command that changes state (preferences, queue,
   renames, artwork, reports) and still serves environment checks, plans,
   reports, logs and searches.

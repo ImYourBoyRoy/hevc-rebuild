@@ -60,6 +60,61 @@ pub(crate) enum Parsed {
     Run(ServeConfig),
 }
 
+/// The access token is a password: refuse a token file that other users on this computer can read.
+#[cfg(unix)]
+fn check_token_file_mode(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = std::fs::metadata(path)
+        .map_err(|error| format!("Could not read the token file {}: {error}", path.display()))?
+        .permissions()
+        .mode();
+    if mode & 0o077 != 0 {
+        return Err(format!(
+            "The token file {} is readable by other users (mode {:o}). Run: chmod 600 {}",
+            path.display(),
+            mode & 0o777,
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn check_token_file_mode(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+/// Read an environment variable and remove it from the process, so the programs this server starts
+/// (ffmpeg, the tool installers, `sudo`) do not inherit the access token.
+fn take_env(name: &str) -> Option<String> {
+    let value = std::env::var(name).ok();
+    std::env::remove_var(name);
+    value
+}
+
+/// Remember a privilege probe for a while: it can spawn `sudo`, and a plan request should not do that each time.
+pub(crate) fn cached_probe(
+    probe: impl Fn() -> crate::provision::HeadlessRoute + Send + Sync + 'static,
+    keep: std::time::Duration,
+) -> super::PrivilegeProbe {
+    let remembered: std::sync::Mutex<
+        Option<(std::time::Instant, crate::provision::HeadlessRoute)>,
+    > = std::sync::Mutex::new(None);
+    Arc::new(move || {
+        let mut slot = remembered
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((when, route)) = *slot {
+            if when.elapsed() < keep {
+                return route;
+            }
+        }
+        let route = probe();
+        *slot = Some((std::time::Instant::now(), route));
+        route
+    })
+}
+
 fn value_of(args: &[String], index: usize, flag: &str) -> Result<String, String> {
     args.get(index + 1)
         .cloned()
@@ -148,6 +203,7 @@ pub(crate) fn parse_args(
         env_token.filter(|value| !value.trim().is_empty()),
     ) {
         (Some(path), _) => {
+            check_token_file_mode(&path)?;
             let text = std::fs::read_to_string(&path).map_err(|error| {
                 format!("Could not read the token file {}: {error}", path.display())
             })?;
@@ -227,7 +283,10 @@ async fn run(
     let bus = EventBus::default();
     let run_state = RunState::default();
     let events = super::bus_events(&bus);
-    let privilege_route: super::PrivilegeProbe = Arc::new(crate::provision::probe_headless_route);
+    let privilege_route: super::PrivilegeProbe = cached_probe(
+        crate::provision::probe_headless_route,
+        std::time::Duration::from_secs(30),
+    );
     let mcp = super::mcp_for(&run_state, &events, &privilege_route);
     mcp.start_event_bridge();
     let ctx = AppContext {
@@ -246,15 +305,15 @@ async fn run(
     println!("HEVC Rebuild Studio server listening on http://{bound}");
     if generated {
         println!(
-            "Open this login link in a browser (it sets a session cookie, then hides the token):"
+            "Open this login link in a browser tab (the token is in the address fragment, which is never sent to the server; the page keeps it for this tab and hides it):"
         );
-        println!("  http://{bound}/?token={}", token.expose());
+        println!("  http://{bound}/#token={}", token.expose());
         println!(
             "Agents authenticate with the header:  Authorization: Bearer {}",
             token.expose()
         );
     } else {
-        println!("Authenticate with the configured token: open http://{bound}/?token=<token>, or send `Authorization: Bearer <token>`.");
+        println!("Authenticate with the configured token: open http://{bound}/#token=<token> in a browser tab, or send `Authorization: Bearer <token>`.");
     }
     if let Some(first) = ctx.scope.first_root() {
         println!(
@@ -285,11 +344,7 @@ pub fn serve_mode(args: Vec<OsString>) -> i32 {
         .into_iter()
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect();
-    let config = match parse_args(
-        &args,
-        std::env::var(TOKEN_ENV).ok(),
-        std::env::var(WEB_ROOT_ENV).ok(),
-    ) {
+    let config = match parse_args(&args, take_env(TOKEN_ENV), std::env::var(WEB_ROOT_ENV).ok()) {
         Ok(Parsed::Help) => {
             print!("{HELP}");
             return 0;
@@ -418,13 +473,13 @@ mod tests {
     fn token_comes_from_a_file_or_the_environment_and_must_be_strong_enough() {
         let directory = crate::test_dir("serve-token");
         let file = directory.join("token");
-        std::fs::write(&file, "file-token-0123456789abcdef\n").unwrap();
+        write_private(&file, "file-token-0123456789abcdef\n");
         let from_file = config(&["--token-file", file.to_str().unwrap()]);
         assert_eq!(
             from_file.token.unwrap().expose(),
             "file-token-0123456789abcdef"
         );
-        std::fs::write(&file, "short").unwrap();
+        write_private(&file, "short");
         assert!(parse(&["--token-file", file.to_str().unwrap()]).is_err());
         assert!(parse(&["--token-file", directory.join("missing").to_str().unwrap()]).is_err());
         let from_env = parse_args(&[], Some("env-token-0123456789abcdef".into()), None).unwrap();
@@ -436,6 +491,80 @@ mod tests {
         }
         assert!(parse_args(&[], Some("short".into()), None).is_err());
         std::fs::remove_dir_all(directory).ok();
+    }
+
+    /// A token file only its owner can read (a no-op check on platforms without Unix permissions).
+    fn write_private(path: &Path, text: &str) {
+        std::fs::write(path, text).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_token_file_that_others_can_read_is_refused_with_the_fix() {
+        use std::os::unix::fs::PermissionsExt;
+        let directory = crate::test_dir("serve-token-mode");
+        let file = directory.join("token");
+        std::fs::write(&file, "file-token-0123456789abcdef\n").unwrap();
+        for mode in [0o644, 0o640, 0o604, 0o666] {
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(mode)).unwrap();
+            let error = parse(&["--token-file", file.to_str().unwrap()]).unwrap_err();
+            assert!(
+                error.contains("readable by other users") && error.contains("chmod 600"),
+                "{mode:o}: {error}"
+            );
+        }
+        for mode in [0o600, 0o400] {
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(mode)).unwrap();
+            assert!(
+                parse(&["--token-file", file.to_str().unwrap()]).is_ok(),
+                "{mode:o}"
+            );
+        }
+        std::fs::remove_dir_all(directory).ok();
+    }
+
+    #[test]
+    fn the_token_is_taken_out_of_the_environment_so_child_programs_do_not_inherit_it() {
+        std::env::set_var("HEVC_TEST_SCRUB_TOKEN", "scrub-token-0123456789abcdef");
+        assert_eq!(
+            take_env("HEVC_TEST_SCRUB_TOKEN").as_deref(),
+            Some("scrub-token-0123456789abcdef")
+        );
+        assert!(
+            std::env::var_os("HEVC_TEST_SCRUB_TOKEN").is_none(),
+            "gone from the process environment"
+        );
+        assert_eq!(take_env("HEVC_TEST_SCRUB_TOKEN"), None);
+    }
+
+    #[test]
+    fn the_sudo_probe_is_cached_so_a_plan_request_does_not_spawn_sudo_every_time() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let calls = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&calls);
+        let probe = cached_probe(
+            move || {
+                counter.fetch_add(1, Ordering::SeqCst);
+                crate::provision::HeadlessRoute::Unavailable
+            },
+            std::time::Duration::from_millis(80),
+        );
+        for _ in 0..5 {
+            assert_eq!(probe(), crate::provision::HeadlessRoute::Unavailable);
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 1, "five requests, one probe");
+        std::thread::sleep(std::time::Duration::from_millis(120));
+        probe();
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            2,
+            "it is looked at again after the cache expires"
+        );
     }
 
     #[test]

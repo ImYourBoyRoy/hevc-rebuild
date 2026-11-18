@@ -68,9 +68,13 @@ endpoint can listen at once; every subscriber sees the same job.
   `--allow-remote` is also given; the server then still requires the token.
 - A bearer token is always required (there is no `--no-auth`). It is random
   (256 bit) and printed once at start as a login URL, or supplied with
-  `--token-file PATH` / `HEVC_REBUILD_SERVE_TOKEN` for a stable token. Opening
-  `/?token=…` sets an `HttpOnly; SameSite=Strict` cookie and redirects to `/`
-  so the token leaves the address bar; agents send `Authorization: Bearer`.
+  `--token-file PATH` / `HEVC_REBUILD_SERVE_TOKEN` for a stable token. The login
+  link carries it in the URL fragment (`/#token=…`), which browsers never send;
+  the web shim stores it in `sessionStorage`, strips it from the address bar and
+  sends `Authorization: Bearer` (fetch-based event stream, `credentials: omit`).
+  There are no cookies (a cookie is shared across ports, so it would leak the
+  token to any other local service). Static GUI files are public; `/api` and
+  `/mcp` need the token. A token file must be mode 0600 on Unix.
   Comparison is constant-time. The token is never written to logs or the
   app-state directory by the server.
 - DNS-rebinding and cross-site defence: the `Host` header must be a loopback

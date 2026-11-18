@@ -49,14 +49,13 @@ async fn invoke(ctx: &AppContext, command: &str, args: Value) -> (StatusCode, Va
 }
 
 #[tokio::test]
-async fn every_route_requires_the_token() {
+async fn the_api_and_mcp_need_the_token_but_the_public_gui_files_do_not() {
     let ctx = test_context(false);
     for (method, uri) in [
         (Method::GET, "/api/info"),
-        (Method::GET, "/"),
         (Method::GET, "/api/events"),
-        (Method::GET, "/_app/app.js"),
-        (Method::GET, "/__hevc/web-shim.js"),
+        (Method::GET, "/api/nothing"),
+        (Method::GET, "/mcp"),
     ] {
         let response = send(&ctx, request(method, uri), Body::empty()).await;
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{uri}");
@@ -76,48 +75,46 @@ async fn every_route_requires_the_token() {
     )
     .await;
     assert_eq!(wrong.status(), StatusCode::UNAUTHORIZED);
+    // The GUI files hold nothing secret; the page signs itself in with the token it is given.
+    for uri in ["/", "/library", "/_app/app.js", "/__hevc/web-shim.js"] {
+        let response = send(&ctx, request(Method::GET, uri), Body::empty()).await;
+        assert_eq!(response.status(), StatusCode::OK, "{uri}");
+        assert!(
+            response.headers().get(header::SET_COOKIE).is_none(),
+            "{uri} never sets a cookie"
+        );
+    }
 }
 
 #[tokio::test]
-async fn bearer_header_and_session_cookie_both_authenticate() {
+async fn only_the_bearer_header_authenticates_so_a_cookie_cannot_leak_the_token_to_other_ports() {
     let ctx = test_context(false);
     let bearer = send(&ctx, authed(Method::GET, "/api/info"), Body::empty()).await;
     assert_eq!(bearer.status(), StatusCode::OK);
     let info = json_body(bearer).await;
     assert_eq!(info["server"], true);
     assert_eq!(info["readOnly"], false);
+    // A cookie carrying the token is not accepted at all: cookies are sent to every port on localhost.
     let cookie = send(
         &ctx,
         request(Method::GET, "/api/info").header(header::COOKIE, format!("hevc_session={TOKEN}")),
         Body::empty(),
     )
     .await;
-    assert_eq!(cookie.status(), StatusCode::OK);
+    assert_eq!(cookie.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
-async fn login_link_sets_a_strict_cookie_and_redirects_without_the_token() {
+async fn the_login_link_is_handled_in_the_browser_and_the_server_never_sees_or_stores_the_token() {
     let ctx = test_context(false);
-    let good = send(
-        &ctx,
-        request(Method::GET, &format!("/?token={TOKEN}")),
-        Body::empty(),
-    )
-    .await;
-    assert_eq!(good.status(), StatusCode::SEE_OTHER);
-    assert_eq!(good.headers()[header::LOCATION], "/");
-    let cookie = good.headers()[header::SET_COOKIE]
-        .to_str()
-        .unwrap()
-        .to_string();
-    assert!(
-        cookie.contains(&format!("hevc_session={TOKEN}"))
-            && cookie.contains("HttpOnly")
-            && cookie.contains("SameSite=Strict")
-    );
-    let bad = send(&ctx, request(Method::GET, "/?token=wrong"), Body::empty()).await;
-    assert_eq!(bad.status(), StatusCode::UNAUTHORIZED);
-    assert!(bad.headers().get(header::SET_COOKIE).is_none());
+    // The token travels in the URL fragment, which browsers never send. A query token is only a fallback
+    // the page reads itself; the server ignores it and sets nothing.
+    for uri in [format!("/?token={TOKEN}"), "/?token=wrong".to_string()] {
+        let response = send(&ctx, request(Method::GET, &uri), Body::empty()).await;
+        assert_eq!(response.status(), StatusCode::OK, "{uri}");
+        assert!(response.headers().get(header::SET_COOKIE).is_none());
+        assert!(response.headers().get(header::LOCATION).is_none());
+    }
     let elsewhere = send(
         &ctx,
         request(Method::GET, &format!("/api/info?token={TOKEN}")),
@@ -127,23 +124,25 @@ async fn login_link_sets_a_strict_cookie_and_redirects_without_the_token() {
     assert_eq!(
         elsewhere.status(),
         StatusCode::UNAUTHORIZED,
-        "the query token only works on the login page"
+        "a query token never authenticates an API call"
     );
 }
 
 #[tokio::test]
-async fn behind_a_tls_proxy_the_cookie_is_marked_secure() {
+async fn a_foreign_host_header_is_refused_for_public_files_too() {
     let ctx = test_context(false);
-    let response = send(
-        &ctx,
-        request(Method::GET, &format!("/?token={TOKEN}")).header("x-forwarded-proto", "https"),
-        Body::empty(),
-    )
-    .await;
-    assert!(response.headers()[header::SET_COOKIE]
-        .to_str()
-        .unwrap()
-        .ends_with("; Secure"));
+    for uri in ["/", "/_app/app.js"] {
+        let mut builder = request(Method::GET, uri);
+        builder
+            .headers_mut()
+            .unwrap()
+            .insert(header::HOST, "attacker.example:8437".parse().unwrap());
+        assert_eq!(
+            send(&ctx, builder, Body::empty()).await.status(),
+            StatusCode::FORBIDDEN,
+            "{uri}"
+        );
+    }
 }
 
 #[tokio::test]
@@ -431,4 +430,22 @@ async fn a_path_outside_the_root_is_a_403() {
     let (status, _) = invoke(&ctx, "list_directory", json!({})).await;
     assert_eq!(status, StatusCode::OK);
     std::fs::remove_dir_all(base).ok();
+}
+
+#[tokio::test]
+async fn too_many_open_event_streams_are_refused_and_a_closed_one_frees_its_place() {
+    let mut ctx = test_context(false);
+    ctx.bus = super::events::EventBus::with_listener_limit(2);
+    let first = send(&ctx, authed(Method::GET, "/api/events"), Body::empty()).await;
+    let _second = send(&ctx, authed(Method::GET, "/api/events"), Body::empty()).await;
+    assert_eq!(first.status(), StatusCode::OK);
+    let third = send(&ctx, authed(Method::GET, "/api/events"), Body::empty()).await;
+    assert_eq!(third.status(), StatusCode::SERVICE_UNAVAILABLE);
+    drop(first);
+    let again = send(&ctx, authed(Method::GET, "/api/events"), Body::empty()).await;
+    assert_eq!(
+        again.status(),
+        StatusCode::OK,
+        "closing a stream frees its place"
+    );
 }

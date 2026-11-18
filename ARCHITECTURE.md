@@ -10,8 +10,8 @@ Every tracked or non-ignored project file (except the derived `ARCHITECTURE.md` 
 | Measure | Value |
 |---|---|
 | Files | 587 |
-| Text lines | 230,422 |
-| Size on disk | 17121.9 KiB |
+| Text lines | 231,149 |
+| Size on disk | 17154.9 KiB |
 | Files marked for legacy cleanup | 0 |
 | Files over their advisory line budget | 1 |
 
@@ -27,7 +27,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `/`
 
-16 files · 1,939 lines · 225.5 KiB
+16 files · 1,949 lines · 228.0 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -36,11 +36,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `.mcp.json` | 8 | 130 B | Claude Code project MCP servers: the local Svelte MCP (svelte-autofixer, docs). |
 | `.nvmrc` | 1 | 8 B | Recommended Node LTS for builds. |
 | `AGENTS.md` | 178 | 9.0 KiB | Binding rules for AI assistants and contributors: architecture ownership, safety invariants, docs and tasklist upkeep. |
-| `CHANGELOG.md` | 48 | 3.6 KiB | User-facing changes since the last published release. |
+| `CHANGELOG.md` | 56 | 4.4 KiB | User-facing changes since the last published release. |
 | `CLAUDE.md` | 15 | 821 B | Entry point for Claude: follow AGENTS.md; lists the checks to run before reporting work. |
 | `install.sh` | 78 | 2.4 KiB | Linux source installer that builds and installs the native Rust/Tauri executable. |
 | `LICENSE` | 133 | 4.5 KiB | PolyForm Noncommercial 1.0.0 license text. |
-| `MEMORY.md` | 875 | 181.6 KiB | Local, git-ignored session memory and acceptance evidence. |
+| `MEMORY.md` | 877 | 183.2 KiB | Local, git-ignored session memory and acceptance evidence. |
 | `package.json` | 25 | 1.0 KiB | Root package manifest for repository-level scripts (architecture map, release checks). |
 | `pnpm-lock.yaml` | 167 | 4.6 KiB | Root lockfile for repository-level scripts. |
 | `README.md` | 291 | 15.0 KiB | Public README: install, CLI/MCP/GUI usage, verified outputs. |
@@ -116,13 +116,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/`
 
-11 files · 6,401 lines · 153.3 KiB
+11 files · 6,411 lines · 153.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `.gitignore` | 7 | 166 B | Rust build output ignore rules. |
 | `build.rs` | 26 | 1.4 KiB | Tauri build script; also embeds the Windows manifest into every target so the unit-test executable can load Common Controls v6. |
-| `Cargo.lock` | 6,164 | 144.4 KiB | Rust dependency lockfile (committed). |
+| `Cargo.lock` | 6,174 | 144.6 KiB | Rust dependency lockfile (committed). |
 | `Cargo.toml` | 86 | 3.6 KiB | Rust crate manifest: Tauri 2 app, library and dependency floors. |
 | `linux-post-install.sh` | 18 | 577 B | Debian package post-install hook. |
 | `linux-post-remove.sh` | 11 | 294 B | Debian package post-remove hook. |
@@ -259,7 +259,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/`
 
-73 files · 33,345 lines · 1159.6 KiB
+73 files · 33,346 lines · 1159.7 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -292,7 +292,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `integrity.rs` | 985 | 31.5 KiB | Native read-only media integrity checks. |
 | `job_state.rs` | 312 | 9.8 KiB | The single active-job slot behind the desktop run controls, the `Events` sink job runners emit into (the desktop window or the headless server's bus), and the e |
 | `lib.rs` | 301 | 11.2 KiB | Crate root: module registry, Tauri command registration (`run`), test helpers and re-exports; behavior lives in the focused modules. |
-| `library_artwork.rs` | 396 | 15.8 KiB | Confirmed provider/local artwork saves, cache inspection and reviewed purge. |
+| `library_artwork.rs` | 397 | 15.9 KiB | Confirmed provider/local artwork saves, cache inspection and reviewed purge. |
 | `library_assets.rs` | 628 | 20.4 KiB | Bounded adjacent-artwork inspection (never reads NFO sidecars). |
 | `library_metadata.rs` | 234 | 7.1 KiB | Bounded public-provider requests, title-clue parser and metadata review data. |
 | `library_organizer.rs` | 45 | 1.3 KiB | Local name/episode scans, validated templates, rename preview and collision-safe apply. |
@@ -339,14 +339,14 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/library_artwork/`
 
-4 files · 1,135 lines · 40.5 KiB
+4 files · 1,148 lines · 40.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `cache.rs` | 468 | 16.5 KiB | The private app artwork cache: location, inspection, snapshot and the reviewed purge of unused files. |
 | `tests.rs` | 306 | 10.7 KiB | Tests for artwork validation, saves, the private cache and its reviewed purge. |
 | `types.rs` | 49 | 1.5 KiB | Artwork save requests and results. |
-| `validate.rs` | 312 | 11.9 KiB | Provider host, image type, credit text and target validation before any artwork is fetched or written. |
+| `validate.rs` | 325 | 12.2 KiB | Provider host, image type, credit text and target validation before any artwork is fetched or written. |
 
 ### `desktop/src-tauri/src/library_metadata/`
 
@@ -479,21 +479,21 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src-tauri/src/web_server/`
 
-11 files · 4,358 lines · 164.7 KiB
+11 files · 4,943 lines · 188.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
-| `assets.rs` | 276 | 10.3 KiB | GUI files for the server (embedded Tauri assets or --web-root): index rewrite (shim injection, Tauri CSP removed), inline-script CSP hashes, traversal-safe lookup. |
-| `auth.rs` | 207 | 7.3 KiB | Server token (256-bit, constant-time compare), bearer/cookie extraction, session cookie, Host allow-list and Origin match. |
-| `commands.rs` | 669 | 29.9 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
-| `config.rs` | 572 | 20.8 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
-| `events.rs` | 319 | 11.2 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
+| `assets.rs` | 308 | 11.4 KiB | GUI files for the server (embedded Tauri assets or --web-root): index rewrite (shim injection, Tauri CSP removed), inline-script CSP hashes, traversal-safe lookup. |
+| `auth.rs` | 177 | 6.2 KiB | Server token (256-bit, constant-time compare), bearer/cookie extraction, session cookie, Host allow-list and Origin match. |
+| `commands.rs` | 717 | 31.9 KiB | Command routing for the headless server: maps Tauri command names and JSON args onto the same functions, Read/Write classification, refused/inert lists, read-only enforcement. |
+| `config.rs` | 701 | 25.6 KiB | `serve` options and safety rules (loopback by default, --allow-remote needs --allowed-host, token file/env), asset source choice and the blocking entry point. |
+| `events.rs` | 406 | 14.5 KiB | In-process event bus with ids and a bounded replay backlog behind the Server-Sent Events stream. |
 | `fs_browse.rs` | 227 | 8.2 KiB | Read-only server-side folder listing that backs the browser's replacement for native file/folder pickers. |
 | `mcp_tests.rs` | 457 | 14.5 KiB | HTTP-level tests for `/mcp`: token, read-only refusal, initialize/tools, a job started over MCP visible on the bus and slot, busy refusal. |
-| `mod.rs` | 395 | 14.3 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
-| `router_tests.rs` | 434 | 14.6 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
-| `scope.rs` | 365 | 13.3 KiB | `--root` confinement: canonical root set, symlink/`..`-safe path check, and the table of which command arguments carry media or output paths. |
-| `web_shim.js` | 437 | 20.3 KiB | Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab. |
+| `mod.rs` | 387 | 14.1 KiB | Headless `serve` mode router: token/host/origin guard, `POST /api/invoke/{command}`, SSE event stream, shim and static GUI routes, shared app context. |
+| `router_tests.rs` | 451 | 15.9 KiB | In-process HTTP tests for the headless server: auth, host/origin, status codes, SSE, static serving. |
+| `scope.rs` | 601 | 22.5 KiB | `--root` confinement: canonical root set, symlink/`..`-safe path check, and the table of which command arguments carry media or output paths. |
+| `web_shim.js` | 511 | 23.7 KiB | Browser shim that fakes the Tauri runtime (invoke, listen, dialogs, window, menu, updater) against the headless server so the unmodified GUI runs in a tab. |
 
 ### `desktop/src-tauri/src/youtube_run/`
 
@@ -663,7 +663,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/src/lib/views/`
 
-11 files · 1,797 lines · 182.2 KiB
+11 files · 1,797 lines · 182.3 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -676,7 +676,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `ShellHeader.svelte` | 65 | 4.0 KiB | Breadcrumb, appearance picker, engine status pill, refresh/help buttons and the dismissible notice extracted from the route; pure view with route callbacks. |
 | `ShellSidebar.svelte` | 72 | 3.7 KiB | Brand lockup, main/utility navigation, active-library chip and engine status extracted from the route; navigation and the folder picker are route callbacks. |
 | `StopNowDialog.svelte` | 28 | 1.6 KiB | Stop-now confirmation dialog extracted from the route; the route owns the open flag and the stop action. |
-| `WorkbenchDetailPanel.svelte` | 319 | 37.7 KiB | Metadata workbench detail card (selected match, seasons and episodes, artwork choices, organizer rename plan) extracted from MetadataWorkbench; state instances, derived values and controller functions arrive as props, the bindable assignments and templates are bound. |
+| `WorkbenchDetailPanel.svelte` | 319 | 37.8 KiB | Metadata workbench detail card (selected match, seasons and episodes, artwork choices, organizer rename plan) extracted from MetadataWorkbench; state instances, derived values and controller functions arrive as props, the bindable assignments and templates are bound. |
 | `WorkbenchMoviesPanel.svelte` | 250 | 27.2 KiB | Metadata workbench analyzed-movies panels (focused film review and the scanned movie list with batch poster choice) extracted from MetadataWorkbench; state instances, derived values and controller functions arrive as props. |
 
 ### `desktop/src/routes/`
@@ -766,7 +766,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `desktop/tests/`
 
-80 files · 10,823 lines · 725.4 KiB
+80 files · 10,925 lines · 730.4 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -846,7 +846,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `tool-setup-logs.test.mjs` | 73 | 4.4 KiB | Tool setup: saved setup logs (list, open, export). |
 | `tool-setup-provision.test.mjs` | 135 | 9.0 KiB | Tool setup: the one-pass "install and update everything" review and apply flow (one password). |
 | `tool-setup-repair.test.mjs` | 49 | 2.8 KiB | Tool setup: update checks, catalog refresh and the repair-apt flow. |
-| `web-shim.test.mjs` | 217 | 10.6 KiB | Contract tests running the real @tauri-apps/api modules against the web shim. |
+| `web-shim.test.mjs` | 319 | 15.5 KiB | Contract tests running the real @tauri-apps/api modules against the web shim. |
 | `window-state.test.mjs` | 237 | 11.8 KiB | Node tests for window-state-controller.ts with fake window, monitor, invoke, storage and timers. |
 | `workspace-state.test.mjs` | 50 | 3.3 KiB | Unit tests for the workspace state module. |
 | `youtube-contract.mjs` | 16 | 2.2 KiB | Browser contract: YouTube prep. |
@@ -911,13 +911,13 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 
 ### `docs/`
 
-13 files · 78,724 lines · 2664.4 KiB
+13 files · 78,726 lines · 2664.9 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
 | `architecture-descriptions.json` | 324 | 49.5 KiB | Descriptions, legacy-cleanup markers, and line budgets that drive ARCHITECTURE.md. |
-| `interaction-map.json` | 63,765 | 1938.7 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
-| `interaction-map.md` | 853 | 180.0 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
+| `interaction-map.json` | 63,765 | 1939.0 KiB | Generated machine-readable Svelte interaction inventory, handler traces, task click budgets and redundancy groups. |
+| `interaction-map.md` | 853 | 180.2 KiB | Generated human-readable UI click-flow map, task minimums and redundancy hotspots. |
 | `interaction-tasks.json` | 320 | 9.8 KiB | Reviewed task journey selectors used to compute shortest click paths and over-tap deltas. |
 | `interaction-waterfall.json` | 10,333 | 335.9 KiB | Generated machine-readable state inventories, source-resolved waterfall steps, click formulas and native/system boundaries. |
 | `interaction-waterfall.md` | 769 | 68.1 KiB | Generated human-readable multiflow waterfall map with active controls, transitions and minimum click formulas. |
@@ -927,11 +927,11 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `RELEASE.md` | 109 | 5.6 KiB | Release and update workflow |
 | `SUPPORT.md` | 41 | 1.8 KiB | Support and troubleshooting |
 | `TOOLS.md` | 149 | 7.4 KiB | Installation and external tools |
-| `USAGE.md` | 354 | 18.0 KiB | Human usage guide |
+| `USAGE.md` | 356 | 18.1 KiB | Human usage guide |
 
 ### `docs/maintainer/`
 
-8 files · 801 lines · 43.3 KiB
+8 files · 805 lines · 43.6 KiB
 
 | File | Lines | Size | Description |
 |---|---:|---:|---|
@@ -941,7 +941,7 @@ Budgets are advisory (see `budgets` in `docs/architecture-descriptions.json`). S
 | `README.md` | 15 | 654 B | Maintainer notes |
 | `REVIEW.md` | 93 | 3.8 KiB | Review and release evidence |
 | `RUST_MIGRATION.md` | 92 | 4.8 KiB | Native Rust architecture record |
-| `SERVE_MODE.md` | 263 | 16.4 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
+| `SERVE_MODE.md` | 267 | 16.8 KiB | Design and safety model of the headless server mode, with stages and open owner questions. |
 | `TECHNICAL.md` | 178 | 9.0 KiB | Technical architecture |
 
 ### `docs/screenshots/`

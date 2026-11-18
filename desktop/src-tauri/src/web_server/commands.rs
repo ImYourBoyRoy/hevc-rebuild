@@ -282,7 +282,13 @@ pub(crate) async fn dispatch(
             "The server is read-only; `{name}` changes state."
         )));
     }
-    // Paths are checked before the command runs, so a refused call never touches the job slot or the disk.
+    // A client that may only look (read-only) or only reach some folders (--root) does not get to choose which
+    // program runs. Then every path is checked before the command starts, so a refused call never touches the
+    // job slot or the disk.
+    let mut args = args;
+    if ctx.read_only || ctx.scope.is_restricted() {
+        super::scope::strip_tool_paths(name, &mut args);
+    }
     super::scope::check_command(&ctx.scope, name, &args).map_err(CommandError::Forbidden)?;
     run(ctx, name, args).await
 }
@@ -648,6 +654,48 @@ mod tests {
         assert!(dispatch(&ctx, "load_settings", json!({"root": default}))
             .await
             .is_ok());
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    /// A client-chosen program must not run for a client that may only look, or that is confined to folders.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_read_only_or_confined_client_cannot_make_the_server_run_a_program_of_its_choosing() {
+        let base = crate::test_dir("web-toolpath");
+        let marker = base.join("ran");
+        let script = base.join("fake-ffmpeg");
+        crate::write_test_script(
+            &script,
+            &format!(
+                "#!/bin/sh\ntouch '{}'\necho 'ffmpeg version 0'\n",
+                marker.display()
+            ),
+        );
+        let args = json!({"toolPaths": {"ffmpeg": script.to_str().unwrap()}});
+
+        // Control: with no restriction the override is used (so this test can detect a failure).
+        let open = test_context(false);
+        let _ = dispatch(&open, "inspect_environment", args.clone()).await;
+        assert!(
+            marker.exists(),
+            "the control must run the override, or this test proves nothing"
+        );
+        std::fs::remove_file(&marker).unwrap();
+
+        let read_only = test_context(true);
+        let _ = dispatch(&read_only, "inspect_environment", args.clone()).await;
+        assert!(!marker.exists(), "a read-only client ran its own program");
+        let _ = dispatch(&read_only, "provision_plan", args.clone()).await;
+        assert!(
+            !marker.exists(),
+            "provision_plan ran the program in read-only mode"
+        );
+
+        let mut confined = test_context(false);
+        confined.scope =
+            crate::web_server::scope::PathScope::new(std::slice::from_ref(&base)).unwrap();
+        let _ = dispatch(&confined, "inspect_environment", args).await;
+        assert!(!marker.exists(), "a --root client ran its own program");
         std::fs::remove_dir_all(base).ok();
     }
 

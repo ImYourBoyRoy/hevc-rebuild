@@ -10,22 +10,51 @@ import test from "node:test";
 
 const shimSource = readFileSync(new URL("../src-tauri/src/web_server/web_shim.js", import.meta.url), "utf8");
 
-class FakeEventSource {
-  static instances = [];
-  constructor(url, options) {
-    this.url = url;
-    this.options = options;
-    FakeEventSource.instances.push(this);
-  }
-  emit(event, payload) {
-    this.onmessage({ data: JSON.stringify({ event, payload }) });
-  }
+const encoder = new TextEncoder();
+
+/** A fetch response whose body is a stream the test can push chunks into, like a Server-Sent Events reply. */
+function streamResponse() {
+  const queue = [];
+  let wake = null;
+  let ended = false;
+  const reader = {
+    read() {
+      return new Promise((resolve) => {
+        const next = () => {
+          if (queue.length) resolve({ done: false, value: queue.shift() });
+          else if (ended) resolve({ done: true, value: undefined });
+          else wake = next;
+        };
+        next();
+      });
+    },
+  };
+  return {
+    ok: true,
+    status: 200,
+    body: { getReader: () => reader },
+    push(text) { queue.push(encoder.encode(text)); const w = wake; wake = null; w?.(); },
+    end() { ended = true; const w = wake; wake = null; w?.(); },
+  };
 }
 
-function install({ routes = {} } = {}) {
+function frame(event, payload, id) {
+  return `${id ? `id: ${id}\n` : ""}data: ${JSON.stringify({ event, payload })}\n\n`;
+}
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
+
+function install({ routes = {}, hash = "", search = "", stored = null } = {}) {
   const calls = [];
+  const streams = [];
   const fetchMock = async (url, init = {}) => {
     calls.push({ url, init });
+    if (url === "/api/events") {
+      const stream = streamResponse();
+      stream.request = init;
+      streams.push(stream);
+      return stream;
+    }
     const handler = routes[url];
     const reply = handler ? await handler(init) : { status: 404, body: { error: "no route" } };
     return {
@@ -35,12 +64,21 @@ function install({ routes = {} } = {}) {
       json: async () => reply.body,
     };
   };
-  FakeEventSource.instances = [];
-  const win = { innerWidth: 1400, innerHeight: 900, opened: [] };
+  const store = new Map(stored ? Object.entries(stored) : []);
+  const history = { replaced: [], replaceState: (...args) => history.replaced.push(args) };
+  const win = {
+    innerWidth: 1400,
+    innerHeight: 900,
+    opened: [],
+    location: { hash, search, pathname: "/library" },
+    history,
+    sessionStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
+    __HEVC_SSE_RETRY_MS__: 5,
+  };
   win.open = (...args) => win.opened.push(args);
   globalThis.window = win;
-  new Function("window", "fetch", "EventSource", shimSource)(win, fetchMock, FakeEventSource);
-  return { win, calls };
+  new Function("window", "fetch", shimSource)(win, fetchMock);
+  return { win, calls, streams, store, history };
 }
 
 test("the shim presents itself as the Tauri runtime the GUI already detects", () => {
@@ -58,7 +96,7 @@ test("invoke posts camelCase arguments as JSON and resolves the result", async (
   assert.equal(calls[0].init.method, "POST");
   assert.equal(calls[0].init.headers["Content-Type"], "application/json");
   assert.deepEqual(JSON.parse(calls[0].init.body), { root: "/m" });
-  assert.equal(calls[0].init.credentials, "same-origin");
+  assert.equal(calls[0].init.credentials, "omit");
 });
 
 test("command failures reject with the server's message string, as Tauri does", async () => {
@@ -82,35 +120,99 @@ test("command names are URL-encoded", async () => {
   assert.equal(calls[0].url, "/api/invoke/a%2Fb");
 });
 
-test("listen shares one event stream, delivers payloads, and unlisten stops delivery", async () => {
-  install();
+test("listen shares one authenticated event stream, delivers payloads, and unlisten stops delivery", async () => {
+  const { streams } = install({ hash: "#token=abcdefabcdefabcdefabcdef" });
   const { listen } = await import("@tauri-apps/api/event");
   const lines = [];
   const finished = [];
   const stopLines = await listen("run-line", (event) => lines.push(event.payload));
   await listen("run-finished", (event) => finished.push(event.payload));
-  assert.equal(FakeEventSource.instances.length, 1, "one EventSource serves every listener");
-  assert.equal(FakeEventSource.instances[0].url, "/api/events");
-  assert.equal(FakeEventSource.instances[0].options.withCredentials, true);
-  const stream = FakeEventSource.instances[0];
-  stream.emit("run-line", { runId: "a", line: "frame=1" });
-  stream.emit("run-finished", { runId: "a", exitCode: 0 });
-  stream.emit("scan-progress", { current: 1 }); // nobody listens: ignored
+  await tick();
+  assert.equal(streams.length, 1, "one stream serves every listener");
+  assert.equal(streams[0].request.headers.Authorization, "Bearer abcdefabcdefabcdefabcdef", "the token goes in a header, not a cookie");
+  streams[0].push(frame("run-line", { runId: "a", line: "frame=1" }, "7"));
+  streams[0].push(frame("run-finished", { runId: "a", exitCode: 0 }, "8"));
+  streams[0].push(frame("scan-progress", { current: 1 })); // nobody listens: ignored
+  await tick();
   assert.deepEqual(lines, [{ runId: "a", line: "frame=1" }]);
   assert.deepEqual(finished, [{ runId: "a", exitCode: 0 }]);
   await stopLines();
-  stream.emit("run-line", { runId: "a", line: "frame=2" });
+  streams[0].push(frame("run-line", { runId: "a", line: "frame=2" }));
+  await tick();
   assert.equal(lines.length, 1);
 });
 
+test("the event parser copes with keep-alives, split chunks and several frames in one chunk", async () => {
+  const { streams } = install({ hash: "#token=abcdefabcdefabcdefabcdef" });
+  const { listen } = await import("@tauri-apps/api/event");
+  const seen = [];
+  await listen("run-line", (event) => seen.push(event.payload.line));
+  await tick();
+  const first = frame("run-line", { line: "one" }, "1");
+  streams[0].push(": keep-alive\n\n");
+  streams[0].push(first.slice(0, 11));
+  streams[0].push(first.slice(11) + frame("run-line", { line: "two" }, "2") + frame("run-line", { line: "three" }, "3"));
+  await tick();
+  assert.deepEqual(seen, ["one", "two", "three"]);
+});
+
+test("a dropped stream reconnects with the last event id so nothing is lost or repeated", async () => {
+  const { streams } = install({ hash: "#token=abcdefabcdefabcdefabcdef" });
+  const { listen } = await import("@tauri-apps/api/event");
+  const seen = [];
+  await listen("run-line", (event) => seen.push(event.payload.line));
+  await tick();
+  streams[0].push(frame("run-line", { line: "one" }, "41"));
+  await tick();
+  streams[0].end();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.equal(streams.length, 2, "it reconnected");
+  assert.equal(streams[1].request.headers["Last-Event-ID"], "41");
+  streams[1].push(frame("run-line", { line: "two" }, "42"));
+  await tick();
+  assert.deepEqual(seen, ["one", "two"]);
+});
+
+test("the token comes from the URL fragment or query, is kept for this tab only and is removed from the address", async () => {
+  const fromHash = install({ hash: "#token=hashtoken-0123456789abcdef", routes: { "/api/invoke/ping": () => ({ status: 200, body: "pong" }) } });
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("ping");
+  assert.equal(fromHash.calls.at(-1).init.headers.Authorization, "Bearer hashtoken-0123456789abcdef");
+  assert.equal(fromHash.store.get("hevc.token"), "hashtoken-0123456789abcdef", "kept in sessionStorage, which ends with the tab");
+  assert.deepEqual(fromHash.history.replaced.at(-1).slice(2), ["/library"], "the token is replaced out of the address bar, leaving only the path");
+
+  const fromQuery = install({ search: "?token=querytoken-0123456789abcdef&x=1", routes: { "/api/invoke/ping": () => ({ status: 200, body: "pong" }) } });
+  await invoke("ping");
+  assert.equal(fromQuery.calls.at(-1).init.headers.Authorization, "Bearer querytoken-0123456789abcdef");
+  assert.equal(fromQuery.history.replaced.length, 1);
+
+  const reloaded = install({ stored: { "hevc.token": "kept-token-0123456789abcdef0" }, routes: { "/api/invoke/ping": () => ({ status: 200, body: "pong" }) } });
+  await invoke("ping");
+  assert.equal(reloaded.calls.at(-1).init.headers.Authorization, "Bearer kept-token-0123456789abcdef0", "a reload in the same tab stays signed in");
+  assert.equal(reloaded.history.replaced.length, 0, "nothing to strip");
+
+  const none = install({ routes: { "/api/invoke/ping": () => ({ status: 401, body: { error: "x" } }) } });
+  await assert.rejects(() => invoke("ping"), (error) => /login link/.test(error), "without a token the user is told to open the login link");
+  assert.equal(none.calls.at(-1).init.headers.Authorization, undefined);
+});
+
+test("no cookie is ever involved: requests omit credentials", async () => {
+  const { calls } = install({ hash: "#token=abcdefabcdefabcdefabcdef", routes: { "/api/invoke/ping": () => ({ status: 200, body: 1 }) } });
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("ping");
+  assert.equal(calls.at(-1).init.credentials, "omit");
+});
+
 test("two listeners on the same event both receive it", async () => {
-  install();
+  const { streams } = install({ hash: "#token=abcdefabcdefabcdefabcdef" });
   const { listen } = await import("@tauri-apps/api/event");
   let a = 0;
   let b = 0;
   await listen("run-progress", () => a++);
   await listen("run-progress", () => b++);
-  FakeEventSource.instances[0].emit("run-progress", {});
+  await tick();
+  streams[0].push(frame("run-progress", {}));
+  await tick();
   assert.deepEqual([a, b], [1, 1]);
 });
 

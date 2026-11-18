@@ -12,6 +12,19 @@ fn expected_host(provider: &MetadataProvider) -> Option<&'static str> {
     }
 }
 
+/// Every host artwork may be downloaded from; the browser page's content-security policy allows the same ones.
+pub(crate) fn image_hosts() -> Vec<&'static str> {
+    [
+        MetadataProvider::WikimediaCommons,
+        MetadataProvider::TvMaze,
+        MetadataProvider::Tmdb,
+        MetadataProvider::Tvdb,
+    ]
+    .iter()
+    .filter_map(expected_host)
+    .collect()
+}
+
 pub(super) fn expected_source_host(provider: &MetadataProvider) -> &'static str {
     match provider {
         MetadataProvider::WikimediaCommons => "commons.wikimedia.org",
