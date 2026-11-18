@@ -400,7 +400,7 @@
 }
 
 .app-shell .artwork-cache-settings .settings-card-heading { align-items: flex-start; }
-.app-shell .artwork-cache-settings .settings-card-heading > div:nth-child(2) { flex: 1; min-width: 0; }
+.app-shell .artwork-cache-settings .settings-card-heading > div:nth-child(2) { flex: 1 1 200px; min-width: 0; }
 .app-shell .artwork-cache-settings .settings-card-heading h2 { margin: 0; color: var(--theme-text); font-size: 19px; }
 .app-shell .artwork-cache-settings .settings-card-heading .button { flex: 0 0 auto; margin-left: auto; }
 .app-shell .artwork-settings-save { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px 14px; padding-top: 9px; }

@@ -236,6 +236,7 @@
 65d5e0dea6da1f551a6ec6e30c7d7c0c50df2a41dec6bb45ebd5450f3ddd3180  desktop/tests/modal-contract.mjs
 65eb55c000fc466343411b247a7c29780228e9fa656f486622c46cf44ed9f1e2  desktop/src-tauri/src/mcp_server/queue_sync.rs
 65f0a3ca1dc34b9723a56755dbf6c1b02f6dab73ec2d679cb5a5f784cf029e7e  desktop/tests/support/tool-setup-harness.mjs
+65f7998489cf75887ba8f86e184163c26026e53008e43679e7a2e939c21214b5  desktop/src/styles/app/app-metadata-setup.css
 6643da3fbced576bf63fcbcbf0f9d68a769ed4d8c3e4bf6d02b700f25647bceb  desktop/src/lib/queue-run-state.ts
 665ace887b820e46d472f17711174adf2c99df4aa1b77341674f582274608b33  desktop/tests/route-server.mjs
 6666cc944d5a9fa441f49eb4daeee58461ea7ad067298b647d44ce0f26025e3e  desktop/tests/setup-updates.test.mjs
@@ -376,7 +377,6 @@
 9f33af354a60c733ecd89cceca985669dd25362b4770ecba127690737e39652c  todos.md
 9f434e03e1d65c6c7aae8faa6db5d09d92994949e54ffb33c73b0d68a47f3822  desktop/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png
 9f4b9aa62f3e9132345fac79eb5b59725d255ffdf8813567346d0c650c4529a3  desktop/tests/golden/make-route-fixtures.mjs
-a127f0f55ad44cd735729c61410d95882aa56479dae847de187b11690afbc18c  desktop/src/styles/app/app-metadata-setup.css
 a2184cd2085fe38f8a79dd1f3b63edb26a9cd43dfa30581d49693e1d54a097e3  desktop/src/lib/native-types/library.ts
 a2d93c8d532139dd0e49f611bb4f6fa6ef71b0c3a1ae41b1862b3aa646a9d3b5  desktop/src-tauri/src/rebuild_run/model.rs
 a2df4d7f484595236c4fb1e7f4f35ed2af5d925f9e766d1d26719848f69a83b6  desktop/src/lib/RunModePicker.svelte
